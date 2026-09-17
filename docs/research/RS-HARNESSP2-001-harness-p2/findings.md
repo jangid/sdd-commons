@@ -63,7 +63,12 @@ after the gate decision** for that dispatch, and **read by nothing inside the
 SDD loop** — its only reader is an out-of-loop tool (`tools/sdd-telemetry.py`
 `summarize`, the consumer D12 needs). Each record is a set of already-produced
 facts (the v5 tokens and counters) plus timestamps; it carries **no
-"next stage" / "resume here" field** and no prose. Non-interference with phase
+"next stage" / "resume here" field** and no prose — with one exception:
+`dispatch.budget` is today the packet's free-text budget line (e.g.
+`"~70 tool calls, no prototypes"`); requirements should replace it with
+enumerated units and numbers (`"budget": {"tool_calls": 70, "test_runs":
+null, "prototypes": false}`) so the record is strictly prose-free.
+Non-interference with phase
 detection is provable from the enumerated detection inputs (below) plus one lint
 row. `.sdd/` is **not** under `docs/`, is **gitignored**, and is not a project
 artifact — but REQ-HARN-027's prose sentence *names* `.sdd/` and "telemetry
@@ -127,8 +132,9 @@ position table and `sdd-review` Step 2 inputs), are exactly:
 | sdd-verify Step 3b, sdd-review Step 2 | `docs/requirements/traceability.md`, `docs/ws/<ws>/traceability.md` (coverage, never position) |
 
 No reader touches anything outside `docs/`; a grep for `.sdd/` across `skills`
-and `docs` today hits only the requirement/spec sentence forbidding it and the
-two idea documents. Three guards make this durable: (i) a lint `FORBIDDEN` row —
+and `docs` today hits only the requirement/spec sentence forbidding it, the
+two idea documents, and this workstream's `docs/ws/harness-p2/kickoff.md` (which
+restates the idea). Three guards make this durable: (i) a lint `FORBIDDEN` row —
 `\.sdd/` may not appear in any `sdd-*/SKILL.md` except inside
 `sdd-orchestrate`'s telemetry stub and its `references/telemetry.md`; (ii) an
 acceptance criterion "delete `.sdd/` → every skill's detected phase is
@@ -293,7 +299,7 @@ operator; the pause consumes **no** fix iteration.
 
 | Class | Rule (string/set comparison only) | Decidable? |
 |---|---|---|
-| **(b) New Critical on approved ground** | round N+1 raises a C/M finding whose `ref` section was **not** in round N's C/M refs **and** whose file/section is **not** in the fix dispatch's written hunks (`-U0` diff between the fix's before/after HEADs, enclosing heading) — the reviewer changed its mind about content nobody changed | **yes** |
+| **(b) New Critical on approved ground** | round N+1 raises a C/M finding whose `ref` section was **not** in round N's C/M refs **and** whose file/section is **not** in the fix dispatch's written hunks (`-U0` diff between the fix's before/after HEADs, enclosing heading) — the reviewer changed its mind about content nobody changed | **yes at file level today; section level needs code** (see Confidence) |
 | **(c) Verdict regression without new ground** | round N `APPROVE_WITH_FIXES` → round N+1 `REJECT` while the fix touched only files/sections named by round N's refs (subset check) and every round-N+1 C/M ref ⊆ round-N refs ∪ fix hunks | **yes** (weaker signal) |
 | **(a) Reversal** ("undo what round N asked") | round N+1 finding's `ref` equals a round-N finding's `ref` and asks the opposite | **no** — "opposite" is semantic; approximated as `PERSISTING` (already rendered in the compiled log) and not treated as a contradiction |
 
@@ -351,8 +357,17 @@ REVIEW: CONTRADICTION (round 1 vs round 2, class b) — stage: specs, iteration 
   `REVIEW: CONTRADICTION` is a fourth entry in the same family as
   `REVIEW: MALFORMED` and `RETURN: MALFORMED` (`loop-control.md` §6).
 
-**Confidence**: High on detectability of (b)/(c) and on the gate shape (all
-inputs exist in session state today). Medium on false-positive rate of class (b)
+**Confidence**: High on the gate shape and on class (c) (all its inputs exist
+in session state today). **Medium on detectability of (b)**: its key is the
+*section* enclosing each fix hunk, but `write-scope.md` §3 produces a
+**path-level** delta today — hunk-level intent is exactly RS-008 Q5's recorded
+v1 limitation (a). Until that gap is closed, (b) degrades to a file-level
+check ("file not written by the fix"), which over-fires whenever the fix
+touched the same file in a different section. **Needs code**: *section
+resolution of fix hunks* — `git diff -U0 <before> <after>` per written path,
+map each hunk's start line to its enclosing `#`-heading, and emit
+`file:section` pairs for the comparison (a small extension of the write-scope
+snapshot, not a new artifact). Medium on false-positive rate of class (b)
 — a legitimately new Critical the first reviewer simply missed will pause the
 loop; the pause costs one operator decision and is the intended behaviour
 (ROUTE_TO_HUMAN), so the rate is tolerable but should be telemetered (Q1
@@ -360,7 +375,8 @@ loop; the pause costs one operator decision and is the intended behaviour
 
 ### Q4 — `sdd-gc` mechanics
 
-**Answer**: Most sweeps are mechanical; a third are checkable **today** with
+**Answer**: Most sweeps are mechanical; about half (8 of the 15 rows below)
+are checkable **today** with
 `tools/sdd-skill-lint.py`, the rest need a **docs-scoped** sibling tool
 (`tools/sdd-gc.py`, stdlib-only like the linter and the scope self-test) that
 re-implements rules already stated as prose in the skills. Cadence: the
@@ -384,12 +400,34 @@ sweep must not move the loop).
 | `docs/spec/*.md` backtick pointers from skills resolve | **yes** — warn severity | — | — | `resolve_backtick_path()`; fenced examples (e.g. `docs/spec/recon.md` in templates) are skipped by design — a raw grep over fences found only that one, so **0 real dead pointers** |
 | Cross-links **inside `docs/`** (spec↔spec, req→spec `(see …)`, `research_refs`, `requires:` ids exist) | — | **yes** — same two regexes over `docs/**/*.md` + id-existence for `RS-`/`REQ-`/`Q-IMPL-` | — | lint scans `skills/` only (`skill_files()`) |
 | Staleness chain (research → requirements → specs → plan → verification, `last_updated`) — per-workstream live walk under marker 4 | — | **yes** — rule is prose in every skill's Phase Detection + `docs/spec/ws-staleness.md`; no tool | — | inputs: plan `traces to` → spec `requires:` → category files |
-| Orphan Q-IMPL (i): referenced but undefined | **yes** — grep | — | — | 34 ids defined in `docs/spec`, 21 referenced outside; **0 undefined** |
-| Orphan Q-IMPL (ii): defined, never referenced outside specs | **yes** — grep | — | — | 11 of 34; **not a defect** by `deviation-protocol.md` ("entries live in the specs they relate to; no separate index") — report as informational only |
+| Orphan Q-IMPL (i): referenced but undefined | **yes** — grep (counting rule below) | **yes** for the example-skip | — | 28 ids defined, 23 distinct ids referenced outside their heading; 20 in both; **0 real undefined** — the 3 raw referenced-only hits (`Q-IMPL-003`, `-007`, `-021`) are illustrative ids inside template examples (`docs/spec/chunk-close-review.md:196`, `deviation-protocol.md:129`, `harness-return-contract.md:57` + its skill mirrors), so `sdd-gc.py` must skip fenced/quoted examples the way the linter's `resolve_backtick_path()` already does |
+| Orphan Q-IMPL (ii): defined, never referenced outside specs | **yes** — grep (counting rule below) | — | — | 8 of 28 (`Q-IMPL-022/023/024/042/053/054/062/084`); **not a defect** by `deviation-protocol.md` ("entries live in the specs they relate to; no separate index") — report as informational only |
 | Orphan Q-IMPL (iii): entry whose `Spec reference` section no longer exists / broken `[superseded by …]` chain | — | **yes** — heading resolution + supersede graph | — | `deviation-protocol.md:124` defines the superseded note |
 | Empty traceability cells | **yes** — grep (143 of 184 rows have an empty Test or Implementation cell) | **yes** for the *policy* — flag only Spec-empty rows and Impl-filled/Test-empty rows (the `sdd-verify` Step 3b rule); prose-only requirements legitimately have empty Test | — | this repo's rows are prose-only specs |
 | Aggregate `docs/requirements/traceability.md` == regenerate(per-ws files) (marker 4) | — | **yes** — deterministic concat + stable sort per `ws-traceability.md` | — | `sdd-verify` Step 3b describes the regeneration |
 | Index ↔ directory consistency (`research/index.md` rows ↔ `RS-*` dirs; `requirements/index.md` ↔ category files; all specs `status: Approved` before a plan exists) | — | **yes** — trivial | — | index rows and dirs both enumerable |
+
+**Q-IMPL counting rule** (pinned so `sdd-gc.py` is specifiable; numbers above
+were recomputed under it on 2026-09-17): a *definition* is a `### Q-IMPL-<id>`
+heading under `docs/spec/**`; a *reference* is any other occurrence of a
+`Q-IMPL-` id under `docs/`, `skills/`, `agents/`, `tools/` **excluding
+`docs/research/**`** (RS-002 cites `Q-IMPL-005/006` etc. of a foreign repo) and
+**excluding id-format placeholders** (`Q-IMPL-NNN`, `Q-IMPL-1`,
+`Q-IMPL-ISSUE42*`, `Q-IMPL-ISSUE57-001` — the v4 examples in `ws-ids.md` and
+the skills). Commands used:
+
+```sh
+# definitions → 28
+grep -rhoE '^### Q-IMPL-[A-Z0-9-]+' docs/spec | sed 's/^### //' | sort -u
+# references (distinct ids, heading lines dropped) → 28 raw, 23 after dropping the 5 placeholders
+grep -rHnE 'Q-IMPL-[A-Z0-9]+(-[0-9]+)?' docs skills agents tools --exclude-dir=research \
+  | grep -vE ':[0-9]+:### Q-IMPL-' | grep -oE 'Q-IMPL-[A-Z0-9]+(-[0-9]+)?' | sort -u
+# then: comm -12 (both) → 20; comm -23 (defined only) → 8; comm -13 (referenced only) → 3, all template examples
+```
+
+The earlier "34 / 21" figures came from an unpinned grep (headings counted at
+any depth, research included); the conclusion — no real orphans — is
+unchanged, but only the pinned rule is reproducible.
 | `plan-history` naming discipline (`-replan-` only from `sdd-replan`; `-complete`, rewrite shapes) | — | **yes** — one regex | — | `loop-control.md` §3 depends on it |
 | Kickoff `date:` / `research_id:` present (per workstream) | **yes** — grep | — | — | orchestrate's pre-dispatch self-check already does it in-loop |
 | Known drift phrases | **yes** — lint `FORBIDDEN` rows | — | **new** drift (skill text diverging from a spec's wording) | judgement; caught by `sdd-review` |
@@ -590,6 +628,14 @@ this section records only what the leaf can observe about itself.
 - **Write-scope contract gains v1 limitation (c)** (catch-up fast-forward
   inside the observation window) with the two remedies above; provisioning at
   the correct base is the cheaper one.
+- **Second data point for `write-scope.md` §6 (blocked-write fallback)**:
+  Q6's observation recurred verbatim in this artifact's fix dispatch
+  (iteration 1) — the `Write` tool refused the research artifact and the
+  worktree guard refused a shell heredoc whose *prose* merely mentions
+  version-control commands. Two dispatches, same two blocks: §6 should
+  document "stage in the scratchpad under a neutral name, then copy/patch
+  in" as the expected path for research leaves and fix leaves that write
+  prose about the harness, not as an anomaly to be reported.
 - **Q-IMPL-083 split** (`sdd-implement/SKILL.md` Step 3 detail + leaf return
   contract → `references/`) needs no research: `sdd-implement` is 525 lines
   (lint warn), the move is the same operation the v5 cycle performed on
@@ -639,7 +685,14 @@ Decisions deferred to requirements (defaults stated): telemetry default
 **on** under orchestrate, file `.sdd/telemetry.jsonl`, gitignored; red default
 **off**; arbitration default **on** (it only pauses); gc runs at DONE and entry,
 pre-commit optional; evaluation mode **not** built this cycle beyond the
-requirement and scorer field list.
+requirement and scorer field list; **red exit-rule strictness** — whether
+`sdd-verify` writes `status: pending-red` (instead of `pass`) when told red is
+enabled, so that an uncommitted `status: pass` never sits on disk while red is
+pending (a re-entering session reads the working tree and would otherwise
+detect DONE — the session-crossing hazard in Q2's Confidence); default stated:
+rely on commit ownership (orchestrator commits only after `RED_VERDICT`), the
+`pending-red` variant costs one stage-skill edit and is the safer choice if
+red is ever default-on.
 
 ## Assumptions
 
