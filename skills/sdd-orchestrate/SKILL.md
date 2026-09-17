@@ -27,18 +27,16 @@ by dispatching the corresponding `sdd-*` skill; you relay that output rather tha
 duplicating it. You own only orchestration: sequencing stages, constructing
 isolated dispatches, and mediating operator gates.
 
-Isolation is **by construction**. Each pipeline stage and each review run as a
-**separate subagent** with a fresh context window. A freshly dispatched subagent
-has no shared window through which your reasoning could leak — a stronger
-guarantee than two human terminal sessions. (Honest caveat: a fresh subagent
-still inherits repo-level context — `CLAUDE.md`, project memory. The guarantee
-covers the working session's reasoning and drafts, not repo documentation.)
+Isolation is **by construction**: each pipeline stage and each review runs as a
+**separate subagent** with a fresh context window, so there is no shared window
+through which your reasoning could leak. (Caveat: a fresh subagent still inherits
+repo-level context — `CLAUDE.md`, project memory; the guarantee covers the
+working session's reasoning and drafts, not repo documentation.)
 
-**Scope**: research-entry **by default**, sequential by default. With no upstream
-artifacts the kickoff is a research kickoff and the loop starts at research; when
-approved upstream artifacts already exist, the operator may start **mid-pipeline**
-(see §Entry Points). Implement-stage **fan-out is active** as an opt-in mode at
-the implement gate (see §Execution Model); every other stage is always sequential.
+**Scope**: research-entry by default, sequential by default. When approved
+upstream artifacts already exist the operator may start **mid-pipeline** (§Entry
+Points). Implement-stage **fan-out** is an opt-in mode at the implement gate
+(§Execution Model); every other stage is always sequential.
 
 ## Phase Detection
 
@@ -130,9 +128,8 @@ research is complete (REQ-WS-024). Full procedure: [`references/v4-workstreams.m
 
 Research is the **default** entry. But when approved upstream SDD artifacts
 already exist, the operator may start the loop **mid-pipeline** (REQ-ORCH-031) at
-**requirements, specs, plan, or implement**. Research is the default; **verify is
-not an entry point** (verifying an existing project is just invoking `sdd-verify`
-directly — no loop). 
+**requirements, specs, plan, or implement**. **Verify is not an entry point**
+(verifying an existing project is just invoking `sdd-verify` directly — no loop).
 
 **Marker-`4` scope.** Mid-pipeline entry is a marker-`3` single-cycle concept
 (behavior UNCHANGED there); under marker `4` a new workstream always begins at
@@ -140,7 +137,7 @@ research and selecting an existing one is resume, not entry — [`references/v4-
 §Marker-4 scope.
 
 **Entry ≠ resume.** *Resume* continues a cycle **this driver** started (its
-kickoff + partial artifacts are on disk — see §Phase Detection). *Non-research
+kickoff + partial artifacts are on disk — §Phase Detection). *Non-research
 entry* begins a fresh loop over artifacts produced **outside** this driver — e.g.
 the operator hand-wrote requirements or ran `sdd-requirements` directly and now
 wants the gated loop for the rest.
@@ -184,10 +181,10 @@ DONE     — the verify stage passes review AND the operator approves
 
 Before writing any kickoff, reach a shared understanding of the idea with the
 operator. **Reuse the brainstorming process** — invoke a brainstorming skill if
-one is available in the session; otherwise run the equivalent inline:
-explore intent, challenge assumptions, surface scope boundaries, and capture the
-open questions the research stage should answer. Do not jump straight to a kickoff or to
-implementation — converge first.
+one is available in the session; otherwise run the equivalent inline: explore
+intent, challenge assumptions, surface scope boundaries, and capture the open
+questions the research stage should answer. Do not jump straight to a kickoff
+or to implementation — converge first.
 
 Exit DISCUSS when the operator and you agree on: what the idea is, what is in and
 out of scope, and the concrete questions worth researching.
@@ -215,7 +212,7 @@ an **entry kickoff** instead — scope of the change, the entry stage, and which
 upstream is assumed approved — and begin the LOOP at that stage.
 
 The kickoff carries **no loop log**. It is written once at KICKOFF and is not the
-source of truth for resume — the SDD artifacts are (see Phase Detection).
+source of truth for resume — the SDD artifacts are (§Phase Detection).
 
 **Kickoff frontmatter — `date:` is mandatory (REQ-HARN-002).** Every kickoff
 this skill writes carries `date: YYYY-MM-DD` (the write date) beside
@@ -240,33 +237,30 @@ template violation; only kickoffs predating this rule fall back to the
 For each stage in order — research, requirements, specs, plan, implement, verify
 — run pipeline → review → gate.
 
-**Return contract (stub).** Every leaf dispatch ends its return with a
-structured `RETURN:` block (`status:` first, then budget, files, commits, task
-and traceability fills, one-line `failures`, ledger, open questions, blocked
-writes) and `sdd-review` emits an own-line `VERDICT:` token; the orchestrator
-parses both — never prose — branches on them, and composes any fix re-dispatch's
-fixed-shape repair packet from three sources only (the previous `RETURN`, the
-review's Critical/Material lines, disk paths). Malformed returns and reviews
-pause at the gate. The full procedure — key table, malformed rules, packet
-shape and field sources, `VERDICT:` and `RETURN.status` branching tables,
-finding → chunk mapping, pruned-state check — is
-`references/return-contract.md`.
+**Return contract.** Every leaf dispatch ends its return with a structured
+`RETURN:` block (`status:` first; then budget, files, commits, task and
+traceability fills, one-line `failures`, ledger, open questions, blocked writes)
+and `sdd-review` emits an own-line `VERDICT:` token. You parse both — never
+prose — branch on them, and compose any fix re-dispatch's fixed-shape repair
+packet from three sources only (the previous `RETURN`, the review's
+Critical/Material lines, disk paths). Malformed returns and reviews pause at
+the gate. Full procedure — key table, malformed rules, packet shape, branching
+tables, finding → chunk mapping, pruned-state check:
+[`references/return-contract.md`](references/return-contract.md).
 
-**Write scope (stub).** Every leaf template declares `Write scope:` (review
-and verifier: `(empty — read-only)`), filled from a per-stage default table.
-Around every dispatch the orchestrator takes `snapshot(before)` immediately
-before dispatch and `snapshot(after)` immediately on return — before the
-verifier, before the gate and before its own commit or merge — then computes
-the written paths as porcelain delta ∪ committed delta plus an ancestry check,
-tags each `IN` / `ADVISORY` / `OUT`, and surfaces an own-line
-`SCOPE: CLEAN | VIOLATION (N paths)` before the verifier, the gate and any
-commit. `blocked_writes` are scope-matched before persistence; commit
-ownership is fixed per dispatch type (pipeline: orchestrator on `proceed`;
-fan-out leaf: the leaf, orchestrator merges; review/verifier: nobody). The
-full procedure — slot semantics, default scope table, the three commands with
-the fan-out substitution, tags and hints, finding format, revert targets,
-pre-persist match, commit-ownership table, snapshot ordering, the recorded
-limitations list (v1), marker-4 rooting — is
+**Write scope.** Every leaf template declares `Write scope:` (review and
+verifier: `(empty — read-only)`) from a per-stage default table. Around every
+dispatch you take `snapshot(before)` immediately before dispatch and
+`snapshot(after)` immediately on return — before the verifier, the gate and
+your own commit or merge — compute the written paths (porcelain delta ∪
+committed delta plus an ancestry check), tag each `IN` / `ADVISORY` / `OUT`,
+and surface an own-line `SCOPE: CLEAN | VIOLATION (N paths)` before the
+verifier, the gate and any commit. `blocked_writes` are scope-matched before
+persistence; commit ownership is fixed per dispatch type (pipeline: orchestrator
+on `proceed`; fan-out leaf: the leaf, orchestrator merges; review/verifier:
+nobody). Full procedure — slot semantics, default scope table, the three
+commands, tags, finding format, revert targets, pre-persist match,
+commit-ownership table, snapshot ordering, limitations, marker-4 rooting:
 [`references/write-scope.md`](references/write-scope.md).
 
 ### Per-stage dispatch model
@@ -329,8 +323,10 @@ after the last chunk: dispatch the implement-stage sdd-review ONCE on the merged
                       → the single implement-stage review gate (proceed │ loop-back-to-fix │ stop)
 ```
 
-The gate block (byte-identical to `harness-chunk-verifier.md`,
-`harness-write-scope.md` §Commit Ownership and `orchestration.md` §v5):
+The gate block — the **one canonical copy** in this skill, byte-identical to
+`harness-chunk-verifier.md` §Sequencing, `harness-write-scope.md` §Commit
+Ownership and `orchestration.md` §v5; under fan-out it is the per-leaf gate,
+rendered before merge with no orchestrator commit (`references/fan-out.md` §3a.v):
 
 ```
 Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: leaf wt-g1 / branch fanout-g1]
@@ -342,50 +338,39 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
   Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 2 with a repair packet; counts toward the per-chunk redo cap) │ stop
 ```
 
-**Defaults.** `proceed` on `CHUNK_VERDICT: PASS` + `SCOPE: CLEAN`; `fix` on
-`FAIL` or `SCOPE: VIOLATION`. `proceed` on a FAIL is an explicit operator
-override, recorded as gate text (`CHUNK_VERDICT: FAIL — proceeded by
-operator`); nothing is persisted. An unresolved `OUT` path is resolved by the
-scope options (`revert path | accept & widen scope`) before any choice.
-
-**Per-chunk redo counter.** Keep `chunk_redo_count[<chunk header>]` per chunk,
-shown as `Redo: N of 3` against `REDO_MAX` (default 3,
-`harness-loop-control.md` §Redo Cap per Chunk). It increments **only on
-`fix`** (a `PARTIAL_CONTINUE` or fresh-budget `fix` counts; a verifier
-re-dispatch does not). On exhaustion the gate behaves exactly like the fix-loop
-cap — `stop │ manual intervention │ authorized extra redo` — with the exhaustion
-summary compiled from the verifier's findings; the operator may choose a replan
-from there.
-
-**FAIL routing.** A FAIL routes **only** to a repair packet for a redo of the
-same chunk (`fix`); never directly to a merge, to the implement-stage review,
-or to `sdd-replan`. Signal order at this gate is `RETURN.status` → `SCOPE:` →
-`CHUNK_VERDICT:` (REQ-ORCH-034); the per-chunk gate never shows a review
-`VERDICT:`.
-
-**Review runs ONCE.** The implement-stage `sdd-review` and its stage gate run
-once, after all chunks, on the merged state. A three-chunk plan yields 3
-implement + 3 verifier dispatches (plus redos), 3 per-chunk gates, and **1**
-review with **1** stage gate.
-
-**Post-review loop-back re-entry.** After a stage-level `loop-back-to-fix`,
-findings are mapped to chunks (`references/return-contract.md` §5 — REQ → spec
-→ chunk; unmappable or multi-chunk → one `target.chunk: all` fix dispatch).
-Each fix dispatch is followed by the scope check, **one verifier per touched
-chunk**, and that chunk's per-chunk gate **before** the re-review.
-
-**Verifier edge cases.** No `### Chunk N:` headers (v2 vocabulary) → one
-implement dispatch, no verifier, stated at the gate. A verifier returning
-`status: BUDGET_EXHAUSTED` is consumed as `CHUNK_VERDICT: FAIL`; the
-orchestrator may re-dispatch it with a larger budget before rendering the gate
-— a **verifier re-dispatch is not a redo** and does not increment
-`chunk_redo_count`. A gate command that exits non-zero on the verifier's run
-but zero on the orchestrator's re-run (or on a redo with no code change)
-renders the gate line as `possible flake` — never auto-PASS. A verifier that
-writes anyway gets every path tagged `OUT`, `SCOPE: VIOLATION`, and its writes
-reverted before any redo. Under **fan-out** the same block is the per-leaf
-gate, rendered before merge with no orchestrator commit
-(`references/fan-out.md` §3a.v).
+- **Defaults.** `proceed` on `CHUNK_VERDICT: PASS` + `SCOPE: CLEAN`; `fix` on
+  `FAIL` or `SCOPE: VIOLATION`. `proceed` on a FAIL is an explicit operator
+  override recorded as gate text (`CHUNK_VERDICT: FAIL — proceeded by
+  operator`); nothing is persisted. An unresolved `OUT` path is resolved by the
+  scope options (`revert path | accept & widen scope`) before any choice.
+- **Per-chunk redo counter.** `chunk_redo_count[<chunk header>]`, shown as
+  `Redo: N of 3` against `REDO_MAX` (default 3, `harness-loop-control.md` §Redo
+  Cap per Chunk), increments **only on `fix`** (a `PARTIAL_CONTINUE` or
+  fresh-budget `fix` counts; a verifier re-dispatch does not). On exhaustion
+  the gate behaves exactly like the fix-loop cap — `stop │ manual intervention
+  │ authorized extra redo` — with the summary compiled from the verifier's
+  findings; the operator may choose a replan from there.
+- **FAIL routing.** A FAIL routes **only** to a repair packet for a redo of the
+  same chunk (`fix`); never directly to a merge, to the implement-stage review,
+  or to `sdd-replan`. The per-chunk gate never shows a review `VERDICT:`.
+- **Review runs ONCE.** The implement-stage `sdd-review` and its stage gate run
+  once, after all chunks, on the merged state: a three-chunk plan yields 3
+  implement + 3 verifier dispatches (plus redos), 3 per-chunk gates, **1**
+  review with **1** stage gate.
+- **Post-review loop-back re-entry.** After a stage-level `loop-back-to-fix`,
+  findings are mapped to chunks (`references/return-contract.md` §5 — REQ →
+  spec → chunk; unmappable or multi-chunk → one `target.chunk: all` fix
+  dispatch). Each fix dispatch is followed by the scope check, **one verifier
+  per touched chunk**, and that chunk's per-chunk gate **before** the re-review.
+- **Verifier edge cases.** No `### Chunk N:` headers (v2 vocabulary) → one
+  implement dispatch, no verifier, stated at the gate. A verifier returning
+  `status: BUDGET_EXHAUSTED` is consumed as `CHUNK_VERDICT: FAIL`; you may
+  re-dispatch it with a larger budget before rendering the gate — a **verifier
+  re-dispatch is not a redo** and does not increment `chunk_redo_count`. A gate
+  command that exits non-zero on the verifier's run but zero on your re-run (or
+  on a redo with no code change) renders as `possible flake` — never auto-PASS.
+  A verifier that writes anyway gets every path tagged `OUT`, `SCOPE:
+  VIOLATION`, and its writes reverted before any redo.
 
 ### Review subagent dispatch
 
@@ -401,6 +386,8 @@ isolation does not depend on operator vigilance. The template is in
   changed during the stage (e.g. `git diff --name-only` against the
   stage-start commit),
 - the upstream artifact path — **except for the research stage** (see below),
+- the `Budget:` line (a non-empty value in observable units, §KICKOFF
+  self-check 2) and the read-only `Write scope:` line,
 - the instruction to invoke `sdd-review`.
 
 **It MUST NOT carry:**
@@ -443,22 +430,27 @@ the gate: re-dispatch the pipeline with the findings and then either re-review
 (the default loop) or skip the re-review per the verdict's own definition — the
 operator picks. For *Reject* verdicts the re-review is never skipped.
 
-**Stage-gate signals (REQ-ORCH-034 order).** The gate line surfaces the harness
-signals in the order they are produced, pointers only: (1) the leaf's
-`RETURN.status` and `budget_consumed` against the dispatched `Budget:`; (2) the
-write-scope block ending in the own-line `SCOPE: CLEAN | VIOLATION (N paths)`
-token (`references/write-scope.md` §5) — the orchestrator branches on the
-token, never on prose: `VIOLATION` offers, per `OUT` path, `revert path |
-accept & widen scope | stop`, resolved **inside the per-chunk gate** before
-its commit (sequential) or the leaf's merge (fan-out), and `proceed` there is
-unavailable while any `OUT` path is unresolved; `CLEAN` continues to signal
-(3), or at a non-implement stage gate straight to signal (4); a
-`HISTORY_REWRITE` finding counts as a violation and offers only `stop`
-(§Isolation Discipline); (3) implement stage only, per chunk, the
-chunk's `CHUNK_VERDICT:` with `Redo: N of REDO_MAX` (per-chunk gate — §LOOP);
-(4) the parsed review `VERDICT:`; (5) the **loop counters** when a loop is
-active — `iteration N of MAX` for the fix-loop cap and the derived count
-against the replan re-entry cap (both defined below). All of it is ephemeral (REQ-ORCH-013).
+**Gate signals — REQ-ORCH-034 order (pointers only).** Signals surface in the
+order they are produced; everything is ephemeral (REQ-ORCH-013):
+
+1. the leaf's `RETURN.status` and `budget_consumed` against the dispatched
+   `Budget:` (`references/return-contract.md` §1, §7);
+2. the write-scope block ending in the own-line `SCOPE: CLEAN | VIOLATION (N
+   paths)` token (`references/write-scope.md` §5) — branch on the token, never
+   prose: `VIOLATION` offers, per `OUT` path, `revert path | accept & widen
+   scope | stop`, resolved before the chunk's commit (sequential) or the leaf's
+   merge (fan-out), with `proceed` unavailable while any `OUT` path is
+   unresolved; a `HISTORY_REWRITE` finding counts as a violation and offers only
+   `stop` (§Isolation Discipline);
+3. implement stage only, per chunk: the chunk's `CHUNK_VERDICT:` (parsed from
+   the verifier's `RETURN:` block, last line; missing or unrecognized →
+   `RETURN: MALFORMED`) with `Redo: N of 3` against `REDO_MAX` — signals 1–3
+   render at the **per-chunk gate** (§Per-chunk implement dispatch);
+4. the parsed review `VERDICT:`;
+5. when a loop is active, the loop counters — `iteration N of MAX` for the
+   fix-loop cap and the derived count against the replan re-entry cap (both
+   below) — signals 4–5 (and, for a non-implement stage, 1–2 with them) render
+   at the **stage gate**.
 
 **Fix-loop cap (REQ-HARN-001).** `FIX_LOOP_MAX` is an orchestrator constant,
 default **3**, keyed by **stage** and **session-only** — a new session restarts
@@ -529,13 +521,6 @@ count = number of files f in <plan-history>/ such that
 Cap arithmetic is orchestrator-only (§Orchestrator-Only Work): no template tells
 a subagent to count iterations or archives.
 
-**`CHUNK_VERDICT:` consumer.** For the implement stage this stage gate is the
-*second* gate kind: each chunk has already closed at a per-chunk gate whose
-signals, in order, are `RETURN.status` → `SCOPE:` → `CHUNK_VERDICT:` (parsed
-from the verifier's `RETURN:` block, last line; missing or unrecognized →
-`RETURN: MALFORMED`). The stage gate shows the review `VERDICT:` plus the loop
-counters (REQ-ORCH-034) — see §Per-chunk implement dispatch and per-chunk gate.
-
 ### Edge cases routed through the gate
 
 - **Replan trigger**: if a pipeline subagent triggers a replan (stuck detection,
@@ -570,16 +555,13 @@ workspace unless the operator explicitly opts into fan-out at the implement gate
 Fan-out is **only** ever available at the implement stage; no other stage fans out.
 
 **Implement-stage fan-out (Design B — active, opt-in).** Fan-out is
-**orchestrator-owned and one level deep**: you derive independent chunk-groups from
-the plan, provision a worktree per group, dispatch one **leaf** implement subagent
-per group, then merge the branches sequentially into `main` before the
-implement-stage review. The full procedure (dispatch template + command sequence)
-lives in [`references/fan-out.md`](references/fan-out.md); the contract below is its
-summary.
-
-Design A (a pipeline subagent owning nested fan-out) is **ruled out infeasible** — a
-dispatched subagent has no subagent-dispatch tool (RS-006 Q1) — so Design B is the
-only viable design and the spec.
+**orchestrator-owned and one level deep**: you derive independent chunk-groups
+from the plan, provision a worktree per group, dispatch one **leaf** implement
+subagent per group, then merge the branches sequentially into `main` before the
+implement-stage review. Design A (a pipeline subagent owning nested fan-out) is
+**ruled out infeasible** — a dispatched subagent has no subagent-dispatch tool
+(RS-006 Q1). The full procedure (dispatch template + command sequence) is
+[`references/fan-out.md`](references/fan-out.md); the contract below is its summary.
 
 ### Integration anchor (version gate)
 
@@ -604,15 +586,12 @@ branches).
 
 ### Opt-in gate
 
-Fan-out is **opt-in at the implement gate** and never automatic. At that gate,
-present fan-out as an explicit operator choice; you may surface how many independent
-chunk-groups the plan yields so the operator can judge whether it is worthwhile.
-Absent an opt-in, the implement stage runs sequentially.
-
-When the plan yields only a **single chain** (or has no parseable chunk-level
-dependencies), tell the operator **at the gate** that fan-out will degrade to
-sequential for this plan — so an opt-in that then runs sequentially is expected, not
-surprising.
+Fan-out is **opt-in at the implement gate** and never automatic: present it as an
+explicit operator choice, surfacing how many independent chunk-groups the plan
+yields. Absent an opt-in, the implement stage runs sequentially. When the plan
+yields only a **single chain** (or has no parseable chunk-level dependencies),
+say **at the gate** that fan-out will degrade to sequential for this plan — so an
+opt-in that then runs sequentially is expected, not surprising.
 
 **Chunk verifier: default on, opt-out here.** The same gate records whether the
 chunk-close verifier runs this cycle (`harness-chunk-verifier.md` Open Question
@@ -622,44 +601,32 @@ the cycle at this gate only; the choice is gate text, never persisted.
 
 ### Lifecycle (provision → dispatch → merge → teardown)
 
-When the operator opts in and the graph has ≥2 independent branches:
+When the operator opts in and the graph has ≥2 independent branches — full
+command sequence in `references/fan-out.md` §3:
 
-1. **Provision** one worktree/branch per group yourself:
-   `git worktree add -b <branch> <path> <base>`. Worktree ownership is the
-   orchestrator's (Q-REQ-G) — a single owner keeps provisioning and teardown
-   symmetric and avoids orphaned worktrees.
-2. **Dispatch** one implement subagent per group, pinned to its worktree/branch,
-   carrying that group's chunks. Each is a **leaf** — it runs `sdd-implement` and
-   must not (and cannot) sub-dispatch (REQ-ORCH-022). The non-interactivity contract
-   and central ID assignment apply. **Issue all per-group dispatches in one batch**
-   so they run concurrently (see Concurrency note), then **await all returns** before
-   merging.
-3. **Subagent git identity:** instruct each subagent to commit with inline
-   `git -c user.email=<id> -c user.name=<name> commit ...` — never by writing
-   `.git/config`, which the subagent sandbox blocks (RS-006 Q2). Do not instruct a
-   subagent to write `.git/config`.
-4. **Sequential merge to main:** after all returns, merge branches one at a time
-   (`git merge --no-edit <branch>`), completing **all** merges **before** the
-   implement-stage review (the review sees the merged state, never an unmerged
-   branch). One-at-a-time merging means partial-merge corruption cannot occur.
-5. **Teardown:** after each clean merge, remove the worktree
-   (`git worktree remove <path>`) and delete its branch (`git branch -d <branch>`),
-   leaving only `main` for the review.
+1. **Provision** one worktree/branch per group yourself; worktree ownership is
+   the orchestrator's (Q-REQ-G) so provisioning and teardown stay symmetric.
+2. **Dispatch** one **leaf** implement subagent per group, pinned to its
+   worktree/branch, carrying that group's chunks; a leaf runs `sdd-implement`
+   and cannot sub-dispatch (REQ-ORCH-022). Non-interactivity and central ID
+   assignment apply. Issue all dispatches **in one batch**, then **await all
+   returns** before merging. Each leaf commits with an inline
+   `git -c user.email=… -c user.name=…` identity — never by writing
+   `.git/config`, which the sandbox blocks (RS-006 Q2).
+3. **Sequential merge:** one branch at a time, **all** merges **before** the
+   implement-stage review; one-at-a-time merging rules out partial-merge corruption.
+4. **Teardown** each worktree and branch after its clean merge, leaving only
+   `main` for the review.
 
 ### Conflict handling (redo by re-derivation)
 
-On a non-zero `git merge` exit: an **optional** best-effort auto-resolve may be tried
-first (a clean auto-resolve = PASS, no abort). Otherwise run `git merge --abort`,
-then **redo the chunk-group by re-derivation** — provision a fresh worktree
-re-branched from the updated `main` (`git worktree add -b <branch>-redo <path>
-main`) and re-dispatch a leaf implement subagent to re-run `sdd-implement` there.
-**Never replay the stale returned patch** (it would reproduce the same conflict);
-re-derivation integrates the already-merged changes. If the group **still** conflicts
-after re-derivation, that proves the groups were not truly independent (a boundary
-error) → **fall back to running the affected groups sequentially**, which cannot
-conflict by construction and guarantees termination. `git merge --abort` unwinds only
-the single failing merge — already-merged work is never corrupted. Full command
-sequence: [`references/fan-out.md`](references/fan-out.md) §3c (Q-IMPL-1).
+On a merge conflict: abort the single failing merge (merged work is never
+corrupted), then **redo the chunk-group by re-derivation** — a fresh worktree
+re-branched from the updated `main`, a fresh leaf re-running `sdd-implement`.
+**Never replay the stale returned patch.** A group that **still** conflicts
+after re-derivation was not truly independent (a boundary error) → **run the
+affected groups sequentially**, which cannot conflict and guarantees
+termination. Full command sequence: [`references/fan-out.md`](references/fan-out.md) §3c (Q-IMPL-1).
 
 **Marker-4 anchor.** Under marker `3` the paragraph above applies against `main`
 UNCHANGED; under marker `4` the provision base, merge-back target and redo
@@ -668,14 +635,10 @@ re-branch are the workstream branch and the boundary-error inference is removed
 
 ### Concurrency note
 
-Fan-out implement subagents dispatched in a single batch were **observed to run
-concurrently** on this harness — medium confidence, per the RS-006
-dispatch-concurrency spike (`docs/spikes/dispatch-concurrency.md`), whose ~4s probe
-workload inside a ~426s agent lifetime is latency-dominated. Where it holds, fan-out
-delivers wall-clock speedup, not merely worktree isolation (REQ-ORCH-028).
-**Correctness does not depend on it:** the design (per-worktree isolation +
-sequential conflict-aborting merge) is correct whether dispatches run concurrently or
-serialized; only the speedup depends on concurrency.
+Fan-out leaves dispatched in a single batch were **observed to run concurrently**
+(medium confidence — the RS-006 dispatch-concurrency spike), so fan-out delivers
+wall-clock speedup, not merely isolation (REQ-ORCH-028). **Correctness does not
+depend on it** — only the speedup does.
 
 ## Orchestrator-Only Work
 
@@ -683,8 +646,7 @@ Some work needs a capability a **leaf pipeline subagent does not have**: subagen
 **dispatch**. A dispatched subagent's toolset contains no dispatch tool at all
 (RS-006 Q1), so it cannot spawn its own subagents. You (the orchestrator) MUST
 perform dispatch-requiring work yourself — never hand it to a delegated pipeline
-dispatch, which would stall (the leaf subagent cannot proceed) or silently
-under-deliver. The two cases that arise:
+dispatch, which would stall or silently under-deliver. The two cases that arise:
 
 1. **Implement-stage fan-out execution** — provisioning worktrees and dispatching
    one implement subagent per chunk-group is itself dispatch; that is exactly why
