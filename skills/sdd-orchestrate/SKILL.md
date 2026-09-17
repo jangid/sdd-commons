@@ -50,6 +50,11 @@ off to `sdd-migrate` and re-derive phase from the migrated layout; on decline
 (or non-interactive) proceed on the current marker with behavior **unchanged**;
 at the latest marker, say nothing.
 
+**Drift sweep at entry (REQ-GC-HARNESSP2-005).** Before the workstream picker
+(marker `4`) / before phase detection (marker `3`) run `python3 tools/sdd-gc.py --report`
+and render one line — `GC: clean` or `GC: F fail, W warn — run tools/sdd-gc.py --report` —
+then open the picker regardless (informational, never a gate): [`references/drift-sweep.md`](references/drift-sweep.md) §1.
+
 **Workstream & version gate (v4).** Under `docs/.sdd-version` ≠ `4` (v3 or
 earlier) behavior is UNCHANGED — ignore the `workstream` argument, derive loop
 position from the flat artifacts in the table below and never read `docs/ws/`.
@@ -508,3 +513,10 @@ operator decides.
 
 When the verify stage passes review and the operator approves, the cycle is
 DONE. Recommend committing the cycle's artifacts (including `docs/handoff/kickoff.md`).
+Then run `python3 tools/sdd-gc.py --report [--workstream <id>]` (marker `4`: the
+completed workstream), render its findings at the DONE gate and route each per
+[`references/drift-sweep.md`](references/drift-sweep.md) §2: mechanical → `--fix <rule>`
+(operator reviews and commits); needs-a-decision → `record | ignore`, `record` appending
+`- gc <rule>: <file:line> — <fix>` under that cycle's `verification.md` `## Next Steps`
+outside any observed window; out-of-scope → note. gc never runs between stages, never
+blocks a gate, is never scheduled or looped, and never creates or modifies a plan task.
