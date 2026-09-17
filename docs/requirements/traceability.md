@@ -157,17 +157,17 @@ last_updated: 2026-09-17
 | REQ-HARN-006 | harness-loop-control.md | | | |
 | REQ-HARN-007 | harness-loop-control.md | | | |
 | REQ-HARN-008 | harness-loop-control.md | | | |
-| REQ-HARN-009 | harness-return-contract.md | | | |
-| REQ-HARN-010 | harness-return-contract.md | | | |
-| REQ-HARN-011 | harness-return-contract.md | | | |
-| REQ-HARN-012 | harness-return-contract.md | | | |
-| REQ-HARN-013 | harness-return-contract.md | | | |
+| REQ-HARN-009 | harness-return-contract.md | Chunk 1 task 7 fixture (RETURN block markers) | references/return-contract.md §1; dispatch-templates.md; fan-out.md; sdd-implement/SKILL.md | |
+| REQ-HARN-010 | harness-return-contract.md | Chunk 1 task 7 fixture (one-line failures) | references/return-contract.md §2; sdd-implement/SKILL.md | |
+| REQ-HARN-011 | harness-return-contract.md | Chunk 1 task 7 fixture (ledger_summary, spec_excerpt regex, {repair_packet}) | references/return-contract.md §3; dispatch-templates.md | |
+| REQ-HARN-012 | harness-return-contract.md | Chunk 1 task 7 fixture (findings[].text byte-identical) | references/return-contract.md §4; sdd-orchestrate/SKILL.md §LOOP | |
+| REQ-HARN-013 | harness-return-contract.md | Chunk 1 task 7 fixture (VERDICT producer/consumer greps) | sdd-review/SKILL.md §Step 5; sdd-orchestrate/SKILL.md §The gate; references/return-contract.md §6 | |
 | REQ-HARN-014 | harness-chunk-verifier.md | | | |
 | REQ-HARN-015 | harness-chunk-verifier.md | | | |
 | REQ-HARN-016 | harness-chunk-verifier.md | | | |
 | REQ-HARN-017 | harness-chunk-verifier.md | | | |
-| REQ-HARN-018 | harness-return-contract.md | | | |
-| REQ-HARN-019 | harness-return-contract.md | | | |
+| REQ-HARN-018 | harness-return-contract.md | Chunk 1 task 7 fixture (one packet, path-only excerpt, slot-overflow text) | references/return-contract.md §8 | |
+| REQ-HARN-019 | harness-return-contract.md | Chunk 1 task 7 grep guard (zero routing-phrase hits) | sdd-orchestrate/SKILL.md §Orchestrator-Only Work; references/return-contract.md §9 | |
 | REQ-HARN-020 | harness-write-scope.md | | | |
 | REQ-HARN-021 | harness-write-scope.md | | | |
 | REQ-HARN-022 | harness-write-scope.md | | | |
@@ -176,17 +176,17 @@ last_updated: 2026-09-17
 | REQ-HARN-025 | harness-write-scope.md | | | |
 | REQ-HARN-026 | harness-write-scope.md | | | |
 | REQ-HARN-027 | harness-loop-control.md | | | |
-| REQ-LINT-001 | skill-lint-v5.md | | | |
-| REQ-LINT-002 | skill-lint-v5.md | | | |
-| REQ-LINT-003 | skill-lint-v5.md | | | |
-| REQ-LINT-004 | skill-lint-v5.md | | | |
+| REQ-LINT-001 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
+| REQ-LINT-002 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
+| REQ-LINT-003 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
+| REQ-LINT-004 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
 | REQ-LINT-005 | skill-lint-v5.md | | | |
 | REQ-LINT-006 | skill-lint-v5.md | | | |
 | REQ-LINT-007 | skill-lint-v5.md | | | |
 | REQ-ORCH-034 | orchestration.md | | | |
 | REQ-SKILL-019 | skill-updates.md | | | |
-| REQ-SKILL-020 | skill-updates.md | | | |
-| REQ-SKILL-021 | skill-updates.md | | | |
+| REQ-SKILL-020 | skill-updates.md | Chunk 1 task 7 fixture (^RETURN:$ in sdd-implement) — RETURN half | sdd-implement/SKILL.md §Leaf Return Contract | |
+| REQ-SKILL-021 | skill-updates.md | Chunk 1 task 7 fixture (own-line VERDICT token) | sdd-review/SKILL.md §Step 5 | |
 | REQ-SKILL-022 | skill-updates.md | | | |
-| REQ-SKILL-023 | skill-updates.md | | | |
+| REQ-SKILL-023 | skill-updates.md | sdd-skill-lint.py --self-test (mechanics half) | tools/sdd-skill-lint.py | |
 | REQ-SKILL-024 | skill-updates.md | | | |

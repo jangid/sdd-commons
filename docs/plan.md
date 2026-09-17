@@ -66,37 +66,37 @@ over 1000), resolves backtick `references/` paths, and its `--self-test` covers 
 of it. No new `REQUIRED` rows yet (see Conventions). Traces to `skill-lint-v5.md`.
 **Depends on**: None.
 **Tasks**:
-1. [implement] In `tools/sdd-skill-lint.py`: change `flag()` to
+1. [x] [implement] In `tools/sdd-skill-lint.py`: change `flag()` to
    `flag(path, line_no, rule, msg, fix, severity="fail")` with `fix` a required
    positional; store findings as `(severity, text)`; render each finding as
    `<path>:<line>: [<rule>] <message>` + indented `fix: <remediation>`; add a
    `fix` string to every existing `FORBIDDEN` and `REQUIRED` row (beside `reason`)
    and fixed remediation strings to the structure, ordinal and link checks. —
    traces to `skill-lint-v5.md` §Finding Shape and Remediation (REQ-LINT-001).
-2. [implement] Add the severity tier: rows may carry `"severity": "warn"`
+2. [x] [implement] Add the severity tier: rows may carry `"severity": "warn"`
    (default `fail`); `WARN ` prefix on warn findings; `run()` exits 1 iff any
    `fail`; summary line variants `OK: N file(s) clean`, `OK: N file(s) clean, K
    warning(s)`, `FAIL: N finding(s), K warning(s)`. — traces to
    `skill-lint-v5.md` §Severity Tier (REQ-LINT-002).
-3. [implement] Add `SIZE_WARN_LINES = 400`, `SIZE_FAIL_LINES = 1000` module
+3. [x] [implement] Add `SIZE_WARN_LINES = 400`, `SIZE_FAIL_LINES = 1000` module
    constants and `check_size()` over `skills/*/SKILL.md` only (`references/*.md`,
    `USAGE.md` exempt; thresholds strict `>`), with the spec's fix string; wire it
    into `run()`. — traces to `skill-lint-v5.md` §SKILL.md Size Check (REQ-LINT-003).
-4. [implement] Extend `check_links()` to resolve backtick-quoted relative paths
+4. [x] [implement] Extend `check_links()` to resolve backtick-quoted relative paths
    outside fenced code: `` `references/<file>` `` against the linted skill dir
    (fail), `` `skills/<skill>/references/<file>` `` against `REPO_ROOT` (fail),
    `` `docs/spec/<file>.md` `` against `REPO_ROOT` (warn); strip fragments and
    trailing punctuation; skip globs (`*`); keep the existing `[…](…)` resolution.
    — traces to `skill-lint-v5.md` §`references/` Path Resolution (REQ-LINT-004),
    Edge Cases.
-5. [implement] Extend `self_test()` with fixtures: `flag()` without `fix` raises
+5. [x] [implement] Extend `self_test()` with fixtures: `flag()` without `fix` raises
    `TypeError` (signature assertion); a warn-only fixture exits 0 and prints
    `1 warning(s)`; a 401-line SKILL.md warns and a 1001-line one fails; a backtick
    `references/missing.md` fails while an existing one passes; every emitted
    finding has a non-empty `fix`. Fixtures are temp dirs built inside the self-test
    (no new files under `tools/`). — traces to `skill-lint-v5.md` §Self-Test
    Extension (REQ-LINT-001..004).
-6. [verify] Run `python3 tools/sdd-skill-lint.py --self-test` (exit 0) and
+6. [x] [verify] Run `python3 tools/sdd-skill-lint.py --self-test` (exit 0) and
    `python3 tools/sdd-skill-lint.py` on the untouched skill set: exit 0, output
    `OK: 13 file(s) clean, 2 warning(s)` with the two size warnings naming exactly
    `sdd-orchestrate` (607) and `sdd-migrate` (464); confirm the six existing
@@ -119,7 +119,7 @@ finding → chunk mapping, pruned-state check). Traces to
 `harness-return-contract.md`.
 **Depends on**: None.
 **Tasks**:
-1. [implement] Create `skills/sdd-orchestrate/references/return-contract.md`
+1. [x] [implement] Create `skills/sdd-orchestrate/references/return-contract.md`
    carrying: the `RETURN:` key table with consumers and status semantics; the
    §Malformed Returns rules and the `RETURN: MALFORMED (<reason>)` /
    `RETURN: KEYS MISSING` / `RETURN: MULTIPLE` gate texts; the one-line
@@ -135,7 +135,7 @@ finding → chunk mapping, pruned-state check). Traces to
    §Failures Are One-Line, §Repair Packet, §Finding → Chunk Mapping, §Field
    Sources, §VERDICT Token, §RETURN.status Branching, §Pruned State
    (REQ-HARN-009, -010, -011, -012, -013, -018).
-2. [implement] In `references/dispatch-templates.md`: rewrite the PIPELINE
+2. [x] [implement] In `references/dispatch-templates.md`: rewrite the PIPELINE
    template's return step 4 to end with the `RETURN:` block (status first on its
    own line, every key listed, `blocked_writes` as the labeled fallback); replace
    the `{on_fix_only}` / `{review_findings}` slot with `{repair_packet}` (fixed
@@ -144,19 +144,19 @@ finding → chunk mapping, pruned-state check). Traces to
    grep guard: no template tells the subagent to decide the next stage, classify
    the verdict or judge scope. — traces to `harness-return-contract.md` §RETURN
    Block, §Repair Packet, §Orchestrator Owns Routing (REQ-HARN-009, -011, -019).
-3. [implement] In `references/fan-out.md` §2 leaf template: replace return step 4
+3. [x] [implement] In `references/fan-out.md` §2 leaf template: replace return step 4
    ("files written + commits + summary") with the `RETURN:` block (`commits`
    populated, `blocked_writes` for barred plan/traceability writes) and extend
    the slot contract; in §3e read `tasks_completed` / `traceability_fills` from
    the block for plan marks and traceability fills. — traces to
    `harness-return-contract.md` §RETURN Block key table (REQ-HARN-009).
-4. [implement] In `skills/sdd-review/SKILL.md` §Step 5 report format: add the
+4. [x] [implement] In `skills/sdd-review/SKILL.md` §Step 5 report format: add the
    own-line `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT` token beside the
    `**Verdict:**` line, with the 1:1 prose ↔ token mapping and the rule that they
    must agree; report shape and §Scope Boundaries otherwise unchanged. — traces
    to `harness-return-contract.md` §VERDICT Token (REQ-HARN-013);
    `skill-updates.md` §v5 (REQ-SKILL-021).
-5. [implement] In `skills/sdd-implement/SKILL.md`: under the dispatched-leaf
+5. [x] [implement] In `skills/sdd-implement/SKILL.md`: under the dispatched-leaf
    guidance (next to the "Parallel-dispatch exception" rule) add the leaf return
    contract — when dispatched by `sdd-orchestrate`, end the return with the
    `RETURN:` block (keys as in `return-contract.md`; `failures` one-line,
@@ -164,7 +164,7 @@ finding → chunk mapping, pruned-state check). Traces to
    behavior unchanged. — traces to `harness-return-contract.md` §RETURN Block,
    §Failures Are One-Line (REQ-HARN-009, -010); `skill-updates.md` §v5
    (REQ-SKILL-020).
-6. [implement] In `skills/sdd-orchestrate/SKILL.md`: §The gate names the three
+6. [x] [implement] In `skills/sdd-orchestrate/SKILL.md`: §The gate names the three
    `VERDICT:` values and points to the `VERDICT:` and `RETURN.status` branching
    tables in `references/return-contract.md`; the `loop-back-to-fix` row now
    says "re-dispatch with a repair packet (findings + paths by construction)";
@@ -177,7 +177,7 @@ finding → chunk mapping, pruned-state check). Traces to
    stub for `return-contract.md` in §LOOP. — traces to
    `harness-return-contract.md` §VERDICT Token, §Malformed Returns,
    §Orchestrator Owns Routing (REQ-HARN-013, -019); `orchestration.md` §v5.
-7. [verify] Fixture walkthrough per `harness-return-contract.md` §Verification:
+7. [x] [verify] Fixture walkthrough per `harness-return-contract.md` §Verification:
    compose a two-iteration packet from a fixture `RETURN` (exactly two
    `ledger_summary` lines; rendered `spec_excerpt` matches
    `^docs/spec/[^ ]+\.md § .+ L\d+-\d+$`; no quoted spec text); a return and a

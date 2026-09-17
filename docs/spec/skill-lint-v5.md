@@ -266,3 +266,26 @@ row fails when its marker is removed from a temp copy.
 2. **`checkpoint` as the REQ-HARN-008 marker word.** Default: the literal word
    `checkpoint`; a more specific phrase (`circuit-break checkpoint`) may be
    used if the implemented skill text adopts it consistently in both files.
+
+## Implementation Questions
+
+### Q-IMPL-022: `suite_rules` constructor flag for end-to-end fixtures
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Self-Test Extension — "a warn-only fixture exits 0 with `1 warning(s)`"
+**Decision**: `Linter(root, suite_rules: bool = True)`; when False, `check_required()` skips the repo-specific REQUIRED / VERSION_GATED_SKILLS / V4_CONTRACT_SKILLS rows so temp fixtures can drive `run()` (and its summary line) end to end. Default behavior and the CLI are unchanged.
+**Rationale**: `run()` unconditionally checks the real suite's contract rows, which would fail with "file missing entirely" on any temp fixture; the spec asks for the fixture's exit code and summary, which only `run()` produces.
+**Date**: 2026-09-17 (Chunk 0)
+
+### Q-IMPL-023: FAIL summary counts and warning suffix
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Severity Tier summary block
+**Decision**: `FAIL: N finding(s), K warning(s)` always prints the warning count (K may be 0); N counts fail-severity findings only. `OK:` omits the suffix when K = 0. The old `across M file(s)` tail is dropped.
+**Rationale**: the spec shows exactly one FAIL variant; keeping it fixed-shape makes it greppable, and counting fails separately from warnings matches "exits 1 iff any fail".
+**Date**: 2026-09-17 (Chunk 0)
+
+### Q-IMPL-024: backtick path rule tag and placeholder skipping
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`references/` Path Resolution, Edge Cases (globs)
+**Decision**: backtick-path findings use the rule tag `[path]` (Markdown links keep `[link]`). Spans containing `*`, `<`, `>`, `{`, `}` or whitespace are treated as non-literal (globs/placeholders such as `references/<file>`) and skipped. `docs/spec/` spans must end in `.md` to be resolved. REQUIRED rows changed from tuples to dicts (`file`/`pattern`/`min`/`reason`/`fix`, optional `severity`) to carry the fix field — internal shape only.
+**Rationale**: the spec names the glob case but skill prose also uses `<placeholder>` paths, which would otherwise be false failures; a distinct tag keeps link vs. backtick findings distinguishable.
+**Date**: 2026-09-17 (Chunk 0)
