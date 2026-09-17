@@ -608,7 +608,7 @@ growth, `SKILL.md` stubs + pointers, the verify task).
 surfaces as a false **fail** on the live repository; triage per Risks
 (genuine defect → corpus, tool bug → gc), never silence.
 **Tasks**:
-1. [ ] [implement] gc sweeps 7, 11, 12: `stale-chain` (research → requirements
+1. [x] [implement] gc sweeps 7, 11, 12: `stale-chain` (research → requirements
    → specs → plan → verification by `last_updated`; per workstream via plan
    `traces to` → spec `requires:` → category files; `pending-red` read as
    "verification exists, not passed"; marker `3` walks flat `docs/plan.md`
@@ -623,7 +623,7 @@ surfaces as a false **fail** on the live repository; triage per Risks
    reference values (the rule text is not restated here). —
    traces to `drift-sweep.md` §Sweep Table rows 7, 11, 12 (REQ-GC-HARNESSP2-002);
    `telemetry.md` §XSPEC amendment-row rule.
-2. [ ] [implement] `--fix` whitelist: replace Chunk 4's `FIXABLE = []` with
+2. [x] [implement] `--fix` whitelist: replace Chunk 4's `FIXABLE = []` with
    `FIXABLE = [xlink-dead,
    index-requirements, traceability-aggregate, plan-history-name]` with the
    tabled rewrites (unique-candidate link repair, ID-sorted Files-table row
@@ -634,7 +634,7 @@ surfaces as a false **fail** on the live repository; triage per Risks
    `--workstream` is given; any other rule → exit 2 `not a fixable rule`. —
    traces to `drift-sweep.md` §`--fix` Whitelist, §Routing at DONE (dates
    never auto-fixed) (REQ-GC-HARNESSP2-006, -007).
-3. [ ] [implement] `--self-test`, full fixture: extend Chunk 4's
+3. [x] [implement] `--self-test`, full fixture: extend Chunk 4's
    `build_fixture()` to the complete tree of §Self-Test Fixture (marker `4`,
    workstreams `alpha`/`beta`, Approved `a.md` traced by alpha, Draft `b.md`
    traced only by beta, a differing aggregate, the three `trace-empty` rows,
@@ -644,7 +644,7 @@ surfaces as a false **fail** on the live repository; triage per Risks
    summary line last, lint size warnings passing through, and that each fail
    rule fires exactly once. — traces to `drift-sweep.md` §Self-Test Fixture
    (REQ-GC-HARNESSP2-001, -002, -003).
-4. [ ] [implement] In `skills/sdd-orchestrate/SKILL.md`: the **entry** step —
+4. [x] [implement] In `skills/sdd-orchestrate/SKILL.md`: the **entry** step —
    run `python3 tools/sdd-gc.py --report` before the workstream picker (marker
    `4`) / before phase detection (marker `3`) and render one line `GC: clean`
    or `GC: F fail, W warn — run tools/sdd-gc.py --report`, then open the picker
@@ -660,7 +660,7 @@ surfaces as a false **fail** on the live repository; triage per Risks
    `drift-sweep.md` §Cadence, §Routing at DONE, §Skill Changes
    (REQ-GC-HARNESSP2-005, -006, REQ-SKILL-HARNESSP2-004 gc half);
    `orchestration.md` Q-IMPL-HARNESSP2-008.
-5. [ ] [verify] Per `drift-sweep.md` §Verification — Automated: `python3
+5. [x] [verify] Per `drift-sweep.md` §Verification — Automated: `python3
    tools/sdd-gc.py --self-test` exits 0 on the full fixture; `--help` exits 0 and names every flag,
    the three classes with rule ids and the exclusions; `grep -n 'FORBIDDEN =\|
    REQUIRED =' tools/sdd-gc.py` is empty; on this repository `--report` exits 0

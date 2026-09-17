@@ -368,4 +368,45 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 **Decision**: Bare REQ/RS mentions in prose are template examples and are not checked; `(see …)` `.md` targets resolve against the file dir, `docs/spec/`, `docs/`, then repo root; REQ ids count as defined from `### REQ-…` headings or first-column table rows under `docs/requirements/*/*.md`.
 **Rationale**: Keeps the sweep free of traceability-file reads and prose false positives.
 **Date**: 2026-09-18 (Chunk 4)
+### Q-IMPL-HARNESSP2-060: `kickoff-fields` is gc's own sweep under marker 4
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Sweep Table row 5
+**Decision**: Under marker 4 the linter cannot see `docs/ws/*/kickoff.md`, so gc emits row 5 itself, unscoped by `--workstream`; under marker 3 the linter owns it and gc skips. The plan's Chunk 5 task list omitted row 5; recorded here.
+**Rationale**: Matches the sweep-table row; closes a plan omission.
+**Date**: 2026-09-18 (Chunk 5)
+
+### Q-IMPL-HARNESSP2-061: `stale-chain` compares dates strictly and only annotates `pending-red`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Sweep Table row 7
+**Decision**: Upstream `last_updated` must be strictly greater than downstream to flag; equal dates are never stale; verification `date:` is accepted as an alias; missing dates are skipped; a `pending-red` verification is rendered as "verification exists, not passed" but yields no finding when newer than its plan (pass status is sdd-verify's job).
+**Rationale**: Avoids same-day false positives and keeps staleness separate from verdict.
+**Date**: 2026-09-18 (Chunk 5)
+
+### Q-IMPL-HARNESSP2-062: `trace-empty` scans per-workstream files only and never reads Verified
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Sweep Table row 11; telemetry.md §XSPEC amendment-row rule
+**Decision**: Under marker 4 the aggregate is derived, so only `docs/ws/*/traceability.md` rows are scanned; amendment rows (Spec differs from the legacy row for the same id) are skipped entirely; the Verified column is sdd-verify Step 3b's and is never checked.
+**Rationale**: Prevents double-reporting and respects the amendment-row rule.
+**Date**: 2026-09-18 (Chunk 5)
+
+### Q-IMPL-HARNESSP2-063: `--fix index-requirements` inserts within the category block, keyed by Domain
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`--fix` Whitelist
+**Decision**: The row is inserted inside its category block before the first row whose Domain sorts after the new domain, else at the block end (the live Files table is not globally sorted); the row is derived from the category file (domain, compressed id range, status, last_updated).
+**Rationale**: Satisfies REQ-WS-015 (sorted position, one row per line, never EOF) for the table as it actually exists.
+**Date**: 2026-09-18 (Chunk 5)
+
+### Q-IMPL-HARNESSP2-064: `--fix plan-history-name` date source
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`--fix` Whitelist
+**Decision**: The date prefix is taken from the archive's `last_updated`, else `git log -1 --format=%as`; a partial date prefix is replaced; `-replan-` provenance failures are never renamed.
+**Rationale**: Exactly the spec text, pinned for the self-test.
+**Date**: 2026-09-18 (Chunk 5)
+
+### Q-IMPL-HARNESSP2-065: Aggregate regeneration keeps the preamble verbatim
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Sweep Table row 12; ws-traceability.md §Aggregation Contract
+**Decision**: `regenerate_aggregate` rewrites only the header and rows; the aggregate's frontmatter (incl. `last_updated`) and prose are kept byte-for-byte; 5-column legacy rows gain a blank Workstream cell.
+**Rationale**: Consistent with REQ-GC-HARNESSP2-007 (never touches `last_updated`) and the row-level regeneration contract.
+**Date**: 2026-09-18 (Chunk 5)
 
