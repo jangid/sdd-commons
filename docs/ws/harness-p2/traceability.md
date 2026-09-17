@@ -1,6 +1,6 @@
 ---
 workstream: harness-p2
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 ---
 
 # Traceability — harness-p2
@@ -21,10 +21,10 @@ its siblings — never hand-edited.
 | REQ-ARB-HARNESSP2-006 | arbitrated-handoff.md | harness-p2 | pause fixture byte-identical to spec; consumes no iteration; stage-gate only, iteration ≥ 2 | loop-control.md §2a REVIEW: CONTRADICTION pause, §6 | |
 | REQ-ARB-HARNESSP2-007 | arbitrated-handoff.md | harness-p2 | by-hand fixture test_third_opinion_two_of_three | loop-control.md §2a Third opinion | |
 | REQ-ARB-HARNESSP2-008 | arbitrated-handoff.md | harness-p2 | git diff c38922d -- sdd-review/SKILL.md: one line (Material template) | sdd-review/SKILL.md §Step 5 Material line | |
-| REQ-EVAL-HARNESSP2-001 | evaluation.md | harness-p2 |  |  |  |
-| REQ-EVAL-HARNESSP2-002 | evaluation.md | harness-p2 |  |  |  |
-| REQ-EVAL-HARNESSP2-003 | evaluation.md | harness-p2 |  |  |  |
-| REQ-EVAL-HARNESSP2-004 | evaluation.md | harness-p2 |  |  |  |
+| REQ-EVAL-HARNESSP2-001 | evaluation.md | harness-p2 | Chunk 7 task 4 guards: grep -rn decision_by skills/ = references/telemetry.md only; never-auto-advance sentence at sdd-orchestrate/SKILL.md §The gate + §Rules; REQ-ORCH-011 text unamended; no decision_by: policy record | docs/spec/evaluation.md §Evaluation Mode — Defined, Not Built (definition only; no skill implements the policy) |  |
+| REQ-EVAL-HARNESSP2-002 | evaluation.md | harness-p2 | python3 tools/sdd-eval.py --self-test (six-record fixture yields fields 1–9 + aggregate; empty/missing file → N = 0); --help; derivation table = 9 rows | tools/sdd-eval.py (load, score_run, aggregate, evaluate, render); skills/sdd-orchestrate/references/telemetry.md §6 |  |
+| REQ-EVAL-HARNESSP2-003 | evaluation.md | harness-p2 | deferred to §Next Steps — `- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy` (operator-run; not executable by a dispatched leaf) | docs/spec/evaluation.md §Manual N = 3 Pilot (verify task Chunk 7 task 5, deferred) |  |
+| REQ-EVAL-HARNESSP2-004 | evaluation.md | harness-p2 | Chunk 7 task 4: ls tools/ | grep -c sdd-eval-run = 0; no headless-driver file; plan has no /sdd-orchestrate-dispatching task; evaluation.md names conditions (a)–(c) | docs/spec/evaluation.md §Out of Scope: N ≥ 30 Headless Harness (not built) |  |
 | REQ-GC-HARNESSP2-001 | drift-sweep.md | harness-p2 | tools/sdd-gc.py --self-test (exit codes, --help, clean fixture) | tools/sdd-gc.py (main, Gc, sweep_lint) | |
 | REQ-GC-HARNESSP2-002 | drift-sweep.md | harness-p2 | tools/sdd-gc.py --self-test (sweeps 5–14 each exactly once; stale-chain/trace-empty/traceability-aggregate symbolic counts; alpha/beta scoping) | tools/sdd-gc.py (sweep_stale, sweep_trace_empty, sweep_aggregate, regenerate_aggregate, sweep_kickoff, sweep_xlink, sweep_qimpl, sweep_index, sweep_plan_history) | |
 | REQ-GC-HARNESSP2-003 | drift-sweep.md | harness-p2 | tools/sdd-gc.py --self-test (D/B/D-B, referenced-only 1 = planted `Q-IMPL-999` mutation, exclusion classes); live counts drift from Q-IMPL-HARNESSP2-* noted | tools/sdd-gc.py (docstring reference commands, Gc.is_countable, Gc.sweep_qimpl — pinned rule unchanged) | |
@@ -53,7 +53,7 @@ its siblings — never hand-edited.
 | REQ-SKILL-HARNESSP2-005 | adversarial-verify.md | harness-p2 | Step 6 template diff vs c38922d: only ## Next Steps added after ## Recommendation | sdd-verify/SKILL.md Step 6 template + Section slots prose | |
 | REQ-SKILL-HARNESSP2-006 | arbitrated-handoff.md | harness-p2 | grep -E M1:.*affects sdd-review/SKILL.md; one-line diff | sdd-review/SKILL.md Material line | |
 | REQ-SKILL-HARNESSP2-007 | dispatch-snapshot-base.md | harness-p2 | lint exit 0 (warn set sdd-orchestrate, sdd-migrate; 20 files); --self-test §7; wc -l SKILL.md = 400; diff vs c38922d clean outside moved regions | sdd-implement/SKILL.md stubs; references/stuck-detection.md; references/leaf-return.md; Q-IMPL-083/-084 resolved notes | |
-| REQ-SKILL-HARNESSP2-008 | telemetry.md | harness-p2 |  |  |  |
+| REQ-SKILL-HARNESSP2-008 | telemetry.md | harness-p2 | python3 tools/sdd-skill-lint.py exit 0; Chunk 7 task 9 token sweep; four-layer bullet byte-identical to c38922d; every USAGE.md .sdd/ mention carries the gitignored/orchestrator-only/never-read phrase | CLAUDE.md §Driver «Cycle signals (v5 part 2)» paragraph; skills/sdd-orchestrate/USAGE.md §3 exchange, §7b, §7c, §9 |  |
 | REQ-TELEM-HARNESSP2-001 | telemetry.md | harness-p2 | verify walkthrough test_record_key_set_matches_schema | references/telemetry.md §2 | |
 | REQ-TELEM-HARNESSP2-002 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test (budget grammar) | references/telemetry.md §2; tools/sdd-telemetry.py parse_budget_line | |
 | REQ-TELEM-HARNESSP2-003 | telemetry.md | harness-p2 | no resume-class key in example record; zero .sdd/ hits in §Phase Detection blocks | references/telemetry.md §2 forbidden keys, §5 | |
