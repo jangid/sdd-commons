@@ -365,6 +365,9 @@ When the operator opts in and the graph has ≥2 independent branches:
 4. **Teardown** each worktree and branch after its clean merge, leaving only
    `main` for the review.
 
+Batched leaves were **observed to run concurrently** (RS-006, medium
+confidence) — a speedup (REQ-ORCH-028) correctness does not depend on.
+
 ### 4b. Conflict handling (redo by re-derivation)
 
 On a merge conflict: abort the single failing merge (merged work is never
@@ -432,3 +435,19 @@ per-signal detail:
   third opinion per contradiction. Fourth member of the pause family, beside
   `REVIEW: MALFORMED`, `RETURN: MALFORMED` and reject-with-no-actionable-
   findings above (§2a; `docs/spec/arbitrated-handoff.md`).
+
+## 7. Mid-pipeline entry: detect → confirm → validate (REQ-ORCH-031..033) — from §Entry Points
+
+**Detect → confirm → validate (REQ-ORCH-032).** **Auto-detect** the proposed
+entry stage with the same phase detection (furthest-complete *approved*
+upstream → the next stage); **present and confirm** it with the operator (who
+may override to an *earlier* stage, never a later one whose upstream is unmet);
+**validate** the chosen stage's upstream is approved/complete — otherwise route
+to the earliest incomplete upstream stage and say why. Never guess an entry
+stage silently — confirmation is mandatory.
+
+**Entry kickoff (REQ-ORCH-033).** KICKOFF still writes `docs/handoff/kickoff.md`
+(the only new artifact), but as an **entry kickoff** recording the *scope of
+the change*, the *entry stage*, and *which upstream is assumed approved* — not
+research questions. DISCUSS still runs first; from the entry stage on the LOOP
+is identical to a research-entry cycle.

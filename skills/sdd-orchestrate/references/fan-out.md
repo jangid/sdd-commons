@@ -89,6 +89,14 @@ In either case, run the implement stage sequentially in the main workspace even 
 the operator opted into fan-out, and tell the operator at the gate (see SKILL.md
 §Execution Model).
 
+**Opt-in gate (from SKILL.md §Boundary derivation and opt-in gate).** Fan-out is
+**opt-in at the implement gate** and never automatic: present it as an explicit
+operator choice, surfacing how many independent chunk-groups the plan yields (a
+single chain → say at the gate that it degrades to sequential). The same gate
+records whether the **chunk verifier** runs this cycle: **on** by default — per
+chunk sequentially, per leaf before merge under fan-out — and disableable at this
+gate only, as gate text, never persisted.
+
 ---
 
 ## 2. Per-group implement dispatch template

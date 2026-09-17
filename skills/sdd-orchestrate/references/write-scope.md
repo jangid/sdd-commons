@@ -347,6 +347,14 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
 
 ---
 
+**`HISTORY_REWRITE` — no automatic reset (from `../SKILL.md` §Isolation
+Discipline rule 4).** The finding covers an amend, rebase or reset inside the
+dispatch. The orchestrator surfaces it above the path list, counts it as a
+`SCOPE: VIOLATION`, and offers **only `stop`** plus a manual recovery hint
+(`git reflog` in the affected tree). It never runs `git reset` on the working
+tree or a branch, never force-moves a ref and never merges a rewritten leaf
+branch on its own initiative — observe and report; the operator decides.
+
 ## 6. Blocked-write fallback: pre-persist match (REQ-HARN-023)
 
 When `RETURN.blocked_writes` is non-empty, the orchestrator runs the **same

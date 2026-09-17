@@ -136,6 +136,8 @@ exposes no tool-call counter to the orchestrator, so adherence is as
 trustworthy as the leaf. This is not fixed in this cycle (telemetry is
 deferred, catalogue D11).
 
+**Pre-pipeline self-checks (from `../SKILL.md` §KICKOFF).** Before the first pipeline dispatch, the kickoff carries `date:` and `research_id:` (fix it first if not). Before **every** dispatch (pipeline, fix, fan-out leaf, review, chunk verifier, red) the prompt's `Budget:` slot holds a non-empty value in observable units (the grammar above) — never dispatch around an empty one.
+
 ### Parsing and malformed returns
 
 The orchestrator parses the block; it **never infers success from prose**. A

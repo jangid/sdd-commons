@@ -6,6 +6,16 @@ section below is referenced from a stub in `SKILL.md` that keeps the
 gate throughout. Contracts: `docs/spec/ws-orchestration.md`,
 `docs/spec/ws-layout.md`, `docs/spec/ws-integration.md`.
 
+## Upgrade offer at entry (REQ-WS-030) — from §Phase Detection
+
+**Upgrade offer (entry, all markers).** First read `docs/.sdd-version`; if it
+is **behind** the latest version the installed skills support (currently `4`),
+**offer to run `/sdd-migrate` first** — informational, non-forcing, and the
+single place a behind-version project is nudged (REQ-WS-030). On accept, hand
+off to `sdd-migrate` and re-derive phase from the migrated layout; on decline
+(or non-interactive) proceed on the current marker with behavior **unchanged**;
+at the latest marker, say nothing.
+
 ## Workstream & version gate (v4) — from §Phase Detection
 
 **Workstream & version gate (v4).** The driver accepts an optional `workstream`
