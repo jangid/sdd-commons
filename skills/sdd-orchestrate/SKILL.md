@@ -187,6 +187,8 @@ review, chunk verifier) the prompt's `Budget:` slot holds a non-empty value in
 observable units (`references/return-contract.md` §Budget grammar) — never
 dispatch around an empty one.
 
+**Telemetry opt-out (one prompt, REQ-TELEM-HARNESSP2-004).** Ask once at KICKOFF — `telemetry: on (default) │ off` — and hold the answer as session state for the whole cycle; it is never written to the kickoff ([`references/telemetry.md`](references/telemetry.md) §3).
+
 ## LOOP
 
 For each stage in order — research, requirements, specs, plan, implement, verify
@@ -210,6 +212,17 @@ the gate and any commit. `blocked_writes` are scope-matched before persistence;
 commit ownership is fixed per dispatch type (pipeline: orchestrator on
 `proceed`; fan-out leaf: the leaf; review/verifier: nobody). Full procedure:
 [`references/write-scope.md`](references/write-scope.md).
+
+**Telemetry.** Default **on**; the operator may opt out at KICKOFF (session
+state, never written to `kickoff.md`). After **each gate** you append one
+record — counts, enums, shas, timestamps, never finding text — to the
+gitignored `.sdd/telemetry.jsonl`; no leaf ever writes it and no skill reads
+it: **never read by phase detection** — `rm -rf .sdd/` is behaviour-neutral.
+Bootstrap: if `git check-ignore -q .sdd/telemetry.jsonl` fails, append `.sdd/`
+to `.gitignore` as a bookkeeping commit outside any observed window. Post-cycle
+reader: `python3 tools/sdd-telemetry.py summarize`. Record schema, writer
+rules, `TELEMETRY:` lines, third observation:
+[`references/telemetry.md`](references/telemetry.md).
 
 ### Per-stage dispatch model
 
@@ -309,6 +322,8 @@ offers only `stop`); (3) per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` —
 counters — `iteration N of MAX` for the fix-loop cap and the replan re-entry
 count — 4–5 render at the **stage gate**. Detail:
 [`references/loop-control.md`](references/loop-control.md) §5.
+
+**`TELEMETRY:` lines** (`WRITE FAILED` │ `OFF` │ `.gitignore updated`) render at most once each, immediately after the `iteration`/cap line and before the options — [`references/telemetry.md`](references/telemetry.md) §3.
 
 **Fix-loop cap (REQ-HARN-001).** `FIX_LOOP_MAX` (default **3**) is per stage,
 session-only, incremented once per fix re-dispatch (never on `proceed`, `stop`

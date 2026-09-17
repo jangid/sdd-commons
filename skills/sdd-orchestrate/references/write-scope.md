@@ -143,6 +143,18 @@ the verifier and the stage gate in place of the per-chunk gate.
   `stop` plus a manual recovery hint (`git reflog` in the affected tree) —
   **never an automatic reset** (`../SKILL.md` §Isolation Discipline).
 
+**Third observation (telemetry) — REQ-TELEM-HARNESSP2-005.** Because `.sdd/`
+is gitignored (limitation (b), §5), the porcelain pair cannot see a leaf write
+there. In the same window take a third observation: before dispatch `n_before`
+(line count of `.sdd/telemetry.jsonl`, 0 if absent) and `e_before` (sorted
+entry list of `.sdd/`, empty if absent); with `snapshot(after)` — before the
+orchestrator's own append — `n_after` / `e_after`. Any delta is a leaf write:
+render it inside the finding block as one more `OUT` counted in
+`SCOPE: VIOLATION (N paths)`, using the finding strings defined **once** in
+`telemetry.md` §4 (never restated here), and **revert before the gate**
+(truncate the file back to `n_before` lines; remove entries the leaf added).
+Fixture: scenario F7 of `tools/sdd-scope-check-selftest.py`.
+
 ---
 
 ## 4. Matching and tags
@@ -217,6 +229,9 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
   enclosing heading) exists.
 - **(b) Ignored paths.** Paths matched by `.gitignore` are not observed
   (`--ignored` is not used) — they are not project content.
+  - **Exception — `.sdd/`.** The telemetry file is observed by the third
+    observation of §3 (line count + entry list), not by porcelain; its finding
+    strings and the revert rule are defined once in `telemetry.md` §4.
 - Writes outside the repository (scratchpad, `$TMPDIR`) are the sandbox's
   concern, not this check's. The shared stash stack is out of scope (skills
   never stash).

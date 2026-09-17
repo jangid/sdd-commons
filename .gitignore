@@ -32,3 +32,5 @@ venv/
 .vscode/
 *.code-workspace
 .superpowers/
+# SDD telemetry (orchestrator-written, never read by phase detection)
+.sdd/
