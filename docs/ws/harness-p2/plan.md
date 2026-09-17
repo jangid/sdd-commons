@@ -1,7 +1,7 @@
 ---
 workstream: harness-p2
 last_updated: 2026-09-17
-status: planned
+status: active
 ---
 
 # Implementation Plan: Harness Hardening, Part 2 (workstream `harness-p2`)
@@ -90,7 +90,7 @@ on a fixture; the linter supports a per-row `allow_files` field (row itself in
 Chunk 6); scope self-test F7 passes. Traces to `telemetry.md`.
 **Depends on**: None.
 **Tasks**:
-1. [ ] [implement] Create `skills/sdd-orchestrate/references/telemetry.md`
+1. [x] [implement] Create `skills/sdd-orchestrate/references/telemetry.md`
    carrying, pasted from the spec: the record schema table (all groups and
    keys, value domains, gate-signal sources; `v: 1`; `dispatch.seq` 1-based per
    session with zero reads; run identity = `cycle.research_id`), the
@@ -113,7 +113,7 @@ Chunk 6); scope self-test F7 passes. Traces to `telemetry.md`.
    Proof, §Scorer Derivation (REQ-TELEM-HARNESSP2-001..006, -009,
    REQ-SKILL-HARNESSP2-001); `evaluation.md` §Scorer Fields
    (REQ-EVAL-HARNESSP2-002 derivation half).
-2. [ ] [implement] In `skills/sdd-orchestrate/SKILL.md`: add the telemetry
+2. [x] [implement] In `skills/sdd-orchestrate/SKILL.md`: add the telemetry
    **stub** (≤ 10 lines — the rule counts the §LOOP block only) in §LOOP —
    default on, the KICKOFF opt-out choice
    (session state, not written to `kickoff.md`), "the orchestrator appends one
@@ -127,7 +127,7 @@ Chunk 6); scope self-test F7 passes. Traces to `telemetry.md`.
    traces to `telemetry.md` §Placement, §Writer, §Skill and Lint Changes
    (REQ-TELEM-HARNESSP2-004, -008, REQ-HARN-027 amendment,
    REQ-SKILL-HARNESSP2-001).
-3. [ ] [implement] In `skills/sdd-orchestrate/references/write-scope.md`: §3
+3. [x] [implement] In `skills/sdd-orchestrate/references/write-scope.md`: §3
    gains the third, telemetry-specific observation (line count + sorted entry
    list of `.sdd/`, taken with `snapshot(before)` / `snapshot(after)`, before
    the orchestrator's own append) and the revert-before-gate rule; §5 gains
@@ -135,7 +135,7 @@ Chunk 6); scope self-test F7 passes. Traces to `telemetry.md`.
    `references/telemetry.md` for the finding strings instead of restating
    them (`.sdd/` may appear in `write-scope.md` only inside §3 and §5). —
    traces to `telemetry.md` §Third Observation, §Lint Guard (REQ-TELEM-HARNESSP2-005).
-4. [ ] [implement] In `tools/sdd-scope-check-selftest.py`: add scenario **F7**
+4. [x] [implement] In `tools/sdd-scope-check-selftest.py`: add scenario **F7**
    "leaf appends to `.sdd/telemetry.jsonl`" — fixture repo with a gitignored
    `.sdd/telemetry.jsonl` of `n_before` lines, the leaf appends one line →
    `SCOPE: VIOLATION (1 paths)`, the exact `OUT .sdd/telemetry.jsonl (+1
@@ -145,7 +145,7 @@ Chunk 6); scope self-test F7 passes. Traces to `telemetry.md`.
    the current count — Chunk 1 and Chunk 3 bump it again). — traces to
    `telemetry.md` §Third Observation, §Skill and Lint Changes
    (REQ-TELEM-HARNESSP2-005).
-5. [ ] [implement] Create `tools/sdd-telemetry.py` (stdlib-only): `summarize
+5. [x] [implement] Create `tools/sdd-telemetry.py` (stdlib-only): `summarize
    [--file .sdd/telemetry.jsonl] [--workstream <id>] [--since <ISO>]` printing
    one table per workstream, one row per `dispatch.stage`, with every column of
    §Out-of-Loop Reader (dispatches; tool calls mean/max/budget with an `n/a`
@@ -157,7 +157,7 @@ Chunk 6); scope self-test F7 passes. Traces to `telemetry.md`.
    one row per stage, the per-chunk block and the skipped count. No skill
    invokes it inside the loop. — traces to `telemetry.md` §Out-of-Loop Reader
    (REQ-TELEM-HARNESSP2-009).
-6. [ ] [implement] In `tools/sdd-skill-lint.py`: add the per-row `allow_files`
+6. [x] [implement] In `tools/sdd-skill-lint.py`: add the per-row `allow_files`
    field to `check_forbidden()` — a file whose repo-relative path is in the
    row's `allow_files` is skipped for that row before the line loop; rows
    without the field behave as today; the raw-line (fence-inclusive) scan is
@@ -168,7 +168,7 @@ Chunk 6); scope self-test F7 passes. Traces to `telemetry.md`.
    `\.sdd/` row itself lands in Chunk 6. — traces to `telemetry.md` §Lint Guard
    (REQ-TELEM-HARNESSP2-007 mechanics half, REQ-LINT-HARNESSP2-002 mechanics half);
    `skill-lint-v5.md` Q-IMPL-HARNESSP2-006.
-7. [ ] [verify] Per `telemetry.md` §Verification — Automated, on fixtures:
+7. [x] [verify] Per `telemetry.md` §Verification — Automated, on fixtures:
    compose a record from the spec's example gate → exactly the top-level keys
    `v, ts_dispatch, ts_return, ts_gate, cycle, dispatch, return, scope,
    verdict, gate, replan_trigger, git`, no resume-class key, `findings.M == 2`,

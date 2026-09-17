@@ -544,3 +544,13 @@ derived this way, the schema — not the scorer — is defective.
    `other` with no text, and adding a row to the table is a change to this spec.
 3. **Should `ts_*` be stamped with sub-second precision?** Default: whole
    seconds (`date -u +%Y-%m-%dT%H:%M:%SZ`); dispatch wall times are minutes.
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP2-010: `SCOPE: VIOLATION (1 path)` singular vs the spec's `(1 paths)` literal
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Third Observation (F7 expected line)
+**Decision**: the shipped renderer pluralises (`1 path`, `2 paths`) as `write-scope.md` §5 and scenarios F1/F2/F6 already do; F7 asserts `SCOPE: VIOLATION (1 path)`. The `OUT .sdd/telemetry.jsonl (+1 records, leaf write — reverted)` string is byte-exact. The spec's `(N paths)` is read as a template.
+**Rationale**: consistency with the v5 renderer; no contract value depends on the plural form.
+**Date**: 2026-09-17 (Chunk 0)
+

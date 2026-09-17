@@ -32,7 +32,7 @@ its siblings — never hand-edited.
 | REQ-GC-HARNESSP2-005 | drift-sweep.md | harness-p2 |  |  |  |
 | REQ-GC-HARNESSP2-006 | drift-sweep.md | harness-p2 |  |  |  |
 | REQ-GC-HARNESSP2-007 | drift-sweep.md | harness-p2 |  |  |  |
-| REQ-HARN-027 | telemetry.md | harness-p2 |  |  |  |
+| REQ-HARN-027 | telemetry.md | harness-p2 | git check-ignore exit 0 + git ls-files docs/ unchanged (amendment row; Verified inherits legacy pass) | .gitignore + SKILL.md §LOOP stub | |
 | REQ-HARN-HARNESSP2-001 | dispatch-snapshot-base.md | harness-p2 |  |  |  |
 | REQ-HARN-HARNESSP2-002 | dispatch-snapshot-base.md | harness-p2 |  |  |  |
 | REQ-LINT-HARNESSP2-001 | adversarial-verify.md, arbitrated-handoff.md | harness-p2 |  |  |  |
@@ -46,7 +46,7 @@ its siblings — never hand-edited.
 | REQ-REDB-HARNESSP2-007 | adversarial-verify.md | harness-p2 |  |  |  |
 | REQ-REDB-HARNESSP2-008 | adversarial-verify.md | harness-p2 |  |  |  |
 | REQ-REDB-HARNESSP2-009 | adversarial-verify.md | harness-p2 |  |  |  |
-| REQ-SKILL-HARNESSP2-001 | telemetry.md | harness-p2 |  |  |  |
+| REQ-SKILL-HARNESSP2-001 | telemetry.md | harness-p2 | lint exit 0 (stub link); §LOOP stub = 10 lines; .sdd/ only in SKILL.md/telemetry.md/write-scope.md | SKILL.md §LOOP stub; references/telemetry.md | |
 | REQ-SKILL-HARNESSP2-002 | adversarial-verify.md | harness-p2 |  |  |  |
 | REQ-SKILL-HARNESSP2-003 | arbitrated-handoff.md | harness-p2 |  |  |  |
 | REQ-SKILL-HARNESSP2-004 | drift-sweep.md, dispatch-snapshot-base.md | harness-p2 |  |  |  |
@@ -54,12 +54,12 @@ its siblings — never hand-edited.
 | REQ-SKILL-HARNESSP2-006 | arbitrated-handoff.md | harness-p2 |  |  |  |
 | REQ-SKILL-HARNESSP2-007 | dispatch-snapshot-base.md | harness-p2 |  |  |  |
 | REQ-SKILL-HARNESSP2-008 | telemetry.md | harness-p2 |  |  |  |
-| REQ-TELEM-HARNESSP2-001 | telemetry.md | harness-p2 |  |  |  |
-| REQ-TELEM-HARNESSP2-002 | telemetry.md | harness-p2 |  |  |  |
-| REQ-TELEM-HARNESSP2-003 | telemetry.md | harness-p2 |  |  |  |
-| REQ-TELEM-HARNESSP2-004 | telemetry.md | harness-p2 |  |  |  |
-| REQ-TELEM-HARNESSP2-005 | telemetry.md | harness-p2 |  |  |  |
-| REQ-TELEM-HARNESSP2-006 | telemetry.md | harness-p2 |  |  |  |
+| REQ-TELEM-HARNESSP2-001 | telemetry.md | harness-p2 | verify walkthrough test_record_key_set_matches_schema | references/telemetry.md §2 | |
+| REQ-TELEM-HARNESSP2-002 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test (budget grammar) | references/telemetry.md §2; tools/sdd-telemetry.py parse_budget_line | |
+| REQ-TELEM-HARNESSP2-003 | telemetry.md | harness-p2 | no resume-class key in example record; zero .sdd/ hits in §Phase Detection blocks | references/telemetry.md §2 forbidden keys, §5 | |
+| REQ-TELEM-HARNESSP2-004 | telemetry.md | harness-p2 | walkthroughs test_one_record_per_gated_dispatch, test_write_failure_is_one_gate_line, TELEMETRY: OFF once | references/telemetry.md §3; SKILL.md §LOOP stub, §KICKOFF, §The gate | |
+| REQ-TELEM-HARNESSP2-005 | telemetry.md | harness-p2 | tools/sdd-scope-check-selftest.py F7 | references/telemetry.md §4; write-scope.md §3 third observation, §5 (b); selftest telemetry_snapshot/delta/revert | |
+| REQ-TELEM-HARNESSP2-006 | telemetry.md | harness-p2 | grep every §Phase Detection block for .sdd/ = zero hits | references/telemetry.md §5 non-interference table | |
 | REQ-TELEM-HARNESSP2-007 | telemetry.md | harness-p2 |  |  |  |
-| REQ-TELEM-HARNESSP2-008 | telemetry.md | harness-p2 |  |  |  |
-| REQ-TELEM-HARNESSP2-009 | telemetry.md | harness-p2 |  |  |  |
+| REQ-TELEM-HARNESSP2-008 | telemetry.md | harness-p2 | git check-ignore -q .sdd/telemetry.jsonl exit 0; no docs/ws/*/telemetry*; git ls-files docs/ unchanged | .gitignore; references/telemetry.md §1 | |
+| REQ-TELEM-HARNESSP2-009 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test | tools/sdd-telemetry.py | |
