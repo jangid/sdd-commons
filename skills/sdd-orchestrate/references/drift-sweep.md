@@ -12,7 +12,7 @@ gate (a fail at entry is informational), is never driven by `/schedule` or
 `/loop` — a routine runs outside any cycle, so its fix step would have no gate
 and no committer respecting commit ownership (REQ-HARN-024) — and never
 creates or modifies a plan task (a task added to a complete plan would flip
-phase detection back to implement; REQ-ORCH-014). It never reads `.sdd/` and is
+phase detection back to implement; REQ-ORCH-014). It never reads the telemetry file (`telemetry.md`) and is
 never a phase-detection input.
 
 ## 1. Entry — before the picker (marker `4`) / before phase detection (marker `3`)

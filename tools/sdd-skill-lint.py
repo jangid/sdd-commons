@@ -95,6 +95,19 @@ FORBIDDEN = [
     {"pattern": r"Co-Authored-By", "files": None, "allow": [],
      "reason": "repo convention: no attribution lines in committed content",
      "fix": "delete the Co-Authored-By line"},
+    # -- harness-p2: telemetry lives in gitignored `.sdd/` and is orchestrator-only.
+    #    Raw-line scan (fences included) — a skill must not even show the path in
+    #    an example. File-granular allowlist per telemetry.md §Lint Guard; USAGE.md
+    #    is operator documentation that may name the path (REQ-SKILL-HARNESSP2-008;
+    #    Q-IMPL-HARNESSP2-070 — skill_files() also lints USAGE.md, so it is listed).
+    {"pattern": r"\.sdd/", "files": None, "allow": [],
+     "allow_files": ["skills/sdd-orchestrate/SKILL.md",
+                     "skills/sdd-orchestrate/references/telemetry.md",
+                     "skills/sdd-orchestrate/references/write-scope.md",
+                     "skills/sdd-orchestrate/USAGE.md"],
+     "reason": "telemetry is orchestrator-written and never a phase-detection or staleness input (REQ-ORCH-014)",
+     "fix": "remove the reference — skills never read .sdd/; only sdd-orchestrate's telemetry stub "
+            "and references/telemetry.md may name it"},
 ]
 
 # Contract markers that must keep existing where a counterpart file relies on
@@ -148,7 +161,7 @@ REQUIRED = [
      "reason": "review verdict token producer (REQ-HARN-013); consumer is sdd-orchestrate/SKILL.md",
      "fix": "restore the `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT` token line — "
             "its consumer lives in skills/sdd-orchestrate/SKILL.md"},
-    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"(?<!CHUNK_)VERDICT:", "min": 1,
+    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"(?<!CHUNK_)(?<!RED_)VERDICT:", "min": 1,
      "reason": "review verdict token consumer (REQ-HARN-013); producer is sdd-review/SKILL.md",
      "fix": "keep the review `VERDICT:` parse step in §The gate — its producer lives in "
             "skills/sdd-review/SKILL.md"},
@@ -192,6 +205,25 @@ REQUIRED = [
     {"file": "skills/sdd-replan/SKILL.md", "pattern": r"checkpoint", "min": 1,
      "reason": "circuit-break checkpoint intake as replan stuck state (REQ-HARN-008)",
      "fix": "keep the step that reads the blocked-task `checkpoint` note as stuck state"},
+    # -- harness-p2 contract rows (REQ-LINT-HARNESSP2-001): adversarial-verify.md and
+    #    arbitrated-handoff.md §Skill and Lint Changes
+    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"RED_VERDICT: BROKEN \| HELD", "min": 1,
+     "reason": "red-team verdict token producer (adversarial-verify.md); consumer is sdd-orchestrate/SKILL.md",
+     "fix": "restore `RED_VERDICT: BROKEN | HELD` in the RED TEAM dispatch template — "
+            "its consumer lives in skills/sdd-orchestrate/SKILL.md"},
+    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"RED_VERDICT:", "min": 1,
+     "reason": "red-team verdict consumer in §The gate signal order; producer is dispatch-templates.md",
+     "fix": "keep the `RED_VERDICT:` parse step in §The gate (verify stage) — its producer lives in "
+            "skills/sdd-orchestrate/references/dispatch-templates.md"},
+    {"file": "skills/sdd-orchestrate/references/loop-control.md", "pattern": r"REVIEW: CONTRADICTION", "min": 1,
+     "reason": "contradiction pause is raised and handled by the orchestrator (REQ-SKILL-HARNESSP2-003); "
+               "SKILL.md §The gate carries the pointer",
+     "fix": "keep the `REVIEW: CONTRADICTION` pause in loop-control.md — its pointer lives in "
+            "skills/sdd-orchestrate/SKILL.md §The gate"},
+    {"file": "skills/sdd-review/SKILL.md", "pattern": r"M1:.*affects", "min": 1,
+     "reason": "Material template line carries `affects` for contradiction-class resolution (REQ-SKILL-HARNESSP2-006)",
+     "fix": "restore `affects` on the `M1:` Material template line — its consumer lives in "
+            "skills/sdd-orchestrate/references/loop-control.md"},
 ]
 
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
@@ -682,7 +714,54 @@ def self_test() -> int:
             # every rule-table row carries a fix (the mutation loop above proves REQUIRED;
             # FORBIDDEN rows are asserted by shape)
             check(all(r.get('fix') for r in FORBIDDEN), "FORBIDDEN row without fix")
-            check(len(REQUIRED) >= 28, f"expected the v5 REQUIRED rows (>= 28), found {len(REQUIRED)}")
+            # harness-p2 adds four REQUIRED rows (RED_VERDICT producer/consumer,
+            # REVIEW: CONTRADICTION, Material `affects`) — REQ-LINT-HARNESSP2-001
+            check(len(REQUIRED) >= 32, f"expected the harness-p2 REQUIRED rows (>= 32), found {len(REQUIRED)}")
+            # d2 negative: a SKILL.md carrying only `RED_VERDICT: HELD` must NOT
+            # satisfy the review-verdict consumer row (the `(?<!RED_)` lookbehind).
+            d2 = next((r for r in REQUIRED
+                       if r["file"] == "skills/sdd-orchestrate/SKILL.md" and "VERDICT" in r["pattern"]
+                       and "CHUNK" in r["pattern"] and "RED_" in r["pattern"]),
+                      {"pattern": "<missing d2 row>"})
+            check(d2["pattern"] == r"(?<!CHUNK_)(?<!RED_)VERDICT:",
+                  f"d2 consumer pattern drifted: {d2['pattern']}")
+            check(re.search(d2["pattern"], "RED_VERDICT: HELD\nCHUNK_VERDICT: PASS\n") is None,
+                  "d2 pattern matched RED_VERDICT:/CHUNK_VERDICT: — a file with only those tokens would pass")
+            check(re.search(d2["pattern"], "parse the VERDICT: line") is not None,
+                  "d2 pattern no longer matches a bare VERDICT:")
+
+        # -- 7b. the shipped `\.sdd/` FORBIDDEN row (REQ-TELEM-HARNESSP2-007,
+        #       REQ-LINT-HARNESSP2-002): fenced mention in a non-allowlisted skill
+        #       fails with the row's fix; the same text at each allowlisted path
+        #       passes (file-granular allow_files, raw-line fence-inclusive scan).
+        sdd_row = next((r for r in FORBIDDEN if r["pattern"] == r"\.sdd/"), None)
+        check(sdd_row is not None, "FORBIDDEN has no `\\.sdd/` row")
+        if sdd_row is not None:
+            check(sdd_row["files"] is None and sdd_row["allow"] == [], "`\\.sdd/` row must be repo-wide with allow: []")
+            check(sdd_row.get("severity", "fail") == "fail", "`\\.sdd/` row must be fail severity")
+            for required_allow in ("skills/sdd-orchestrate/SKILL.md",
+                                   "skills/sdd-orchestrate/references/telemetry.md",
+                                   "skills/sdd-orchestrate/references/write-scope.md"):
+                check(required_allow in sdd_row["allow_files"], f"`\\.sdd/` allow_files lacks {required_allow}")
+            sdd_root = root / "sddrow"
+            fenced = "```\n.sdd/telemetry.jsonl\n```\n"
+            _fixture_skill(sdd_root, "sdd-plan", fenced)            # non-allowlisted → must fail
+            code, out = _run_capture(sdd_root)
+            check(code == 1 and sdd_row["fix"] in out,
+                  f"fenced .sdd/ mention in sdd-plan/SKILL.md did not fail with the row's fix:\n{out}")
+            sdd_ok = root / "sddallow"
+            for rel in sdd_row["allow_files"]:
+                target = sdd_ok / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if target.name == "SKILL.md":
+                    _fixture_skill(sdd_ok, target.parent.name, fenced)
+                else:
+                    target.write_text(fenced, encoding="utf-8")
+            # every allowlisted path needs a well-formed SKILL.md beside it
+            if not (sdd_ok / "skills" / "sdd-orchestrate" / "SKILL.md").is_file():
+                _fixture_skill(sdd_ok, "sdd-orchestrate", "prose\n")
+            code, out = _run_capture(sdd_ok)
+            check(code == 0, f"allowlisted .sdd/ fixtures did not pass:\n{out}")
 
         # -- 8. allow_files mechanics: a synthetic FORBIDDEN row (never the
         #       shipped list) with a file-granular allowlist. The pattern inside
