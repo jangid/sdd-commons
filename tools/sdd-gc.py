@@ -11,16 +11,17 @@ Three sweep classes (rule ids in brackets):
 
   delegated  sweeps 1-5, obtained by INVOKING tools/sdd-skill-lint.py as a
              subprocess and passing its findings through [lint]; under
-             marker 4 the kickoff field check [kickoff-fields] is emitted at
-             sdd-orchestrate entry / DONE (cadence, later chunk)
+             marker 4 the kickoff field check [kickoff-fields] is gc's own
+             (docs/ws/<id>/kickoff.md carries date: and research_id:) and is
+             seen at sdd-orchestrate entry / DONE, the two cadence moments
   gc         sweeps 6-14, scoped to docs/**:
                6  cross-links + id existence      [xlink-dead] fail, [id-missing] fail
-               7  staleness chain                 [stale-chain] warn        (not yet)
+               7  staleness chain                 [stale-chain] warn
                8  Q-IMPL referenced, undefined    [qimpl-undefined] fail
                9  Q-IMPL defined, unreferenced    [qimpl-unreferenced] info
               10  Q-IMPL Spec reference / chain   [qimpl-broken-ref] warn
-              11  empty traceability cells        [trace-empty] warn         (not yet)
-              12  aggregate == regenerate(per-ws) [traceability-aggregate]   (not yet)
+              11  empty traceability cells        [trace-empty] warn
+              12  aggregate == regenerate(per-ws) [traceability-aggregate] warn (marker 4)
               13  index <-> directory             [index-research] fail, [index-requirements] fail,
                                                   [spec-approval] fail scoped / warn unscoped
               14  plan-history naming             [plan-history-name] fail
@@ -79,6 +80,16 @@ Exit codes: 0 = no fail finding; 1 = at least one fail finding;
 2 = usage / repository error (not a git repository, missing docs/, unknown or
 non-fixable --fix rule, linter missing).
 
+`--fix <rule>` applies exactly one whitelisted rewrite (FIXABLE below —
+`drift-sweep.md` §`--fix` Whitelist): xlink-dead (unique-candidate link
+repair), index-requirements (ID-sorted Files-table row insertion),
+traceability-aggregate (deterministic aggregate regeneration) and
+plan-history-name (date-prefix rename).  Every fix prints the paths it changed
+("no changes" otherwise), is a no-op on a second run, never touches a
+`last_updated` field (dates are the owning skill's job — rewriting one would
+mask the staleness it signals, so `stale-chain` is never fixable) and never
+writes under `docs/ws/<other-id>/` when `--workstream <id>` is given.
+
 gc never reads `.sdd/`, is never a phase-detection input, never creates a
 plan task and never writes outside a `--fix` rule's whitelist.
 """
@@ -89,6 +100,7 @@ import argparse
 import contextlib
 import importlib.util
 import io
+import os
 import re
 import shutil
 import subprocess
@@ -102,12 +114,13 @@ from pathlib import Path
 # skill-side rules are obtained by invoking the linter (sweep_lint).
 # ---------------------------------------------------------------------------
 
-# Rules `--fix` may rewrite.  Empty until the whitelist lands (drift-sweep.md
-# §`--fix` Whitelist); every `--fix` therefore exits 2 `not a fixable rule`.
-FIXABLE = []
+# Rules `--fix` may rewrite (drift-sweep.md §`--fix` Whitelist).  Exactly these
+# four; any other rule — known or not — exits 2 `not a fixable rule`.
+# `stale-chain` is deliberately absent: dates are never auto-fixed.
+FIXABLE = ["xlink-dead", "index-requirements", "traceability-aggregate", "plan-history-name"]
 
 # Every rule id gc can emit, by class, for `--help` and for `--fix` validation.
-DELEGATED_RULES = ["lint", "kickoff-fields"]
+DELEGATED_RULES = ["lint", "kickoff-fields"]   # kickoff-fields is gc-emitted under marker 4
 GC_RULES = [
     "xlink-dead", "id-missing", "stale-chain", "qimpl-undefined",
     "qimpl-unreferenced", "qimpl-broken-ref", "trace-empty",
@@ -138,6 +151,28 @@ INDEX_FIX_RS = "add the row to docs/research/index.md or remove the stray RS-* d
 INDEX_FIX_REQ = "add the Files-table row at its ID-sorted position or remove the stray category file"
 ARCHIVE_FIX = ("rename to {YYYY-MM-DD}-{reason}.md (date from last_updated or the commit date); "
                "`-replan-` is reserved for sdd-replan archives")
+STALE_FIX = ("update the downstream artifact through its owning skill and bump its last_updated "
+             "there — dates are never auto-fixed (route: record | ignore at DONE)")
+TRACE_FIX = "fill the cell in the owning docs/ws/<id>/traceability.md (sdd-implement) and regenerate the aggregate"
+AGG_FIX = "run tools/sdd-gc.py --fix traceability-aggregate (regenerates from docs/ws/*/traceability.md)"
+KICKOFF_FIX = "add `date: YYYY-MM-DD` and `research_id: RS-…` to the kickoff frontmatter (sdd-orchestrate KICKOFF)"
+
+# Canonical aggregate table header (ws-traceability.md, Workstream = 3rd column).
+AGG_HEADER = ("| Requirement | Spec | Workstream | Test | Implementation | Verified |",
+              "|-------------|------|------------|------|----------------|----------|")
+AGG_PREAMBLE = """---
+regenerated_from: docs/ws/*/traceability.md
+---
+
+# Traceability Matrix
+
+Derived aggregate (marker 4, `docs/spec/ws-traceability.md`): shipped legacy rows
+(blank Workstream, shipped order preserved) followed by every
+`docs/ws/<id>/traceability.md` row, stable-sorted by requirement id. Regenerated
+wholesale — never hand-edited; per-workstream edits go in the owning
+`docs/ws/<id>/traceability.md`.
+
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -253,9 +288,66 @@ def ws_token(name: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", name.upper())
 
 
+def compress_ids(ids: list[str]) -> str:
+    """`REQ-AA-X-001, REQ-AA-X-002, REQ-AA-X-003` -> `REQ-AA-X-001..003`; runs
+    per prefix, gaps kept as separate items (the Files-table convention)."""
+    groups: dict[str, list[int]] = {}
+    for i in ids:
+        prefix, _, n = i.rpartition("-")
+        groups.setdefault(prefix, []).append(int(n))
+    out = []
+    for prefix, nums in groups.items():
+        nums = sorted(set(nums))
+        start = prev = nums[0]
+        for n in nums[1:] + [None]:  # type: ignore[list-item]
+            if n is not None and n == prev + 1:
+                prev = n
+                continue
+            out.append(f"{prefix}-{start:03d}" + (f"..{prev:03d}" if prev != start else ""))
+            if n is not None:
+                start = prev = n
+    return ", ".join(out)
+
+
 def rs_id_of_dir(name: str) -> str | None:
     m = RS_ID_RE.match(name)
     return m.group(0) if m else None
+
+
+def artifact_date(text: str) -> str | None:
+    """`last_updated:` (or the older `date:` field of verification reports) as
+    an ISO string — lexicographic comparison is date order."""
+    fm = frontmatter(text)
+    for key in ("last_updated", "date"):
+        v = fm.get(key)
+        if isinstance(v, str) and re.match(r"^\d{4}-\d{2}-\d{2}", v):
+            return v[:10]
+    return None
+
+
+def table_cells(line: str) -> list[str]:
+    """Stripped cells of a `| a | b |` Markdown table row."""
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def render_row(cells: list[str]) -> str:
+    """Normalised row: one space padding, empty cell = two spaces."""
+    return "| " + " | ".join(cells) + " |"
+
+
+def trace_rows(text: str) -> list[tuple[int, list[str]]]:
+    """(line_no, [Requirement, Spec, Workstream, Test, Implementation, Verified])
+    for every REQ row of a traceability table; a 5-column (pre-v4) row gains an
+    empty Workstream cell so callers see one shape."""
+    out = []
+    for no, line in enumerate(text.splitlines(), 1):
+        if re.match(r"^\|\s*REQ-", line):
+            cells = table_cells(line)
+            if len(cells) == 5:
+                cells.insert(2, "")
+            if len(cells) == 6:
+                out.append((no, cells))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -288,6 +380,8 @@ class Gc:
                   file=sys.stderr)
             self.workstream = None
         self.qimpl_counts: dict[str, int] = {}
+        # Dead file links seen by sweep 6, consumed by `--fix xlink-dead`.
+        self.dead_links: list[tuple[Path, int, str]] = []
 
     # -- finding shape (REQ-GC-HARNESSP2-004) --------------------------------
 
@@ -445,6 +539,7 @@ class Gc:
             return
         hit = next((b / path for b in bases if (b / path).exists()), None)
         if hit is None:
+            self.dead_links.append((f, no, target))
             self.flag(f, no, "xlink-dead", f"broken relative link `{target}`", XLINK_FIX)
             return
         if anchor and hit.suffix == ".md":
@@ -617,6 +712,266 @@ class Gc:
                               "`-replan-` archive never mentions a replan (written by sdd-replan only)",
                               ARCHIVE_FIX)
 
+    # -- sweep 5 (marker 4): kickoff date: / research_id: per workstream ------
+
+    def sweep_kickoff(self) -> None:
+        """Under marker 4 the linter cannot see per-workstream kickoffs, so gc
+        emits [kickoff-fields] itself; under marker 3 the linter owns the row."""
+        if self.marker != "4":
+            return
+        self.sweeps_run.append("kickoff")
+        for ws in self.ws_ids:
+            k = self.ws_root / ws / "kickoff.md"
+            if not k.is_file():
+                continue  # a workstream without a kickoff is not yet a cycle
+            fm = frontmatter(read_text(k) or "")
+            missing = [key for key in ("date", "research_id") if not fm.get(key)]
+            if missing:
+                self.flag(k, None, "kickoff-fields",
+                          "kickoff frontmatter lacks " + ", ".join(f"`{m}:`" for m in missing), KICKOFF_FIX)
+
+    # -- sweep 7: staleness chain (ws-staleness.md live plan-walk) ------------
+
+    def category_file_of(self) -> dict[str, Path]:
+        """Requirement id -> the category file that defines it."""
+        out: dict[str, Path] = {}
+        for f in sorted((self.docs / "requirements").glob("*/*.md")):
+            for line in (read_text(f) or "").splitlines():
+                m = re.match(r"^(?:#{1,6}\s+|\|\s*)(REQ-[A-Z]+(?:-[A-Z0-9]+)?-\d+)\b", line)
+                if m:
+                    out.setdefault(m.group(1), f)
+        return out
+
+    def _stale(self, downstream: Path, d_date: str | None, upstream: Path, u_date: str | None,
+               what: str) -> None:
+        if d_date and u_date and u_date > d_date:
+            self.flag(downstream, None, "stale-chain",
+                      f"{what}: {upstream.relative_to(self.root)} ({u_date}) is newer than "
+                      f"{downstream.name} ({d_date})", STALE_FIX, "warn")
+
+    def sweep_stale(self) -> None:
+        """research → requirements (shared, workstream-independent) → specs →
+        plan → verification, per plan via `traces to` → `requires:` → category
+        files; never reads a traceability file; stops at the last artifact."""
+        self.sweeps_run.append("stale")
+        r_idx, q_idx = self.docs / "research" / "index.md", self.docs / "requirements" / "index.md"
+        if r_idx.is_file() and q_idx.is_file():
+            self._stale(q_idx, artifact_date(read_text(q_idx) or ""), r_idx,
+                        artifact_date(read_text(r_idx) or ""), "requirements older than research")
+        cat_of = self.category_file_of()
+        plans = self.plan_paths()
+        if self.workstream:
+            plans = {ws: p for ws, p in plans.items() if ws == self.workstream}
+        for ws, plan in sorted(plans.items()):
+            p_text = read_text(plan) or ""
+            p_date = artifact_date(p_text)
+            spec_by_name = {f.name: f for f in self.spec_files()}
+            reqs: set[str] = set()
+            for name in sorted(self.traced_specs(plan)):
+                spec = spec_by_name.get(name)
+                if spec is None:
+                    continue  # a missing spec is sweep 6's finding, not staleness
+                s_text = read_text(spec) or ""
+                s_date = artifact_date(s_text)
+                s_reqs = self._ids(frontmatter(s_text).get("requires"), REQ_ID_RE)
+                reqs.update(s_reqs)
+                for rid in s_reqs:
+                    cf = cat_of.get(rid)
+                    if cf:
+                        self._stale(spec, s_date, cf, artifact_date(read_text(cf) or ""),
+                                    f"spec older than requirement {rid}")
+                self._stale(plan, p_date, spec, s_date, "plan older than a traced spec")
+            for cf in sorted({cat_of[r] for r in reqs if r in cat_of}):
+                self._stale(plan, p_date, cf, artifact_date(read_text(cf) or ""),
+                            "plan older than a traced requirement category file")
+            ver = plan.parent / "verification.md"
+            if ver.is_file():
+                v_text = read_text(ver) or ""
+                status = str(frontmatter(v_text).get("status", ""))
+                note = " (status: pending-red — verification exists, not passed)" if status == "pending-red" else ""
+                self._stale(ver, artifact_date(v_text), plan, p_date, "verification older than the plan" + note)
+
+    # -- sweep 11: empty traceability cells (sdd-verify Step 3b policy) --------
+
+    def trace_files(self) -> list[Path]:
+        if self.marker == "4":
+            return [self.ws_root / ws / "traceability.md" for ws in self.ws_ids
+                    if (self.ws_root / ws / "traceability.md").is_file()]
+        t = self.docs / "requirements" / "traceability.md"
+        return [t] if t.is_file() else []
+
+    def legacy_rows(self) -> list[list[str]]:
+        """Rows of the shared aggregate attributed to the blank/default
+        workstream — the shipped legacy rows, in shipped order."""
+        agg = self.docs / "requirements" / "traceability.md"
+        return [cells for _, cells in trace_rows(read_text(agg) or "") if not cells[2]]
+
+    def sweep_trace_empty(self) -> None:
+        self.sweeps_run.append("trace-empty")
+        legacy_spec = {c[0]: c[1] for c in self.legacy_rows()} if self.marker == "4" else {}
+        for f in self.trace_files():
+            for no, c in trace_rows(read_text(f) or ""):
+                req, spec, _ws, test, impl, _ver = c
+                # Amendment row (telemetry.md §XSPEC): Spec differs from the legacy
+                # row for the same id — inherits the legacy Verified, never a gap.
+                if c[2] and req in legacy_spec and spec and spec != legacy_spec[req]:
+                    continue
+                if not spec:
+                    self.flag(f, no, "trace-empty", f"{req}: Spec cell empty", TRACE_FIX, "warn")
+                elif impl and not test:
+                    self.flag(f, no, "trace-empty", f"{req}: Implementation filled but Test empty",
+                              TRACE_FIX, "warn")
+
+    # -- sweep 12: aggregate == regenerate(per-ws files) (ws-traceability.md) --
+
+    def regenerate_aggregate(self) -> tuple[Path, str]:
+        """Deterministic aggregate text: the existing preamble (frontmatter and
+        prose untouched — `last_updated` is never edited), the canonical header,
+        legacy rows in shipped order, then every per-ws row stable-sorted by id;
+        cells normalised, empty cell = two spaces."""
+        agg = self.docs / "requirements" / "traceability.md"
+        text = read_text(agg) or ""
+        lines = text.splitlines()
+        hdr = next((i for i, ln in enumerate(lines) if ln.startswith("| Requirement")), None)
+        preamble = "\n".join(lines[:hdr]) + "\n" if hdr is not None else AGG_PREAMBLE
+        rows = [render_row(c) for c in self.legacy_rows()]
+        per_ws: list[list[str]] = []
+        for f in self.trace_files():
+            per_ws.extend(c for _, c in trace_rows(read_text(f) or ""))
+        rows += [render_row(c) for c in sorted(per_ws, key=lambda c: c[0])]   # stable
+        return agg, preamble + "\n".join(AGG_HEADER) + "\n" + "".join(r + "\n" for r in rows)
+
+    def sweep_aggregate(self) -> None:
+        if self.marker != "4":
+            return  # no per-ws inputs under marker 3
+        self.sweeps_run.append("aggregate")
+        agg, want = self.regenerate_aggregate()
+        if (read_text(agg) or "") != want:
+            self.flag(agg, None, "traceability-aggregate",
+                      "aggregate differs from regenerate(docs/ws/*/traceability.md)", AGG_FIX, "warn")
+
+    # -- `--fix <rule>` whitelist (drift-sweep.md §`--fix` Whitelist) ---------
+
+    def in_other_ws(self, p: Path) -> bool:
+        """True when `--workstream <id>` is given and p lives under another ws."""
+        rel = p.relative_to(self.root).parts
+        return bool(self.workstream) and rel[:2] == ("docs", "ws") and len(rel) > 2 and rel[2] != self.workstream
+
+    def fix(self, rule: str) -> int:
+        """Apply one whitelisted rewrite; print changed paths (or `no changes`)."""
+        changed = {"xlink-dead": self.fix_xlink_dead, "index-requirements": self.fix_index_requirements,
+                   "traceability-aggregate": self.fix_traceability_aggregate,
+                   "plan-history-name": self.fix_plan_history_name}[rule]()
+        for p in changed:
+            print(f"fixed [{rule}] {p.relative_to(self.root)}")
+        if not changed:
+            print(f"no changes ([{rule}] has nothing to fix)")
+        return 0
+
+    def fix_xlink_dead(self) -> list[Path]:
+        self.sweep_xlink()          # collects self.dead_links; prints nothing
+        by_name: dict[str, list[Path]] = {}
+        for p in self.docs_md():
+            by_name.setdefault(p.name, []).append(p)
+        changed: set[Path] = set()
+        for f, no, target in self.dead_links:
+            if self.in_other_ws(f):
+                continue
+            path, _, anchor = target.partition("#")
+            cands = by_name.get(Path(path).name, [])
+            if len(cands) != 1:
+                print(f"left [xlink-dead] {f.relative_to(self.root)}:{no} `{target}` — "
+                      f"{len(cands)} candidate(s)" + (": " + ", ".join(str(c.relative_to(self.root)) for c in cands)
+                                                      if cands else ""))
+                continue
+            new = os.path.relpath(cands[0], f.parent) + (f"#{anchor}" if anchor else "")
+            lines = (read_text(f) or "").split("\n")
+            if target in lines[no - 1]:
+                lines[no - 1] = lines[no - 1].replace(f"({target})", f"({new})").replace(f"(see {target})", f"(see {new})")
+                f.write_text("\n".join(lines), encoding="utf-8")
+                changed.add(f)
+        return sorted(changed)
+
+    def fix_index_requirements(self) -> list[Path]:
+        """Insert each missing Files-table row at its ID-sorted position: inside
+        its category block, before the first row whose Domain sorts after it
+        (ws-ids.md merge-safe insertion) — never at EOF."""
+        ridx = self.docs / "requirements" / "index.md"
+        text = read_text(ridx)
+        if text is None:
+            return []
+        lines = text.split("\n")
+        listed = {t for ln in lines if ln.startswith("|") for t in re.findall(r"\]\(([\w-]+/[\w-]+\.md)\)", ln)}
+        files = sorted(str(p.relative_to(self.docs / "requirements"))
+                       for p in (self.docs / "requirements").glob("*/*.md"))
+        table = [i for i, ln in enumerate(lines) if re.match(r"^\|\s*\w[\w-]*\s*\|\s*\[", ln)]
+        if not table:
+            return []
+        changed = False
+        for rel in files:
+            if rel in listed:
+                continue
+            cat, name = rel.split("/", 1)
+            cf_text = read_text(self.docs / "requirements" / rel) or ""
+            fm = frontmatter(cf_text)
+            ids = sorted({m.group(1) for ln in cf_text.splitlines()
+                          for m in [re.match(r"^(?:#{1,6}\s+|\|\s*)(REQ-[A-Z]+(?:-[A-Z0-9]+)?-\d+)\b", ln)] if m})
+            domain = ", ".join(sorted({i.split("-")[1] for i in ids})) or ""
+            row = render_row([cat, f"[{name}]({rel})", domain, compress_ids(ids),
+                              str(fm.get("status", "")), str(fm.get("last_updated", ""))])
+            block = [i for i in table if table_cells(lines[i])[0] == cat]
+            pos = None
+            for i in block:
+                if table_cells(lines[i])[2] > domain:
+                    pos = i
+                    break
+            if pos is None:
+                pos = (block[-1] if block else table[-1]) + 1
+            lines.insert(pos, row)
+            table = [i + (1 if i >= pos else 0) for i in table] + [pos]
+            table.sort()
+            changed = True
+        if changed:
+            ridx.write_text("\n".join(lines), encoding="utf-8")
+            return [ridx]
+        return []
+
+    def fix_traceability_aggregate(self) -> list[Path]:
+        if self.marker != "4":
+            print("left [traceability-aggregate] no per-ws inputs under marker 3")
+            return []
+        agg, want = self.regenerate_aggregate()
+        if (read_text(agg) or "") == want:
+            return []
+        agg.write_text(want, encoding="utf-8")
+        return [agg]
+
+    def fix_plan_history_name(self) -> list[Path]:
+        changed: list[Path] = []
+        for d in self.plan_history_dirs():
+            if self.in_other_ws(d):
+                continue
+            for f in sorted(d.glob("*.md")):
+                if f.name.startswith("verification-") or ARCHIVE_NAME_RE.match(f.name):
+                    continue
+                date = artifact_date(read_text(f) or "")
+                if not date:
+                    log = subprocess.run(["git", "-C", str(self.root), "log", "-1", "--format=%as", "--", str(f)],
+                                         capture_output=True, text=True)
+                    date = log.stdout.strip() or None
+                if not date:
+                    print(f"left [plan-history-name] {f.relative_to(self.root)} — no last_updated or commit date")
+                    continue
+                stem = re.sub(r"^\d{4}-\d{2}-\d{2}-?", "", f.stem)          # a partial date prefix is replaced
+                stem = re.sub(r"[^a-z0-9-]+", "-", stem.lower()).strip("-") or "archive"
+                new = f.with_name(f"{date}-{stem}.md")
+                if new.exists():
+                    print(f"left [plan-history-name] {f.relative_to(self.root)} — {new.name} already exists")
+                    continue
+                f.rename(new)
+                changed.append(new)
+        return changed
+
     # -- driver --------------------------------------------------------------
 
     def run(self) -> int:
@@ -624,8 +979,12 @@ class Gc:
         self.sweep_xlink()
         self.sweep_qimpl()
         if not self.fast:
+            self.sweep_stale()
+            self.sweep_trace_empty()
+            self.sweep_aggregate()
             self.sweep_index()
             self.sweep_plan_history()
+            self.sweep_kickoff()
         for severity, text in self.findings:
             print({"warn": "WARN ", "info": "INFO "}.get(severity, "") + text)
         counts = Counter(sev for sev, _ in self.findings)
@@ -656,12 +1015,13 @@ def qid(ws: str | None, n: int) -> str:
 
 
 def build_fixture(root: Path, clean: bool) -> dict[str, object]:
-    """Write a git-initialised marker-4 tree with one workstream `alpha`.
+    """Write a git-initialised marker-4 tree with workstreams `alpha` and `beta`
+    (drift-sweep.md §Self-Test Fixture).
 
-    `clean=False` plants exactly one instance of every fail rule this chunk
-    implements plus the warn / info cases; `clean=True` writes the same tree
-    without defects.  Returns the symbolic expectations.  A later chunk
-    extends this builder (second workstream, aggregate, trace-empty rows).
+    `clean=False` plants exactly one instance of every fail rule plus the warn /
+    info cases; `clean=True` writes the same tree without defects.  Returns the
+    symbolic expectations — every count is incremented by the element that
+    causes it, never read from the live corpus.
     """
     root.mkdir(parents=True, exist_ok=True)
     subprocess.run(["git", "init", "-q", str(root)], check=True)
@@ -670,7 +1030,7 @@ def build_fixture(root: Path, clean: bool) -> dict[str, object]:
     a1, a2, a3, a4 = (qid("ALPHA", i) for i in (1, 2, 3, 4))
     l7, l8 = qid(None, 7), qid(None, 8)
     D = 6                       # definitions written below (a1..a4, l7, l8)
-    B = 3                       # referenced in prose: a1, a2 (SKILL.md), l7 (plan)
+    B = 3                       # referenced in prose: a1, a2 (SKILL.md), l7 (beta plan)
     info["qimpl-unreferenced"] += D - B
 
     _w(root, "docs/.sdd-version", "4\n")
@@ -684,28 +1044,33 @@ def build_fixture(root: Path, clean: bool) -> dict[str, object]:
     _w(root, "docs/research/RS-1-x/findings.md",
        f"---\nstatus: Complete\n---\n# RS-1\n\nForeign repo cites {l8} here — excluded.\n")
     _w(root, "docs/research/RS-2-y/findings.md", "---\nstatus: Complete\n---\n# RS-2\n")
-    # -- requirements: two category files; `two.md` row missing when dirty
+    # -- requirements: two category files; `two.md` row missing when dirty.  The
+    #    clean table is also the exact text `--fix index-requirements` must produce.
     files_tbl = ("| Category | File | Domain | Requirements | Status | Last Updated |\n"
                  "|---|---|---|---|---|---|\n"
                  "| functional | [one.md](functional/one.md) | AA | REQ-AA-ALPHA-001..002 | Approved | 2026-01-01 |\n")
+    two_row = "| functional | [two.md](functional/two.md) | BB | REQ-BB-ALPHA-001..002 | Approved | 2026-01-01 |\n"
     if clean:
-        files_tbl += "| functional | [two.md](functional/two.md) | BB | REQ-BB-ALPHA-001 | Approved | 2026-01-01 |\n"
+        files_tbl += two_row
     else:
         fail["index-requirements"] += 1
-    _w(root, "docs/requirements/index.md",
-       f"---\nstatus: Approved\nlast_updated: 2026-01-01\n---\n# Requirements\n\n## Files\n\n{files_tbl}")
+    index_text = f"---\nstatus: Approved\nlast_updated: 2026-01-01\n---\n# Requirements\n\n## Files\n\n{files_tbl}"
+    _w(root, "docs/requirements/index.md", index_text)
+    exp["index_fixed"] = index_text.replace(files_tbl, files_tbl + ("" if clean else two_row))
     _w(root, "docs/requirements/functional/one.md",
        "---\nstatus: Approved\nlast_updated: 2026-01-01\nresearch_refs: [RS-1]\n---\n"
-       "# One\n\n### REQ-AA-ALPHA-001: first\n\nText (see chunk.md#design) — wait, see a.md.\n\n"
+       "# One\n\n### REQ-AA-ALPHA-001: first\n\nText — see a.md.\n\n"
        "### REQ-AA-ALPHA-002: second\n\nDesign lives in the spec (see a.md).\n")
     _w(root, "docs/requirements/functional/two.md",
-       "---\nstatus: Approved\nlast_updated: 2026-01-01\n---\n# Two\n\n| REQ-BB-ALPHA-001 | table-defined |\n")
-    # -- specs: a.md (Approved, traced), b.md (Approved, traced), c.md (Draft, untraced; dirty only)
+       "---\nstatus: Approved\nlast_updated: 2026-01-01\n---\n# Two\n\n"
+       "| REQ-BB-ALPHA-001 | table-defined |\n| REQ-BB-ALPHA-002 | table-defined |\n")
+    # -- specs: a.md (Approved, traced by alpha), b.md (Draft when dirty, traced only by beta)
     requires = ["REQ-AA-ALPHA-001", "REQ-AA-ALPHA-002"]
     if not clean:
         requires.append("REQ-ZZ-999")
         fail["id-missing"] += 1
-    dead = "" if clean else "Compare (see ../spec/nope.md) for the old shape.\n"
+    # one dead link whose basename has exactly one candidate under docs/ -> fixable
+    dead = "" if clean else "See [the gadget](../old/b.md) for the shape.\n"
     if not clean:
         fail["xlink-dead"] += 1
     anchor = "" if clean else "See [the widget](b.md#no-such-heading).\n"
@@ -714,9 +1079,13 @@ def build_fixture(root: Path, clean: bool) -> dict[str, object]:
     a4_ref = "§Widget" if clean else "§Nonexistent Section"
     if not clean:
         warn["qimpl-broken-ref"] += 1
+    # a.md newer than alpha's plan (2026-01-03) when dirty -> stale-chain on the plan
+    a_date = "2026-01-02" if clean else "2026-01-04"
+    if not clean:
+        warn["stale-chain"] += 1
     _w(root, "docs/spec/a.md", f"""---
 status: Approved
-last_updated: 2026-01-02
+last_updated: {a_date}
 requires: [{', '.join(requires)}]
 ---
 
@@ -752,10 +1121,13 @@ Widget text. {dead}{anchor}Cross-spec: (see b.md).
 **Spec reference**: {a4_ref}
 **Decision**: w
 """)
+    b_status = "Approved" if clean else "Draft"
+    if not clean:
+        warn["spec-approval"] += 1       # unscoped warn; `--workstream beta` -> 1 fail; alpha -> 0
     _w(root, "docs/spec/b.md", f"""---
-status: Approved
+status: {b_status}
 last_updated: 2026-01-02
-requires: [REQ-BB-ALPHA-001]
+requires: [REQ-BB-ALPHA-001, REQ-BB-ALPHA-002]
 ---
 
 # Spec B
@@ -776,12 +1148,9 @@ requires: [REQ-BB-ALPHA-001]
 **Spec reference**: §Gadget
 **Decision**: legacy
 """)
-    if not clean:
-        _w(root, "docs/spec/c.md", "---\nstatus: Draft\nlast_updated: 2026-01-02\nrequires: []\n---\n# Spec C\n")
-        warn["spec-approval"] += 1       # unscoped only; `--workstream alpha` -> 0 fails
-    # -- workstream alpha
+    # -- workstream alpha: traces a.md only
     _w(root, "docs/ws/alpha/kickoff.md", "---\nresearch_id: RS-1\ndate: 2026-01-01\n---\n# Kickoff\n")
-    _w(root, "docs/ws/alpha/plan.md", f"""---
+    _w(root, "docs/ws/alpha/plan.md", """---
 status: active
 last_updated: 2026-01-03
 ---
@@ -791,18 +1160,66 @@ last_updated: 2026-01-03
 ### Chunk 0: things
 **Depends on**: none
 1. [ ] [implement] widget — traces to `a.md` §Widget (REQ-AA-ALPHA-001).
-2. [ ] [implement] gadget — traces to `b.md` §Gadget; resolved via {l7}.
 """)
-    _w(root, "docs/ws/alpha/traceability.md",
-       "---\nworkstream: alpha\nlast_updated: 2026-01-03\n---\n\n"
-       "| Requirement | Spec | Workstream | Test | Implementation | Verified |\n|---|---|---|---|---|---|\n"
-       "| REQ-AA-ALPHA-001 | a.md | alpha |  |  |  |\n")
+    # verification older than the plan and not passed when dirty -> stale-chain
+    if clean:
+        _w(root, "docs/ws/alpha/verification.md", "---\nlast_updated: 2026-01-03\nstatus: pass\n---\n# V\n\n## Next Steps\n")
+    else:
+        _w(root, "docs/ws/alpha/verification.md", "---\nlast_updated: 2026-01-02\nstatus: pending-red\n---\n# V\n\n## Next Steps\n")
+        warn["stale-chain"] += 1
+    alpha_rows = [["REQ-AA-ALPHA-001", "a.md", "alpha", "test_widget", "widget.py", ""]]
     if clean:
         _w(root, "docs/ws/alpha/plan-history/2026-01-01-replan-foo.md",
            "---\nlast_updated: 2026-01-01\n---\n# archived by sdd-replan\n")
     else:
         _w(root, "docs/ws/alpha/plan-history/replan-foo.md", "---\nlast_updated: 2026-01-01\n---\n# replan\n")
         fail["plan-history-name"] += 1
+    # -- workstream beta: traces b.md only; kickoff lacks date: when dirty
+    kick = "---\nresearch_id: RS-2\ndate: 2026-01-01\n---\n# Kickoff\n" if clean else "---\nresearch_id: RS-2\n---\n# Kickoff\n"
+    if not clean:
+        fail["kickoff-fields"] += 1
+    _w(root, "docs/ws/beta/kickoff.md", kick)
+    _w(root, "docs/ws/beta/plan.md", f"""---
+status: active
+last_updated: 2026-01-03
+---
+
+# Plan
+
+### Chunk 0: things
+**Depends on**: none
+1. [ ] [implement] gadget — traces to `b.md` §Gadget; resolved via {l7}.
+""")
+    # trace-empty rows: (1) amendment row — Spec differs from the legacy row for the
+    # same id — Implementation-filled / Test-empty yet never a gap; (2) Spec-empty;
+    # (3) Implementation-filled / Test-empty; (4) prose-only row with empty Test.
+    beta_rows = [
+        ["REQ-BB-ALPHA-001", "b.md", "beta", "", "gadget.py", ""],
+        ["REQ-AA-ALPHA-002", "a.md" if clean else "", "beta", "test_second", "second.py", ""],
+        ["REQ-BB-ALPHA-002", "b.md", "beta", "test_gadget2" if clean else "", "gadget2.py", ""],
+        ["REQ-AA-ALPHA-001", "a.md", "beta", "", "", ""],
+    ]
+    if not clean:
+        warn["trace-empty"] += 2
+    for ws, ws_rows in (("alpha", alpha_rows), ("beta", beta_rows)):
+        _w(root, f"docs/ws/{ws}/traceability.md",
+           f"---\nworkstream: {ws}\nlast_updated: 2026-01-03\n---\n\n"
+           + "\n".join(AGG_HEADER) + "\n" + "".join(render_row(r) + "\n" for r in ws_rows))
+    # -- shared aggregate: legacy rows in shipped (unsorted) order, then per-ws
+    #    rows stable-sorted by id.  Dirty drops the last row -> differs from
+    #    regeneration; the expected text is also what `--fix` must produce.
+    legacy = [["REQ-BB-ALPHA-001", "old.md", "", "", "", "pass"],
+              ["REQ-AA-ALPHA-001", "a.md", "", "", "", "pass"]]
+    per_ws = sorted(alpha_rows + beta_rows, key=lambda r: r[0])
+    agg_rows = [render_row(r) for r in legacy + per_ws]
+    agg_pre = ("---\nlast_updated: 2026-01-03\nregenerated_from: docs/ws/*/traceability.md\n---\n\n"
+               "# Traceability Matrix\n\nDerived aggregate.\n\n" + "\n".join(AGG_HEADER) + "\n")
+    exp["aggregate"] = agg_pre + "\n".join(agg_rows) + "\n"
+    if clean:
+        _w(root, "docs/requirements/traceability.md", exp["aggregate"])  # type: ignore[arg-type]
+    else:
+        _w(root, "docs/requirements/traceability.md", agg_pre + "\n".join(agg_rows[:-1]) + "\n")
+        warn["traceability-aggregate"] += 1
     # -- skills: one skill, > 400 lines so the linter's size warning passes through
     padding = "\n".join(f"filler line {i}." for i in range(1, 405))
     mutation = "" if clean else f"\nMutation: resolved per {qid(None, 999)} (undefined).\n"
@@ -834,7 +1251,10 @@ fenced {a3} never counts
 def _run(argv: list[str]) -> tuple[int, str]:
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
-        code = main(argv)
+        try:
+            code = main(argv)
+        except SystemExit as e:       # argparse --help exits; never let it end the self-test
+            code = int(e.code or 0)
     return code, buf.getvalue()
 
 
@@ -858,6 +1278,21 @@ def _parse(out: str) -> tuple[Counter, Counter, Counter, list[str]]:
     return fails, warns, infos, problems
 
 
+def _dates(root: Path) -> Counter:
+    """Multiset of every `last_updated:` / `date:` frontmatter line under docs/ —
+    `--fix` must leave it untouched."""
+    c: Counter = Counter()
+    for p in sorted((root / "docs").rglob("*.md")):
+        for ln in (read_text(p) or "").splitlines():
+            if re.match(r"^(last_updated|date):", ln):
+                c[ln] += 1
+    return c
+
+
+def _tree_bytes(d: Path) -> dict[str, bytes]:
+    return {str(p.relative_to(d)): p.read_bytes() for p in sorted(d.rglob("*")) if p.is_file()}
+
+
 def self_test() -> int:
     global _LINT_SUITE_RULES
     failures: list[str] = []
@@ -875,6 +1310,7 @@ def self_test() -> int:
         plain.mkdir()
         D, B = exp["D"], exp["B"]
         efail, ewarn, einfo = exp["fail"], exp["warn"], exp["info"]  # type: ignore[assignment]
+        n_sweeps = 9            # lint, xlink, qimpl, stale, trace, aggregate, index, plan-history, kickoff
 
         # -- 1. dirty fixture: exit 1, every fail rule exactly once, symbolic counts
         code, out = _run(["--report", "--root", str(dirty)])
@@ -882,18 +1318,19 @@ def self_test() -> int:
         check(code == 1, f"dirty fixture exit {code}, want 1")
         check(not problems, "shape problems: " + "; ".join(problems))
         for rule, n in efail.items():
-            check(fails[rule] == n, f"[{rule}] fail count {fails[rule]}, want {n}\n{out}")
+            check(fails[rule] == n == 1, f"[{rule}] fail count {fails[rule]}, want exactly 1\n{out}")
         check(sum(fails.values()) == sum(efail.values()),
               f"unexpected fail rules: {dict(fails)} vs {dict(efail)}")
-        check(warns["qimpl-broken-ref"] == ewarn["qimpl-broken-ref"], f"broken-ref warns {dict(warns)}")
-        check(warns["xlink-dead"] == ewarn["xlink-dead"], f"anchor warns {dict(warns)}")
-        check(warns["spec-approval"] == ewarn["spec-approval"], f"spec-approval warns {dict(warns)}")
+        for rule in ("qimpl-broken-ref", "xlink-dead", "spec-approval", "stale-chain",
+                     "trace-empty", "traceability-aggregate"):
+            check(warns[rule] == ewarn[rule], f"[{rule}] warn count {warns[rule]}, want {ewarn[rule]}\n{out}")
         check(warns["size"] == ewarn["lint-size"] and "[size]" in out,
               f"lint size warning did not pass through:\n{out}")
         check(infos["qimpl-unreferenced"] == D - B == einfo["qimpl-unreferenced"],
               f"defined-only info {infos['qimpl-unreferenced']}, want {D - B}")
         check(fails["qimpl-undefined"] == 1 and "999" in out, "Q-IMPL mutation not flagged once")
         check("WARN " in out and "INFO " in out, "missing WARN/INFO prefixes")
+        check("pending-red" in out, "stale-chain did not read pending-red as not-passed")
         # counting-rule internals: D, B, D-B, 0 referenced-only before the mutation
         g = Gc(dirty, lint_suite_rules=False)
         g.sweep_qimpl()
@@ -904,36 +1341,46 @@ def self_test() -> int:
         check(out.strip().splitlines()[-1].startswith(f"FAIL: {sum(efail.values())} finding(s), "),
               f"summary wrong: {out.strip().splitlines()[-1]}")
 
-        # -- 2. workstream scoping: alpha traces only Approved specs -> no spec-approval at all
+        # -- 2. workstream scoping: alpha traces only Approved specs; beta traces the Draft one
         code, out = _run(["--report", "--root", str(dirty), "--workstream", "alpha"])
         fails, warns, _, _ = _parse(out)
         check(fails["spec-approval"] == 0 and warns["spec-approval"] == 0,
-              f"scoped spec-approval fired: {dict(fails)} {dict(warns)}")
+              f"alpha-scoped spec-approval fired: {dict(fails)} {dict(warns)}")
+        check(warns["stale-chain"] == ewarn["stale-chain"], f"alpha-scoped stale-chain {dict(warns)}")
         check(fails["xlink-dead"] == 1, "scoped run lost the xlink finding")
+        code, out = _run(["--report", "--root", str(dirty), "--workstream", "beta"])
+        fails, warns, _, _ = _parse(out)
+        check(fails["spec-approval"] == 1 and warns["spec-approval"] == 0,
+              f"beta-scoped spec-approval: {dict(fails)} {dict(warns)}")
+        check(warns["stale-chain"] == 0, f"beta-scoped stale-chain leaked alpha's: {dict(warns)}")
 
-        # -- 3. --fast: lint + xlink + qimpl only
+        # -- 3. --fast: lint + xlink + qimpl only — no date walk, no history, no tables
         code, out = _run(["--fast", "--root", str(dirty)])
-        fails, _, _, _ = _parse(out)
+        fails, warns, _, _ = _parse(out)
         check(code == 1 and fails["plan-history-name"] == 0 and fails["index-research"] == 0
+              and fails["kickoff-fields"] == 0 and warns["stale-chain"] == 0
+              and warns["trace-empty"] == 0 and warns["traceability-aggregate"] == 0
               and fails["xlink-dead"] == 1 and fails["qimpl-undefined"] == 1,
-              f"--fast ran the wrong sweeps: {dict(fails)}")
+              f"--fast ran the wrong sweeps: {dict(fails)} {dict(warns)}")
 
         # -- 4. clean copy: exit 0, no fail, size warning passes through, summary shape
         code, out = _run(["--report", "--root", str(clean)])
         fails, warns, infos, problems = _parse(out)
         check(code == 0 and not fails, f"clean fixture exit {code}, fails {dict(fails)}\n{out}")
         check(not problems, "clean shape problems: " + "; ".join(problems))
-        check(out.strip().splitlines()[-1] == f"OK: 5 sweep(s) clean, 1 warning(s), {D - B} info",
+        check(out.strip().splitlines()[-1] == f"OK: {n_sweeps} sweep(s) clean, 1 warning(s), {D - B} info",
               f"clean summary wrong: {out.strip().splitlines()[-1]}")
         check(warns["size"] == 1, "clean run lost the lint size pass-through")
+        check(warns["traceability-aggregate"] == 0 and warns["trace-empty"] == 0,
+              f"clean aggregate / amendment row flagged: {dict(warns)}")
 
         # -- 5. exit code 2 paths
         code, out = _run(["--fix", "nonexistent-rule", "--root", str(clean)])
         check(code == 2 and "not a fixable rule" in out, f"--fix nonexistent-rule: {code} {out!r}")
         code, out = _run(["--fix", "staleness", "--root", str(clean)])
         check(code == 2 and "not a fixable rule" in out, f"--fix staleness: {code} {out!r}")
-        code, out = _run(["--fix", "xlink-dead", "--root", str(clean)])
-        check(code == 2 and "not a fixable rule" in out, f"--fix xlink-dead (FIXABLE empty): {code}")
+        code, out = _run(["--fix", "stale-chain", "--root", str(clean)])
+        check(code == 2 and "not a fixable rule" in out, f"--fix stale-chain (dates never fixed): {code}")
         code, out = _run(["--report", "--root", str(plain)])
         check(code == 2 and "not a git repository" in out, f"non-git root: {code} {out!r}")
         nodocs = tmp / "nodocs"
@@ -946,9 +1393,9 @@ def self_test() -> int:
         code, out = _run(["--help"])
         check(code == 0, "--help exit")
         for needle in ("--report", "--fast", "--workstream", "--fix", "--root", "--self-test",
-                       "delegated", "excluded", "counting rule", "review",
-                       *ALL_RULES):
+                       "delegated", "excluded", "counting rule", "review", *ALL_RULES, *FIXABLE):
             check(needle in out, f"--help lacks {needle!r}")
+        check(len(FIXABLE) == 4, f"FIXABLE has {len(FIXABLE)} rules, want 4")
 
         # -- 7. flag() refuses an empty fix
         try:
@@ -956,6 +1403,60 @@ def self_test() -> int:
             check(False, "flag() accepted an empty fix")
         except AssertionError:
             pass
+
+        # -- 8. --fix whitelist on the dirty tree: prints paths, idempotent, dates untouched,
+        #       never writes under another workstream
+        dates_before = _dates(dirty)
+        beta_before = _tree_bytes(dirty / "docs/ws/beta")
+        a_md = dirty / "docs/spec/a.md"
+        code, out = _run(["--fix", "xlink-dead", "--root", str(dirty)])
+        check(code == 0 and "docs/spec/a.md" in out, f"--fix xlink-dead: {code} {out!r}")
+        check("](b.md)" in (read_text(a_md) or "") and "../old/b.md" not in (read_text(a_md) or ""),
+              "xlink-dead fix did not rewrite the unique-candidate link")
+        code, out = _run(["--fix", "xlink-dead", "--root", str(dirty)])
+        check(code == 0 and "no changes" in out, f"second --fix xlink-dead changed something: {out!r}")
+        _w(dirty, "docs/spec/a.md", (read_text(a_md) or "") + "\nCompare (see ../spec/nope.md).\n")
+        code, out = _run(["--fix", "xlink-dead", "--root", str(dirty)])
+        check(code == 0 and "no changes" in out and "left" in out and "nope.md" in out,
+              f"dead link without a candidate was not left+reported: {out!r}")
+        code, out = _run(["--report", "--root", str(dirty)])
+        fails, _, _, _ = _parse(out)
+        check(fails["xlink-dead"] == 1, f"after fix, xlink-dead fails {fails['xlink-dead']} (want the unfixable one)")
+
+        idx = dirty / "docs/requirements/index.md"
+        code, out = _run(["--fix", "index-requirements", "--root", str(dirty)])
+        check(code == 0 and "docs/requirements/index.md" in out, f"--fix index-requirements: {code} {out!r}")
+        check(read_text(idx) == exp["index_fixed"],
+              f"index row not inserted at its sorted position:\n{read_text(idx)}")
+        code, out = _run(["--fix", "index-requirements", "--root", str(dirty)])
+        check(code == 0 and "no changes" in out, f"second --fix index-requirements: {out!r}")
+
+        hist = dirty / "docs/ws/alpha/plan-history"
+        code, out = _run(["--fix", "plan-history-name", "--root", str(dirty)])
+        check(code == 0 and "2026-01-01-replan-foo.md" in out, f"--fix plan-history-name: {code} {out!r}")
+        check((hist / "2026-01-01-replan-foo.md").is_file() and not (hist / "replan-foo.md").exists(),
+              "archive not renamed with its last_updated prefix")
+        code, out = _run(["--fix", "plan-history-name", "--root", str(dirty)])
+        check(code == 0 and "no changes" in out, f"second --fix plan-history-name: {out!r}")
+
+        agg = dirty / "docs/requirements/traceability.md"
+        code, out = _run(["--fix", "traceability-aggregate", "--root", str(dirty), "--workstream", "alpha"])
+        check(code == 0 and "docs/requirements/traceability.md" in out, f"--fix traceability-aggregate: {code} {out!r}")
+        check(read_text(agg) == exp["aggregate"],
+              f"regenerated aggregate differs from the expected text:\n{read_text(agg)}\n--- want ---\n{exp['aggregate']}")
+        before = read_text(agg)
+        code, out = _run(["--fix", "traceability-aggregate", "--root", str(dirty)])
+        check(code == 0 and "no changes" in out and read_text(agg) == before,
+              f"second --fix traceability-aggregate not a no-op: {out!r}")
+        check(_tree_bytes(dirty / "docs/ws/beta") == beta_before, "--fix wrote under docs/ws/beta/")
+        check(_dates(dirty) == dates_before, f"--fix touched a date field: {_dates(dirty) - dates_before}")
+        code, out = _run(["--report", "--root", str(dirty)])
+        fails, warns, _, _ = _parse(out)
+        check(fails["index-requirements"] == 0 and fails["plan-history-name"] == 0
+              and warns["traceability-aggregate"] == 0,
+              f"fixed rules still fire: {dict(fails)} {dict(warns)}")
+        check(fails["id-missing"] == 1 and fails["kickoff-fields"] == 1 and warns["stale-chain"] == ewarn["stale-chain"],
+              f"--fix changed findings it does not own: {dict(fails)} {dict(warns)}")
     finally:
         _LINT_SUITE_RULES = True
         shutil.rmtree(tmp, ignore_errors=True)
@@ -963,8 +1464,9 @@ def self_test() -> int:
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
-    print("SELF-TEST OK: sweeps 6/8/9/10/13/14 fire once each on the fixture; "
-          "counting rule D/B/D-B hold; exit codes 0/1/2; finding shape; lint pass-through")
+    print("SELF-TEST OK: sweeps 5-14 fire once each on the two-workstream fixture; counting rule "
+          "D/B/D-B hold; exit codes 0/1/2; finding shape; lint pass-through; four --fix rules "
+          "idempotent with dates and other workstreams untouched")
     return 0
 
 
@@ -981,11 +1483,14 @@ sweep classes and rule ids
   delegated (tools/sdd-skill-lint.py, invoked as a subprocess; never copied):
       [lint] skill structure, forbidden phrases, REQUIRED markers, ordinals, size,
              references/ links, docs/spec pointers, known drift phrases
-      [kickoff-fields] kickoff date:/research_id: per workstream (marker 4; cadence hook)
+      [kickoff-fields] fail kickoff date:/research_id: per workstream (linter at marker 3;
+             gc at marker 4, seen at sdd-orchestrate entry and DONE)
   gc (scoped to docs/**):
       [xlink-dead] fail   dead [text](path) / (see …) links; anchor miss is warn
       [id-missing] fail   requires: / research_refs / (see RS-…) ids that do not exist
-      [stale-chain] warn  research -> requirements -> specs -> plan -> verification dates
+      [stale-chain] warn  research -> requirements -> specs -> plan -> verification dates,
+             per workstream via plan `traces to` -> spec requires: -> category files;
+             pending-red reads as "verification exists, not passed"; never fixable
       [qimpl-undefined] fail    Q-IMPL referenced but defined in no spec
       [qimpl-unreferenced] info Q-IMPL defined but never referenced (not a defect)
       [qimpl-broken-ref] warn   **Spec reference** heading missing; [superseded by …] names an undefined id
@@ -1004,9 +1509,11 @@ excluding docs/research/**, the placeholders (Q-IMPL-NNN, Q-IMPL-1,
 Q-IMPL-ISSUE42*, Q-IMPL-ISSUE57-001, unknown <WS> tokens), and anything inside
 fenced code or inline backticks.  Full text: the module docstring.
 
---fix rules currently whitelisted: %s
+--fix whitelist (exactly these; each prints changed paths, is a no-op when
+re-run, never touches last_updated, never writes under another workstream):
+  %s
 exit codes: 0 no fail finding; 1 fail finding(s); 2 usage / repository error
-""" % (", ".join(FIXABLE) or "(none yet)")
+""" % ", ".join(FIXABLE)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1052,15 +1559,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.fix is not None:
-        # FIXABLE is empty until the whitelist lands; both unknown and known
-        # non-fixable rules exit 2 with the same phrase.
+        # Both unknown and known non-fixable rules exit 2 with the same phrase.
         if args.fix not in FIXABLE:
             kind = "" if args.fix in ALL_RULES else "unknown rule; "
-            print(f"error: {kind}{args.fix} is not a fixable rule "
-                  f"(fixable: {', '.join(FIXABLE) or 'none yet'})")
+            print(f"error: {kind}{args.fix} is not a fixable rule (fixable: {', '.join(FIXABLE)})")
             return 2
 
     gc = Gc(root, workstream=args.workstream, fast=args.fast, lint_suite_rules=_LINT_SUITE_RULES)
+    if args.fix is not None:
+        return gc.fix(args.fix)
     if gc.lint_path() is None:
         print(f"error: linter missing — expected {root / 'tools' / 'sdd-skill-lint.py'}")
         return 2
