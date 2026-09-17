@@ -70,7 +70,17 @@ Read the current state:
 3. `docs/research/RS-*/findings.md` — any new findings that changed assumptions?
 4. `docs/spec/*.md` — are specs still valid given new information?
 5. `docs/requirements/{category}/*.md` — current requirements for context
-6. Recent conversation context — what was the stuck state or trigger?
+6. The **checkpoint** — the blocked-task note under the stuck task in
+   `docs/plan.md` (`**Blocked** (<date>, <trigger>): checkpoint`, followed by
+   `failing:` / `last hypothesis:` / `attempt N:` / `open question:` /
+   `unblocks:` lines, ≤ ~15 lines; written by `sdd-implement` Step 3, or
+   applied by the orchestrator under fan-out). Read it as the stuck state **in
+   place of** recent conversation context, which does not exist across a
+   dispatch boundary. Tracebacks are never stored there — regenerate them by
+   re-running the named `failing:` tests. Under marker `4` the plan is
+   `docs/ws/<id>/plan.md`. A note carrying a `task not found in plan` prefix
+   (applied under the nearest chunk header) means the leaf drifted — classify
+   the named work as unplanned; never treat it as a plan task.
 
 ### Step 2: Classify the Issue
 
@@ -115,12 +125,29 @@ First, determine if this is a **significant** or **minor** replan:
 2. Copy `docs/plan.md` to `docs/plan-history/{date}-replan-{reason}.md`
 3. Write the changelog and removed tasks to the **archive file**, not the active plan
 
-**For minor replans**: edit `docs/plan.md` in place. No archive needed.
+**`-replan-` filename contract (REQ-HARN-003).** Every archive this skill
+writes carries the `-replan-` segment (`{date}-replan-{reason}.md`; per
+milestone `{date}-m{N}-replan-{reason}.md`); no other skill may use that
+segment. `sdd-orchestrate` derives the replan re-entry count (`REPLAN_MAX`,
+default 3) by counting archives matching
+`^(\d{4}-\d{2}-\d{2})-(m\d+-)?replan-.*\.md$` dated ≥ the kickoff `date:`;
+`sdd-plan`'s rewrite archives (`{date}-{reason}.md`) and milestone-complete
+archives (`{date}-m{N}-complete.md`) must never contain the segment.
+
+**For minor replans**: edit `docs/plan.md` in place. No archive needed. A minor
+replan leaves no archive and is deliberately not counted against the cap.
 
 When revising `docs/plan.md`:
 
 1. **Preserve done tasks** — never undo completed work unless explicitly reverting
-2. **Mark blocked tasks** — note why they're blocked and what unblocks them
+2. **Mark blocked tasks** — note why they're blocked and what unblocks them.
+   This blocked-task note is the **checkpoint slot**: `sdd-implement` Step 3
+   writes the circuit-break checkpoint here (`**Blocked** (<date>, <trigger>):
+   checkpoint` + `failing:` / `last hypothesis:` / `attempt N:` /
+   `open question:` / `unblocks:` lines, ≤ ~15 lines, no traceback frames) and
+   Step 1 item 6 reads it back. Keep an existing checkpoint intact when
+   revising; when the replan resolves the blocker, update its `unblocks:` line
+   (or drop the note once the task is unblocked). No new section, no new file
 3. **Add new tasks** if the replan introduces new work
 4. **Remove invalidated tasks** — move them to the archive file (for significant replans). Do NOT write `[removed: reason]` in the active plan
 5. **Reorder** remaining tasks based on new dependencies

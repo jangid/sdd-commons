@@ -138,7 +138,8 @@ returned content itself when a subagent reports a blocked write.
 
 ## REVIEW subagent template (isolation-critical)
 
-Carries only artifact paths + the repo root + "invoke sdd-review". Nothing else.
+Carries only artifact paths + the repo root + "invoke sdd-review" + a
+`Budget:` bound. Nothing else.
 This is the dispatch-time enforcement of `sdd-review` Step 2's prohibited-inputs
 list.
 
@@ -152,6 +153,7 @@ Deliverable to review: {deliverable_path}
                           # prohibits kickoff prompts as input; the reviewer
                           # reads the research questions from the deliverable's
                           # own frontmatter.
+Budget: {budget}          # default: ≤ 15 tool calls, read-only
 
 You are non-interactive — do NOT ask questions; you have no operator to answer
 them. Where sdd-review Step 2 says to request inputs from the operator, use the
@@ -168,6 +170,11 @@ yourself — none is provided in this prompt by design.
 - `{upstream_path_line}` — the upstream SDD artifact for the stage. **Omit
   entirely for the research stage.** For later stages supply requirements (for a
   specs review), specs (for a plan review), etc.
+- `{budget}` — explicit bound in observable units, default
+  `≤ 15 tool calls, read-only` (REQ-HARN-004; grammar and the per-type default
+  table: `return-contract.md` §Budget grammar). An empty slot is a template
+  violation the orchestrator's pre-dispatch self-check catches. The budget is a
+  bound, not an input — it leaks nothing about the artifact.
 
 ### What the review template MUST NOT contain
 (verified absent in the RS-005 dispatch; mirrors `sdd-review` Step 2)

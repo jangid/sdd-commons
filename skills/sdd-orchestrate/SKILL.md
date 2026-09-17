@@ -320,6 +320,24 @@ upstream is assumed approved — and begin the LOOP at that stage.
 The kickoff carries **no loop log**. It is written once at KICKOFF and is not the
 source of truth for resume — the SDD artifacts are (see Phase Detection).
 
+**Kickoff frontmatter — `date:` is mandatory (REQ-HARN-002).** Every kickoff
+this skill writes carries `date: YYYY-MM-DD` (the write date) beside
+`research_id:` in its frontmatter. It is the primary source for the replan
+re-entry cap derivation (§The gate): `-replan-` archives in `plan-history/`
+dated ≥ this date count against `REPLAN_MAX`. A kickoff written without it is a
+template violation; only kickoffs predating this rule fall back to the
+`git log -S'research_id: <id>'` derivation.
+
+**Pre-pipeline self-checks (not lint — the orchestrator checks itself).**
+1. Before the first pipeline dispatch: the kickoff frontmatter carries `date:`
+   (and `research_id:`). If missing, fix the kickoff before the LOOP starts.
+2. Before **every** dispatch (pipeline, fix re-dispatch, fan-out leaf, review,
+   chunk verifier): the prompt's `Budget:` slot is filled with a non-empty value
+   in observable units (grammar and per-type defaults:
+   `references/return-contract.md` §Budget grammar). An empty `Budget:` is a
+   template violation caught here, before dispatch — fill it, never dispatch
+   around it.
+
 ## LOOP
 
 For each stage in order — research, requirements, specs, plan, implement, verify
@@ -424,6 +442,84 @@ verdict and the operator chooses **loop-back-to-fix**, offer both readings at
 the gate: re-dispatch the pipeline with the findings and then either re-review
 (the default loop) or skip the re-review per the verdict's own definition — the
 operator picks. For *Reject* verdicts the re-review is never skipped.
+
+**Stage-gate signals (REQ-ORCH-034 order).** The gate line surfaces the harness
+signals in the order they are produced, pointers only: (1) the leaf's
+`RETURN.status` and `budget_consumed` against the dispatched `Budget:`; (2) the
+write-scope block ending in `SCOPE:`; (3) implement stage only, per chunk, the
+chunk's `CHUNK_VERDICT:` with `Redo: N of REDO_MAX` (per-chunk gate — §LOOP);
+(4) the parsed review `VERDICT:`; (5) the **loop counters** when a loop is
+active — `iteration N of MAX` for the fix-loop cap and the derived count
+against the replan re-entry cap (both defined below). All of it is ephemeral (REQ-ORCH-013).
+
+**Fix-loop cap (REQ-HARN-001).** `FIX_LOOP_MAX` is an orchestrator constant,
+default **3**, keyed by **stage** and **session-only** — a new session restarts
+it at 0 (the restart is itself a human intervention; nothing is persisted,
+REQ-ORCH-014). It increments once per fix re-dispatch of that stage's pipeline
+subagent — never on `proceed`, `stop` or a replan route. Every fix re-dispatch
+prompt carries the literal line `iteration N of 3` (`iteration N of MAX` in
+general) inside the repair packet (`references/return-contract.md` §3); `N of
+N` is the last attempt before circuit-break. The operator may **raise the cap
+by one** for the current stage at the gate by an explicit decision (not itself
+a fix iteration); each authorization adds one and the gate renders the raise
+count — e.g. `iteration 5 of 5 (cap raised ×2)` — so the history is visible
+without persisting it.
+
+*Exhaustion*: when the stage's review returns `VERDICT: REJECT` (or
+`APPROVE_WITH_FIXES` and the operator would fix again) after iteration `MAX`,
+do **not** dispatch another fix. Render the gate with the **compiled findings
+log** and offer only `stop | manual intervention | authorize extra iteration`:
+
+```
+Fix loop exhausted — stage: specs, 3 of 3 iterations
+  iteration 1: C1 <finding text> — <file:section>; M1 <...>
+  iteration 2: C1 (persisting) <finding text>; M2 <...>
+  iteration 3: C1 (persisting) <finding text>
+  Options: stop | manual intervention | authorize extra iteration (cap → 4)
+```
+
+Each line is the review's Critical/Material finding line lifted verbatim, one
+group per iteration; no reviewer reasoning, no prose summary (REQ-ORCH-012).
+
+**Replan re-entry cap (REQ-HARN-002, REQ-HARN-003).** `REPLAN_MAX` is an
+orchestrator constant, default **3**. The count is never stored; recompute it
+on every replan trigger, before routing into `sdd-replan`:
+
+```
+kickoff_date = frontmatter `date:` of <kickoff>            # PRIMARY — mandatory on every orchestrate-written kickoff
+             | legacy fallback (kickoff predates the date: rule):
+               git log -1 --format=%cs -S'research_id: <id>' -- <kickoff>
+               # = the most recent commit whose diff of <kickoff> changed the `research_id:` line,
+               #   i.e. the commit that started the CURRENT cycle (<id> = the kickoff's research_id)
+             | neither determinable → cap treated as REACHED (see below)
+count = number of files f in <plan-history>/ such that
+          basename(f) matches ^(\d{4}-\d{2}-\d{2})-(m\d+-)?replan-.*\.md$
+          and group(1) >= kickoff_date
+```
+
+- `<kickoff>` / `<plan-history>` are `docs/handoff/kickoff.md` /
+  `docs/plan-history/` under marker `3` and `docs/ws/<id>/kickoff.md` /
+  `docs/ws/<id>/plan-history/` under marker `4` — the count is per workstream.
+- Only `sdd-replan` writes archives carrying the `-replan-` segment
+  (`{date}-replan-{reason}.md`; per milestone `{date}-m{N}-replan-{reason}.md`).
+  `sdd-plan` rewrite archives (`{date}-{reason}.md`) and milestone-complete
+  archives (`{date}-m{N}-complete.md`) never count; archives dated before the
+  kickoff date never count (previous cycle); minor in-place replans leave no
+  archive and are deliberately not counted.
+- The legacy fallback is deliberately **not** `git log --diff-filter=A
+  --follow` (that yields first creation — wrong once the kickoff is overwritten
+  per cycle); the `-S` pickaxe finds the commit that started the current cycle.
+- **Neither determinable** (no `date:`, kickoff uncommitted, or `research_id:`
+  unmatched): the cap is **treated as reached** — the gate shows
+  `replan re-entry cap: kickoff date undeterminable — treated as reached` with
+  every `-replan-` archive listed, and routes into `sdd-replan` only on an
+  explicit operator decision. The cap is never silently unreachable.
+- When `count >= REPLAN_MAX`, surface the cap as a gate event (REQ-ORCH-017
+  shape) naming the count, the cap and the counted archive filenames; do not
+  route into `sdd-replan` without an explicit operator decision.
+
+Cap arithmetic is orchestrator-only (§Orchestrator-Only Work): no template tells
+a subagent to count iterations or archives.
 
 ### Edge cases routed through the gate
 

@@ -81,6 +81,56 @@ legitimately leaves later chunks untouched returns `COMPLETE`.
 each need one field; a paragraph forces the orchestrator to paraphrase, which
 REQ-HARN-012 forbids.
 
+### Budget grammar and default budgets (REQ-HARN-004, REQ-HARN-005)
+
+Every dispatch template — pipeline, fix re-dispatch, fan-out leaf, review,
+chunk verifier — carries `Budget: {budget}`. The orchestrator fills it on every
+dispatch; an empty slot is a template violation its pre-dispatch self-check
+catches (`../SKILL.md` §KICKOFF), not lint. `budget` (dispatched) and
+`budget_consumed` (returned, key table above) are paired here so both halves
+are documented in one place.
+
+Budget grammar — a comma-separated list of `<count> <unit>` or `≤ <count>
+<unit>` terms in **observable units** the subagent can count about itself:
+
+```
+Budget: 1 chunk, ≤ 25 tool calls, ≤ 3 test runs          # implement, per chunk
+Budget: ≤ 15 tool calls, read-only                          # review
+Budget: 1 chunk, ≤ 15 tool calls, ≤ 2 test runs, read-only  # chunk verifier
+Budget: ~70 tool calls, no prototypes                       # pipeline (specs stage)
+```
+
+Recognized units: `chunk(s)`, `task(s)`, `tool call(s)`, `test run(s)`,
+`approach(es)`; `read-only` and `no prototypes` are qualifiers. Wall-clock
+units are forbidden (the existing lint `FORBIDDEN` rows already enforce this).
+If a wall-clock term slips through anyway, the leaf reports `budget_consumed`
+in the units it *can* count and notes the mismatch in `open_questions`.
+
+Default budget per dispatch type (the orchestrator may tighten or widen a
+default from the kickoff's budget; it never leaves the slot empty):
+
+| Dispatch type | Template | Default `Budget:` |
+|---|---|---|
+| pipeline stage (non-implement) | `dispatch-templates.md` §PIPELINE | `~70 tool calls, no prototypes` |
+| implement, per chunk (sequential) | `dispatch-templates.md` §PIPELINE | `1 chunk, ≤ 25 tool calls, ≤ 3 test runs` |
+| fix re-dispatch (any stage) | §PIPELINE with `{on_fix_only}` | the remaining allowance or a fresh per-chunk allowance, sized from the previous `budget_consumed` |
+| fan-out leaf | `fan-out.md` §2 | `1 chunk, ≤ 25 tool calls, ≤ 3 test runs` |
+| review | `dispatch-templates.md` §REVIEW | `≤ 15 tool calls, read-only` |
+| chunk verifier | `dispatch-templates.md` §CHUNK VERIFIER | `1 chunk, ≤ 15 tool calls, ≤ 2 test runs, read-only` |
+
+`budget_consumed` is reported in **the same units** the `Budget:` slot was
+stated in, e.g. `budget_consumed: {tool_calls: 25, test_runs: 3, chunks: 0}`.
+The orchestrator uses it to size the next repair packet's `budget` and surfaces
+`RETURN.status` + `budget_consumed` against the dispatched `Budget:` at the gate
+(REQ-ORCH-034). `status: BUDGET_EXHAUSTED` without `budget_consumed` is
+malformed (next section). The leaf-side exhaustion procedure (stop new work,
+consistent tree, checkpoint if mid-task) is `sdd-implement/SKILL.md` §Step 3.
+
+**Recorded v1 limitation**: `budget_consumed` is **self-reported**. The harness
+exposes no tool-call counter to the orchestrator, so adherence is as
+trustworthy as the leaf. This is not fixed in this cycle (telemetry is
+deferred, catalogue D11).
+
 ### Parsing and malformed returns
 
 The orchestrator parses the block; it **never infers success from prose**. A

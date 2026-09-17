@@ -345,6 +345,20 @@ orchestrator applies the shared-doc updates the leaves were barred from making
    `docs/ws/<ws>/traceability.md`, then regenerate the shared aggregate).
 3. Re-run any chunk-close Check 2 that a leaf deferred, now that the columns
    are filled.
+4. **Checkpoint application** for every leaf whose `RETURN.status` is
+   `BLOCKED` or `BUDGET_EXHAUSTED` (`harness-loop-control.md` §Circuit-Break
+   Checkpoint): compose the checkpoint from the block's `failures`, `ledger`
+   and `open_questions` per the mapping table in `sdd-implement/SKILL.md`
+   §Step 3 — trigger label `oscillation` (or the leaf's stuck reason) for
+   `BLOCKED`, `budget` for `BUDGET_EXHAUSTED`, with `budget_consumed` shown
+   against the dispatched `Budget:` — and apply it as the blocked-task note
+   under the named task in the plan (≤ ~15 lines, no traceback frames; one
+   checkpoint per task). Leaves are barred from the plan, so the orchestrator is
+   the writer here. If the named task is not in the plan (the leaf drifted),
+   apply the note under the **nearest chunk header** (the chunk the leaf was
+   dispatched for) with a `task not found in plan` prefix and raise it at the
+   gate — never invent a task. `sdd-replan` Step 1 reads this note as the
+   stuck state.
 
 Only then dispatch the implement-stage review, which sees the fully merged,
 fully book-kept state.
