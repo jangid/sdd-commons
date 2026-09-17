@@ -213,8 +213,13 @@ each gate, `TELEMETRY: WRITE FAILED | OFF | .gitignore updated` gate lines, the
 (REQ-TELEM-HARNESSP2-001 through -008). The record schema, field-source mapping
 from the gate signals, the scorer-derivation table (REQ-EVAL-HARNESSP2-002) and
 the timestamp procedure land in a **new** `references/telemetry.md`; `SKILL.md`
-carries a short telemetry stub — the only two places allowed to name the path
-(REQ-LINT-HARNESSP2-002). No dispatch template may mention `.sdd/`.
+carries a short telemetry stub. Those two places plus `references/write-scope.md`
+§3/§5 — which **reference** the `OUT .sdd/telemetry.jsonl (+k records …)`
+finding string defined once in `references/telemetry.md` — are the only three
+places under `skills/` allowed to name the path (REQ-LINT-HARNESSP2-002).
+Operator documentation (`USAGE.md`, `CLAUDE.md`) may name it; the lint does not
+scan those files (REQ-SKILL-HARNESSP2-008). No dispatch template may mention
+`.sdd/`.
 **Acceptance**: `references/telemetry.md` exists and resolves (REQ-LINT-004);
 the stub is ≤ 10 lines; `tools/sdd-skill-lint.py` exits 0.
 [Priority: must]
@@ -255,8 +260,15 @@ ignore` routing into `verification.md` §Next Steps) per REQ-GC-HARNESSP2-005/00
 and must adopt the snapshot-base rule and limitation (c) of
 REQ-HARN-HARNESSP2-001 in `references/write-scope.md` §3/§5 and in its worktree
 provisioning step (provision at the branch tip the leaf is told to reach).
+`write-scope.md` §3 must also specify the third, telemetry-specific observation
+and §5 limitation (b)'s `.sdd/` exception (REQ-TELEM-HARNESSP2-005), each by
+referencing the finding string defined in `references/telemetry.md` — §3 and
+§5 are the only `write-scope.md` sections allowlisted for `\.sdd/` by
+REQ-LINT-HARNESSP2-002. §6 gains the expected blocked-write path of
+REQ-HARN-HARNESSP2-002.
 **Acceptance**: `SKILL.md` §Transition and the entry step name the gc command;
-`write-scope.md` §5 lists limitations (a), (b), (c).
+`write-scope.md` §5 lists limitations (a), (b), (c); `.sdd/` appears in
+`write-scope.md` only inside §3 and §5.
 [Priority: must]
 
 ### REQ-SKILL-HARNESSP2-005: sdd-verify pending-red, accepted breaks and gc slot
@@ -305,10 +317,11 @@ must describe the new gate signals and choices — telemetry on/off and the
 `REVIEW: CONTRADICTION` pause and its four options, the gc summary at entry and
 DONE — and `CLAUDE.md`'s SDD section must gain **one short paragraph** naming
 them; its four-verification-layer bullet stays **unchanged** (red is a second
-executor of the sdd-verify layer, REQ-REDB-HARNESSP2-002). `CLAUDE.md` must not
-name the telemetry path (REQ-LINT-HARNESSP2-002 scans skills only, but the
-non-read guarantee is documented as "gitignored, orchestrator-only, never read
-by phase detection").
+executor of the sdd-verify layer, REQ-REDB-HARNESSP2-002). Operator docs are outside
+the `\.sdd/` lint row (REQ-LINT-HARNESSP2-002 scans `skills/*/SKILL.md` and
+`skills/*/references/*.md` only), so `USAGE.md` and `CLAUDE.md` **may** name the
+telemetry path; wherever they do, the non-read guarantee must be stated beside
+it as "gitignored, orchestrator-only, never read by phase detection".
 **Acceptance**: `USAGE.md` has a section per signal; `CLAUDE.md` diff is one
 paragraph plus zero changes to the four-layer bullet.
 [Priority: must]

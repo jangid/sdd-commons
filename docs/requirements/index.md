@@ -1,5 +1,5 @@
 ---
-version: "13.0"
+version: "13.1"
 last_updated: 2026-09-17
 traceability: traceability.md
 ---
@@ -75,7 +75,7 @@ tools-skills-agents repository. Covers three scopes:
 | functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030 | Approved | 2026-07-23 |
 | functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027 | Approved | 2026-09-17 |
 | functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019 | Approved | 2026-09-17 |
-| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001 | Approved | 2026-09-17 |
+| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002 | Approved | 2026-09-17 |
 | functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008 | Approved | 2026-09-17 |
 | functional | [adversarial-verify.md](functional/adversarial-verify.md) | REDB | REQ-REDB-HARNESSP2-001..009 | Approved | 2026-09-17 |
 | functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009 | Approved | 2026-09-17 |
@@ -185,7 +185,13 @@ research's stated defaults carried as decided, except where noted:
   as plan tasks (REQ-GC-HARNESSP2-006).
 - **Q-REQ-F** (evaluation): **not built** beyond the mode definition, the scorer
   field list and a manual N = 3 pilot; the REQ-ORCH-011 evaluation-mode
-  carve-out is **not adopted** (REQ-EVAL-HARNESSP2-001, -004).
+  carve-out is **not adopted** (REQ-EVAL-HARNESSP2-001, -004). The pilot
+  (REQ-EVAL-HARNESSP2-003) is **should**, with the same "ship if the plan has
+  room, else queue in `verification.md` §Next Steps" deferral as the scorer
+  (REQ-EVAL-HARNESSP2-002): a `must` pilot would make ~1k operator-gated tool
+  calls a hard gate on this cycle's verification, and its records live in the
+  toy repo's own `.sdd/telemetry.jsonl`, summarized by hand into harness-p2's
+  `verification.md`.
 - **Q-REQ-G** (write-scope limitation (c)): new `REQ-HARN-HARNESSP2-001` rather
   than an edit of REQ-HARN-026, so the remedy has its own traceability row;
   provisioning at the intended base is the default remedy.
@@ -317,13 +323,16 @@ Resolved during requirements gathering for RS-002:
 
 - Code changes to skills (implementation phase)
 - Redesigning the broader SDD methodology
-- New skills not derived from the research this corpus traces (RS-002 through
-  RS-008)
+- _(superseded 2026-09-17 — the corpus now also traces RS-HARNESSP2-001; see
+  Research References)_ New skills not derived from the research this corpus
+  traces (RS-002 through RS-008, RS-HARNESSP2-001)
 - Forward planning to v4
 - Cross-project review (sdd-review operates on one SDD project at a time)
 - Review automation or auto-triggering
 - Review of sdd-review's own output (recursive case deferred)
-- Non-research orchestrator entry points / starting the loop mid-pipeline (v1)
+- _(superseded 2026-09-17 by plan entry, REQ-ORCH-031..033 in
+  `functional/orchestration.md`)_ Non-research orchestrator entry points /
+  starting the loop mid-pipeline (v1)
 - Nested subagent fan-out (Design A) — infeasible: a dispatched subagent has no
   subagent-dispatch tool (RS-006 Q1). Fan-out is orchestrator-owned, one level deep
 - Fan-out of any stage other than implement; changes to `sdd-implement` itself
@@ -352,7 +361,9 @@ Resolved during requirements gathering for RS-002:
   edits (path-level + advisory tag in v1, REQ-HARN-026)
 - Hard-fixing self-reported `budget_consumed` (harness exposes no counter;
   recorded v1 limitation, REQ-HARN-005)
-- This repo's v3→v4 migration (stays at marker `3` for this cycle)
+- _(superseded 2026-09-17 — this repo now runs at marker `4`; see "A marker
+  bump (the layout stays at `4`)" above and `functional/multi-workstream.md`)_
+  This repo's v3→v4 migration (stays at marker `3` for this cycle)
 
 ## Open Questions
 
@@ -397,6 +408,15 @@ Resolved during requirements gathering for RS-002:
   Critical the first reviewer missed will pause the loop. **Default**: accepted
   — the pause costs one operator decision and is the intended ROUTE_TO_HUMAN
   behaviour; the rate is telemetered via `verdict.contradiction_class`.
+- **`integration/skill-updates.md` size:** the file is 314 lines after the
+  harness-p2 additions. Not split this cycle (operator decision, review
+  iteration 1); it is a candidate for a `tools/sdd-gc.py` sweep finding once
+  REQ-GC-HARNESSP2-001 ships.
+- **Traceability row for REQ-HARN-HARNESSP2-002 (orchestrator action):** the
+  requirement was added in review iteration 1 under a `docs/requirements/**`
+  write scope; the orchestrator must add its row to
+  `docs/ws/harness-p2/traceability.md` and regenerate the shared
+  `docs/requirements/traceability.md` (`docs/spec/ws-traceability.md`).
 
 All other Q-REQ items resolved.
 

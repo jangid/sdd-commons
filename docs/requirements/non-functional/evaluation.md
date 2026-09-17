@@ -70,7 +70,7 @@ without reading any artifact other than `verification.md`'s `status`.
 [Priority: must]
 
 ### REQ-EVAL-HARNESSP2-003: Manual N = 3 pilot on the toy, after telemetry lands
-After telemetry is implemented (plan ordering: TELEM first), the operator must
+After telemetry is implemented (plan ordering: TELEM first), the operator should
 run **three manual orchestrated cycles** on the toy project — the
 `tools/sdd-scope-check-selftest.py` `make_repo()` shape (`src/recon/engine.py`,
 `tests/test_recon.py`) plus one requirement, one spec with two acceptance
@@ -82,13 +82,20 @@ hand from the records) must be recorded as a dogfooding probe in this cycle's
 `verification.md`, alongside RS-008 probes 1 and 2, and must state observed
 wall time per run (the first timing data the harness has ever had). N = 3 is
 the pilot's size because ~1k tool calls fits one operator session; the pilot
-is a **verify task**, not an implement task. (see RS-HARNESSP2-001 Q5 go/no-go;
-cost estimate)
-**Acceptance**: `docs/ws/harness-p2/verification.md` contains a "Pilot (N = 3)"
-section with three run rows, each with pass-on-first-attempt, fix iterations,
-dispatch count, tool calls and wall time; `.sdd/telemetry.jsonl` holds the
-three runs' records attributed to the toy's workstream.
-[Priority: must]
+is a **verify task**, not an implement task. The pilot's telemetry records
+live in the **toy repository's own** `.sdd/telemetry.jsonl` (one file per
+repository, REQ-TELEM-HARNESSP2-004) — this repository's telemetry file gains
+no pilot record — and are summarized **by hand** into harness-p2's
+`verification.md`. The pilot may run this cycle if the plan has room and must
+otherwise be queued in `verification.md` §Next Steps — the same deferral
+REQ-EVAL-HARNESSP2-002 grants the scorer implementation (Q-REQ-F in
+`index.md`). (see RS-HARNESSP2-001 Q5 go/no-go; cost estimate)
+**Acceptance**: either `docs/ws/harness-p2/verification.md` contains a "Pilot
+(N = 3)" section with three run rows, each with pass-on-first-attempt, fix
+iterations, dispatch count, tool calls and wall time, and the toy repository's
+`.sdd/telemetry.jsonl` holds the three runs' records; or `verification.md`
+§Next Steps carries the pilot as a queued item naming this requirement.
+[Priority: should]
 
 ### REQ-EVAL-HARNESSP2-004: N = 30 headless evaluation harness is out of scope this cycle
 An automated N ≥ 30 evaluation harness must **not** be built this cycle. The

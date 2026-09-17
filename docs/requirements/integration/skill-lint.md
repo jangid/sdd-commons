@@ -166,17 +166,26 @@ the shipped skill set exits 0.
 
 ### REQ-LINT-HARNESSP2-002: FORBIDDEN row — telemetry path never read by a skill
 The `FORBIDDEN` table must gain a fail-severity row matching `\.sdd/` in every
-`skills/*/SKILL.md` and `skills/*/references/*.md` **except** the telemetry
-stub section of `skills/sdd-orchestrate/SKILL.md` and
-`skills/sdd-orchestrate/references/telemetry.md` (an explicit per-row allowlist
-of paths — the linter must gain an `allow` field on `FORBIDDEN` rows if it lacks
-one), with `reason` "telemetry is orchestrator-written and never a
+`skills/*/SKILL.md` and `skills/*/references/*.md` **except** exactly three
+locations: the telemetry stub section of `skills/sdd-orchestrate/SKILL.md`,
+`skills/sdd-orchestrate/references/telemetry.md`, and
+`skills/sdd-orchestrate/references/write-scope.md` — §3 (the third, telemetry-
+specific observation of REQ-TELEM-HARNESSP2-005) and §5 (limitation (b)'s
+`.sdd/` exception, REQ-HARN-HARNESSP2-001 / REQ-SKILL-HARNESSP2-004) **only**;
+the `OUT .sdd/telemetry.jsonl (+k records, leaf write — reverted)` finding
+string is defined **once**, in `references/telemetry.md`, and `write-scope.md`
+references it rather than restating it (an explicit per-row allowlist of paths
+— the linter must gain an `allow` field on `FORBIDDEN` rows if it lacks one;
+the row is file-granular, so the §3/§5 restriction is a review check, not a
+lint check), with `reason` "telemetry is orchestrator-written and never a
 phase-detection or staleness input (REQ-ORCH-014)" and a `fix:` that says to
 remove the reference. Fenced code blocks are **not** exempt for this row — a
 skill must not even show the path in an example — so the row scans raw text.
 (see RS-HARNESSP2-001 Q1 guard (i); REQ-TELEM-HARNESSP2-007)
 **Acceptance**: adding `.sdd/telemetry.jsonl` inside a fence in
-`skills/sdd-plan/SKILL.md` makes the lint exit 1 with the row's fix; the two
+`skills/sdd-plan/SKILL.md` makes the lint exit 1 with the row's fix; the three
 allowlisted locations mentioning the path exit 0; `--self-test` covers the
-allowlist.
+allowlist. Operator documentation (`skills/sdd-orchestrate/USAGE.md`,
+`CLAUDE.md`) is not scanned by this row and may name the path
+(REQ-SKILL-HARNESSP2-008).
 [Priority: must]

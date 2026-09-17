@@ -45,7 +45,9 @@ default off)
 **Acceptance**: the verify gate shows `red team: off | on` before the verify
 pipeline is dispatched, defaulting to `off`; with `off` no `red` record appears
 in telemetry and the gate is unchanged from v5; with `on` exactly one `red`
-dispatch precedes the verify-stage review.
+dispatch **per verify-pipeline return** precedes the verify-stage review — a
+re-verify after a `BROKEN` fix is a new return and gets its own single red
+re-run (REQ-REDB-HARNESSP2-009).
 [Priority: must]
 
 ### REQ-REDB-HARNESSP2-002: Red is a second executor of `sdd-verify`, never `sdd-review`

@@ -44,18 +44,27 @@ repo, missing `docs/`). It must reuse `tools/sdd-skill-lint.py` for the
 skill-side checks by invoking it (never by copying its rule tables) and must
 scope its own rules to `docs/**`. (see RS-HARNESSP2-001 Q4 answer)
 **Acceptance**: `python3 tools/sdd-gc.py --help` exits 0 and lists the flags
-above; on this repository at the 2026-09-17 baseline `--report` exits 0 with
-the linter's three size warnings and no fail finding; `--self-test` exits 0;
-`--fix nonexistent-rule` exits 2.
+above; `--self-test` builds a temporary fixture tree and asserts that
+`--report` on it exits 0, passes the linter's size warnings through to the
+summary line and emits no fail finding; on the live repository `--report`
+exits 0 with no fail finding (the linter's size-warning count is a moving
+number — three were observed on 2026-09-17 at commit 5e6142b, and
+REQ-SKILL-HARNESSP2-007 removes one — so it is not an acceptance pin);
+`--self-test` exits 0; `--fix nonexistent-rule` exits 2.
 [Priority: must]
 
 ### REQ-GC-HARNESSP2-002: Sweep classification — checkable now, needs code, not mechanical
-The tool must implement the RS-HARNESSP2-001 Q4 sweep table as follows. **Delegated to the linter (checkable now)**: skill structure / forbidden phrases / `REQUIRED` markers / ordinals / size; `references/` links and backtick paths; `docs/spec/*.md` pointers from skills; known drift phrases; kickoff `date:` / `research_id:` presence. **Implemented in gc (needs code)**: cross-links inside `docs/` (spec↔spec, requirement→spec `(see …)`, `research_refs`, `requires:` ids exist — the linter's two regexes over `docs/**/*.md` plus id existence for `RS-` / `REQ-` / `Q-IMPL-`); the staleness chain research → requirements → specs → plan → verification by `last_updated`, walked per workstream under marker `4` via plan `traces to` → spec `requires:` → category files (`docs/spec/ws-staleness.md`), never via a traceability file; orphan Q-IMPL classes (i) referenced-but-undefined, (ii) defined-never-referenced and (iii) `Spec reference` section missing / broken `[superseded by …]` chain, under the counting rule of REQ-GC-HARNESSP2-003; empty traceability cells under the `sdd-verify` Step 3b policy (flag Spec-empty rows and Implementation-filled/Test-empty rows only); aggregate `docs/requirements/traceability.md` equals `regenerate(per-ws files)` under marker `4` (`docs/spec/ws-traceability.md` contract); index ↔ directory consistency (`research/index.md` rows ↔ `RS-*` dirs; `requirements/index.md` Files table ↔ category files; every spec `status: Approved` when a plan exists); `plan-history` naming discipline (`-replan-` only from `sdd-replan`, REQ-HARN-003). **Excluded (not mechanical)**: new drift of skill text from spec wording, and semantic orphaning — noted in `--help` as review territory. Severities: cross-links, undefined Q-IMPL (i), naming discipline and index mismatch are **fail**; staleness, Q-IMPL (iii), empty cells and aggregate drift are **warn**; Q-IMPL (ii) is **informational** (not a defect per `deviation-protocol.md` — entries live in their specs). (see RS-HARNESSP2-001 Q4 sweep table)
-**Acceptance**: `--help` prints the three classes with their rules; on the
-2026-09-17 baseline the report shows 0 undefined Q-IMPL, 8 informational
-Q-IMPL (ii) ids, 0 dead `docs/` cross-links and an aggregate-drift warning
-iff the shared traceability differs from regeneration; the self-test fixtures
-trigger each fail rule once.
+The tool must implement the RS-HARNESSP2-001 Q4 sweep table as follows. **Delegated to the linter (checkable now)**: skill structure / forbidden phrases / `REQUIRED` markers / ordinals / size; `references/` links and backtick paths; `docs/spec/*.md` pointers from skills; known drift phrases; kickoff `date:` / `research_id:` presence. **Implemented in gc (needs code)**: cross-links inside `docs/` (spec↔spec, requirement→spec `(see …)`, `research_refs`, `requires:` ids exist — the linter's two regexes over `docs/**/*.md` plus id existence for `RS-` / `REQ-` / `Q-IMPL-`); the staleness chain research → requirements → specs → plan → verification by `last_updated`, walked per workstream under marker `4` via plan `traces to` → spec `requires:` → category files (`docs/spec/ws-staleness.md`), never via a traceability file; orphan Q-IMPL classes (i) referenced-but-undefined, (ii) defined-never-referenced and (iii) `Spec reference` section missing / broken `[superseded by …]` chain, under the counting rule of REQ-GC-HARNESSP2-003; empty traceability cells under the `sdd-verify` Step 3b policy (flag Spec-empty rows and Implementation-filled/Test-empty rows only); aggregate `docs/requirements/traceability.md` equals `regenerate(per-ws files)` under marker `4` (`docs/spec/ws-traceability.md` contract); index ↔ directory consistency (`research/index.md` rows ↔ `RS-*` dirs; `requirements/index.md` Files table ↔ category files; spec approval scoped to the workstream — with `--workstream <id>`, every spec **traced by that workstream's plan** (live plan-walk per `docs/spec/ws-staleness.md`: task `traces to` → spec) must be `status: Approved` when `docs/ws/<id>/plan.md` exists, **fail**; without `--workstream`, the unscoped form — any non-Approved spec while any plan exists — is **warn** only, because under marker `4` another workstream may legitimately hold Draft specs); `plan-history` naming discipline (`-replan-` only from `sdd-replan`, REQ-HARN-003). **Excluded (not mechanical)**: new drift of skill text from spec wording, and semantic orphaning — noted in `--help` as review territory. Severities: cross-links, undefined Q-IMPL (i), naming discipline and index mismatch (including the workstream-scoped spec-approval form; the unscoped form is warn) are **fail**; staleness, Q-IMPL (iii), empty cells and aggregate drift are **warn**; Q-IMPL (ii) is **informational** (not a defect per `deviation-protocol.md` — entries live in their specs). (see RS-HARNESSP2-001 Q4 sweep table)
+**Acceptance**: `--help` prints the three classes with their rules; the
+`--self-test` fixture tree (temporary, two workstreams, one holding a Draft
+spec traced only by the other's plan) yields 0 undefined Q-IMPL, the fixture's
+known informational Q-IMPL (ii) count, 0 dead `docs/` cross-links, a
+spec-approval **fail** only with `--workstream` naming the tracing workstream
+and a **warn** without it, and an aggregate-drift warning iff the fixture's
+shared traceability differs from regeneration; the self-test fixtures trigger
+each fail rule once. (Observed on the live repository on 2026-09-17 at commit
+5e6142b: 0 undefined, 8 informational (ii), 0 dead cross-links — reference
+values, not pins.)
 [Priority: must]
 
 ### REQ-GC-HARNESSP2-003: Pinned Q-IMPL counting rule with fenced/quoted-example skip
@@ -74,10 +83,16 @@ references. Ids may be legacy (`Q-IMPL-083`) or workstream-prefixed
 (`Q-IMPL-<WS>-NNN`, `docs/spec/ws-ids.md`). The rule and the three reference
 commands from RS-HARNESSP2-001 Q4 must appear in the tool's docstring so the
 numbers are reproducible. (see RS-HARNESSP2-001 Q4 counting rule)
-**Acceptance**: on the 2026-09-17 baseline the tool reports 28 definitions, 20
-ids both defined and referenced, 8 defined-only, and **0** referenced-only
-(the three template-example ids `Q-IMPL-003/-007/-021` are skipped); a fixture
-adding a real `Q-IMPL-999` reference outside a fence produces one fail finding.
+**Acceptance**: the `--self-test` fixture tree (temporary) contains a known
+set of definitions, of ids both defined and referenced, of defined-only ids, a
+fenced and an inline-backtick template-example id, a `docs/research/` citation
+and a foreign-`<WS>` placeholder, and the tool reports exactly the fixture's
+definition / both / defined-only counts with **0** referenced-only (every
+excluded class skipped); the same fixture with a real `Q-IMPL-999` reference
+added outside a fence produces one fail finding. (Observed on the live
+repository on 2026-09-17 at commit 5e6142b: 28 definitions, 20 both, 8
+defined-only, 0 referenced-only, template-example ids `Q-IMPL-003/-007/-021`
+skipped — reference values, not pins.)
 [Priority: must]
 
 ### REQ-GC-HARNESSP2-004: Finding shape is the linter's

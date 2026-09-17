@@ -100,7 +100,9 @@ key; `sdd-orchestrate/SKILL.md` §Phase Detection and its position table cite
 Only the orchestrator (`sdd-orchestrate`) may write `.sdd/telemetry.jsonl`. It
 must append exactly one record per dispatch, **after** the operator's gate
 decision for that dispatch (so `gate.decision` is filled), using an append-only
-write; it must never rewrite or truncate the file. A write failure must not
+write; it must never rewrite or truncate the file — with a **single
+exception**: the leaf-write revert of REQ-TELEM-HARNESSP2-005, which truncates
+the file back to the pre-dispatch record count. A write failure must not
 stop the loop: the orchestrator notes `TELEMETRY: WRITE FAILED` as one line of
 the next gate's text and continues — telemetry is never load-bearing. No stage
 skill, review, verifier, fan-out leaf or red dispatch is instructed to write it,
@@ -128,9 +130,15 @@ observation alongside the snapshot pair of REQ-HARN-021: the record count
 dispatch and on return, **before** its own append (REQ-HARN-025 ordering). Any
 delta inside the window is a leaf write and is rendered as
 `OUT .sdd/telemetry.jsonl (+k records, leaf write — reverted)`; the orchestrator
-must truncate the file back to the before-count and never treat leaf-written
-records as telemetry. `.sdd/**` may never appear in any default or operator-
-widened write scope (REQ-HARN-020). (see RS-HARNESSP2-001 Q1 writer rule)
+must truncate the file back to the before-count (the single exception to
+REQ-TELEM-HARNESSP2-004's never-truncate rule) and never treat leaf-written
+records as telemetry. The finding string above is defined **once**, in
+`skills/sdd-orchestrate/references/telemetry.md`; `references/write-scope.md`
+§3 specifies the third observation and §5 limitation (b)'s `.sdd/` exception
+by **referencing** that definition — those two sections are the third
+allowlisted `\.sdd/` location of REQ-LINT-HARNESSP2-002. `.sdd/**` may never
+appear in any default or operator-widened write scope (REQ-HARN-020). (see
+RS-HARNESSP2-001 Q1 writer rule)
 **Acceptance**: a scope-check fixture in which the leaf appends one line to
 `.sdd/telemetry.jsonl` yields `SCOPE: VIOLATION (1 paths)` with the `OUT` line
 above and a file whose line count equals the before-count; `tools/sdd-scope-
@@ -167,9 +175,11 @@ skills/*/SKILL.md` hits only the `sdd-orchestrate` telemetry stub
 ### REQ-TELEM-HARNESSP2-007: Lint guard on the telemetry path
 `tools/sdd-skill-lint.py` must carry a `FORBIDDEN` row (fail severity) for the
 pattern `\.sdd/` across every `skills/*/SKILL.md` and `skills/*/references/*.md`,
-with an allowlist of exactly two locations: the telemetry stub in
-`skills/sdd-orchestrate/SKILL.md` and `skills/sdd-orchestrate/references/
-telemetry.md`. The row's `fix:` text must say that telemetry is orchestrator-
+with an allowlist of exactly three locations: the telemetry stub in
+`skills/sdd-orchestrate/SKILL.md`, `skills/sdd-orchestrate/references/
+telemetry.md`, and `skills/sdd-orchestrate/references/write-scope.md` (§3 and
+§5 only, REQ-TELEM-HARNESSP2-005). Operator docs (`USAGE.md`, `CLAUDE.md`) are
+outside the row's scan. The row's `fix:` text must say that telemetry is orchestrator-
 written and never a detection input. This guard, together with the absence of a
 resume field (REQ-TELEM-HARNESSP2-003), is what satisfies REQ-ORCH-014 — by
 mechanism, not by promise. (see RS-HARNESSP2-001 Q1 guards (i)+(iii);

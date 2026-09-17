@@ -33,6 +33,7 @@ its siblings — never hand-edited.
 | REQ-GC-HARNESSP2-006 | | harness-p2 | | | |
 | REQ-GC-HARNESSP2-007 | | harness-p2 | | | |
 | REQ-HARN-HARNESSP2-001 | | harness-p2 | | | |
+| REQ-HARN-HARNESSP2-002 | | harness-p2 | | | |
 | REQ-LINT-HARNESSP2-001 | | harness-p2 | | | |
 | REQ-LINT-HARNESSP2-002 | | harness-p2 | | | |
 | REQ-REDB-HARNESSP2-001 | | harness-p2 | | | |
