@@ -327,6 +327,56 @@ Required fields: question ID, tier, decision, and rationale (or impact for tier 
 - **Parallel-dispatch exception**: when running as a fan-out leaf with an assigned Q-IMPL number block in your dispatch, allocate from that block instead of scanning — parallel leaves scanning globally would mint colliding numbers. Gaps left by unused block numbers are permanent and acceptable.
 - Append-only: retired entries stay in their spec with a `[superseded by Q-IMPL-NNN]` status note, not deleted or renumbered.
 
+### Leaf Return Contract (dispatched by `sdd-orchestrate`)
+
+When this skill runs as a dispatched leaf of `sdd-orchestrate` — a pipeline
+implement dispatch, a per-chunk or fix re-dispatch, or a fan-out leaf — **end
+the return text with the `RETURN:` block** (REQ-HARN-009). The orchestrator
+parses the block and never infers success from prose; a return without it, with
+`status:` not first, or with any multi-line value pauses at the gate as
+malformed. Standalone (interactive) use is unchanged — no block is required.
+
+```
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED   # own line, first key
+  budget_consumed: {tool_calls: N, test_runs: N}            # same units as the dispatched Budget:
+  files_written: []
+  commits: []                                                # fan-out leaves only; else []
+  tasks_completed: []                                        # task labels, e.g. "Chunk 2 task 1"
+  traceability_fills: []                                     # [{req, test, impl}]
+  chunk_close: {}                                            # {chunk, check1..check4, overrides}
+  failures: []                                               # empty when COMPLETE
+  ledger: []                                                 # [{attempt, hypothesis, change, result}]
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []                                         # [{path, content}] labeled fallback
+```
+
+Keys, types and consumers are defined in
+`sdd-orchestrate/references/return-contract.md` §1; every key is present
+(empty where not applicable), values are path references and one-line strings
+only. `status` is `COMPLETE` when the dispatch's deliverable contract (the
+assigned chunk or stage — not the whole plan) is met; `PARTIAL` when some tasks
+are done and none is blocked; `BLOCKED` when stuck detection (§Step 3) fired;
+`BUDGET_EXHAUSTED` when the dispatched budget ran out (`budget_consumed` then
+mandatory).
+
+- **`failures` are one-line** (REQ-HARN-010): each entry is
+  `{test, kind, message, location}` — `test` the test id or gate command,
+  `kind` ∈ {`assertion`, `error`, `lint`, `type`, `build`}, `message` the last
+  frame on one line, ANSI-stripped, ≤ 200 chars (truncate with `…`, never wrap),
+  `location` `path:line` where known. **Never** put a traceback or raw tool
+  output in the return; it is regenerable by re-running `test`.
+- **`open_questions`** are one line each and cite the Q-IMPL id filed for the
+  ambiguity (e.g. `"spec §Gap report silent on overlapping windows — filed
+  Q-IMPL-021 (Tier 2)"`).
+- **`tasks_completed` / `traceability_fills`** carry the plan `[x]` marks and
+  Test/Implementation column fills when the dispatch bars you from writing the
+  shared plan/traceability files (fan-out worktree pin); otherwise they mirror
+  what you wrote.
+- **`blocked_writes`** carries the full content of any file a harness policy
+  refused to write, labeled by target path, so the orchestrator can persist it.
+
 **Workstream-prefixed IDs (marker `4` only).** `docs/.sdd-version` is the sole gate.
 When the marker is **not** `4` (v3 or earlier), number exactly as above — bare
 `Q-IMPL-NNN`, global sequential scan, behavior UNCHANGED. When the marker is `4`,
