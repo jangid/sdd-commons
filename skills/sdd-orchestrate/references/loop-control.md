@@ -130,6 +130,68 @@ findings in place of the review's.
   the exhausted gate. Non-implement stages have no task to annotate — the
   compiled findings log above is their only record.
 
+#### Red round (verify stage, opt-in — REQ-REDB-HARNESSP2-007, -009)
+
+A **red round** is one RED TEAM dispatch (`dispatch-templates.md` §RED TEAM)
+after a verify-pipeline return, its gate, and — when the operator routes a
+`BROKEN` `Rn` to `fix` — the `RED_BREAK` repair packet
+(`return-contract.md` §3) and the re-verify that follows. Counting rules:
+
+- **One red round = at most one fix iteration of the verify stage's counter**
+  (`iteration N of 3`), however many chunk-grouped `RED_BREAK` fix dispatches
+  it fans into (`return-contract.md` §5) — the same rule as one review round.
+- **Red rounds and review rounds share the verify stage's single counter**: a
+  cycle cannot spend 3 red rounds *and* 3 review rounds; findings from both in
+  the same round count as **one** iteration and may be merged into one
+  implement fix dispatch per chunk by the mapping.
+- **One default re-run, not an iteration.** After the fix dispatch → scope
+  check → chunk verifier → per-chunk gate, the verify pipeline is re-dispatched
+  (it regenerates `verification.md` from evidence and writes `pending-red`
+  again) and red is re-run **once** by default — the verifier re-dispatch
+  rule, not a counted iteration. A second red re-run after the same fix needs
+  an explicit operator choice and is likewise not an iteration.
+- `FIX_LOOP_MAX` (3) is the backstop: its exhaustion renders the compiled
+  findings log above (red's `Rn` lines in place of review findings) with no
+  fourth automatic dispatch.
+- Red is dispatched only after `RETURN.status: COMPLETE` from blue; a blue
+  `verification.md` `status: fail` or a non-`COMPLETE` return renders the
+  non-token line `Red team: not run (blue status fail)` and proceeds to the
+  normal fix/replan routing.
+
+Sequence per red round:
+
+```
+fix dispatch (implement chunk) → scope check → chunk verifier → per-chunk gate
+  → re-dispatch verify pipeline (regenerates verification.md from evidence; writes pending-red again)
+  → red re-run ONCE by default (not an iteration — the verifier re-dispatch rule)
+  → verify stage gate with a fresh RED_VERDICT:
+```
+
+Gate fixture — pasted verbatim from `docs/spec/adversarial-verify.md`
+§Verify-Stage Gate and Exit Rule (signal order `RETURN.status` → `SCOPE:` →
+`RED_VERDICT:` → `VERDICT:` → counters; `proceed` withheld until every
+`BROKEN` `Rn` is fixed or accepted):
+
+```
+Verify stage gate — pipeline #9 (sdd-verify), red #10, review #11
+  RETURN.status  : COMPLETE   budget_consumed: {tool_calls: 41, test_runs: 6}  vs  Budget: ~70 tool calls
+  SCOPE: CLEAN
+  RED_VERDICT: BROKEN
+    - R1: <criterion> — attack: … — observed: … — reproduce: `python -m app --window 0` — BROKEN
+    - R2: <criterion> — attack: … — observed: held — reproduce: `pytest -q tests/test_recon.py::test_window` — HELD
+  VERDICT: APPROVE
+  iteration 0 of 3
+  Options per BROKEN finding: R1 → fix (RED_BREAK packet) | accept (record) | stop
+  proceed: unavailable until every BROKEN Rn is fixed or accepted
+```
+
+`accept (record)` appends `- Rn accepted at gate <YYYY-MM-DD>: <observed> —
+reproduce: \`<cmd>\`` under `verification.md` §Issues Found → Minor (marker
+`4`: `docs/ws/<id>/verification.md`) — bookkeeping in an existing section of
+an existing artifact, outside the observed window; no review store is created.
+On `proceed` the orchestrator flips `status: pending-red → pass` immediately
+before its commit (`../SKILL.md` §The gate).
+
 ## 3. Replan re-entry cap derivation (REQ-HARN-002, REQ-HARN-003) — from §The gate
 
 `REPLAN_MAX` is an orchestrator constant, default **3**. The count is never

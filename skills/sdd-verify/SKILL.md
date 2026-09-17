@@ -16,6 +16,8 @@ You are performing holistic verification of a completed implementation. Your job
 
 `sdd-verify` is one of four verification layers in the SDD workflow. The others are: chunk-close (mechanical, in-session, per-chunk), XSPEC (structural, in-session, during sdd-specs), and sdd-review (semantic, out-of-session, at phase boundaries). sdd-verify is the holistic in-session pass at end of project. If you find this skill's scope crossing into another layer's territory, refer to that layer's skill or spec.
 
+**Red team (adversarial second executor — `docs/spec/adversarial-verify.md`).** At the verify stage `sdd-orchestrate` may dispatch, opt-in and default off, a read-only RED TEAM leaf that re-executes **this layer's Steps 3–4** adversarially — picking the weakest acceptance criteria and constructing inputs that violate them. It is a second *executor* of this layer, exactly as the chunk verifier is of chunk-close: not a fifth layer, not `sdd-review`, and the four-layer list above is unchanged. Standalone `sdd-verify` is unaffected except for the `pending-red` rule in Step 6.
+
 ## Phase Detection
 
 Before starting, check project state. **Compare dates** to detect stale artifacts:
@@ -48,7 +50,7 @@ are shared (ADD, never fork); omitting the argument resolves `default`.
    - **Workstream-scoped (marker `4` only)**: `docs/.sdd-version` is the sole gate. Under marker `3` (or earlier) run the whole-plan compare above — flat `docs/plan.md` vs all specs/requirements — **unchanged**. Under marker `4` `sdd-verify` gains a **new** workstream-scoped branch (it had no scoped branch before): compare the active workstream's `docs/ws/<ws>/plan.md` / `docs/ws/<ws>/verification.md` **only** against the shared specs/requirements that workstream traces, using the **same live plan-walk** as `sdd-plan`/`sdd-implement` (walk `<ws>`'s tasks' `traces to` specs → each spec's `requires:` requirement IDs → those specs' and requirement category files' `last_updated`; task → spec `requires:` → requirement IDs → category-file dates). It must **not** report staleness from shared-input changes outside `<ws>`'s traced set. This reads **no traceability file** and adds no traceability schema column — the scope is derived live (REQ-WS-027). See `docs/spec/ws-staleness.md`
 3. If `docs/plan.md` has incomplete tasks → use `sdd-implement`
 4. If all plan tasks are done (or user explicitly requests verification) → you're in the right place
-5. If `docs/verification.md` already exists → you're re-verifying (after fixes or replan)
+5. If `docs/verification.md` already exists → you're re-verifying (after fixes or replan). A report with `status: pending-red` is this same re-verification state — verification incomplete, red-team verdict pending — and is **never** DONE and **never** a replan trigger (`docs/spec/adversarial-verify.md` §`status: pending-red`)
 
 Tell the user which phase you detected and confirm before proceeding.
 
@@ -222,9 +224,40 @@ plan_ref: docs/plan.md   # marker 4: docs/ws/<ws>/plan.md
 - [ ] Ship as-is
 - [ ] Fix critical issues then ship (invoke sdd-replan)
 - [ ] Significant rework needed (invoke sdd-replan)
+
+## Next Steps
+- [follow-up or deferral — one line each; empty section allowed]
 ```
 
 (`last_updated:` matches every other SDD artifact's staleness field; older reports may carry `date:` instead — treat the two as equivalent when reading.)
+
+**Section slots.** `## Next Steps` (after `## Recommendation`) is the **single
+definition** of the report's follow-up slot: `- gc <rule>: <file:line> — <fix>`
+lines from the drift sweep (`docs/spec/drift-sweep.md`) and deferral lines
+(`docs/spec/evaluation.md`) land here and nowhere else. `### Minor (can ship,
+fix later)` is additionally the slot for the orchestrator's
+`- Rn accepted at gate <YYYY-MM-DD>: <observed> — reproduce: \`<cmd>\`` lines
+when a red-team `BROKEN` finding is accepted at the verify gate — appended by
+`sdd-orchestrate`, never by this skill.
+
+**`status: pending-red` (REQ-REDB-HARNESSP2-008).** The frontmatter `status:`
+you write depends on whether the dispatch prompt carries the literal slot
+`Red team: enabled` (`sdd-orchestrate` sets it only when the operator chose
+`red team: on`):
+
+| Your own result | Slot absent (standalone, or red off) | Slot `Red team: enabled` present |
+|---|---|---|
+| pass | `status: pass` | **`status: pending-red`** |
+| fail | `status: fail` | `status: fail` |
+
+With the slot absent the output is byte-identical to v5. `pending-red` means
+"blue passed, red verdict pending": the **orchestrator** dispatches the red
+team, gates, and flips `pending-red → pass` in the frontmatter immediately
+before its own commit — this skill **never** writes `pass` while red is
+pending and never performs the flip. Every reader maps `pending-red` to
+"verification incomplete — re-enter the verify stage" (Phase Detection item 5;
+`sdd-replan` routes it back here; `sdd-orchestrate` resumes before the red
+dispatch).
 
 ### Step 7: Decide Next Step
 

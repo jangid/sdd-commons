@@ -65,6 +65,7 @@ Under marker `4` the execution artifacts are rooted at `docs/ws/<ws>/`:
 | specs `Approved`, no `docs/plan.md` (or stale) | at the plan stage |
 | plan has incomplete tasks | at the implement stage |
 | plan complete, no/failing `docs/verification.md` | at the verify stage |
+| `docs/verification.md` status `pending-red` | at the verify stage — resume before the red dispatch (never DONE, never replan) |
 | `docs/verification.md` status pass | at DONE (pending operator approval) |
 
 For an **entry kickoff** (§Entry Points) the stages before its recorded entry
@@ -324,10 +325,28 @@ all ephemeral (REQ-ORCH-013): (1) `RETURN.status` + `budget_consumed` vs the
 dispatched `Budget:` (`references/return-contract.md` §1, §7); (2) the
 own-line `SCOPE:` token (`references/write-scope.md` §5; `HISTORY_REWRITE`
 offers only `stop`); (3) per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` —
-1–3 render at the **per-chunk gate**; (4) the review `VERDICT:`; (5) the loop
+1–3 render at the **per-chunk gate**; (3b) verify stage only, `RED_VERDICT:`
+with its `Rn` lines verbatim (below); (4) the review `VERDICT:`; (5) the loop
 counters — `iteration N of MAX` for the fix-loop cap and the replan re-entry
-count — 4–5 render at the **stage gate**. Detail:
+count — 3b–5 render at the **stage gate**. Detail:
 [`references/loop-control.md`](references/loop-control.md) §5.
+
+**Red team (verify stage only, opt-in — REQ-REDB-HARNESSP2-001, -007, -008).**
+Ask `red team: off | on` (default `off`; optional `red input: +verification.md`)
+before dispatching the verify pipeline. With `on` the pipeline carries
+`Red team: enabled` (`sdd-verify` writes `status: pending-red`, never `pass`)
+and ONE read-only RED TEAM leaf (`references/dispatch-templates.md` §RED TEAM)
+follows each `COMPLETE` blue return, before the review; parse
+`^RED_VERDICT: BROKEN | HELD` on the last non-blank line
+(`references/return-contract.md` §6a — malformed table, `FOREIGN_TOKEN`).
+`proceed` iff `VERDICT ≠ REJECT` ∧ (red not run ∨ `HELD` ∨ every `BROKEN` `Rn`
+fixed/accepted); per `BROKEN` line: `fix (RED_BREAK packet) | accept (record) |
+stop` — `accept` appends `- Rn accepted at gate <YYYY-MM-DD>: <observed> —
+reproduce: \`<cmd>\`` under `verification.md` §Issues Found → Minor. Blue
+`status: fail` or a non-`COMPLETE` return → `Red team: not run (blue status
+fail)`, no red dispatch. On `proceed` flip `pending-red → pass` immediately
+before the orchestrator's commit (its only writer). Rounds and the gate
+fixture: [`references/loop-control.md`](references/loop-control.md) §2a "Red round".
 
 **`TELEMETRY:` lines** (`WRITE FAILED` │ `OFF` │ `.gitignore updated`) render at most once each, immediately after the `iteration`/cap line and before the options — [`references/telemetry.md`](references/telemetry.md) §3.
 

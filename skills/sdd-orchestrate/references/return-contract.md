@@ -10,8 +10,9 @@ never paraphrased.
 Two producers, one consumer:
 
 - every **leaf** dispatch (pipeline, fix re-dispatch, fan-out leaf, chunk
-  verifier) ends its return text with the `RETURN:` block (§1);
-- `sdd-review` emits an own-line `VERDICT:` token (§6);
+  verifier, red team) ends its return text with the `RETURN:` block (§1);
+- `sdd-review` emits an own-line `VERDICT:` token (§6); the red team leaf
+  emits an own-line last-line `RED_VERDICT:` token (§6a);
 - the **orchestrator** parses both, composes repair packets (§4) and branches
   (§6, §7). Routing is orchestrator-only (§9) — templates tell a subagent what
   to *produce*, never what to *decide next*.
@@ -48,7 +49,9 @@ leaf omitted anyway **reads as empty** (`[]` / no value) and is surfaced as a
 `RETURN: KEYS MISSING (<names>)` warning, not a pause. **Unknown keys are
 ignored**, with one exception: `CHUNK_VERDICT`, the verifier-only key
 (`docs/spec/harness-chunk-verifier.md` §Verdict Rule) — required on a verifier
-return, and a warning when present on any other return.
+return, and a warning when present on any other return. `RED_VERDICT:` is the
+red-team analogue (§6a): required on a red return, a `FOREIGN_TOKEN` warning
+on any other.
 
 | Key | Type | Consumer |
 |---|---|---|
@@ -65,6 +68,7 @@ return, and a warning when present on any other return.
 | `open_questions` | one-line list | checkpoint `open question:`; gate text |
 | `blocked_writes` | `{path, content}` list | orchestrator persistence **after** scope match (REQ-HARN-023) |
 | `CHUNK_VERDICT` | enum `PASS \| FAIL`, **verifier only**, last line | per-chunk gate (`harness-chunk-verifier.md`); ignored-with-warning elsewhere |
+| `RED_VERDICT` | enum `BROKEN \| HELD`, **red team only**, last non-blank line of the return text (after the block) | verify-stage gate (§6a; `docs/spec/adversarial-verify.md`); `FOREIGN_TOKEN` warning elsewhere, never branched on |
 
 Status semantics: `COMPLETE` — deliverable contract met; `PARTIAL` — some
 tasks done, none blocked, budget not exhausted (e.g. the leaf hit its
@@ -117,6 +121,7 @@ default from the kickoff's budget; it never leaves the slot empty):
 | fan-out leaf | `fan-out.md` §2 | `1 chunk, ≤ 25 tool calls, ≤ 3 test runs` |
 | review | `dispatch-templates.md` §REVIEW | `≤ 15 tool calls, read-only` |
 | chunk verifier | `dispatch-templates.md` §CHUNK VERIFIER | `1 chunk, ≤ 15 tool calls, ≤ 2 test runs, read-only` |
+| red team (verify stage, opt-in) | `dispatch-templates.md` §RED TEAM | `≤ 25 tool calls, ≤ 3 test runs, read-only` |
 
 `budget_consumed` is reported in **the same units** the `Budget:` slot was
 stated in, e.g. `budget_consumed: {tool_calls: 25, test_runs: 3, chunks: 0}`.
@@ -163,6 +168,24 @@ RETURN: MULTIPLE                   # block returned more than once (e.g. once pe
 `CHUNK_VERDICT` present on a non-verifier return is likewise a warning, and the
 key is ignored.
 
+**Red-team returns (REQ-REDB-HARNESSP2-005).** A red return is additionally
+malformed — the same `RETURN: MALFORMED (<reason>)` pause with
+`re-dispatch | accept manually | stop` — when any of:
+
+| Condition | Reason string |
+|---|---|
+| token missing | `RED_VERDICT missing` |
+| token not on the last non-blank line | `RED_VERDICT not last` |
+| `HELD` with non-empty `failures[]` | `RED_VERDICT/failures disagree` |
+| `BROKEN` with empty `failures[]` | `RED_VERDICT/failures disagree` |
+| a `BROKEN` line whose `reproduce:` is `n/a`, empty, or not a backticked command | `BROKEN without reproduce` |
+| `Rn` count of `BROKEN` ≠ `len(failures)` | `Rn/failures count mismatch` |
+
+The token is red-only: `RED_VERDICT:` in any other dispatch's return
+(pipeline, fix, fan-out leaf, verifier, review) is surfaced as the warning
+`FOREIGN_TOKEN` on the gate line (`telemetry.md` `return.warnings`) and is
+**never branched on**. Parser: §6a.
+
 ---
 
 ## 2. Failures are one-line (REQ-HARN-010)
@@ -198,8 +221,8 @@ shape:
 ```yaml
 Repair packet (fixed shape — act on it; do not re-derive the history):
   stage: implement
-  reason: REVIEW                                     # REVIEW | VERIFIER_FAIL | PARTIAL_CONTINUE | MERGE_CONFLICT
-  iteration: 2 of 3                                  # harness-loop-control.md §Fix-Loop Cap (REVIEW) / per-chunk redo counter (others)
+  reason: REVIEW                                     # REVIEW | VERIFIER_FAIL | PARTIAL_CONTINUE | MERGE_CONFLICT | RED_BREAK
+  iteration: 2 of 3                                  # harness-loop-control.md §Fix-Loop Cap (REVIEW, RED_BREAK) / per-chunk redo counter (others)
   budget: "1 chunk, ≤ 25 tool calls, ≤ 3 test runs"
   write_scope: [src/recon/**, tests/test_recon.py, docs/spec/recon.md]   # harness-write-scope.md
   target: {artifact_paths: [docs/plan.md], chunk: "Chunk 2: Reconciliation"}   # chunk: all — whole-plan fix (§5)
@@ -236,6 +259,19 @@ Rules:
   `ledger_summary`. Do not modify `verified_do_not_touch` paths."
 - `reason` names why the packet exists; `MERGE_CONFLICT` packets add
   `conflict_paths` and `base` (§10).
+- **`RED_BREAK`** (REQ-REDB-HARNESSP2-009; defined in
+  `docs/spec/adversarial-verify.md` §Fix-Loop Interaction) — a red-team
+  `BROKEN` finding the operator routed to `fix` at the verify-stage gate
+  produces an **implement**-stage packet:
+
+  | Packet field | Value |
+  |---|---|
+  | `reason` | `RED_BREAK` |
+  | `failures` | red's `RETURN.failures` verbatim (one per `BROKEN` line routed) |
+  | `findings` | the routed `Rn` lines verbatim (`id` = `Rn`, `text` = the line; no `affects`) |
+  | `target.chunk` | resolved by §5 with the **spec** taken from the `## Red team — <spec.md>` heading the `Rn` line sits under (red lines carry no `affects`); a spec traced by no chunk → `all` |
+  | `write_scope`, `budget` | that chunk's default row (`write-scope.md` §2; §Budget grammar) |
+  | `iteration` | the **verify** stage's fix-loop counter — one red round = at most one iteration (`loop-control.md` §2a "Red round") |
 
 ---
 
@@ -280,6 +316,12 @@ findings mechanically — no judgement, no paraphrase:
    union of the plan's chunk write scopes, dispatched after the per-chunk fix
    dispatches.
 
+**Red-team findings** (`reason: RED_BREAK`) enter the same mapping at step 2:
+the spec is the `## Red team — <spec.md>` heading the routed `Rn` line sits
+under (red lines carry no `affects`, so step 1 is skipped); a spec traced by no
+chunk → `all` per step 4 (`docs/spec/harness-return-contract.md`
+Q-IMPL-HARNESSP2-003).
+
 One review round is one fix iteration for the stage (`iteration N of MAX`)
 regardless of how many chunk-grouped dispatches it fans into. Every fix
 dispatch is followed by the scope check, one verifier dispatch per chunk it
@@ -299,9 +341,11 @@ contract), a single token line:
 VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT
 ```
 
-**Parser.** Match `^VERDICT:` **at line start** — so a `CHUNK_VERDICT:` line
-never matches — and when the token occurs more than once the **last occurrence
-wins**. The prose verdict and the token must agree (`Approve` ↔ `APPROVE`,
+**Parser.** Match `^VERDICT:` **at line start** — so a `CHUNK_VERDICT:` or
+`RED_VERDICT:` line never matches — and when the token occurs more than once
+the **last occurrence wins**. The lint consumer row for this token uses
+`(?<!CHUNK_)(?<!RED_)VERDICT:` (`tools/sdd-skill-lint.py` `REQUIRED` d2), so
+a red token never satisfies the review row. The prose verdict and the token must agree (`Approve` ↔ `APPROVE`,
 `Approve with fixes` ↔ `APPROVE_WITH_FIXES`, `Reject` ↔ `REJECT`); a report
 whose token and prose disagree (e.g. `APPROVE` beside Critical findings) is
 malformed. The orchestrator never classifies a verdict by parsing prose; when
@@ -314,6 +358,34 @@ the token is missing it surfaces the review as malformed rather than guessing.
 | `REJECT` with actionable findings | loop-back-to-fix (subject to the fix-loop cap) │ stop | findings carried into the packet |
 | `REJECT` with no actionable findings | pause: re-dispatch │ override │ stop (REQ-ORCH-018) | none |
 | missing / unrecognized / disagrees with prose | `REVIEW: MALFORMED` pause: re-dispatch review │ accept prose manually │ stop | none |
+
+### 6a. `RED_VERDICT:` token (verify stage, red team only)
+
+The red team leaf (`dispatch-templates.md` §RED TEAM) ends its return text
+with, on its own **last non-blank line**, after the `RETURN:` block:
+
+```
+RED_VERDICT: BROKEN | HELD
+```
+
+**Parser.** Match `^RED_VERDICT:` **at line start** (the `CHUNK_VERDICT`
+precedent); it must be the last non-blank line of the return. `BROKEN` iff
+`failures[]` is non-empty; every `BROKEN` `Rn` line needs a backticked
+`reproduce:` command or test id. The six malformed conditions and their
+reason strings are the red table in §Parsing and malformed returns; a
+non-reproducible claim is advisory (`HELD`, suspicion under `observed:`) and
+never enters `failures[]`.
+
+| Token | Gate offers |
+|---|---|
+| `HELD` | the verify-stage exit rule is satisfied on red's side; `proceed` follows the review `VERDICT:` (§6) |
+| `BROKEN` | per `BROKEN` `Rn`: `fix (RED_BREAK packet)` (§3) │ `accept (record)` │ `stop`; `proceed` unavailable until every `BROKEN` `Rn` is fixed or accepted |
+| missing / not last / disagrees with `failures[]` | `RETURN: MALFORMED (<reason>)` pause: re-dispatch │ accept manually │ stop |
+
+Signal order at the verify-stage gate: `RETURN.status` → `SCOPE:` →
+`RED_VERDICT:` (with its `Rn` lines rendered verbatim) → review `VERDICT:` →
+counters; exit rule and the `accept (record)` line shape: `../SKILL.md` §The
+gate; the rendered fixture: `loop-control.md` §2a "Red round".
 
 ---
 
@@ -366,7 +438,8 @@ The packet *is* the pruned state; no separate mechanism is needed.
 
 The following are orchestrator-only and never appear as instructions in a
 pipeline, fix, fan-out, verifier or review template: phase-detection relay;
-`VERDICT:` classification; `CHUNK_VERDICT:` and `SCOPE:` interpretation;
+`VERDICT:` classification; `CHUNK_VERDICT:`, `RED_VERDICT:` and `SCOPE:`
+interpretation;
 fix / redo / replan cap arithmetic; packet composition; the decision to merge,
 re-dispatch, replan or stop. Templates tell a subagent what to *produce*
 (block, token, findings) — never what to *decide next*. Grep guard: no

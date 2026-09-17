@@ -3,7 +3,9 @@
 Copy-ready templates the `sdd-orchestrate` driver fills in at dispatch time.
 `{...}` are orchestrator-filled slots. The contract these templates satisfy is
 defined in `../SKILL.md` (§Pipeline subagent dispatch, §Review subagent
-dispatch). Both were validated by live subagent dispatches in RS-005.
+dispatch). Both were validated by live subagent dispatches in RS-005. The
+CHUNK VERIFIER and RED TEAM templates below are read-only **leaves** —
+second executors of an existing layer, never `sdd-review`.
 
 ---
 
@@ -25,6 +27,7 @@ Budget: {budget}
 Write scope: {write_scope}          # repo-relative globs you may create/modify/delete/rename; nothing else
 Deliverable contract (exact files + frontmatter to produce): {deliverable_contract}
 {implement_only}Chunk: Chunk {N} — implement THIS chunk's tasks only (one chunk per dispatch, plan order)
+{verify_red_only}Red team: enabled            # verify stage only; present iff the operator chose `red team: on` at the verify gate
 
 Inputs you have been given:
   - Kickoff / upstream artifact path(s): {input_paths}
@@ -115,6 +118,14 @@ Do not perform any stage other than sdd-{stage}.
   case**: a plan with no `### Chunk N:` headers has chunk-close inactive
   (`overview.md` §Plan Vocabulary) — omit this line, issue **one** implement
   dispatch for the whole plan, dispatch **no** verifier, and say so at the gate.
+- `{verify_red_only}` — present only for `stage = verify` **and** only when the
+  operator answered `red team: on` at the verify gate's opt-in (asked before
+  this dispatch — `../SKILL.md` §The gate). The literal slot text is
+  `Red team: enabled`; `sdd-verify` Step 6 keys on it to write
+  `status: pending-red` instead of `pass` (`docs/spec/adversarial-verify.md`
+  §`status: pending-red`, REQ-REDB-HARNESSP2-008). Omit the whole line
+  otherwise — standalone `sdd-verify` and a red-off cycle must see no slot, so
+  their Step 6 output stays byte-identical to v5.
 - `{on_fix_only}` / `{repair_packet}` — present only on a fix re-dispatch
   (pipeline loop-back-to-fix, or a fan-out / per-chunk redo after
   `CHUNK_VERDICT: FAIL` or a merge abort). The packet is the **only** fix
@@ -335,3 +346,135 @@ RETURN:
 The verifier produces the token; only the orchestrator interprets it
 (`return-contract.md` §9). Its findings are ephemeral gate text — nothing it
 returns is written to `docs/` by it or on its behalf.
+
+---
+
+## RED TEAM subagent template (read-only leaf, verify stage only)
+
+The adversarial second executor of `sdd-verify` Steps 3–4
+(`docs/spec/adversarial-verify.md`): **Blue** is the verify pipeline, **Red**
+is a third dispatch kind (`telemetry.md` `dispatch.kind: red`) that picks the
+weakest acceptance criteria and constructs inputs or commands that violate
+them. It is **opt-in, default off** — asked as `red team: off | on` at the
+verify gate *before* the verify pipeline is dispatched (`../SKILL.md` §The
+gate) — and is dispatched **once per verify-pipeline return** that came back
+`RETURN.status: COMPLETE`, after that return and before the verify-stage
+review. It is never dispatched at chunk close or any other stage, and never
+after a non-`COMPLETE` blue return or a blue `verification.md` `status: fail`
+(the gate then renders `Red team: not run (blue status fail)`). Like the chunk
+verifier it is a **leaf** (`return-contract.md` §1) and **never `sdd-review`**:
+it invokes no skill, carries no review checklist, and the four-layer table is
+unchanged. Pasted verbatim from the spec:
+
+```
+You are a non-interactive RED TEAM subagent — the adversarial second executor of
+sdd-verify Steps 3–4. Do NOT ask questions. Do NOT fix anything. Run, don't read.
+Repository root: {repo_root}                     # marker 4: the workstream branch checkout
+Specs (read each `## Acceptance Criteria` yourself): {spec_paths}
+Plan: {plan_path}
+Quality-gate commands (from CLAUDE.md): {gate_commands}
+{red_input_override}                             # empty by default; "Blue's report: {verification_path}" when the operator set `red input: +verification.md`
+Budget: ≤ 25 tool calls, ≤ 3 test runs, read-only
+Write scope: (empty — read-only)
+Commit ownership: you never commit
+Rules: pick the weakest criteria; construct inputs/commands that violate them; a break counts ONLY
+       with a reproducible `reproduce:` command or test id — otherwise report it as HELD with your
+       suspicion under `observed:`. Return in the shape below; end with RED_VERDICT: on its own last line.
+```
+
+### Slot contract (red team)
+
+Input contract — checked by the orchestrator's pre-dispatch self-check
+(REQ-REDB-HARNESSP2-004):
+
+| Input | Present | Notes |
+|---|---|---|
+| repository root | yes | marker `4`: workstream branch checkout |
+| spec paths | yes | red reads `## Acceptance Criteria` itself |
+| plan path | yes | for chunk vocabulary in `location` |
+| gate commands | yes | verbatim from `CLAUDE.md` |
+| `Budget:` | yes | default `≤ 25 tool calls, ≤ 3 test runs, read-only` (REQ-HARN-004) |
+| `Write scope: (empty — read-only)` | yes, verbatim | REQ-HARN-020 |
+| `Commit ownership: you never commit` | yes, verbatim | REQ-HARN-024 |
+| non-interactive clause | yes | |
+| `verification.md` | **withheld by default** | operator override `red input: +verification.md` at the opt-in; the A/B is `index.md` Open Questions |
+| finding text, review reasoning | never | |
+
+- `{repo_root}` — sequential: the repo root; marker `4`: the workstream branch
+  checkout; provisioned at the tip like every other read-only dispatch (§Slot
+  contract (pipeline), `{repo_root}`).
+- `{spec_paths}` — resolved by the orchestrator from the plan's `traces to`
+  references; red reads each spec's `## Acceptance Criteria` itself and never
+  searches for specs.
+- `{plan_path}` — the plan as seen in that working directory; supplies the
+  `### Chunk N:` vocabulary red uses in `failures[].location`.
+- `{gate_commands}` — verbatim from `CLAUDE.md` (the chunk verifier's rule for
+  fallbacks); red never invents commands.
+- `{red_input_override}` — **empty by default**. Only when the operator chose
+  `red input: +verification.md` at the opt-in does it render as
+  `Blue's report: {verification_path}`. Blue's evidence is withheld otherwise
+  — the reviewer-isolation argument: reading what was already checked anchors
+  red on the same criteria and the same inputs.
+- `Budget:`, `Write scope: (empty — read-only)`, `Commit ownership: you never
+  commit` — literals, not slots; the same leaf slot set as the chunk verifier.
+
+**Nothing else** — no finding text, no review reasoning, no blue evidence
+outside the override, no orchestrator conversation, no repair history.
+
+**Write-revert rule (REQ-REDB-HARNESSP2-003).** Red is read-only. Any write the
+orchestrator's scope check observes on a red return is `OUT` and is reverted
+before the gate — the chunk verifier's rule
+(`docs/spec/harness-chunk-verifier.md`, `write-scope.md` §4), reused verbatim:
+the gate renders `SCOPE: VIOLATION (N paths)` naming the path(s) and the file
+is absent at gate time. A reproducible break is a **command line in the
+return**, never a committed test.
+
+### Return contract (red team)
+
+Red's return text, in order — one `## Red team — <spec.md>` heading per spec
+examined, one `Rn` line per attempted criterion (numbering is global per
+return across headings), then the full leaf `RETURN:` block, then the token:
+
+```
+## Red team — <spec.md> acceptance criteria            # one heading per spec examined
+- R1: <criterion text> — attack: <what was tried> — observed: <one line> — reproduce: `<command or test id>` — BROKEN
+- R2: <criterion text> — attack: <what was tried> — observed: <one line> — reproduce: `<command>` — HELD
+- R3: <criterion text> — attack: <what was tried> — observed: suspected <…>, no reproducible input found — reproduce: n/a — HELD
+RETURN:
+  status: COMPLETE
+  budget_consumed: {tool_calls: 19, test_runs: 3}
+  files_written: []
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {}
+  failures:
+    - {test: "python -m app --window 0", kind: error, message: "ZeroDivisionError at engine.py:140", location: src/recon/engine.py:140}
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
+RED_VERDICT: BROKEN
+```
+
+Rules (REQ-REDB-HARNESSP2-005, -006):
+
+- One `Rn` line per attempted criterion, in the fixed shape; `Rn` numbering is
+  per return.
+- `failures[]` holds **exactly one entry per `BROKEN` line**: `test` = the
+  `reproduce:` command or test id, `kind ∈ {assertion, error, lint, type,
+  build}`, `message`, `location` (`return-contract.md` §2).
+- `RED_VERDICT: BROKEN | HELD` is the **last line**, on its own; `BROKEN` iff
+  `failures[]` is non-empty.
+- A claim without a runnable `reproduce:` is **advisory**: reported as `HELD`
+  with the suspicion in `observed:`; it never enters `failures[]`, never
+  affects the token, never gates the pass commit.
+- `files_written` MUST be `[]`; the scope check on a red return must observe
+  zero writes (write-revert rule above).
+
+Red produces the token; only the orchestrator interprets it
+(`return-contract.md` §6a, §9 — `^RED_VERDICT:` parsing, the malformed table
+and the `FOREIGN_TOKEN` warning). Its `Rn` lines are ephemeral gate text —
+nothing it returns is written to `docs/` by it; the orchestrator's
+`accept (record)` bookkeeping line in `verification.md` §Issues Found → Minor
+is the one exception, and the orchestrator writes it (`../SKILL.md` §The gate).

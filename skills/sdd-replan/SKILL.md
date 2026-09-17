@@ -42,6 +42,7 @@ are shared (ADD, never fork); omitting the argument resolves `default`.
 
 0. **Version check**: If `docs/.sdd-version` is missing, suggest running `sdd-migrate` before proceeding
 1. If `docs/verification.md` exists with `status: fail` → replan from verification failures
+   - A `verification.md` with `status: pending-red` is **not** a verification failure — blue passed and the red-team verdict is pending (`docs/spec/adversarial-verify.md` §`status: pending-red`). Do not replan from it: route to `sdd-verify` (re-enter the verify stage)
 2. If a spike task produced findings that contradict the plan → replan from new knowledge
 3. If the user explicitly requested changes → replan from scope change
 4. If implementation is stuck (documented in conversation) → replan from blocked state
