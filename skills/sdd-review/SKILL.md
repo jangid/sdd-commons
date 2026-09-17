@@ -186,7 +186,7 @@ VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT
   Suggested fix: [concrete action]
 
 **Material findings:** [should fix; can proceed with note]
-- M1: [what's wrong] — [file:section]
+- M1: [what's wrong] — [file:section] — affects [REQ-*] | affects —
 
 **Minor findings:** [polish; defer without documentation]
 - m1: [observation]

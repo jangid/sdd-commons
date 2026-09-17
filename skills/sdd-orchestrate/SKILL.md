@@ -373,7 +373,8 @@ is orchestrator-only (§Orchestrator-Only Work).
 silently absorbed); a reject with no actionable findings (pause, operator
 decides); `REVIEW: MALFORMED` (pause: `re-dispatch review | accept prose
 manually | stop`); `RETURN: MALFORMED (<reason>)` (pause with the raw tail;
-never treat as `COMPLETE`): [`references/loop-control.md`](references/loop-control.md) §6.
+never treat as `COMPLETE`); `REVIEW: CONTRADICTION (round N vs round N+1, class b|c)`
+(stage-gate pause when a later review round raises new ground or regresses without it: `accept round N+1 (fix) | accept round N (proceed, note) | third opinion (re-dispatch review) | stop`): [`references/loop-control.md`](references/loop-control.md) §6.
 
 ## Reviews Are Ephemeral
 
