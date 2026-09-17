@@ -48,7 +48,10 @@ from pathlib import Path
 
 # Phrases that must not (re)appear. `allow` regexes whitelist matching lines
 # (negative mentions, historical citations). `files` limits the rule's scope
-# to paths containing that substring; None means every linted file.
+# to paths containing that substring; None means every linted file. The
+# optional `allow_files` list names repo-relative files the row skips entirely
+# (file-granular allowlist, consulted before the line loop; the scan itself
+# stays raw-line and fence-inclusive) — rows without it behave as before.
 FORBIDDEN = [
     {
         "pattern": r"docs/spikes",
@@ -328,9 +331,13 @@ class Linter:
 
     def check_forbidden(self) -> None:
         for f in self.skill_files():
-            rel = str(f.relative_to(self.root))
+            rel = f.relative_to(self.root).as_posix()
             for rule in FORBIDDEN:
                 if rule["files"] and rule["files"] not in rel:
+                    continue
+                # Per-row file-granular allowlist: the whole file is skipped for
+                # this row only; every other row still scans it.
+                if rel in rule.get("allow_files", ()):
                     continue
                 pat = re.compile(rule["pattern"])
                 allows = [re.compile(a) for a in rule["allow"]]
@@ -533,6 +540,7 @@ def _run_capture(root: Path) -> tuple[int, str]:
 
 
 def self_test() -> int:
+    global FORBIDDEN  # step 8 swaps in a temp copy of the table, then restores it
     failures: list[str] = []
 
     def check(cond: bool, msg: str) -> None:
@@ -676,10 +684,39 @@ def self_test() -> int:
             check(all(r.get('fix') for r in FORBIDDEN), "FORBIDDEN row without fix")
             check(len(REQUIRED) >= 28, f"expected the v5 REQUIRED rows (>= 28), found {len(REQUIRED)}")
 
+        # -- 8. allow_files mechanics: a synthetic FORBIDDEN row (never the
+        #       shipped list) with a file-granular allowlist. The pattern inside
+        #       a fence in a non-allowlisted fixture fails with the row's fix;
+        #       the same text in an allowlisted fixture passes (raw-line scan).
+        synthetic = {
+            "pattern": r"\.selftest-forbidden/", "files": None, "allow": [],
+            "allow_files": ["skills/allowed-skill/references/allowed.md"],
+            "reason": "synthetic allow_files row", "fix": "SYNTHETIC-ALLOW-FILES-FIX",
+        }
+        af_root = root / "allowfiles"
+        body = "```\n.selftest-forbidden/telemetry.jsonl\n```\n"
+        _fixture_skill(af_root, "plain-skill", body)
+        d = _fixture_skill(af_root, "allowed-skill", "prose\n")
+        (d / "references").mkdir()
+        (d / "references" / "allowed.md").write_text(body, encoding="utf-8")
+        shipped = FORBIDDEN
+        FORBIDDEN = shipped + [synthetic]       # temp copy of the table
+        try:
+            af = Linter(af_root, suite_rules=False)
+            af.check_forbidden()
+        finally:
+            FORBIDDEN = shipped                  # shipped list untouched
+        af_text = "\n".join(t for _, t in af.findings)
+        check("plain-skill/SKILL.md" in af_text and "SYNTHETIC-ALLOW-FILES-FIX" in af_text,
+              f"allow_files row did not fire on the non-allowlisted fenced fixture:\n{af_text}")
+        check("allowed.md" not in af_text,
+              f"allow_files did not skip the allowlisted file:\n{af_text}")
+        check(len(af.findings) == 1, f"expected exactly one allow_files finding:\n{af_text}")
+
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
-    print("SELF-TEST OK: all rule classes fire; fix/warn/size/backtick fixtures pass")
+    print("SELF-TEST OK: all rule classes fire; fix/warn/size/backtick/allow_files fixtures pass")
     return 0
 
 

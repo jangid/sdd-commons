@@ -2,14 +2,15 @@
 """Self-test for the sdd-orchestrate write-scope check.
 
 Builds throwaway git repositories under a temporary directory and replays the
-six write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
-(plan Chunk 4 task 5) against the observation procedure defined in
+seven write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
+(plan Chunk 4 task 5) plus ``docs/spec/telemetry.md`` §Third Observation (F7) against the observation procedure defined in
 ``skills/sdd-orchestrate/references/write-scope.md``:
 
   §3  the three commands — porcelain delta, committed delta, ancestry check
   §4  matching and tags — IN / ADVISORY / OUT
   §5  finding format and the own-line ``SCOPE:`` token
   §6  blocked-write fallback — pre-persist scope match
+  telemetry.md §4  third observation of ``.sdd/`` and the leaf-write revert
 
 Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
 
@@ -19,6 +20,7 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
   F4  implement writes docs/spec/recon.md       -> ADVISORY, SCOPE: CLEAN
   F5  blocked_writes docs/plan.md from a leaf   -> refused, listed OUT refused
   F6  amended HEAD                              -> HISTORY_REWRITE, VIOLATION
+  F7  leaf appends to .sdd/telemetry.jsonl      -> OUT (+1 records, leaf write — reverted)
 
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
@@ -127,6 +129,79 @@ class Observed:
 class Observation:
     writes: list[Observed] = field(default_factory=list)
     history_rewrite: str | None = None  # rendered HISTORY_REWRITE line, if any
+    # Third observation (telemetry.md §4): finding strings for leaf writes under
+    # the gitignored ``.sdd/`` — each counts as one more OUT path.
+    telemetry_findings: list[str] = field(default_factory=list)
+    telemetry_after: "TelemetrySnapshot | None" = None
+
+
+# ---------------------------------------------------------------------------
+# telemetry.md §4 — third observation of .sdd/ (gitignored, invisible to §3)
+# ---------------------------------------------------------------------------
+
+TELEMETRY_DIR = ".sdd"
+TELEMETRY_FILE = ".sdd/telemetry.jsonl"
+
+
+@dataclass(frozen=True)
+class TelemetrySnapshot:
+    """``n`` = line count of .sdd/telemetry.jsonl (0 if absent); ``entries`` = sorted .sdd/ listing."""
+
+    n: int
+    entries: tuple[str, ...]
+
+
+def telemetry_snapshot(repo: str) -> TelemetrySnapshot:
+    """Take ``n_before``/``e_before`` (or the ``after`` pair) per telemetry.md §4."""
+    d = os.path.join(repo, TELEMETRY_DIR)
+    f = os.path.join(repo, TELEMETRY_FILE)
+    entries = tuple(sorted(os.listdir(d))) if os.path.isdir(d) else ()
+    n = 0
+    if os.path.isfile(f):
+        with open(f, "rb") as fh:
+            n = sum(1 for _ in fh)
+    return TelemetrySnapshot(n, entries)
+
+
+def telemetry_delta(before: TelemetrySnapshot, after: TelemetrySnapshot) -> list[str]:
+    """Render the telemetry.md §4 finding strings for any leaf write under .sdd/.
+
+    The strings are defined once in ``skills/sdd-orchestrate/references/telemetry.md``
+    §4 and mirrored here verbatim; nothing else in the harness restates them.
+    """
+    findings: list[str] = []
+    if after.n > before.n:
+        findings.append(f"OUT {TELEMETRY_FILE} (+{after.n - before.n} records, leaf write — reverted)")
+    elif after.n < before.n:
+        findings.append(f"OUT {TELEMETRY_FILE} (−{before.n - after.n} records, leaf write — unrecoverable)")
+    for entry in sorted(set(after.entries) ^ set(before.entries)):
+        if f"{TELEMETRY_DIR}/{entry}" == TELEMETRY_FILE and after.n != before.n:
+            continue  # already reported by the record-count line above
+        findings.append(f"OUT {TELEMETRY_DIR}/{entry} (leaf write — reverted)")
+    return findings
+
+
+def revert_telemetry(repo: str, before: TelemetrySnapshot, obs: "Observation") -> None:
+    """Revert leaf writes under .sdd/ before the gate (telemetry.md §4).
+
+    Truncates the telemetry file back to ``n_before`` lines — the single
+    exception to the never-truncate rule — and removes entries the leaf added.
+    Lines a leaf removed cannot be restored (reported as unrecoverable).
+    """
+    if not obs.telemetry_findings or obs.telemetry_after is None:
+        return
+    f = os.path.join(repo, TELEMETRY_FILE)
+    if obs.telemetry_after.n > before.n and os.path.isfile(f):
+        with open(f, "rb") as fh:
+            kept = fh.readlines()[: before.n]
+        with open(f, "wb") as fh:
+            fh.writelines(kept)
+    for entry in set(obs.telemetry_after.entries) - set(before.entries):
+        path = os.path.join(repo, TELEMETRY_DIR, entry)
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+        elif os.path.exists(path):
+            os.remove(path)
 
 
 def _porcelain_paths(line: str) -> tuple[str, list[str]]:
@@ -142,16 +217,26 @@ def _porcelain_paths(line: str) -> tuple[str, list[str]]:
     return letter, [rest]
 
 
-def observe(repo: str, head_before: str, before: list[str]) -> Observation:
+def observe(
+    repo: str,
+    head_before: str,
+    before: list[str],
+    telemetry_before: TelemetrySnapshot | None = None,
+) -> Observation:
     """Run the AFTER half of §3 and return the union of the two deltas.
 
     (a) porcelain delta: lines in scope.after that are not in scope.before
     (b) committed delta: ``git diff --name-status HEAD_before HEAD_after``
     (c) ancestry: ``git merge-base --is-ancestor HEAD_before HEAD_after``
+    Third observation (telemetry.md §4), when ``telemetry_before`` is given:
+    ``n_after``/``e_after`` of .sdd/ taken here, before the orchestrator's own append.
     """
     head_after = git(repo, "rev-parse", "HEAD").stdout.strip()
     after = snapshot(repo)
     obs = Observation()
+    if telemetry_before is not None:
+        obs.telemetry_after = telemetry_snapshot(repo)
+        obs.telemetry_findings = telemetry_delta(telemetry_before, obs.telemetry_after)
 
     # (a) porcelain delta — paths present in both snapshots cancel.
     before_set = set(before)
@@ -257,6 +342,10 @@ def render(scope: list[ScopeGlob], obs: Observation, label: str) -> Finding:
         elif t == "ADVISORY":
             suffix = "  (verify hunks are under ## Implementation Questions)"
         lines.append(f"    {t:<9}{w.path:<38}{w.letter}  {w.where}{suffix}")
+    # Third observation: each telemetry finding is one more OUT path (telemetry.md §4).
+    for finding in obs.telemetry_findings:
+        out_paths.append(finding.split()[1])
+        lines.append(f"    {finding}")
     # N counts OUT paths plus a HISTORY_REWRITE finding; ADVISORY never counts.
     n = len(out_paths) + (1 if obs.history_rewrite else 0)
     token = "SCOPE: CLEAN" if n == 0 else f"SCOPE: VIOLATION ({n} path{'s' if n != 1 else ''})"
@@ -391,6 +480,42 @@ def scenario_f6(repo: str) -> tuple[bool, str, list[str]]:
     return ok, f.token, f.lines
 
 
+def scenario_f7(repo: str) -> tuple[bool, str, list[str]]:
+    """Leaf appends one line to the gitignored .sdd/telemetry.jsonl.
+
+    telemetry.md §4: porcelain cannot see the write (limitation (b)), so the
+    third observation must flag it as ``OUT .sdd/telemetry.jsonl (+1 records,
+    leaf write — reverted)``, count it in ``SCOPE: VIOLATION (1 paths)`` and
+    truncate the file back to ``n_before`` lines before the gate.
+    """
+    write(repo, ".gitignore", ".sdd/\n")
+    git(repo, "add", ".gitignore")
+    git(repo, "commit", "-q", "-m", "gitignore .sdd/")
+    n_before = 3
+    write(repo, ".sdd/telemetry.jsonl", "".join(f'{{"v":1,"seq":{i}}}\n' for i in range(1, n_before + 1)))
+    ignored = git(repo, "check-ignore", "-q", ".sdd/telemetry.jsonl", check=False).returncode == 0
+    head, before = _begin(repo)
+    tele_before = telemetry_snapshot(repo)
+    # the leaf appends one record
+    with open(os.path.join(repo, ".sdd/telemetry.jsonl"), "a", encoding="utf-8") as fh:
+        fh.write('{"v":1,"seq":99,"leaf":true}\n')
+    obs = observe(repo, head, before, tele_before)
+    revert_telemetry(repo, tele_before, obs)  # before the gate, like the verifier revert
+    f = render(SEQ_SCOPE_SRC, obs, "F7")
+    with open(os.path.join(repo, ".sdd/telemetry.jsonl"), encoding="utf-8") as fh:
+        n_after_revert = sum(1 for _ in fh)
+    expected = "OUT .sdd/telemetry.jsonl (+1 records, leaf write — reverted)"
+    ok = (
+        ignored
+        and f.token == "SCOPE: VIOLATION (1 path)"
+        and f.out_paths == [".sdd/telemetry.jsonl"]
+        and any(ln.strip() == expected for ln in f.lines)
+        and n_after_revert == n_before
+        and not any(w.path.startswith(".sdd/") for w in obs.writes)  # invisible to porcelain
+    )
+    return ok, f.token, f.lines
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -398,6 +523,7 @@ SCENARIOS = [
     ("F4", "implement writes docs/spec/recon.md (ADVISORY)", scenario_f4),
     ("F5", "blocked_writes docs/plan.md from a fan-out leaf", scenario_f5),
     ("F6", "amended HEAD (HISTORY_REWRITE)", scenario_f6),
+    ("F7", "leaf appends to .sdd/telemetry.jsonl (third observation, reverted)", scenario_f7),
 ]
 
 
@@ -410,7 +536,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="sdd-scope-check-selftest.py",
         description=(
-            "Replay the six write-scope scenarios of docs/spec/harness-write-scope.md "
+            "Replay the seven write-scope scenarios of docs/spec/harness-write-scope.md "
             "§Verification in throwaway git repos. Exit 0 when all pass."
         ),
     )
