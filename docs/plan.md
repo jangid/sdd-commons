@@ -40,7 +40,10 @@ spike** tasks; the two RS-008 dogfooding probes are recorded as replan triggers.
   lints".
 - **Chunk headers**: `### Chunk N: <name>`; each chunk carries a `**Depends on**`
   line the fan-out boundary derivation parses (`fan-out.md` §1). Chunks 0 and 1
-  are roots; Chunks 2, 3, 4 depend only on Chunk 1 and may run in parallel.
+  are roots. Fan-out waves: wave 1 = Chunk 0 ‖ Chunk 1; wave 2 = Chunk 2 ‖
+  Chunk 3 (both depend only on Chunk 1); then Chunk 4 → Chunk 5 → Chunk 6
+  sequentially — Chunk 4 depends on Chunk 3 because its task 3 replaces the
+  scope-check placeholder Chunk 3 task 4 inserts in `fan-out.md` §3.
 - **Traceability**: each task names the spec section and REQ id(s) it implements.
   Test/Implementation columns of `docs/requirements/traceability.md` are filled at
   each chunk's close (Check 2); Chunk 6 sweeps the remainder.
@@ -61,7 +64,7 @@ spike** tasks; the two RS-008 dogfooding probes are recorded as replan triggers.
 distinguishes `warn` from `fail`, warns on `SKILL.md` files over 400 lines (fails
 over 1000), resolves backtick `references/` paths, and its `--self-test` covers all
 of it. No new `REQUIRED` rows yet (see Conventions). Traces to `skill-lint-v5.md`.
-**Depends on**: none.
+**Depends on**: None.
 **Tasks**:
 1. [implement] In `tools/sdd-skill-lint.py`: change `flag()` to
    `flag(path, line_no, rule, msg, fix, severity="fail")` with `fix` a required
@@ -103,7 +106,9 @@ of it. No new `REQUIRED` rows yet (see Conventions). Traces to `skill-lint-v5.md
 **Entry criteria**: none (root chunk).
 **Exit criteria**: self-test and live lint exit 0; the only findings are the two
 baseline size warnings; `grep -c '"fix"'`/`"fix"`-per-row count equals the number
-of rule rows; traceability Test/Implementation filled for REQ-LINT-001..004.
+of rule rows; traceability Test/Implementation filled for REQ-LINT-001..004 and
+REQ-SKILL-023 (lint tool v5 mechanics half; the `REQUIRED` rows half closes in
+Chunk 5).
 
 ### Chunk 1: Return contract — `RETURN:` block, repair packet, `VERDICT:` token
 **Goal**: every leaf template ends with the structured `RETURN:` block, fix
@@ -112,7 +117,7 @@ own-line `VERDICT:` token, and `references/return-contract.md` holds the
 procedure text (parsing, malformed rules, field sources, branching tables,
 finding → chunk mapping, pruned-state check). Traces to
 `harness-return-contract.md`.
-**Depends on**: none.
+**Depends on**: None.
 **Tasks**:
 1. [implement] Create `skills/sdd-orchestrate/references/return-contract.md`
    carrying: the `RETURN:` key table with consumers and status semantics; the
@@ -186,7 +191,8 @@ finding → chunk mapping, pruned-state check). Traces to
 **Exit criteria**: both leaf templates and the review template state their return
 contract; `references/return-contract.md` exists and `SKILL.md` links to it (link
 resolves); lint exits 0; traceability Test/Implementation filled for
-REQ-HARN-009..013, -018, -019, REQ-SKILL-021.
+REQ-HARN-009..013, -018, -019, REQ-SKILL-021, REQ-SKILL-020 (`RETURN:` half —
+task 5; the ledger half closes in Chunk 2).
 
 ### Chunk 2: Loop control — caps, budget, attempt ledger, circuit-break checkpoint
 **Goal**: the fix loop and the replan re-entry are capped (session counter /
@@ -198,7 +204,9 @@ note that `sdd-replan` reads. Traces to `harness-loop-control.md`.
 **Tasks**:
 1. [implement] In `skills/sdd-orchestrate/SKILL.md` §The gate: state the
    **fix-loop cap** (`FIX_LOOP_MAX`, default 3, per stage, session-only; every fix
-   prompt carries `iteration N of 3`; operator may raise it by one at the gate);
+   prompt carries `iteration N of 3`; operator may raise it by one at the gate,
+   and a raised cap renders as `iteration N of MAX` with the raise count — e.g.
+   `iteration 5 of 5 (cap raised ×2)` — per the spec's Edge Cases);
    the exhaustion behavior (no automatic dispatch; gate shows the compiled
    findings log and offers `stop | manual intervention | authorize extra
    iteration`) with the compiled-log shape pasted from the spec; the **replan
@@ -307,11 +315,21 @@ Traces to `harness-chunk-verifier.md`.
    only on `fix`; same exhaustion behavior as the fix-loop cap, compiled from the
    verifier's findings), FAIL routing (repair packet with `reason: VERIFIER_FAIL`
    only — never merge, review or replan directly), the "review runs ONCE after
-   all chunks" rule, and the `CHUNK_VERDICT:` consumer statement in §The gate
+   all chunks" rule, the **post-review loop-back re-entry rule** — after a
+   stage-level `loop-back-to-fix`, each fix dispatch is followed by the scope
+   check, one verifier per touched chunk (per `harness-return-contract.md`
+   §Finding → Chunk Mapping) and that chunk's per-chunk gate BEFORE the
+   re-review (per `harness-chunk-verifier.md` §FAIL Routing) — the verifier
+   edge cases (a verifier returning `status: BUDGET_EXHAUSTED` is treated as
+   `CHUNK_VERDICT: FAIL` and "verifier re-dispatch is not a redo" — it does not
+   increment `chunk_redo_count`; a gate that exits non-zero on the verifier's
+   run but zero on the orchestrator's re-run renders the `possible flake` gate
+   line), and the `CHUNK_VERDICT:` consumer statement in §The gate
    (per-chunk signal order `RETURN.status` → `SCOPE:` → `CHUNK_VERDICT:`;
    stage gate = review `VERDICT:` + loop counters). — traces to
    `harness-chunk-verifier.md` §Sequencing — Sequential Mode, §FAIL Routing,
-   §Ephemerality and Gate Text; `harness-loop-control.md` §Redo Cap per Chunk;
+   §Ephemerality and Gate Text, Edge Cases; `harness-return-contract.md`
+   §Finding → Chunk Mapping; `harness-loop-control.md` §Redo Cap per Chunk;
    `orchestration.md` §v5 gate text order (REQ-HARN-014, -016, REQ-ORCH-034).
 4. [implement] In `references/fan-out.md` §3: insert the per-leaf step between
    "await leaf return" and "sequential merge" — (a) parse `RETURN` + scope-check
@@ -346,7 +364,7 @@ writes with the porcelain ∪ committed-delta ∪ ancestry procedure and surface
 `SCOPE: CLEAN | VIOLATION (N paths)` before any commit or merge; commit ownership
 and snapshot ordering are pinned per dispatch type; `blocked_writes` are
 scope-matched before persistence. Traces to `harness-write-scope.md`.
-**Depends on**: Chunk 1.
+**Depends on**: Chunk 1, Chunk 3.
 **Tasks**:
 1. [implement] Create `skills/sdd-orchestrate/references/write-scope.md`
    carrying: the slot semantics (glob rules; `(empty — read-only)` for review
@@ -406,7 +424,9 @@ scope-matched before persistence. Traces to `harness-write-scope.md`.
    `harness-write-scope.md` §Verification — Automated (REQ-HARN-021..023, -026).
 **Entry criteria**: Chunk 1 complete (`files_written`, `commits`,
 `blocked_writes` keys defined; §Orchestrator-Only Work principle present to
-extend).
+extend); Chunk 3 complete (the `fan-out.md` §3 scope-check placeholder from
+its task 4 step (a) exists for task 3 to replace; the per-chunk gate block is
+in `SKILL.md` for task 4 to reference).
 **Exit criteria**: `Write scope:` appears in the pipeline and review templates
 and the fan-out leaf template; `references/write-scope.md` exists and the
 `SKILL.md` stub link resolves; per-chunk gate block byte-identical to the spec;
@@ -465,8 +485,10 @@ integrated skill set passes the lint with size warnings only. Traces to
    (REQ-ORCH-034); `skill-lint-v5.md` §Marker-4 Prose Move size target
    (REQ-LINT-007); `skill-updates.md` §v5 (REQ-SKILL-019).
 6. [verify] `python3 tools/sdd-skill-lint.py --self-test` exits 0; the live lint
-   exits 0 printing `OK: 13 file(s) clean, K warning(s)` with `K` ≥ 1 only from
-   size warnings; mutation test — for each of the nine core rows delete the
+   exits 0 printing `OK: 16 file(s) clean, K warning(s)` — 13 baseline files +
+   the 3 new `references/` files (`return-contract.md`, `write-scope.md`,
+   `v4-workstreams.md`), since the tool enumerates `skills/**/*.md` via
+   `rglob` — with `K` ≥ 1 only from size warnings; mutation test — for each of the nine core rows delete the
    marker in a temp copy → exit 1 with that row's `fix:` printed; `grep -c '"fix"'`
    equals the number of rule rows; `wc -l skills/sdd-orchestrate/SKILL.md` ≤ ~450;
    every moved section's stub contains "UNCHANGED" and a resolving link;
@@ -476,9 +498,10 @@ integrated skill set passes the lint with size warnings only. Traces to
    `harness-loop-control.md` §No-New-Artifact Invariant (REQ-HARN-027).
 **Entry criteria**: Chunks 0, 2, 3, 4 complete and merged into one tree (all
 markers present; lint v5 mechanics present).
-**Exit criteria**: lint exits 0 with size warnings only; all 18 new rows present
-and mutation-tested; `SKILL.md` ≤ ~450 lines; `v4-workstreams.md` exists with both
-guards satisfied; traceability filled for REQ-LINT-005..007, REQ-SKILL-019,
+**Exit criteria**: lint exits 0 reporting 16 file(s) clean with size warnings
+only; all 18 new rows present and mutation-tested; `SKILL.md` ≤ ~450 lines;
+`v4-workstreams.md` exists with both guards satisfied; traceability filled for
+REQ-LINT-005..007, REQ-SKILL-019, REQ-SKILL-023 (`REQUIRED` rows half),
 REQ-SKILL-024 (move half).
 
 ### Chunk 6: Documentation, traceability closure, holistic verify
@@ -519,12 +542,19 @@ whole cycle is walked end-to-end on fixtures. Traces to `skill-updates.md` §v5,
    `Budget:` / `Write scope:` / `Chunk N` slots and confirm no empty slot and no
    content outside the slot set; compose a fix prompt from a forced `REJECT`
    review and confirm one `Repair packet` header, no fenced report, no quoted
-   spec text; confirm the per-chunk gate block rendered from the fixture matches
-   the canonical text; run the three-command scope check around a simulated
-   leaf edit; `git ls-files docs/` shows no counter / log / review file. —
+   spec text, then trace the loop-back re-entry by hand — fix dispatch → scope
+   check → one verifier for the touched chunk → that chunk's per-chunk gate →
+   re-review — confirming the re-review is never dispatched before the per-chunk
+   gate; confirm the per-chunk gate block rendered from the fixture matches
+   the canonical text; render the stage gate from the fixture review (`VERDICT:`
+   token + `iteration N of MAX`) and confirm it shows the REQ-ORCH-034 stage
+   signal order alongside the per-chunk block; run the three-command scope
+   check around a simulated leaf edit; `git ls-files docs/` shows no counter /
+   log / review file. —
    traces to `harness-return-contract.md`, `harness-loop-control.md`,
-   `harness-chunk-verifier.md`, `harness-write-scope.md` §Verification — Manual
-   (REQ-HARN-001, -011, -016, -018, -020, -027).
+   `harness-chunk-verifier.md`, `harness-write-scope.md` §Verification — Manual;
+   `orchestration.md` §v5 (REQ-HARN-001, -011, -016, -018, -020, -027,
+   REQ-ORCH-034).
 5. [verify] Cross-skill consistency sweep: every reference to a token, cap
    constant, key name or gate option across `SKILL.md`, the four `references/`
    files, `sdd-implement`, `sdd-review`, `sdd-replan`, `USAGE.md` and `CLAUDE.md`
@@ -563,9 +593,10 @@ acceptance criterion failed; plan `status: complete`; ready for `sdd-verify`.
   mentions in a consumer repo, paths inside inline tables) beyond the spec's edge
   cases → retune the regex / severity in Chunk 0 and record the change in
   `skill-lint-v5.md` Edge Cases.
-- **Parallel Chunks 2/3/4 conflict in `dispatch-templates.md` or `SKILL.md`
+- **Parallel Chunks 2/3 conflict in `dispatch-templates.md` or `SKILL.md`
   §The gate beyond what fan-out's redo-by-re-derivation resolves** → collapse
-  them to sequential order 2 → 3 → 4 (plan-level change, no spec change).
+  wave 2 to sequential order 2 → 3 (Chunk 4 already follows Chunk 3;
+  plan-level change, no spec change).
 - **The `RETURN:` block proves too large for a leaf to emit reliably** (keys
   omitted in practice, multi-line values) → revisit the key set with
   `harness-return-contract.md` §RETURN Block's rename clause (markers and
@@ -585,12 +616,15 @@ acceptance criterion failed; plan `status: complete`; ready for `sdd-verify`.
 
 ## Risks
 
-- **Overlapping edit surfaces across parallel chunks.** Chunks 2, 3 and 4 all
-  touch `dispatch-templates.md`, `fan-out.md` and `SKILL.md` §The gate / §LOOP.
-  Mitigation: each chunk's tasks name distinct sections (Chunk 2: caps + KICKOFF
-  + REVIEW `Budget:`; Chunk 3: verifier template + per-chunk subsection; Chunk 4:
-  `Write scope:` lines + stub); Chunk 5 task 5 is the explicit integration pass;
-  the replan trigger above collapses to sequential if merges churn.
+- **Overlapping edit surfaces across parallel chunks.** Chunks 2 and 3 (wave 2)
+  both touch `dispatch-templates.md`, `fan-out.md` and `SKILL.md` §The gate /
+  §LOOP; Chunk 4 touches the same files but runs after Chunk 3 (declared
+  dependency — it replaces Chunk 3's scope-check placeholder), so it only has
+  to merge onto an integrated wave-2 tree. Mitigation: each chunk's tasks name
+  distinct sections (Chunk 2: caps + KICKOFF + REVIEW `Budget:`; Chunk 3:
+  verifier template + per-chunk subsection; Chunk 4: `Write scope:` lines +
+  stub); Chunk 5 task 5 is the explicit integration pass; the replan trigger
+  above collapses wave 2 to sequential if merges churn.
 - **Lint row ordering.** Adding a `REQUIRED` row before its marker exists breaks
   `exit 0` for every intermediate tree and every parallel worktree. Mitigation:
   rows land only in Chunk 5 after Chunks 1–4 merge; Chunk 0 ships mechanics +
