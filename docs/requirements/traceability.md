@@ -149,44 +149,44 @@ last_updated: 2026-09-17
 | REQ-WS-028 | ws-staleness.md | | skills/sdd-requirements/SKILL.md (research→requirements staleness stays shared/workstream-independent; RS-<WS>-NNN pattern only, marker-4 gate) | pass |
 | REQ-WS-029 | ws-orchestration.md | | skills/sdd-orchestrate/SKILL.md (§ Workstream Picker: enumerate docs/ws/<id>/, list id/description/detected-phase, select-or-create, default degenerates to one; per-workstream done-vs-new-cycle via marker-4 gate on § New cycle vs. resume) | pass |
 | REQ-WS-030 | ws-orchestration.md | | skills/sdd-orchestrate/SKILL.md (§ Phase Detection → Upgrade offer: on entry compare docs/.sdd-version to latest supported; if behind, non-forcing offer to run sdd-migrate; accept→migrate, decline→unchanged, already-latest→silent) | pass |
-| REQ-HARN-001 | harness-loop-control.md | Chunk 2 task 7 exit-criteria grep (fix-loop cap / iteration N of 3); 3×REJECT walkthrough at sdd-verify | sdd-orchestrate/SKILL.md §The gate — Fix-loop cap | |
-| REQ-HARN-002 | harness-loop-control.md | Chunk 2 task 7 fixtures F1–F3 (date: → 2; git -S fallback → 2; neither → treated as reached) | sdd-orchestrate/SKILL.md §The gate — Replan re-entry cap; §KICKOFF date: rule | |
-| REQ-HARN-003 | harness-loop-control.md | Chunk 2 task 7 fixture F6 (no -replan- in sdd-plan); lint row Chunk 5 | sdd-replan/SKILL.md Step 4 -replan- contract | |
-| REQ-HARN-004 | harness-loop-control.md | Chunk 2 task 7 grep Budget: (dispatch-templates ×4, fan-out ×3); lint rows Chunk 5 | dispatch-templates.md §REVIEW Budget:; return-contract.md §Budget grammar; SKILL.md §KICKOFF self-check | |
-| REQ-HARN-005 | harness-loop-control.md | Chunk 2 task 7; Budget: ≤ 5 tool calls walkthrough at sdd-verify | sdd-implement/SKILL.md Step 3 §Budget exhaustion; return-contract.md §Budget grammar (v1 limitation) | |
-| REQ-HARN-006 | harness-loop-control.md | Chunk 2 task 7 fixture F4; grep: no ledger text in docs/spec or kickoff | sdd-implement/SKILL.md Step 3 §Attempt ledger; §Leaf Return Contract | |
-| REQ-HARN-007 | harness-loop-control.md | Chunk 2 task 7 fixtures F4a/F4b/F4c | sdd-implement/SKILL.md Step 3 §Oscillation rule | |
-| REQ-HARN-008 | harness-loop-control.md | Chunk 2 task 7 fixture F5 (checkpoint 8 lines, traceback-free) | sdd-implement/SKILL.md Step 3 §Circuit-break checkpoint; sdd-replan/SKILL.md Step 1.6, Step 4.2; fan-out.md §3e.4 | |
-| REQ-HARN-009 | harness-return-contract.md | Chunk 1 task 7 fixture (RETURN block markers) | references/return-contract.md §1; dispatch-templates.md; fan-out.md; sdd-implement/SKILL.md | |
-| REQ-HARN-010 | harness-return-contract.md | Chunk 1 task 7 fixture (one-line failures) | references/return-contract.md §2; sdd-implement/SKILL.md | |
-| REQ-HARN-011 | harness-return-contract.md | Chunk 1 task 7 fixture (ledger_summary, spec_excerpt regex, {repair_packet}) | references/return-contract.md §3; dispatch-templates.md | |
-| REQ-HARN-012 | harness-return-contract.md | Chunk 1 task 7 fixture (findings[].text byte-identical) | references/return-contract.md §4; sdd-orchestrate/SKILL.md §LOOP | |
-| REQ-HARN-013 | harness-return-contract.md | Chunk 1 task 7 fixture (VERDICT producer/consumer greps) | sdd-review/SKILL.md §Step 5; sdd-orchestrate/SKILL.md §The gate; references/return-contract.md §6 | |
-| REQ-HARN-014 | harness-chunk-verifier.md | lint; Chunk 3 task 5 fixture verdict walkthrough (check1 fail→FAIL / pass→PASS) | dispatch-templates.md §CHUNK VERIFIER; sdd-orchestrate/SKILL.md §Per-chunk implement dispatch and per-chunk gate | |
-| REQ-HARN-015 | harness-chunk-verifier.md | lint; fan-out §4 invariant grep | fan-out.md §3a.v, §4 | |
-| REQ-HARN-016 | harness-chunk-verifier.md | lint; two-chunk fixture dispatch count (2 impl + 2 verifier + 1 review, 2 gates) | dispatch-templates.md §PIPELINE Chunk {N} slot; sdd-orchestrate/SKILL.md §Per-chunk implement dispatch and per-chunk gate | |
-| REQ-HARN-017 | harness-chunk-verifier.md | lint; byte-identity diff vs harness-chunk-verifier.md L64-85, L108-128; grep Budget:/Write scope:/CHUNK_VERDICT: | dispatch-templates.md §CHUNK VERIFIER | |
-| REQ-HARN-018 | harness-return-contract.md | Chunk 1 task 7 fixture (one packet, path-only excerpt, slot-overflow text) | references/return-contract.md §8 | |
-| REQ-HARN-019 | harness-return-contract.md | Chunk 1 task 7 grep guard (zero routing-phrase hits) | sdd-orchestrate/SKILL.md §Orchestrator-Only Work; references/return-contract.md §9 | |
-| REQ-HARN-020 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F3 (verify dispatch IN, CLEAN); static: `Write scope:` in all templates (lint REQUIRED rows) | references/write-scope.md §1–§2; dispatch-templates.md; fan-out.md §2 | |
-| REQ-HARN-021 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1, F2, F6 (three commands in a temp git repo) | references/write-scope.md §3; fan-out.md §3a.v(a) | |
-| REQ-HARN-022 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1/F2 finding block + own-line token `SCOPE: VIOLATION (1 path)` | references/write-scope.md §5; SKILL.md §The gate signal (2) | |
-| REQ-HARN-023 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F5 (blocked_writes docs/plan.md refused, not persisted) | references/write-scope.md §6; fan-out.md §3e step 5 | |
-| REQ-HARN-024 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F2 (leaf commit inside the observed window); commit-ownership table + gate block byte-identical (manual) | references/write-scope.md §7; dispatch-templates.md step 4; fan-out.md §2 step 3 | |
-| REQ-HARN-025 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1–F6 (snapshot before dispatch, after on return; orchestrator writes outside the window) | references/write-scope.md §3; SKILL.md §LOOP stub; fan-out.md §3a.v(a) | |
-| REQ-HARN-026 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F4 (ADVISORY docs/spec/recon.md, CLEAN) | references/write-scope.md §5 recorded limitations, §4 ADVISORY | |
-| REQ-HARN-027 | harness-loop-control.md | Chunk 2 task 7: diff touches only skills/; invariant table checked | state per harness-loop-control.md §State Placement — no new artifact | |
-| REQ-LINT-001 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
-| REQ-LINT-002 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
-| REQ-LINT-003 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
-| REQ-LINT-004 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
-| REQ-LINT-005 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (core rows) | tools/sdd-skill-lint.py REQUIRED core rows a–f | |
-| REQ-LINT-006 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (remaining rows) | tools/sdd-skill-lint.py REQUIRED remaining rows | |
-| REQ-LINT-007 | skill-lint-v5.md | lint exit 0 (17 files, size warn only); research_id row ≥ 3; wc -l SKILL.md = 469 | references/v4-workstreams.md + references/loop-control.md + SKILL.md stubs; ws-orchestration.md Q-IMPL-072 | |
-| REQ-ORCH-034 | orchestration.md | signal-order grep in SKILL.md §The gate; Chunk 6 task 4 stage-gate fixture (VERDICT: + iteration N of MAX rendered alongside the per-chunk block, signal order 1-5) | sdd-orchestrate/SKILL.md §The gate — stage-gate signals + CHUNK_VERDICT: consumer; references/loop-control.md §5; USAGE.md §7b Gate signals and caps (v5) | |
-| REQ-SKILL-019 | skill-updates.md | lint REQUIRED rows a, b, d2, e2 on SKILL.md | sdd-orchestrate/SKILL.md §The gate REQ-ORCH-034 ordered list, single canonical gate block | |
-| REQ-SKILL-020 | skill-updates.md | Chunk 1 task 7 fixture (^RETURN:$ in sdd-implement) — RETURN half; Chunk 2 task 7 fixture F4 — ledger half | sdd-implement/SKILL.md §Leaf Return Contract; Step 3 §Attempt ledger + §Oscillation rule | |
-| REQ-SKILL-021 | skill-updates.md | Chunk 1 task 7 fixture (own-line VERDICT token) | sdd-review/SKILL.md §Step 5 | |
-| REQ-SKILL-022 | skill-updates.md | Chunk 2 task 7 exit-criteria grep (checkpoint + -replan- sentence in sdd-replan) | sdd-replan/SKILL.md Step 1.6, Step 4 | |
-| REQ-SKILL-023 | skill-updates.md | sdd-skill-lint.py --self-test (mechanics half); sdd-skill-lint.py --self-test §7 (REQUIRED rows half) | tools/sdd-skill-lint.py; tools/sdd-skill-lint.py REQUIRED rows | |
-| REQ-SKILL-024 | skill-updates.md | lint exit 0; every stub has UNCHANGED + resolving link (move half); Chunk 6 task 5 four-layer bullet diff vs adb73e3 + token-spelling sweep over USAGE.md / CLAUDE.md (docs half) | references/v4-workstreams.md (move half); USAGE.md §7b Gate signals and caps (v5), §3 exchange, §8 verifier-before-merge; CLAUDE.md §Driver gate-vocabulary paragraph (docs half) | |
+| REQ-HARN-001 | harness-loop-control.md | Chunk 2 task 7 exit-criteria grep (fix-loop cap / iteration N of 3); 3×REJECT walkthrough at sdd-verify | sdd-orchestrate/SKILL.md §The gate — Fix-loop cap | pass |
+| REQ-HARN-002 | harness-loop-control.md | Chunk 2 task 7 fixtures F1–F3 (date: → 2; git -S fallback → 2; neither → treated as reached) | sdd-orchestrate/SKILL.md §The gate — Replan re-entry cap; §KICKOFF date: rule | pass |
+| REQ-HARN-003 | harness-loop-control.md | Chunk 2 task 7 fixture F6 (no -replan- in sdd-plan); lint row Chunk 5 | sdd-replan/SKILL.md Step 4 -replan- contract | pass |
+| REQ-HARN-004 | harness-loop-control.md | Chunk 2 task 7 grep Budget: (dispatch-templates ×4, fan-out ×3); lint rows Chunk 5 | dispatch-templates.md §REVIEW Budget:; return-contract.md §Budget grammar; SKILL.md §KICKOFF self-check | pass |
+| REQ-HARN-005 | harness-loop-control.md | Chunk 2 task 7; Budget: ≤ 5 tool calls walkthrough at sdd-verify | sdd-implement/SKILL.md Step 3 §Budget exhaustion; return-contract.md §Budget grammar (v1 limitation) | pass |
+| REQ-HARN-006 | harness-loop-control.md | Chunk 2 task 7 fixture F4; grep: no ledger text in docs/spec or kickoff | sdd-implement/SKILL.md Step 3 §Attempt ledger; §Leaf Return Contract | pass |
+| REQ-HARN-007 | harness-loop-control.md | Chunk 2 task 7 fixtures F4a/F4b/F4c | sdd-implement/SKILL.md Step 3 §Oscillation rule | pass |
+| REQ-HARN-008 | harness-loop-control.md | Chunk 2 task 7 fixture F5 (checkpoint 8 lines, traceback-free) | sdd-implement/SKILL.md Step 3 §Circuit-break checkpoint; sdd-replan/SKILL.md Step 1.6, Step 4.2; fan-out.md §3e.4 | pass |
+| REQ-HARN-009 | harness-return-contract.md | Chunk 1 task 7 fixture (RETURN block markers) | references/return-contract.md §1; dispatch-templates.md; fan-out.md; sdd-implement/SKILL.md | pass |
+| REQ-HARN-010 | harness-return-contract.md | Chunk 1 task 7 fixture (one-line failures) | references/return-contract.md §2; sdd-implement/SKILL.md | pass |
+| REQ-HARN-011 | harness-return-contract.md | Chunk 1 task 7 fixture (ledger_summary, spec_excerpt regex, {repair_packet}) | references/return-contract.md §3; dispatch-templates.md | pass |
+| REQ-HARN-012 | harness-return-contract.md | Chunk 1 task 7 fixture (findings[].text byte-identical) | references/return-contract.md §4; sdd-orchestrate/SKILL.md §LOOP | pass |
+| REQ-HARN-013 | harness-return-contract.md | Chunk 1 task 7 fixture (VERDICT producer/consumer greps) | sdd-review/SKILL.md §Step 5; sdd-orchestrate/SKILL.md §The gate; references/return-contract.md §6 | pass |
+| REQ-HARN-014 | harness-chunk-verifier.md | lint; Chunk 3 task 5 fixture verdict walkthrough (check1 fail→FAIL / pass→PASS) | dispatch-templates.md §CHUNK VERIFIER; sdd-orchestrate/SKILL.md §Per-chunk implement dispatch and per-chunk gate | pass |
+| REQ-HARN-015 | harness-chunk-verifier.md | lint; fan-out §4 invariant grep | fan-out.md §3a.v, §4 | pass |
+| REQ-HARN-016 | harness-chunk-verifier.md | lint; two-chunk fixture dispatch count (2 impl + 2 verifier + 1 review, 2 gates) | dispatch-templates.md §PIPELINE Chunk {N} slot; sdd-orchestrate/SKILL.md §Per-chunk implement dispatch and per-chunk gate | pass |
+| REQ-HARN-017 | harness-chunk-verifier.md | lint; byte-identity diff vs harness-chunk-verifier.md L64-85, L108-128; grep Budget:/Write scope:/CHUNK_VERDICT: | dispatch-templates.md §CHUNK VERIFIER | pass |
+| REQ-HARN-018 | harness-return-contract.md | Chunk 1 task 7 fixture (one packet, path-only excerpt, slot-overflow text) | references/return-contract.md §8 | pass |
+| REQ-HARN-019 | harness-return-contract.md | Chunk 1 task 7 grep guard (zero routing-phrase hits) | sdd-orchestrate/SKILL.md §Orchestrator-Only Work; references/return-contract.md §9 | pass |
+| REQ-HARN-020 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F3 (verify dispatch IN, CLEAN); static: `Write scope:` in all templates (lint REQUIRED rows) | references/write-scope.md §1–§2; dispatch-templates.md; fan-out.md §2 | pass |
+| REQ-HARN-021 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1, F2, F6 (three commands in a temp git repo) | references/write-scope.md §3; fan-out.md §3a.v(a) | pass |
+| REQ-HARN-022 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1/F2 finding block + own-line token `SCOPE: VIOLATION (1 path)` | references/write-scope.md §5; SKILL.md §The gate signal (2) | pass |
+| REQ-HARN-023 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F5 (blocked_writes docs/plan.md refused, not persisted) | references/write-scope.md §6; fan-out.md §3e step 5 | pass |
+| REQ-HARN-024 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F2 (leaf commit inside the observed window); commit-ownership table + gate block byte-identical (manual) | references/write-scope.md §7; dispatch-templates.md step 4; fan-out.md §2 step 3 | pass |
+| REQ-HARN-025 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1–F6 (snapshot before dispatch, after on return; orchestrator writes outside the window) | references/write-scope.md §3; SKILL.md §LOOP stub; fan-out.md §3a.v(a) | pass |
+| REQ-HARN-026 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F4 (ADVISORY docs/spec/recon.md, CLEAN) | references/write-scope.md §5 recorded limitations, §4 ADVISORY | pass |
+| REQ-HARN-027 | harness-loop-control.md | Chunk 2 task 7: diff touches only skills/; invariant table checked | state per harness-loop-control.md §State Placement — no new artifact | pass |
+| REQ-LINT-001 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | pass |
+| REQ-LINT-002 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | pass |
+| REQ-LINT-003 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | pass |
+| REQ-LINT-004 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | pass |
+| REQ-LINT-005 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (core rows) | tools/sdd-skill-lint.py REQUIRED core rows a–f | pass |
+| REQ-LINT-006 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (remaining rows) | tools/sdd-skill-lint.py REQUIRED remaining rows | pass |
+| REQ-LINT-007 | skill-lint-v5.md | lint exit 0 (17 files, size warn only); research_id row ≥ 3; wc -l SKILL.md = 469 | references/v4-workstreams.md + references/loop-control.md + SKILL.md stubs; ws-orchestration.md Q-IMPL-072 | pass |
+| REQ-ORCH-034 | orchestration.md | signal-order grep in SKILL.md §The gate; Chunk 6 task 4 stage-gate fixture (VERDICT: + iteration N of MAX rendered alongside the per-chunk block, signal order 1-5) | sdd-orchestrate/SKILL.md §The gate — stage-gate signals + CHUNK_VERDICT: consumer; references/loop-control.md §5; USAGE.md §7b Gate signals and caps (v5) | pass |
+| REQ-SKILL-019 | skill-updates.md | lint REQUIRED rows a, b, d2, e2 on SKILL.md | sdd-orchestrate/SKILL.md §The gate REQ-ORCH-034 ordered list, single canonical gate block | pass |
+| REQ-SKILL-020 | skill-updates.md | Chunk 1 task 7 fixture (^RETURN:$ in sdd-implement) — RETURN half; Chunk 2 task 7 fixture F4 — ledger half | sdd-implement/SKILL.md §Leaf Return Contract; Step 3 §Attempt ledger + §Oscillation rule | pass |
+| REQ-SKILL-021 | skill-updates.md | Chunk 1 task 7 fixture (own-line VERDICT token) | sdd-review/SKILL.md §Step 5 | pass |
+| REQ-SKILL-022 | skill-updates.md | Chunk 2 task 7 exit-criteria grep (checkpoint + -replan- sentence in sdd-replan) | sdd-replan/SKILL.md Step 1.6, Step 4 | pass |
+| REQ-SKILL-023 | skill-updates.md | sdd-skill-lint.py --self-test (mechanics half); sdd-skill-lint.py --self-test §7 (REQUIRED rows half) | tools/sdd-skill-lint.py; tools/sdd-skill-lint.py REQUIRED rows | pass |
+| REQ-SKILL-024 | skill-updates.md | lint exit 0; every stub has UNCHANGED + resolving link (move half); Chunk 6 task 5 four-layer bullet diff vs adb73e3 + token-spelling sweep over USAGE.md / CLAUDE.md (docs half) | references/v4-workstreams.md (move half); USAGE.md §7b Gate signals and caps (v5), §3 exchange, §8 verifier-before-merge; CLAUDE.md §Driver gate-vocabulary paragraph (docs half) | pass |
