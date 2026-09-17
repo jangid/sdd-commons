@@ -1,94 +1,91 @@
-# Kickoff: RS-007 — Multi-workstream SDD (teams, many concurrent issues)
+---
+cycle: harness-hardening-v5
+research_id: RS-008
+entry_stage: research
+date: 2026-09-17
+---
 
-Run `/sdd-research`. This spike de-risks reshaping the nine `sdd-*` skills so a
-**team can run several SDD cycles concurrently** in one repo — each on its own
-branch/issue — without artifact collisions, false staleness, ID races, or
-cross-workstream phase confusion. Its findings must land before requirements/specs
-for the multi-workstream feature.
+# Kickoff: RS-008 — Harness hardening (loop control, decoupled verification, boundaries)
 
-Driven by `sdd-orchestrate` (dogfooding). Cycle: this research spike → then
-requirements → specs → plan → implement → verify for the multi-workstream feature.
+Run `/sdd-research`. This spike de-risks hardening the SDD harness with the
+deterministic loop-control and verification patterns from the harness-engineering
+literature (Google Cloud / ADK 2.0 case studies, OpenAI harness engineering). Its
+findings must land before requirements/specs for the "harness hardening" feature.
 
-Converged design (approved, in DISCUSS):
-`docs/superpowers/specs/2026-07-21-multi-workstream-sdd-design.md`. That doc holds
-the full decision set — read it first; the questions below only de-risk the parts
-still uncertain.
+Driven by `sdd-orchestrate` (dogfooding). Cycle: this research spike → requirements
+→ specs → plan → implement → verify. Repo stays at SDD marker `3` for this cycle.
 
-## Design in one paragraph (context for the spike)
+Converged idea catalogue (approved in DISCUSS):
+`docs/superpowers/specs/2026-09-17-harness-engineering-ideas.md`. That doc holds the
+source walk-through, the "already covered" table, all 17 ideas, and the agreed scope.
+The questions below de-risk only the parts still uncertain.
 
-Requirements and specs stay a **single shared product corpus**
-(`docs/requirements/`, `docs/spec/`). Only **execution** artifacts become
-per-workstream under `docs/ws/<id>/` (`kickoff.md`, `plan.md`,
-`verification.md`). A **workstream is an execution unit** that references a subset
-of the shared corpus via **traceability** (`REQ → SPEC → workstream →
-verification`). IDs are **workstream-prefixed** (`RS-ISSUE42-001`,
-`Q-IMPL-ISSUE42-003`); new requirements append under a claimed domain prefix; new
-specs are new files. Shared-corpus writes are **append-mostly** so concurrent
-branches 3-way-merge cleanly. Integration is **branch-per-ws → PR to `main`**;
-fan-out worktrees branch from the ws branch, not `main`. `sdd-migrate` gains a
-**v3→v4** step; solo use runs in an implicit `default` workstream. Phase detection
-becomes a function of `(repo, workstream)`.
+## Scope in one paragraph (context for the spike)
+
+Add to `sdd-implement` and `sdd-orchestrate` **hard stop conditions**: a max-iteration
+guard on the review fix loop (default 3) and on replan re-entries; an explicit budget
+slot on every dispatch (observable units); an **attempt ledger** so stuck detection
+also fires on oscillation (a fix re-introducing a previously fixed failure, or a
+repeated rejected patch); and a structured **checkpoint** written on circuit-break so
+a human or fresh session resumes. Decouple verification: a **fresh verifier subagent
+at chunk close** under orchestrate, a fixed-shape **repair packet** for fix
+re-dispatches (failing tests, clean traceback, spec excerpt, ledger summary), and a
+**machine-parseable verdict token** from `sdd-review`. Context hygiene: pruned state
+on re-dispatch, orchestrator-owned routing, and moving `sdd-orchestrate/SKILL.md`'s
+marker-4 prose into `references/`. Boundaries: a declared **write-scope per dispatch**
+checked mechanically on return. Lint: findings carry remediation; new checks for the
+above contracts and a soft SKILL.md size limit.
 
 ## Research questions
 
-1. **Append-only merge reality** — Does append-mostly + git 3-way merge actually
-   stay clean for the shared table artifacts (`docs/requirements/index.md`,
-   `docs/traceability.md`) when two workstreams append rows concurrently? Prove
-   with a real spike: two branches each appending distinct rows to the same table
-   file, then merge — does it auto-merge, or conflict on adjacent lines? If it
-   conflicts, what table/row structure (e.g. one-row-per-line, trailing sentinel,
-   sorted-by-id) merges cleanly?
-
-2. **Staleness generalization** — Can the existing milestone-scoped staleness
-   machinery (`task → spec → requires: → requirement IDs → category-file dates`,
-   REQ-STALE-003) be generalized to **workstream-scoped** staleness — a ws plan is
-   stale only if the specific shared specs/requirements *it traces* changed — or is
-   new traversal logic required? Identify exactly which skills' step-0 checks
-   change and how.
-
-3. **Migration safety (v3→v4)** — Can `sdd-migrate` move flat `docs/plan.md` and
-   `docs/verification.md` into `docs/ws/default/`, and leave `requirements/`,
-   `spec/`, `research/`, `traceability.md` as the shared corpus, **without any
-   skill misdetecting phase mid-migration** (the interrupted-migration invariant)?
-   What is the safe step order, and what does `.sdd-version` gate?
-
-4. **ID-format blast radius** — Does the workstream-prefixed ID format
-   (`RS-ISSUE42-NNN`, `Q-IMPL-ISSUE42-NNN`) break any existing parser? Concretely
-   check: fan-out's `**Depends on**: Chunk N` derivation, traceability row
-   parsing, `sdd-review`'s Q-REQ / Q-IMPL checks, and any regex that assumes
-   `RS-\d+` or `Q-IMPL-\d+`. List each parser touched and whether the format needs
-   adjusting.
+- **Q1 — Where does loop-control state live?** REQ-ORCH-014 forbids a loop-position
+  marker; artifacts are the sole resume source. Must the fix-iteration count,
+  replan-re-entry count, and attempt ledger persist across sessions (and if so in
+  which existing artifact — plan task notes, Q-IMPL entries, kickoff frontmatter), or
+  is per-session counting acceptable? Recommend one placement with its resume
+  semantics and check it against existing requirements (`docs/requirements/`).
+- **Q2 — Fresh verifier at chunk close vs. existing layers.** How does a dispatched
+  chunk-close verifier compose with `sdd-implement` Step 4's blocking checklist, the
+  implement-stage `sdd-review`, and fan-out leaves (who runs it per worktree)? Is it a
+  new layer or a re-homing of Step 4? Identify duplication and the minimal contract.
+- **Q3 — Repair packet + ledger shape.** What exact fields must a fix re-dispatch
+  carry (test names, traceback, spec excerpt, ledger summary) and how does the
+  orchestrator obtain them from a leaf subagent's return today? Propose a schema that
+  fits the existing Q-IMPL protocol (`docs/spec/deviation-protocol.md`) and the
+  dispatch template (`skills/sdd-orchestrate/references/dispatch-templates.md`).
+- **Q4 — Mechanical checks.** Which of the new contracts (fix-loop cap present,
+  budget slot in every dispatch template, verdict-token line, `references/`
+  cross-links resolve, SKILL.md soft size limit) can `tools/sdd-skill-lint.py`
+  check with its current architecture, and what is the SKILL.md size baseline today?
+  Which `sdd-orchestrate/SKILL.md` sections are safe to move into
+  `references/v4-workstreams.md` without breaking the lint's cross-skill contract
+  markers or the marker-4 requirements' wording?
+- **Q5 — Write-scope check feasibility.** Is a `git status --porcelain` snapshot
+  before/after a dispatch sufficient to detect out-of-scope writes in the main
+  workspace and in fan-out worktrees? How are untracked scratch files, index
+  updates the skill legitimately makes, and returned-content fallbacks handled?
+  Propose the finding format and where it surfaces (gate text only — reviews stay
+  ephemeral).
 
 ## Success criteria
 
-Each question has an evidence-based finding (proven with a real git spike where
-feasible — especially Q1) and a concrete recommendation. Enough certainty to write
-requirements for the multi-workstream feature without guessing: the merge-safe
-table structure (Q1), the staleness-scoping mechanism (Q2), the migration step
-order (Q3), and the exact parser changes the ID format forces (Q4).
+- Each Q has an answer with a **recommendation** and the evidence/analysis behind it.
+- Q1 names one placement and shows it satisfies REQ-ORCH-014 (no new marker).
+- Q3 delivers a concrete schema (fields + example) usable verbatim by `sdd-specs`.
+- Q4 delivers a table: contract → checkable now / needs lint change / not mechanical,
+  plus the current line counts of every `skills/*/SKILL.md`.
+- Findings say explicitly which of the 12 in-scope ideas need **no** further research.
 
 ## Budget
 
-~1.5 hours. Prototype Q1 first (the riskiest and most empirical — real concurrent
-merges of table artifacts). Q2–Q4 are largely analysis over existing skill files;
-time-box each to ~20 min. A messy result on Q1 is not a blocker — it selects a
-merge-safe row structure, which becomes a requirement.
-
-## Downstream feature scope (informs requirements after the spike)
-
-- **In scope**: per-workstream execution artifacts under `docs/ws/<id>/`;
-  workstream-aware phase detection & staleness scoping; workstream-prefixed IDs;
-  append-only shared req/spec/research writes; the `sdd-orchestrate` entry picker
-  (list workstreams → select/create); the v3→v4 migration; the branch-per-ws → PR
-  integration model with fan-out branching from the ws branch; doc updates to
-  `CLAUDE.md`.
-- **Out of scope**: approver identity / quorum (approval stays a bare per-ws
-  status flag); any locking daemon or server (git is the coordination substrate);
-  dual-layout support forever (migrate once, then v4 only); automating merges of
-  modifications to *existing* shared requirements (append-only sidesteps it;
-  same-requirement edits stay a human PR conflict).
+Analysis-only spike: ~60 tool calls total, roughly 12 per question; no prototypes
+beyond reading `tools/sdd-skill-lint.py` and running it. **No live subagent
+dispatch** — the research subagent cannot dispatch (RS-006 Q1); if a question turns
+out to need a dispatch probe, record it as an open question for the orchestrator to
+run, do not attempt it.
 
 ## Out of scope (for the spike)
 
-Writing the feature; modifying any `sdd-*` skill; requirements/specs (later stages
-of this cycle).
+Telemetry file design (D11), multi-run skill evaluation (D12), Red/Blue adversarial
+verify (F14), arbitrated handoff (F15), `sdd-gc` drift sweep (G17) — deferred to the
+next cycle (prompt saved in the idea catalogue). The v3→v4 migration of this repo.
