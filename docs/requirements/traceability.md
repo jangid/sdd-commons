@@ -149,44 +149,44 @@ last_updated: 2026-09-17
 | REQ-WS-028 | ws-staleness.md | | skills/sdd-requirements/SKILL.md (research→requirements staleness stays shared/workstream-independent; RS-<WS>-NNN pattern only, marker-4 gate) | pass |
 | REQ-WS-029 | ws-orchestration.md | | skills/sdd-orchestrate/SKILL.md (§ Workstream Picker: enumerate docs/ws/<id>/, list id/description/detected-phase, select-or-create, default degenerates to one; per-workstream done-vs-new-cycle via marker-4 gate on § New cycle vs. resume) | pass |
 | REQ-WS-030 | ws-orchestration.md | | skills/sdd-orchestrate/SKILL.md (§ Phase Detection → Upgrade offer: on entry compare docs/.sdd-version to latest supported; if behind, non-forcing offer to run sdd-migrate; accept→migrate, decline→unchanged, already-latest→silent) | pass |
-| REQ-HARN-001 | | | | |
-| REQ-HARN-002 | | | | |
-| REQ-HARN-003 | | | | |
-| REQ-HARN-004 | | | | |
-| REQ-HARN-005 | | | | |
-| REQ-HARN-006 | | | | |
-| REQ-HARN-007 | | | | |
-| REQ-HARN-008 | | | | |
-| REQ-HARN-009 | | | | |
-| REQ-HARN-010 | | | | |
-| REQ-HARN-011 | | | | |
-| REQ-HARN-012 | | | | |
-| REQ-HARN-013 | | | | |
-| REQ-HARN-014 | | | | |
-| REQ-HARN-015 | | | | |
-| REQ-HARN-016 | | | | |
-| REQ-HARN-017 | | | | |
-| REQ-HARN-018 | | | | |
-| REQ-HARN-019 | | | | |
-| REQ-HARN-020 | | | | |
-| REQ-HARN-021 | | | | |
-| REQ-HARN-022 | | | | |
-| REQ-HARN-023 | | | | |
-| REQ-HARN-024 | | | | |
-| REQ-HARN-025 | | | | |
-| REQ-HARN-026 | | | | |
-| REQ-HARN-027 | | | | |
-| REQ-LINT-001 | | | | |
-| REQ-LINT-002 | | | | |
-| REQ-LINT-003 | | | | |
-| REQ-LINT-004 | | | | |
-| REQ-LINT-005 | | | | |
-| REQ-LINT-006 | | | | |
-| REQ-LINT-007 | | | | |
-| REQ-ORCH-034 | | | | |
-| REQ-SKILL-019 | | | | |
-| REQ-SKILL-020 | | | | |
-| REQ-SKILL-021 | | | | |
-| REQ-SKILL-022 | | | | |
-| REQ-SKILL-023 | | | | |
-| REQ-SKILL-024 | | | | |
+| REQ-HARN-001 | harness-loop-control.md | | | |
+| REQ-HARN-002 | harness-loop-control.md | | | |
+| REQ-HARN-003 | harness-loop-control.md | | | |
+| REQ-HARN-004 | harness-loop-control.md | | | |
+| REQ-HARN-005 | harness-loop-control.md | | | |
+| REQ-HARN-006 | harness-loop-control.md | | | |
+| REQ-HARN-007 | harness-loop-control.md | | | |
+| REQ-HARN-008 | harness-loop-control.md | | | |
+| REQ-HARN-009 | harness-return-contract.md | | | |
+| REQ-HARN-010 | harness-return-contract.md | | | |
+| REQ-HARN-011 | harness-return-contract.md | | | |
+| REQ-HARN-012 | harness-return-contract.md | | | |
+| REQ-HARN-013 | harness-return-contract.md | | | |
+| REQ-HARN-014 | harness-chunk-verifier.md | | | |
+| REQ-HARN-015 | harness-chunk-verifier.md | | | |
+| REQ-HARN-016 | harness-chunk-verifier.md | | | |
+| REQ-HARN-017 | harness-chunk-verifier.md | | | |
+| REQ-HARN-018 | harness-return-contract.md | | | |
+| REQ-HARN-019 | harness-return-contract.md | | | |
+| REQ-HARN-020 | harness-write-scope.md | | | |
+| REQ-HARN-021 | harness-write-scope.md | | | |
+| REQ-HARN-022 | harness-write-scope.md | | | |
+| REQ-HARN-023 | harness-write-scope.md | | | |
+| REQ-HARN-024 | harness-write-scope.md | | | |
+| REQ-HARN-025 | harness-write-scope.md | | | |
+| REQ-HARN-026 | harness-write-scope.md | | | |
+| REQ-HARN-027 | harness-loop-control.md | | | |
+| REQ-LINT-001 | skill-lint-v5.md | | | |
+| REQ-LINT-002 | skill-lint-v5.md | | | |
+| REQ-LINT-003 | skill-lint-v5.md | | | |
+| REQ-LINT-004 | skill-lint-v5.md | | | |
+| REQ-LINT-005 | skill-lint-v5.md | | | |
+| REQ-LINT-006 | skill-lint-v5.md | | | |
+| REQ-LINT-007 | skill-lint-v5.md | | | |
+| REQ-ORCH-034 | orchestration.md | | | |
+| REQ-SKILL-019 | skill-updates.md | | | |
+| REQ-SKILL-020 | skill-updates.md | | | |
+| REQ-SKILL-021 | skill-updates.md | | | |
+| REQ-SKILL-022 | skill-updates.md | | | |
+| REQ-SKILL-023 | skill-updates.md | | | |
+| REQ-SKILL-024 | skill-updates.md | | | |

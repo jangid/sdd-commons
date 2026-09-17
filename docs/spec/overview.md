@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-07-23
+last_updated: 2026-09-17
 requires:
   - REQ-CTX-001
   - REQ-CTX-002
@@ -187,6 +187,23 @@ Beyond the v2 artifact layout, v3 adds:
 
 These are documented in their own specs. The overview lists them as the answer
 to "what does v3 add" without restating their designs.
+
+### v5 Harness Hardening
+
+The harness-hardening cycle (RS-008) adds no artifact type and no layout
+change. It hardens the orchestrated loop with session-scoped and derived caps,
+a structured `RETURN:` block and repair packet on dispatches, machine-parseable
+gate tokens — `VERDICT:` (review), `CHUNK_VERDICT:` (chunk verifier), `SCOPE:`
+(write-scope check) — a fresh read-only chunk-close verifier that is a second
+executor of the existing chunk-close layer (the four verification layers are
+unchanged), and a declared write scope per dispatch. Architecturally the new
+procedure text lives in `skills/sdd-orchestrate/references/` as skill text —
+`return-contract.md`, `write-scope.md`, `v4-workstreams.md` — with stubs in
+`SKILL.md`, so the entry point keeps reading as a table of contents; the only
+durable project-side trace is the bounded circuit-break checkpoint in the plan's
+existing blocked-task note. Designs: `harness-loop-control.md`,
+`harness-return-contract.md`, `harness-chunk-verifier.md`,
+`harness-write-scope.md`, `skill-lint-v5.md`.
 
 ### ID Namespaces
 

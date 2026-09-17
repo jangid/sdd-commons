@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-05-25
+last_updated: 2026-09-17
 requires:
   - REQ-SKILL-001
   - REQ-SKILL-002
@@ -22,6 +22,12 @@ requires:
   - REQ-STALE-002
   - REQ-SKILL-017
   - REQ-SKILL-018
+  - REQ-SKILL-019
+  - REQ-SKILL-020
+  - REQ-SKILL-021
+  - REQ-SKILL-022
+  - REQ-SKILL-023
+  - REQ-SKILL-024
 ---
 
 # Skill Updates
@@ -308,6 +314,36 @@ walkthrough, user-perspective validation, regression check, and report format.
 
 **Unchanged**: The replan process, issue classification (Level 1-4), routing
 logic, and rules (minimize disruption, preserve history, cascade awareness).
+
+### v5 Harness Hardening (REQ-SKILL-019..024)
+
+_(added 2026-09-17, RS-008)_ Per-skill changes for the HARN and LINT domains;
+designs in `harness-loop-control.md`, `harness-return-contract.md`,
+`harness-chunk-verifier.md`, `harness-write-scope.md`, `skill-lint-v5.md`.
+
+- **sdd-orchestrate (REQ-SKILL-019)**: caps, `Budget:` / `Write scope:` slots on
+  every template, `RETURN:` parsing, repair-packet composition, `VERDICT:` /
+  `CHUNK_VERDICT:` / `SCOPE:` branching, verifier dispatch, per-chunk sequential
+  implement, three-command scope check, commit ownership, snapshot ordering, gate
+  text order (REQ-ORCH-034). Templates change in `references/dispatch-templates.md`
+  (pipeline, review, new verifier, `{repair_packet}`) and `references/fan-out.md`
+  (leaf template, verifier-before-merge, checkpoint application in §3e).
+  Procedure text lands in **new** `references/write-scope.md` and
+  `references/return-contract.md` with stubs in `SKILL.md`.
+- **sdd-implement (REQ-SKILL-020)**: attempt ledger + `verified_do_not_touch`,
+  oscillation conditions in Step 3, checkpoint format + RETURN mapping, and — as a
+  dispatched leaf — the `RETURN:` block and budget self-count. Step 4 unchanged.
+- **sdd-review (REQ-SKILL-021)**: own-line `VERDICT:` token; report and scope
+  boundaries otherwise unchanged (review is never the chunk verifier).
+- **sdd-replan (REQ-SKILL-022)**: `-replan-` filename contract stated; blocked-task
+  note defined as the checkpoint slot; Step 1 reads the checkpoint as stuck state.
+- **sdd-skill-lint (REQ-SKILL-023)**: `fix` remediation, warn tier, size check,
+  backtick `references/` resolution, new `REQUIRED` rows, self-test coverage.
+- **sdd-orchestrate marker-4 move (REQ-SKILL-024)**: marker-4 prose to
+  `references/v4-workstreams.md` with the `research_id` guard and a superseding
+  Q-IMPL in `ws-orchestration.md`; `USAGE.md` describes the new gate signals;
+  `CLAUDE.md` gains one short paragraph on the gate vocabulary while its
+  four-layer bullet stays unchanged.
 
 ## Verification
 

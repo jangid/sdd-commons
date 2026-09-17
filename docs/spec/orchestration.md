@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-06-06
+last_updated: 2026-09-17
 requires:
   - REQ-ORCH-001
   - REQ-ORCH-002
@@ -35,6 +35,7 @@ requires:
   - REQ-ORCH-031
   - REQ-ORCH-032
   - REQ-ORCH-033
+  - REQ-ORCH-034
 ---
 
 # SDD Orchestration Driver
@@ -561,6 +562,42 @@ labeled-content fallback observed live in RS-005; and the v1 limitations
 The project README (`README.org`) introduces the driver and the SDD suite, links
 the operator guide, and documents the `~/.claude/skills/` symlink install
 convention so a new adopter can install the skills (REQ-ORCH-021).
+
+### v5 Harness Hardening (REQ-ORCH-034)
+
+_(added 2026-09-17, RS-008)_ The harness-hardening cycle layers deterministic
+loop control and decoupled verification onto the driver without changing its
+phases, artifacts or gate vocabulary. The designs live in four sibling specs:
+
+- `harness-loop-control.md` — fix-loop cap (`iteration N of MAX`, default 3),
+  replan re-entry cap derived from `-replan-` archives, `Budget:` slot and
+  `budget_consumed`, attempt ledger + oscillation rule, circuit-break checkpoint
+  in the plan's blocked-task note, no-new-artifact invariant.
+- `harness-return-contract.md` — structured `RETURN:` block from every leaf,
+  one-line `failures[]`, `{repair_packet}` slot replacing free-form
+  `{review_findings}` on fix re-dispatches, `VERDICT:` token and branching,
+  pruned re-dispatch state, orchestrator-owned routing.
+- `harness-chunk-verifier.md` — fresh read-only chunk-close verifier
+  (`CHUNK_VERDICT:`), per-chunk sequential implement dispatch, verifier before
+  merge under fan-out.
+- `harness-write-scope.md` — declared `Write scope:` per dispatch, three-command
+  observation, `SCOPE: CLEAN | VIOLATION` gate text, commit ownership, snapshot
+  ordering.
+
+**Gate text order (REQ-ORCH-034).** At every gate the driver surfaces, next to
+the review verdict and in this order: (1) the parsed `VERDICT:` value; (2) for
+the implement stage, each chunk's `CHUNK_VERDICT:`; (3) the write-scope block
+ending in `SCOPE:`; (4) the leaf's `RETURN.status` and `budget_consumed` against
+the dispatched `Budget:`; (5) when a loop is active, `iteration N of MAX` or the
+replan re-entry count against its cap. The decision vocabulary stays
+`proceed │ loop-back-to-fix │ stop`, extended only by the scope options
+`revert path | accept & widen scope`. All of it is ephemeral (REQ-ORCH-013).
+Rendering procedures live in `skills/sdd-orchestrate/references/return-contract.md`
+and `references/write-scope.md`; `SKILL.md` §The gate carries the ordered list
+and pointers only. §Gate Protocol's `loop-back-to-fix` row now carries the
+repair packet (findings + paths by construction) rather than a free-form
+findings slot; §Orchestrator-Only Work gains the routing principle
+(REQ-HARN-019).
 
 ## Verification
 
