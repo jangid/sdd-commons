@@ -93,9 +93,9 @@ A **verify task** in the plan (not implement), ordered after telemetry lands.
 | Runs | three orchestrated cycles; at least one entering at research, the others at plan (REQ-ORCH-031..033); every gate operator-decided |
 | Telemetry | in the **toy's own** `.sdd/telemetry.jsonl` (one file per repository); this repository's file gains no pilot record |
 | Scoring | `tools/sdd-telemetry.py summarize` on the toy, or by hand from the records; fields 1–9 above |
-| Recording | a "Pilot (N = 3)" section in `docs/ws/harness-p2/verification.md` beside RS-008 probes 1 and 2, with the table below; observed wall time per run stated |
+| Recording | a "Pilot (N = 3)" section in `docs/ws/harness-p2/verification.md`, in the same form as RS-008 probes 1 and 2 in `docs/ws/default/verification.md`, with the table below; observed wall time per run stated |
 | Size rationale | ~1k tool calls fits one operator session (RS-HARNESSP2-001 Q5: ~250–520 per run) |
-| Deferral | if the plan has no room, `verification.md` §Next Steps carries `- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy` |
+| Deferral | if the plan has no room, `verification.md` §Next Steps — the `## Next Steps` section the `sdd-verify` Step 6 template gains per `adversarial-verify.md` §Skill and Lint Changes (sdd-verify row), which is the single definition of that slot — carries `- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy` |
 
 Recording table shape:
 
@@ -191,8 +191,14 @@ that dispatches the orchestrator.
 ## Open Questions
 
 1. **Run identity when two pilot runs share a kickoff date**: Default: the
-   operator rewrites `kickoff.md` per run (DISCUSS → KICKOFF each time), and
-   `seq` restarting at 1 marks a run boundary in the file.
+   operator rewrites `kickoff.md` per run (DISCUSS → KICKOFF each time) so that
+   each run's kickoff names a **distinct `research_id`** (the research-entry run
+   mints one; a plan-entry run cites its own — two plan-entry runs must not
+   share an id). A run boundary is a change of `cycle.research_id`, stamped on
+   every record (`telemetry.md` §Record Schema); readers order records by
+   `ts_dispatch` within a run and never rely on `dispatch.seq` monotonicity
+   across sessions (`seq` restarts at 1 in every session). Runs on one date are
+   told apart by `research_id`, not by `kickoff_date`.
 2. **Should the scorer ship this cycle?** Default: only if the plan has room
    after TELEM, REDB, ARB, GC and the sdd-implement split; otherwise §Next
    Steps.

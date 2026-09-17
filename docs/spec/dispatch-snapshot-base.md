@@ -89,6 +89,12 @@ Observation on return, with the named base `base` and provisioned `HEAD_prov`:
   is by construction authored before the dispatch (the orchestrator named it),
   so excluding it cannot hide a leaf write.
 
+**Scope of (i) — deliberate extension.** REQ-HARN-HARNESSP2-001 names only
+sequential-pipeline and fix dispatches; applying remedy (i) to verifier, review
+and red worktrees as well goes beyond the requirement on purpose: those
+read-only dispatches must observe the tip the leaf was told to reach, or their
+findings describe a stale tree, and the cost is one `rev-parse` each.
+
 **Why (i) is the default**: it is cheaper (one `rev-parse` before provisioning)
 and removes the class rather than reporting it; (ii) exists because prompts
 written by hand, entry kickoffs and resumed sessions will still sometimes name

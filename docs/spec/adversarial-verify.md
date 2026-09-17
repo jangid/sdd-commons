@@ -47,7 +47,7 @@ nowhere else.
 | Dispatch kind | `red` (`telemetry.md` `dispatch.kind`) |
 | Stage | verify only — never chunk close, never any other stage |
 | Opt-in | at the verify gate, **before** the verify pipeline is dispatched: `red team: off | on` (default `off`); the same device as fan-out's opt-in (REQ-ORCH-024) |
-| Position in the stage | after the verify pipeline returns with `RETURN.status: COMPLETE`, before the verify-stage review |
+| Position in the stage | after the verify pipeline returns with `RETURN.status: COMPLETE`, before the verify-stage review; a non-`COMPLETE` blue return (`PARTIAL` / `BLOCKED` / `BUDGET_EXHAUSTED`) skips red exactly as `verification.md` `status: fail` does — the gate shows its normal pause options and no red dispatch is made |
 | Executor of | `sdd-verify` Steps 3–4 (acceptance-criteria walkthrough, user-perspective behaviour) in adversarial mode |
 | Not | `sdd-review`, not a mode of it, not a fifth layer; the four-layer table in `sdd-verify` §Verification Layers and `CLAUDE.md` is unchanged |
 | Standalone `sdd-verify` | unchanged except for the `pending-red` input below |
@@ -278,7 +278,7 @@ counter — a cycle cannot spend 3 red rounds *and* 3 review rounds.
 | `skills/sdd-orchestrate/references/return-contract.md` | `^RED_VERDICT:` parsing, the malformed table, `FOREIGN_TOKEN` warning, `RED_BREAK` packet row and the heading-based spec resolution |
 | `skills/sdd-orchestrate/SKILL.md` §The gate | opt-in line `red team: off \| on` (+ `red input: +verification.md`), signal order with `RED_VERDICT:` after `SCOPE:`, exit rule, `fix \| accept (record) \| stop`, `pending-red` → `pass` flip; position table row `pending-red → verify` |
 | `skills/sdd-orchestrate/references/loop-control.md` | red round = one verify-stage iteration; re-run rule |
-| `skills/sdd-verify/SKILL.md` | Step 6 `pending-red` rule guarded by the slot; Phase Detection lists `pending-red`; §Issues Found → Minor documented as the `- Rn accepted at gate …` slot and §Next Steps as the `- gc <rule>: …` slot (`drift-sweep.md`); §Verification Layers states red is a second executor of this layer; four-layer table unchanged |
+| `skills/sdd-verify/SKILL.md` | Step 6 `pending-red` rule guarded by the slot; Phase Detection lists `pending-red`; §Issues Found → Minor documented as the `- Rn accepted at gate …` slot; Step 6 template gains a `## Next Steps` section after `## Recommendation`, documented as the slot for `- gc <rule>: …` lines (`drift-sweep.md`) and deferral lines (`evaluation.md`) — the template has no such section today (it ends at `## Recommendation`; only `docs/ws/default/verification.md` carries one by hand) and this row is its single definition; §Verification Layers states red is a second executor of this layer; four-layer table unchanged |
 | `skills/sdd-replan/SKILL.md` | Phase Detection: `pending-red` routes to `sdd-verify` |
 | `skills/sdd-review/SKILL.md` | **no change** for red |
 | `tools/sdd-skill-lint.py` `REQUIRED` | (a1) `dispatch-templates.md` ∋ `RED_VERDICT: BROKEN \| HELD` min 1 — producer; (a2) `skills/sdd-orchestrate/SKILL.md` or `references/return-contract.md` ∋ `RED_VERDICT:` min 1 — consumer; existing d2 pattern becomes `(?<!CHUNK_)(?<!RED_)VERDICT:`; `--self-test` §7 mutation loop covers both rows |
@@ -342,6 +342,7 @@ counter — a cycle cannot spend 3 red rounds *and* 3 review rounds.
 - [ ] `Red team: enabled` slot; Step 6 `pending-red` table; flip-then-commit; phase detection maps `pending-red` to verify everywhere (REQ-REDB-HARNESSP2-008)
 - [ ] `RED_BREAK` packet, one verify-stage iteration per red round, one default re-run, cap backstop (REQ-REDB-HARNESSP2-009)
 - [ ] Skill changes tabled for `sdd-orchestrate`, `sdd-verify`, `sdd-replan`; lint rows (a1), (a2) and the `(?<!RED_)` regex change; `--self-test` §7 covers them (REQ-SKILL-HARNESSP2-002, -005; REQ-LINT-HARNESSP2-001)
+- [ ] `sdd-verify` Step 6 template has a `## Next Steps` section after `## Recommendation`; `drift-sweep.md` §Skill Changes and `evaluation.md` §Manual N = 3 Pilot reference this row as the slot's single definition (REQ-SKILL-HARNESSP2-005)
 - [ ] `python3 tools/sdd-skill-lint.py` exits 0
 
 ## Edge Cases

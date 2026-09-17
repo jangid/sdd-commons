@@ -84,7 +84,7 @@ names are as below.
 | | `research_id` | `RS-…` id or null | kickoff `research_id` |
 | | `kickoff_date` | date or null | kickoff `date` |
 | | `marker` | `"3"` \| `"4"` | `docs/.sdd-version` |
-| `dispatch` | `seq` | int, 1-based per cycle | orchestrator counter |
+| `dispatch` | `seq` | int, **1-based per session** — restarts at 1 in every new orchestrator session; cycle/run identity comes from `cycle.research_id`, never from `seq` | orchestrator session counter (never read back from the file) |
 | | `kind` | `pipeline` \| `fix` \| `fanout_leaf` \| `verifier` \| `review` \| `red` | template used |
 | | `stage` | `research` \| `requirements` \| `specs` \| `plan` \| `implement` \| `verify` \| `replan` | the stage **that was dispatched** (historical fact) |
 | | `chunk` | int or null | `### Chunk N:` number for per-chunk dispatches |
@@ -106,7 +106,7 @@ names are as below.
 | | `findings` | `{"C": int, "M": int, "m": int}` | counts of C/M/m lines |
 | | `malformed` | bool | `REVIEW: MALFORMED` or `RETURN: MALFORMED` raised |
 | | `contradiction_class` | null \| `b` \| `c` | `REVIEW: CONTRADICTION` class (`arbitrated-handoff.md`) |
-| `gate` | `decision` | `proceed` \| `fix` \| `loop-back-to-fix` \| `stop` \| `redo` \| `replan` \| `revert` \| `widen` \| `accept` \| `third-opinion` \| `re-dispatch` \| `override` | the operator's choice, normalised to one enum |
+| `gate` | `decision` | `proceed` \| `fix` \| `loop-back-to-fix` \| `stop` \| `redo` \| `replan` \| `revert` \| `widen` \| `accept` \| `third-opinion` \| `re-dispatch` \| `override` \| `other` | the operator's choice, normalised to one enum (table below) |
 | | `decision_by` | `operator` \| `policy` | always `operator` this cycle (`evaluation.md`) |
 | | `fix_iteration`, `fix_cap`, `cap_raised` | int | `iteration N of MAX (cap raised ×k)` |
 | | `redo_count` | int or null | `Redo: N of REDO_MAX` |
@@ -114,11 +114,54 @@ names are as below.
 | — | `replan_trigger` | enum or null | replan trigger class surfaced at this gate (`stuck`, `spike`, `verification`, `operator`) |
 | `git` | `head_before`, `head_after` | short sha | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) |
 
+**`gate.decision` normalisation** — every gate option rendered anywhere in the
+harness maps to exactly one enum value; an option not in this table is `other`
+(no text is recorded):
+
+| Gate option (as rendered) | `gate.decision` |
+|---|---|
+| `proceed` | `proceed` |
+| `fix` (stage gate) · `accept round N+1 (fix)` | `fix` |
+| `fix` (per-chunk gate — increments `Redo:`) | `redo` |
+| `loop-back-to-fix` | `loop-back-to-fix` |
+| `stop` | `stop` |
+| `revert path` | `revert` |
+| `accept & widen scope` | `widen` |
+| `manual intervention` · `authorize extra iteration` (recorded with `cap_raised`) | `override` |
+| `accept round N (proceed, note)` · `accept manually` · `accept (record)` | `accept` |
+| `third opinion` | `third-opinion` |
+| `re-dispatch` | `re-dispatch` |
+| `route to sdd-replan` | `replan` |
+| anything else | `other` |
+
+**`gate.decision` normalisation** — every gate option rendered anywhere in the
+harness maps to exactly one enum value; an option not in this table is `other`
+(no text is recorded):
+
+| Gate option (as rendered) | `gate.decision` |
+|---|---|
+| `proceed` | `proceed` |
+| `fix` (stage gate) · `accept round N+1 (fix)` | `fix` |
+| `fix` (per-chunk gate — increments `Redo:`) | `redo` |
+| `loop-back-to-fix` | `loop-back-to-fix` |
+| `stop` | `stop` |
+| `revert path` | `revert` |
+| `accept & widen scope` | `widen` |
+| `manual intervention` · `authorize extra iteration` (recorded with `cap_raised`) | `override` |
+| `accept round N (proceed, note)` · `accept manually` · `accept (record)` | `accept` |
+| `third opinion` | `third-opinion` |
+| `re-dispatch` | `re-dispatch` |
+| `route to sdd-replan` | `replan` |
+| anything else | `other` |
+
 **Resume-class keys are forbidden** (REQ-TELEM-HARNESSP2-003): no `next_stage`,
 `resume`, `current_phase`, `pending`, `position` or equivalent. `dispatch.stage`
 is what was dispatched, not what comes next; a reader cannot derive "where does
 the loop resume" from any record, and the orchestrator never consults the file
-on re-entry.
+on re-entry. A cycle (run) is identified by `cycle.research_id` — stamped on
+every record — and a cycle boundary is a change of that id; readers order
+records by `ts_dispatch` within a run and never rely on `dispatch.seq` being
+monotonic across sessions.
 
 **Budget object** (REQ-TELEM-HARNESSP2-002): `{"tool_calls": int|null,
 "test_runs": int|null, "prototypes": bool, "read_only": bool}`. Parsing rules
@@ -189,6 +232,9 @@ Rules:
   unless the operator disables it at KICKOFF; when off, no record is written and
   the first gate shows `TELEMETRY: OFF` once. The choice is session state, not
   an artifact (it is not written to `kickoff.md`).
+- **Write-only for the orchestrator.** `dispatch.seq` is a session-state
+  counter starting at 1; the orchestrator performs **zero reads** of the file —
+  not for position, not for the counter.
 - **No leaf ever writes it.** No stage skill, review, verifier, fan-out leaf or
   red dispatch is instructed to write it and no dispatch template names the
   path; `.sdd/**` is never in any default or widened write scope
@@ -410,7 +456,7 @@ derived this way, the schema — not the scorer — is defective.
 
 ### Acceptance Criteria
 
-- [ ] Record key set, value domains and counts-not-text rule as in §Record Schema; no resume-class key (REQ-TELEM-HARNESSP2-001, -003)
+- [ ] Record key set, value domains and counts-not-text rule as in §Record Schema; `dispatch.seq` 1-based per session with zero orchestrator reads of the file; run identity = `cycle.research_id`; `gate.decision` normalisation table incl. `other`; no resume-class key (REQ-TELEM-HARNESSP2-001, -003)
 - [ ] `dispatch.budget` and `return.budget_consumed` are enumerated units; `self_reported: true`; unparsable → `{"unparsed": true}` (REQ-TELEM-HARNESSP2-002)
 - [ ] Orchestrator-only, one append after each gate, never truncated except the leaf-write revert; `TELEMETRY: WRITE FAILED | OFF | .gitignore updated` lines; default on with KICKOFF opt-out; one file per repository (REQ-TELEM-HARNESSP2-004)
 - [ ] Third observation (line count + entry list) and the `OUT .sdd/telemetry.jsonl (+k records, leaf write — reverted)` string defined once; revert to before-count; scope self-test scenario F7 (REQ-TELEM-HARNESSP2-005)
@@ -431,8 +477,9 @@ derived this way, the schema — not the scorer — is defective.
   buffer size; if a torn line ever occurs, `summarize` counts it as skipped.
   No locking is added (Open Question 1).
 - **Dispatch with no gate** (operator aborts the session mid-dispatch): no
-  record is written; the next session's `seq` restarts at 1 for the new
-  session — `seq` is per session, not global.
+  record is written; the next session's `seq` restarts at 1, as it does on
+  **every** new session — `seq` is per session, not per cycle; the run is still
+  identified by `cycle.research_id` and ordered by `ts_dispatch`.
 - **Telemetry disabled mid-cycle**: not offered; the KICKOFF choice holds for
   the cycle.
 - **Leaf deletes `.sdd/`**: `e_after` is empty → `OUT .sdd/telemetry.jsonl (−k
@@ -468,6 +515,24 @@ derived this way, the schema — not the scorer — is defective.
 - `adversarial-verify.md` `red_verdict`, `arbitrated-handoff.md`
   `contradiction_class`, `dispatch-snapshot-base.md` `git.head_before` are
   consumed here with the same names.
+- `docs/ws/harness-p2/traceability.md` row `REQ-HARN-027 | telemetry.md` is
+  an **amendment-only row**. Rule: a per-ws row whose Spec differs from the
+  legacy row for the same id (`docs/requirements/traceability.md`
+  `REQ-HARN-027 | harness-loop-control.md`, Verified `pass`) is an amendment
+  row. Its Test and Implementation cells point to the amendment evidence
+  (`.sdd/` gitignored, `git ls-files docs/` unchanged by a cycle); its Verified
+  cell **inherits the legacy row's `pass`** and is never read as a gap by gc
+  `trace-empty` (`drift-sweep.md` sweep 11) or `sdd-verify` Step 3b. The
+  aggregate keeps both rows (`ws-traceability.md` regeneration is row-preserving).
+- `docs/ws/harness-p2/traceability.md` row `REQ-HARN-027 | telemetry.md` is
+  an **amendment-only row**. Rule: a per-ws row whose Spec differs from the
+  legacy row for the same id (`docs/requirements/traceability.md`
+  `REQ-HARN-027 | harness-loop-control.md`, Verified `pass`) is an amendment
+  row. Its Test and Implementation cells point to the amendment evidence
+  (`.sdd/` gitignored, `git ls-files docs/` unchanged by a cycle); its Verified
+  cell **inherits the legacy row's `pass`** and is never read as a gap by gc
+  `trace-empty` (`drift-sweep.md` sweep 11) or `sdd-verify` Step 3b. The
+  aggregate keeps both rows (`ws-traceability.md` regeneration is row-preserving).
 - **No unresolved contradictions.**
 
 ## Open Questions
@@ -475,6 +540,7 @@ derived this way, the schema — not the scorer — is defective.
 1. **File locking for concurrent sessions.** Default: none; torn lines are
    skipped by the reader and counted.
 2. **`gate.decision` enum completeness** as new gate options appear. Default:
-   the enum above; an unrecognised option is recorded as `other` with no text.
+   the normalisation table above; an unrecognised option is recorded as
+   `other` with no text, and adding a row to the table is a change to this spec.
 3. **Should `ts_*` be stamped with sub-second precision?** Default: whole
    seconds (`date -u +%Y-%m-%dT%H:%M:%SZ`); dispatch wall times are minutes.

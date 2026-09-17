@@ -77,14 +77,14 @@ rules are scoped to `docs/**`. `sdd-gc.py` never reads `.sdd/`
 | 2 | `references/` links and backtick paths in skills | delegated (lint) | `lint` | fail | `skill-lint-v5.md` §Path Resolution |
 | 3 | `docs/spec/*.md` pointers from skills | delegated (lint) | `lint` | warn | `skill-lint-v5.md` §Path Resolution |
 | 4 | known drift phrases | delegated (lint) | `lint` | fail | `FORBIDDEN` table |
-| 5 | kickoff `date:` / `research_id:` present per workstream | delegated (lint) / gc under marker `4` | `kickoff-fields` | fail | `orchestration.md` §Kickoff Artifact |
+| 5 | kickoff `date:` / `research_id:` present per workstream | delegated (lint) under marker `3` — the linter emits it at any run; gc under marker `4` — emitted at `sdd-orchestrate` entry and DONE (§Cadence) | `kickoff-fields` | fail | `orchestration.md` §Kickoff Artifact |
 | 6 | cross-links inside `docs/`: spec↔spec, requirement→spec `(see …)`, `research_refs`, `requires:` ids exist; `RS-` / `REQ-` / `Q-IMPL-` id existence | gc | `xlink-dead`, `id-missing` | **fail** | the linter's two regexes over `docs/**/*.md` + id existence |
 | 7 | staleness chain research → requirements → specs → plan → verification by `last_updated`, per workstream via plan `traces to` → spec `requires:` → category files | gc | `stale-chain` | warn | every skill's Phase Detection; `ws-staleness.md` (never a traceability file) |
 | 8 | orphan Q-IMPL (i) referenced-but-undefined | gc | `qimpl-undefined` | **fail** | §Q-IMPL Counting Rule |
 | 9 | orphan Q-IMPL (ii) defined-never-referenced | gc | `qimpl-unreferenced` | info | `deviation-protocol.md` — not a defect |
 | 10 | orphan Q-IMPL (iii) `Spec reference` section missing / broken `[superseded by …]` chain | gc | `qimpl-broken-ref` | warn | `deviation-protocol.md` §Numbering |
-| 11 | empty traceability cells — Spec-empty rows; Implementation-filled/Test-empty rows only | gc | `trace-empty` | warn | `sdd-verify` Step 3b policy |
-| 12 | aggregate `docs/requirements/traceability.md` == `regenerate(per-ws files)` (marker `4`) | gc | `trace-aggregate` | warn | `ws-traceability.md` §Aggregation Contract |
+| 11 | empty traceability cells — Spec-empty rows; Implementation-filled/Test-empty rows only; an amendment row (Spec differs from the legacy row for the same id, `telemetry.md` §XSPEC) inherits the legacy Verified and is never a gap | gc | `trace-empty` | warn | `sdd-verify` Step 3b policy |
+| 12 | aggregate `docs/requirements/traceability.md` == `regenerate(per-ws files)` (marker `4`) | gc | `traceability-aggregate` | warn | `ws-traceability.md` §Aggregation Contract |
 | 13 | index ↔ directory: `research/index.md` rows ↔ `RS-*` dirs; `requirements/index.md` Files table ↔ category files; spec approval | gc | `index-research`, `index-requirements`, `spec-approval` | **fail**; `spec-approval` **fail** with `--workstream` (every spec traced by that workstream's plan must be Approved when `docs/ws/<id>/plan.md` exists), **warn** unscoped (any non-Approved spec while any plan exists) | `sdd-specs` / `sdd-plan` Phase Detection; `ws-staleness.md` live plan-walk |
 | 14 | `plan-history` naming discipline (`-replan-` only from `sdd-replan`; date prefix) | gc | `plan-history-name` | **fail** | `harness-loop-control.md` §Replan Re-entry Cap (REQ-HARN-003) |
 | 15 | new drift of skill text from spec wording; semantic orphaning | **excluded** (not mechanical) | — | — | review / dogfooding; named in `--help` |
@@ -162,7 +162,7 @@ numbers:
 | `requirements/index.md` Files table with one category file missing a row; `research/index.md` with one `RS-*` dir unlisted | index rules | one fail each |
 | one dead `(see ../spec/nope.md)` link; one `requires: [REQ-ZZ-999]` | `xlink-dead`, `id-missing` | one fail each |
 | a `plan-history/replan-foo.md` without date prefix | naming | one fail |
-| shared traceability that differs from regeneration | `trace-aggregate` | one warn; equal → none |
+| shared traceability that differs from regeneration | `traceability-aggregate` | one warn; equal → none |
 | a Spec-empty traceability row; an Implementation-filled/Test-empty row; a prose-only row with empty Test | `trace-empty` | two warns, not three |
 | a clean copy of the tree | baseline | `--report` exits 0 with no fail; lint size warnings pass through |
 | `--fix traceability-aggregate` twice | idempotence | second diff empty |
@@ -188,9 +188,15 @@ respecting commit ownership (REQ-HARN-024).
 
 | Finding class | Rules | Gate action |
 |---|---|---|
-| mechanical | `xlink-dead` (unique resolution), `index-requirements` row, `trace-aggregate`, `plan-history-name` | `--fix <rule>` — the operator reviews and commits the rewrite (REQ-HARN-024) |
-| needs a decision | `qimpl-broken-ref`, `stale-chain`, `trace-aggregate` (when the per-ws inputs themselves look wrong), `spec-approval` | `record \| ignore`; on `record` the orchestrator appends `- gc <rule>: <file:line> — <fix>` under the completed cycle's `verification.md` §Next Steps (marker `4`: `docs/ws/<id>/verification.md`) — read by the next cycle's DISCUSS |
+| mechanical | `xlink-dead` (unique resolution), `index-requirements` row, `traceability-aggregate`, `plan-history-name` | `--fix <rule>` — the operator reviews and commits the rewrite (REQ-HARN-024) |
+| needs a decision | `qimpl-broken-ref`, `stale-chain`, `traceability-aggregate` (when the per-ws inputs themselves look wrong), `spec-approval` | `record \| ignore`; on `record` the orchestrator appends `- gc <rule>: <file:line> — <fix>` under the completed cycle's `verification.md` §Next Steps (marker `4`: `docs/ws/<id>/verification.md`; the `## Next Steps` section added to the `sdd-verify` Step 6 template — `adversarial-verify.md` §Skill and Lint Changes, sdd-verify row) — read by the next cycle's DISCUSS |
 | out of scope | sweep 15 | note only |
+
+**Dates are never auto-fixed.** REQ-GC-HARNESSP2-006 lists a stale
+`last_updated` among the mechanical findings, while REQ-GC-HARNESSP2-007 states
+that `--fix` never touches `last_updated`; this spec follows -007 — `stale-chain`
+routes to `record | ignore` and the owning skill updates the date (editing it
+mechanically would mask the staleness it signals).
 
 gc never creates or modifies a plan task, never writes a file outside a
 `--fix` rule's whitelist, never creates `docs/gc/` or an issues file
@@ -205,7 +211,7 @@ Module-level list `FIXABLE`:
 |---|---|---|
 | `xlink-dead` | relative link → the nearest resolving path when exactly one candidate exists (same basename under `docs/`); otherwise left, reported | resolved links no longer match |
 | `index-requirements` | insert the missing Files-table row at its ID-sorted position (`ws-ids.md` merge-safe insertion) | row present |
-| `trace-aggregate` | regenerate `docs/requirements/traceability.md` per `ws-traceability.md` (legacy rows in shipped order + per-ws rows stable-sorted by id; cells normalised, empty cell = two spaces) | deterministic output |
+| `traceability-aggregate` | regenerate `docs/requirements/traceability.md` per `ws-traceability.md` (legacy rows in shipped order + per-ws rows stable-sorted by id; cells normalised, empty cell = two spaces) | deterministic output |
 | `plan-history-name` | prefix the file with its `last_updated` date (or the commit date) | name matches |
 
 Every fix prints the paths it changed and changes nothing on a second run;
@@ -218,7 +224,7 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 | Where | Change |
 |---|---|
 | `skills/sdd-orchestrate/SKILL.md` | entry step: run gc, show the `GC:` line, open the picker; §Transition: run gc at DONE, render findings, `record \| ignore` routing |
-| `skills/sdd-verify/SKILL.md` | §Next Steps documented as the slot for `- gc <rule>: …` lines (`adversarial-verify.md` §Skill and Lint Changes carries the sdd-verify row) |
+| `skills/sdd-verify/SKILL.md` | Step 6 template gains a `## Next Steps` section after `## Recommendation`, documented as the slot for `- gc <rule>: …` and deferral lines — the change is carried **once**, in `adversarial-verify.md` §Skill and Lint Changes (sdd-verify row); today the template ends at `## Recommendation` and only `docs/ws/default/verification.md` carries the section by hand |
 | `skills/sdd-orchestrate/USAGE.md` | section: the `GC:` summary, DONE findings and routing |
 | `tools/sdd-gc.py` (**new**) | this spec |
 
@@ -272,7 +278,7 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 ## Edge Cases
 
 - **Repository at marker `3`**: no `docs/ws/`; the staleness sweep walks the
-  flat `docs/plan.md`; `--workstream` is ignored with a note; `trace-aggregate`
+  flat `docs/plan.md`; `--workstream` is ignored with a note; `traceability-aggregate`
   is skipped (no per-ws inputs).
 - **Workstream with no plan yet**: `spec-approval` does not apply to it;
   `stale-chain` stops at the last existing artifact.
@@ -293,8 +299,8 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 - `deviation-protocol.md` §Numbering: definitions live in specs, no index;
   `[superseded by Q-IMPL-NNN]` note — the (iii) rule follows it; (ii) is
   informational per its "no separate index" principle.
-- `ws-traceability.md` §Aggregation Contract: `trace-aggregate` compares
-  against the same regeneration and `--fix trace-aggregate` performs it.
+- `ws-traceability.md` §Aggregation Contract: `traceability-aggregate` compares
+  against the same regeneration and `--fix traceability-aggregate` performs it.
 - `ws-staleness.md` live plan-walk: `stale-chain` and scoped `spec-approval`
   use it; no traceability file is read (REQ-WS-007).
 - `ws-ids.md`: legacy and `<WS>`-prefixed Q-IMPL ids; ID-sorted insertion for
@@ -303,8 +309,8 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
   — `plan-history-name` protects it.
 - `orchestration.md` §Driver Phases: entry (before the picker) and DONE
   (§Transition) are the two moments — recorded there as Q-IMPL-HARNESSP2-008.
-- `adversarial-verify.md`: `pending-red` read as not-passed; §Next Steps slot
-  shared with `- Rn accepted …` lines in §Issues Found → Minor (different
+- `adversarial-verify.md`: `pending-red` read as not-passed; the `## Next
+  Steps` template section (its sdd-verify row) is the slot, shared with `- Rn accepted …` lines in §Issues Found → Minor (different
   sections, no collision).
 - `telemetry.md`: gc never reads `.sdd/` — consistent with the
   non-interference table.
