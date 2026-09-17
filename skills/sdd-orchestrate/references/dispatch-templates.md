@@ -23,6 +23,7 @@ Assigned IDs (use these verbatim, do not scan/guess): {ids_if_any}
 Success criterion: {success_criterion}
 Budget: {budget}
 Deliverable contract (exact files + frontmatter to produce): {deliverable_contract}
+{implement_only}Chunk: Chunk {N} — implement THIS chunk's tasks only (one chunk per dispatch, plan order)
 
 Inputs you have been given:
   - Kickoff / upstream artifact path(s): {input_paths}
@@ -79,6 +80,16 @@ Do not perform any stage other than sdd-{stage}.
   (mandated by REQ-ORCH-007). Also pins output paths, which the Precedence note
   uses to override the skill's default path/index behavior.
 - `{input_paths}` — kickoff path (research stage) or prior SDD artifact paths.
+- `{implement_only}` / `{N}` — present only for `stage = implement`: the
+  `### Chunk N:` header of the ONE chunk this dispatch implements. Sequential
+  implement is dispatched **per chunk, in plan order** — one dispatch per
+  chunk, each closed at the per-chunk gate (`../SKILL.md` §Per-chunk implement
+  dispatch and per-chunk gate) before the next is issued; the chunk verifier
+  (§CHUNK VERIFIER below) runs against the same `{N}`. Fan-out leaves receive
+  their chunk-group through `fan-out.md` §2 instead. **v2-vocabulary edge
+  case**: a plan with no `### Chunk N:` headers has chunk-close inactive
+  (`overview.md` §Plan Vocabulary) — omit this line, issue **one** implement
+  dispatch for the whole plan, dispatch **no** verifier, and say so at the gate.
 - `{on_fix_only}` / `{repair_packet}` — present only on a fix re-dispatch
   (pipeline loop-back-to-fix, or a fan-out / per-chunk redo after
   `CHUNK_VERDICT: FAIL` or a merge abort). The packet is the **only** fix
@@ -186,3 +197,108 @@ yourself — none is provided in this prompt by design.
 
 Isolation holds **by construction**: a freshly dispatched subagent has no shared
 context window to leak through.
+
+---
+
+## CHUNK VERIFIER subagent template (read-only leaf)
+
+A second, independent executor of the chunk-close layer
+(`docs/spec/harness-chunk-verifier.md`): it re-runs Check 1, Check 3 and the
+project quality gates for ONE chunk and returns `CHUNK_VERDICT: PASS | FAIL`.
+It is a **leaf** (`return-contract.md` §1) — it carries the leaf slots and
+nothing else — and it is **never `sdd-review`**: the template invokes no skill,
+carries no review checklist and produces no review report. Dispatched by the
+orchestrator after every implement dispatch returns `COMPLETE` / `PARTIAL`
+(sequential: against the repo root; fan-out: inside the leaf's worktree before
+its merge — `fan-out.md` §3a.v). Pasted verbatim from the spec:
+
+```
+You are a non-interactive chunk-close verifier. Do NOT ask questions.
+
+Working directory (absolute): {repo_root_or_worktree_path}
+Plan: {plan_path} — verify Chunk {N} only.
+Specs the chunk's tasks trace to: {spec_paths}
+Quality gate commands (from CLAUDE.md): {gate_commands}
+Budget: {budget}                       # e.g. "1 chunk, ≤ 15 tool calls, ≤ 2 test runs, read-only"
+Write scope: (empty — read-only)       # you may not create, modify, delete or rename any file
+Commit ownership: you never commit.
+
+Task: re-run chunk-close Check 1 (spec-implementation type alignment) and
+Check 3 (test coverage per spec) for Chunk {N} exactly as sdd-implement Step 4
+defines them, then run every quality gate command and record exit codes. Do not
+run Check 2 or Check 4; do not invoke sdd-review or sdd-implement; do not fix
+anything.
+
+Return: findings in the chunk-close report shape (Check 1, Check 3, Gates),
+then the RETURN: block, whose last line is
+  CHUNK_VERDICT: PASS | FAIL
+on its own.
+```
+
+### Slot contract (chunk verifier)
+- `{repo_root_or_worktree_path}` — sequential mode: the repo root; fan-out: the
+  leaf's worktree (so the verifier sees the branch's committed state).
+- `{plan_path}` + `{N}` — the plan as seen in that working directory and the
+  ONE `### Chunk N:` to verify (a leaf that owns several chunks gets one
+  verifier dispatch per chunk).
+- `{spec_paths}` — resolved by the orchestrator from the chunk's `traces to`
+  references; the verifier never searches for specs.
+- `{gate_commands}` — the build / lint / type-check / test commands from
+  `CLAUDE.md`; failing that, from the project's build files; failing that,
+  `tests only`, noted at the gate. The verifier never invents commands.
+- `{budget}` — read-only budget, e.g. `1 chunk, ≤ 15 tool calls, ≤ 2 test runs,
+  read-only`.
+
+**Nothing else** — no implementer reasoning, no review report, no orchestrator
+conversation, no repair history, no prior verifier findings.
+
+### Verdict rule
+
+```
+CHUNK_VERDICT: PASS  iff  Check 1 has zero blocking findings
+                     and  every gate command exits 0
+CHUNK_VERDICT: FAIL  otherwise
+```
+
+Check 3 is advisory (`chunk-close-review.md`) and never flips the verdict. Any
+implementer override in the implement dispatch's `RETURN.chunk_close.overrides`
+is *reported* by the orchestrator next to the verifier's findings at the
+per-chunk gate — never applied by the verifier.
+
+### Return contract (chunk verifier)
+
+The verifier returns the **full** leaf key set (`return-contract.md` §1 — every
+key present, empties allowed) plus the one verifier-only key,
+`CHUNK_VERDICT`, as the last line of the block (or the line immediately after
+it — the orchestrator accepts either placement). `check2` / `check4` read
+`deferred` because the verifier does not run them; `files_written` MUST be
+`[]` and the scope check on a verifier return must observe zero writes
+(`harness-write-scope.md`). A missing or unrecognized `CHUNK_VERDICT:` token
+is a malformed return (`return-contract.md` §1); `status: BUDGET_EXHAUSTED`
+is consumed as `CHUNK_VERDICT: FAIL` (unverified is not verified).
+
+```yaml
+## Chunk 2 Verification (independent re-run)
+### Check 1: Type Alignment — pass | fail — findings: [...]
+### Check 3: Test Coverage — pass | advisory — findings: [...]
+### Gates — pytest -q: exit 1; ruff check .: exit 0; mypy src/: exit 0
+RETURN:
+  status: COMPLETE                     # the verifier's own dispatch status
+  budget_consumed: {tool_calls: 11, test_runs: 2}
+  files_written: []                    # must be empty — read-only dispatch
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {chunk: 2, check1: fail, check2: deferred, check3: advisory, check4: deferred, overrides: []}
+  failures:
+    - {test: "pytest -q", kind: assertion, message: "1 failed: tests/test_recon.py::test_gap_report", location: src/recon/engine.py:142}
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
+  CHUNK_VERDICT: FAIL                  # verifier-only key, last line
+```
+
+The verifier produces the token; only the orchestrator interprets it
+(`return-contract.md` §9). Its findings are ephemeral gate text — nothing it
+returns is written to `docs/` by it or on its behalf.

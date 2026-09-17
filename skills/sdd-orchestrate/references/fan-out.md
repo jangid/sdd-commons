@@ -207,7 +207,7 @@ serialized; only the speedup depends on concurrency.
 
 ---
 
-## 3. Orchestrator command sequence (provision → await → merge → teardown)
+## 3. Orchestrator command sequence (provision → await → verify → merge → teardown)
 
 The orchestrator (not any subagent) owns worktree provisioning, merging, and
 teardown — a single owner keeps lifecycle symmetric and avoids orphaned worktrees
@@ -228,6 +228,41 @@ base is `main` as above, unchanged.
 
 Then dispatch one leaf implement subagent per group (§2), **all in one batch** so
 they run concurrently. Await **all** returns before merging (REQ-ORCH-022/023).
+
+### 3a.v Per-leaf return, verifier and per-leaf gate — before any merge (REQ-HARN-015)
+
+For **each** leaf, on return and **before** its branch may enter the merge order
+of §3b (`docs/spec/harness-chunk-verifier.md` §Sequencing — Fan-out):
+
+```
+for each leaf, on return:
+  (a) parse RETURN; scope check — procedure added by Chunk 4 (references/write-scope.md)
+  b. dispatch the CHUNK VERIFIER (dispatch-templates.md §CHUNK VERIFIER) with
+     Working directory = the leaf's worktree, Plan = the plan as seen on that
+     branch, Chunk = the leaf's chunk(s) — one verifier dispatch per chunk for a
+     multi-chunk leaf; all must PASS
+     (RETURN.status BLOCKED / BUDGET_EXHAUSTED: no verifier; the orchestrator
+      applies the returned checkpoint in §3e — return-contract.md §7)
+  c. render the PER-LEAF GATE — the same block as ../SKILL.md §Per-chunk implement
+     dispatch and per-chunk gate, `Files changed` taken from the branch's committed
+     delta (<base>..<branch>); NO commit by the orchestrator (the leaf already
+     committed on its branch):
+       proceed → branch is eligible for the sequential merge (§3b)
+       fix     → NO merge; repair packet (reason: VERIFIER_FAIL) → redo dispatch on the
+                 same branch/worktree (counts toward the per-chunk redo cap,
+                 chunk_redo_count[<chunk header>]; or abort the group per REQ-ORCH-026)
+       stop    → halt
+```
+
+Only branches whose per-leaf gate decision was `proceed` enter §3b (`proceed`
+is the default only on `CHUNK_VERDICT: PASS`; on `FAIL` it is an explicit,
+recorded operator override). The verifier runs **before** merge so a FAIL never
+reaches the integration branch (marker `3`: `main`; marker `4`: the workstream
+branch — §0). The verifier is read-only and is never `sdd-review`; the single
+implement-stage review still runs once, after the last merge and the §3e
+bookkeeping. The operator may have opted the verifier out for the cycle at the
+implement gate (`../SKILL.md` §Opt-in gate) — then step b is skipped and the
+per-leaf gate shows `CHUNK_VERDICT: (verifier disabled)`.
 
 ### 3b. Sequential merge to main (REQ-ORCH-025)
 
@@ -373,6 +408,10 @@ fully book-kept state.
 - [ ] Each fan-out subagent is a leaf (no sub-dispatch), pinned to its worktree.
 - [ ] Subagents commit with inline `git -c user.email=… -c user.name=…` (no
       `.git/config` write).
+- [ ] Chunk verifier runs **per leaf, inside its worktree, before its merge**
+      (one dispatch per chunk the leaf owns); only `proceed` branches at the
+      per-leaf gate enter the merge order — a `CHUNK_VERDICT: FAIL` branch is
+      never merged (§3a.v).
 - [ ] All subagents return before any merge; merges are sequential into `main`
       (marker `4`: the workstream branch — §0), completed before the
       implement-stage review.
