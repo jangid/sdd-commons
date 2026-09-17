@@ -199,7 +199,8 @@ executor of the existing chunk-close layer (the four verification layers are
 unchanged), and a declared write scope per dispatch. Architecturally the new
 procedure text lives in `skills/sdd-orchestrate/references/` as skill text —
 `return-contract.md`, `write-scope.md`, `v4-workstreams.md` (the LINT
-deliverable, REQ-LINT-007) — with stubs in
+deliverable, REQ-LINT-007) and `loop-control.md` (added by the Chunk 5 minor
+replan to land `SKILL.md` under the size target, Q-IMPL-073) — with stubs in
 `SKILL.md`, so the entry point keeps reading as a table of contents; the only
 durable project-side trace is the bounded circuit-break checkpoint in the plan's
 existing blocked-task note. Designs: `harness-loop-control.md`,
