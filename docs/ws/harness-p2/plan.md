@@ -1,7 +1,7 @@
 ---
 workstream: harness-p2
 last_updated: 2026-09-17
-status: Approved
+status: planned
 ---
 
 # Implementation Plan: Harness Hardening, Part 2 (workstream `harness-p2`)
@@ -24,7 +24,8 @@ Q-IMPL-083/-084, and the per-workstream traceability file. The six specs
 decompose into two independent roots — the **telemetry record** (Chunk 0), on
 whose field names red, arbitration and gc all depend, and the **dispatch
 snapshot base + `sdd-implement` split** (Chunk 1) — followed by three
-independent feature chunks (red, arbitration, gc), a late chunk that adds the
+independent feature chunks (red, arbitration, gc core), a second gc chunk
+(remaining sweeps, `--fix`, cadence hooks), a late chunk that adds the
 lint rows only once every marker exists and integrates `SKILL.md` within its
 size budget (the v5 Chunk 5 pattern), and a closing chunk for docs, the
 evaluation deliverables, traceability closure and the holistic verify that also
@@ -39,31 +40,37 @@ mechanism (Q1–Q6), so the plan carries **no spike** tasks.
   diffs — never a bare "markdown lints".
 - **Chunk headers**: `### Chunk N: <name>`; every chunk carries a
   `**Depends on**` line the fan-out boundary derivation parses (`fan-out.md`
-  §1). Chunks 0 and 1 are roots. Expected waves: wave 1 = Chunk 0 ‖ Chunk 1;
-  wave 2 = Chunk 2 ‖ Chunk 3 ‖ Chunk 4 (Chunk 2 needs only Chunk 0, Chunks 3
-  and 4 need Chunks 0 and 1); wave 3 = Chunk 5; wave 4 = Chunk 6.
+  §1). Chunk ids are plain integers — that derivation parses chunk
+  **ordinals** and its text must stay exactly as written, so the gc split is
+  Chunk 4 / Chunk 5, never `4a` / `4b`. Chunks 0 and 1 are roots. Expected
+  waves: wave 1 = Chunk 0 ‖ Chunk 1; wave 2 = Chunk 2 ‖ Chunk 3 ‖ Chunk 4
+  (each needs Chunks 0 and 1 — every wave-2 chunk adds `SKILL.md` text that
+  must land on the integrated wave-1 tree); wave 3 = Chunk 5; wave 4 =
+  Chunk 6; wave 5 = Chunk 7.
 - **Traceability**: each task names the spec section(s) and REQ id(s) it
   implements. Test / Implementation cells of
   `docs/ws/harness-p2/traceability.md` are filled at each chunk's close
-  (chunk-close Check 2) — this plan does not edit that file; Chunk 6 sweeps the
+  (chunk-close Check 2) — this plan does not edit that file; Chunk 7 sweeps the
   remainder and regenerates the shared aggregate.
 - **Lint discipline**: `python3 tools/sdd-skill-lint.py` must exit 0 at every
   chunk close (size warnings permitted). New `REQUIRED` / `FORBIDDEN` rows land
-  only in Chunk 5, after their markers exist, so no intermediate tree or
+  only in Chunk 6, after their markers exist, so no intermediate tree or
   parallel worktree fails. Chunk 0 ships the `allow_files` **mechanics** only.
 - **Single definition of the `## Next Steps` section**: the `sdd-verify` Step 6
   template change (a `## Next Steps` section after `## Recommendation`, plus
   the `pending-red` rule) is owned by **Chunk 2 task 4** — the
-  `adversarial-verify.md` sdd-verify row is its single definition. Chunk 4 (gc
-  `record` routing) and Chunk 6 (evaluation deferral lines) **reference** that
+  `adversarial-verify.md` sdd-verify row is its single definition. Chunk 5 (gc
+  `record` routing) and Chunk 7 (evaluation deferral lines) **reference** that
   section and never re-define it.
 - **Token ownership**: `TELEMETRY:` and the `OUT .sdd/telemetry.jsonl …` string
   (Chunk 0), `RED_VERDICT:` / `RED_BREAK` (Chunk 2), `REVIEW: CONTRADICTION` /
-  `THIRD_OPINION` (Chunk 3), `GC:` (Chunk 4), `CATCH-UP` (Chunk 1) — each is
+  `THIRD_OPINION` (Chunk 3), `GC:` (Chunk 5), `CATCH-UP` (Chunk 1) — each is
   pasted from its spec, defined once in the owning reference, and pointed at
   from everywhere else.
 - **Size budgets**: `skills/sdd-orchestrate/SKILL.md` ≤ ~470 lines (today 469;
-  new gate text is stubs + pointers, detail goes to `references/`);
+  new gate text is stubs + pointers, detail goes to `references/`); the
+  telemetry stub's ≤ 10-line rule counts the **§LOOP block only** (the
+  KICKOFF opt-out line and the §The gate pointer are outside that count);
   `skills/sdd-implement/SKILL.md` ≤ 400 after the split (today 525).
 - **Tools**: stdlib-only Python 3, `--help`, `--self-test` building temp-dir
   fixtures inside the script (no `tools/tests/`), the linter's finding shape.
@@ -75,12 +82,12 @@ mechanism (Q1–Q6), so the plan carries **no spike** tasks.
 
 ### Chunk 0: Telemetry — record schema, writer, third observation, reader, guard mechanics
 **Goal**: `references/telemetry.md` defines the v1 record and every derived
-table; `SKILL.md` carries a ≤ 10-line stub (default on, KICKOFF opt-out,
+table; `SKILL.md` carries a ≤ 10-line §LOOP stub (default on, KICKOFF opt-out,
 append-after-gate, never read by phase detection); `.sdd/` is gitignored; the
 orchestrator's third observation and the leaf-write revert are specified in
 `write-scope.md` §3/§5 by citation; `tools/sdd-telemetry.py summarize` works
 on a fixture; the linter supports a per-row `allow_files` field (row itself in
-Chunk 5); scope self-test F7 passes. Traces to `telemetry.md`.
+Chunk 6); scope self-test F7 passes. Traces to `telemetry.md`.
 **Depends on**: None.
 **Tasks**:
 1. [ ] [implement] Create `skills/sdd-orchestrate/references/telemetry.md`
@@ -107,7 +114,8 @@ Chunk 5); scope self-test F7 passes. Traces to `telemetry.md`.
    REQ-SKILL-HARNESSP2-001); `evaluation.md` §Scorer Fields
    (REQ-EVAL-HARNESSP2-002 derivation half).
 2. [ ] [implement] In `skills/sdd-orchestrate/SKILL.md`: add the telemetry
-   **stub** (≤ 10 lines) in §LOOP — default on, the KICKOFF opt-out choice
+   **stub** (≤ 10 lines — the rule counts the §LOOP block only) in §LOOP —
+   default on, the KICKOFF opt-out choice
    (session state, not written to `kickoff.md`), "the orchestrator appends one
    record after each gate", "never read by phase detection — `rm -rf .sdd/` is
    behaviour-neutral", the `.gitignore` bootstrap (`git check-ignore -q
@@ -157,7 +165,7 @@ Chunk 5); scope self-test F7 passes. Traces to `telemetry.md`.
    `allow_files` (injected into a temp copy of the table, never the shipped
    list): the pattern inside a fence in a non-allowlisted fixture fails with
    the row's `fix`; the same text in an allowlisted fixture passes. The shipped
-   `\.sdd/` row itself lands in Chunk 5. — traces to `telemetry.md` §Lint Guard
+   `\.sdd/` row itself lands in Chunk 6. — traces to `telemetry.md` §Lint Guard
    (REQ-TELEM-HARNESSP2-007 mechanics half, REQ-LINT-HARNESSP2-002 mechanics half);
    `skill-lint-v5.md` Q-IMPL-HARNESSP2-006.
 7. [ ] [verify] Per `telemetry.md` §Verification — Automated, on fixtures:
@@ -174,7 +182,16 @@ Chunk 5); scope self-test F7 passes. Traces to `telemetry.md`.
    .sdd/` neutrality; `python3 tools/sdd-telemetry.py --self-test` exits 0 and
    an unknown-`v` record is counted as skipped; `python3
    tools/sdd-scope-check-selftest.py` passes 7/7; no `docs/ws/*/telemetry*`
-   path exists; `python3 tools/sdd-skill-lint.py` and `--self-test` exit 0. —
+   path exists; `python3 tools/sdd-skill-lint.py` and `--self-test` exit 0.
+   Fixture walkthroughs owned here: `test_one_record_per_gated_dispatch` (a
+   fixture gate sequence of k gated dispatches → exactly k appended lines,
+   one per gate, none for an un-gated dispatch);
+   `test_write_failure_is_one_gate_line` (make `.sdd/` unwritable → the gate
+   renders exactly one `TELEMETRY: WRITE FAILED` line, the gate options are
+   unchanged and nothing else is written); the **rendering half** of
+   `test_gitignore_bootstrap_once` (a repo without `.sdd/` in `.gitignore` →
+   `TELEMETRY: .gitignore updated` rendered once, on the first gate only;
+   the bookkeeping commit falls outside any observed window). —
    traces to `telemetry.md` §Verification — Automated
    (REQ-TELEM-HARNESSP2-001..009).
 **Entry criteria**: none (root chunk).
@@ -185,7 +202,7 @@ traceability Test / Implementation filled for REQ-TELEM-HARNESSP2-001..006,
 -008, -009, REQ-SKILL-HARNESSP2-001, REQ-HARN-027 (amendment row: Test =
 `git check-ignore` + `git ls-files docs/` unchanged, Implementation =
 `.gitignore` + stub; Verified inherits the legacy `pass` per `telemetry.md`
-§XSPEC) — the -007 / REQ-LINT-HARNESSP2-002 rows close in Chunk 5.
+§XSPEC) — the -007 / REQ-LINT-HARNESSP2-002 rows close in Chunk 6.
 
 ### Chunk 1: Dispatch snapshot base, blocked-write staging, F9, `sdd-implement` references split
 **Goal**: `snapshot(before)` is taken at the commit the leaf is told to reach
@@ -272,7 +289,13 @@ as expected; scope self-test F9 passes; `skills/sdd-implement/SKILL.md` reads
    `references/` link resolves; `python3 tools/sdd-skill-lint.py` exits 0 with
    size warnings naming exactly `sdd-orchestrate` and `sdd-migrate`;
    `--self-test` exits 0; standalone `sdd-implement` Steps 1–2 and 4–6 diff
-   clean against `c38922d`. — traces to `dispatch-snapshot-base.md`
+   clean against `c38922d`. Fixture walkthrough owned here:
+   `test_provision_at_branch_tip` — provision a worktree per the PIPELINE /
+   fix provisioning text in `SKILL.md` §Pipeline subagent dispatch and
+   `dispatch-templates.md` §PIPELINE, assert the worktree `HEAD` equals the
+   workstream-branch tip, that the instantiated prompt names **no** catch-up
+   or "reach commit" instruction, and that the rendered write-scope block has
+   no `CATCH-UP` line. — traces to `dispatch-snapshot-base.md`
    §Verification — Automated (REQ-HARN-HARNESSP2-001, -002,
    REQ-SKILL-HARNESSP2-004, -007).
 **Entry criteria**: none (root chunk).
@@ -282,7 +305,7 @@ limitation (c) and the staging path; F9 passes; `sdd-implement/SKILL.md` ≤
 set; Q-IMPL-083/-084 carry the `[resolved by …]` note; traceability Test /
 Implementation filled for REQ-HARN-HARNESSP2-001, -002,
 REQ-SKILL-HARNESSP2-007 and the snapshot half of REQ-SKILL-HARNESSP2-004 (the
-gc half closes in Chunk 4).
+gc half closes in Chunk 5).
 
 ### Chunk 2: Adversarial (Red/Blue) verify — RED TEAM template, `RED_VERDICT:`, `pending-red`, `RED_BREAK`
 **Goal**: the verify gate offers `red team: off | on` (default off); with `on`
@@ -293,7 +316,11 @@ until every `BROKEN` `Rn` is fixed (`RED_BREAK` packet) or accepted
 `status: pending-red` while red is pending — flipped to `pass` by the
 orchestrator before its commit. `sdd-verify`'s Step 6 template gains the
 `## Next Steps` section (single definition). Traces to `adversarial-verify.md`.
-**Depends on**: Chunk 0.
+**Depends on**: Chunk 0, Chunk 1.
+(Chunk 1 because task 3's `SKILL.md` §The gate additions — the largest new
+gate block — must land on the integrated wave-1 tree, after Chunk 1 task 2
+has edited `SKILL.md` §Pipeline subagent dispatch; otherwise the two edits
+churn on merge and the ≤ ~470 budget is measured on the wrong tree.)
 **Tasks**:
 1. [ ] [implement] In `skills/sdd-orchestrate/references/dispatch-templates.md`:
    add the **RED TEAM** template pasted from the spec (non-interactive clause,
@@ -375,17 +402,27 @@ orchestrator before its commit. `sdd-verify`'s Step 6 template gains the
    Steps` section); grep `sdd-verify`, `sdd-replan`, `sdd-orchestrate` for
    `pending-red` (each present); `git diff c38922d -- skills/sdd-review/SKILL.md`
    is empty for this chunk; four-layer table in `sdd-verify` unchanged; lint
-   exits 0. — traces to `adversarial-verify.md` §Verification — Automated
+   exits 0. Fixture walkthroughs owned here: `test_red_write_is_out_and_reverted`
+   (a red leaf in a fixture repo writes `tests/test_break.py` → the gate
+   renders `SCOPE: VIOLATION (1 paths)` naming that path and the file is
+   absent at gate time — reverted by the verifier's write-revert rule the RED
+   TEAM template points at); `test_one_red_per_verify_return` (two
+   verify-pipeline returns in one stage → exactly two red dispatches, one per
+   return, and a fix iteration's re-run counts as its own return). — traces
+   to `adversarial-verify.md` §Verification — Automated
    (REQ-REDB-HARNESSP2-001..009).
 **Entry criteria**: Chunk 0 complete (`references/telemetry.md` names
 `dispatch.kind: red`, `verdict.red_verdict`, `dispatch.reason: RED_BREAK`;
-`return.warnings` `FOREIGN_TOKEN`).
+`return.warnings` `FOREIGN_TOKEN`); Chunk 1 complete (`SKILL.md` §Pipeline
+subagent dispatch and `dispatch-templates.md` §PIPELINE carry the
+provisioning sentence, so the §The gate block and the verify PIPELINE
+`Red team: enabled` slot are added to the integrated wave-1 tree).
 **Exit criteria**: `dispatch-templates.md` contains `RED_VERDICT: BROKEN |
 HELD`; `SKILL.md` or `return-contract.md` contains `RED_VERDICT:`;
 `sdd-verify` template has `## Next Steps` after `## Recommendation` and the
 `pending-red` rule; lint exits 0; traceability filled for
 REQ-REDB-HARNESSP2-001..009, REQ-SKILL-HARNESSP2-002, -005 (lint rows a1/a2
-close in Chunk 5).
+close in Chunk 6).
 
 ### Chunk 3: Arbitrated handoff — retained round state, classes (b)/(c), `REVIEW: CONTRADICTION`, third opinion, F8
 **Goal**: the orchestrator keeps per-round `(verdict, C/M lines keyed by
@@ -472,17 +509,23 @@ extends; F9 numbering settled so F8's docstring count is final).
 **Exit criteria**: `loop-control.md` contains `REVIEW: CONTRADICTION`;
 `sdd-review/SKILL.md` Material line matches `M1:.*affects`; F8 passes; lint
 exits 0; traceability filled for REQ-ARB-HARNESSP2-001..008,
-REQ-SKILL-HARNESSP2-003, -006 (lint rows b/c close in Chunk 5).
+REQ-SKILL-HARNESSP2-003, -006 (lint rows b/c close in Chunk 6).
 
-### Chunk 4: Drift sweep — `tools/sdd-gc.py`, cadence hooks, DONE routing
-**Goal**: `python3 tools/sdd-gc.py --report` sweeps `docs/**` with the
-fifteen-row table (lint delegated by subprocess, never copied), the pinned
-Q-IMPL counting rule, the linter's finding shape, exit codes 0/1/2 and a
-four-rule idempotent `--fix` whitelist; `--self-test` builds the marker-4
-fixture tree; `sdd-orchestrate` runs it at entry (`GC:` line) and at DONE
-(`record | ignore` routing into `verification.md` §Next Steps). Traces to
-`drift-sweep.md`.
+### Chunk 4: Drift sweep, part 1 — `tools/sdd-gc.py` core: CLI, exit codes, finding shape, delegated lint, sweeps 6/8/9/10/13/14
+**Goal**: `python3 tools/sdd-gc.py --report` exists with the argparse CLI, exit
+codes 0/1/2, the linter's finding shape and summary line, sweeps 1–5 delegated
+to `tools/sdd-skill-lint.py` by subprocess (never copied), sweeps 6, 8, 9, 10,
+13, 14 implemented (incl. the Q-IMPL counting rule), a complete `--help`, and a
+`--self-test` **skeleton** whose fixture asserts **symbolic** counts for exactly
+those sweeps. No `--fix` rule is fixable yet (`FIXABLE = []`); sweeps 7/11/12,
+the whitelist, the full two-workstream fixture and the cadence hooks are
+Chunk 5. Traces to `drift-sweep.md`.
 **Depends on**: Chunk 0, Chunk 1.
+**Budget**: ≤ 80 tool calls for the dispatched leaf (one new tool file plus
+its skeleton self-test; no skill text in this chunk).
+**Risk**: the skeleton self-test must derive its `D`/`B` counts from the
+fixture it builds, never from the live corpus — a hard-coded live count is
+the fifth replan trigger waiting to fire in Chunk 5.
 **Tasks**:
 1. [ ] [implement] Create `tools/sdd-gc.py` (stdlib-only): argparse CLI
    (`--report` default, `--fast`, `--workstream <id>`, `--fix <rule>`,
@@ -496,7 +539,9 @@ fixture tree; `sdd-orchestrate` runs it at entry (`GC:` line) and at DONE
    subprocess and parsing its findings and summary (size warnings pass
    through; no `FORBIDDEN`/`REQUIRED` table in gc's module); the docstring
    with the Q-IMPL counting rule and RS-HARNESSP2-001 Q4's three reference
-   commands. — traces to `drift-sweep.md` §CLI and Exit Codes, §Finding Shape
+   commands; `--fix <rule>` is parsed but module-level `FIXABLE = []`, so
+   every `--fix` exits 2 `not a fixable rule` until Chunk 5 fills the list. —
+   traces to `drift-sweep.md` §CLI and Exit Codes, §Finding Shape
    and Summary, §Q-IMPL Counting Rule (docstring) (REQ-GC-HARNESSP2-001, -003,
    -004).
 2. [ ] [implement] gc sweeps 6, 8, 9, 10, 13, 14: `xlink-dead` / `id-missing`
@@ -513,7 +558,57 @@ fixture tree; `sdd-orchestrate` runs it at entry (`GC:` line) and at DONE
    warn); `plan-history-name` (`-replan-` only from `sdd-replan`; date
    prefix). — traces to `drift-sweep.md` §Sweep Table rows 6, 8–10, 13, 14,
    §Q-IMPL Counting Rule (REQ-GC-HARNESSP2-002, -003).
-3. [ ] [implement] gc sweeps 7, 11, 12: `stale-chain` (research → requirements
+3. [ ] [implement] `--self-test` **skeleton**: a `build_fixture()` function
+   creating a temporary git-initialised marker-`4` tree with one workstream
+   (`alpha`, Approved `a.md` traced by its plan), `D` Q-IMPL definitions / `B`
+   references with the four exclusion cases and the `Q-IMPL-999` mutation, one
+   broken `**Spec reference**`, one missing index row each, one dead link, one
+   `requires: [REQ-ZZ-999]`, one undated `plan-history/replan-foo.md`, and a
+   clean copy; assert the symbolic counts for sweeps 6, 8, 9, 10, 13, 14, exit
+   codes 0 (clean copy) / 1 (fixture) / 2 (`--fix nonexistent-rule`,
+   `--root` at a non-git dir), non-empty `fix` on every finding, summary line
+   last, lint size warnings passing through. Chunk 5 **extends** this builder
+   (second workstream, aggregate, `trace-empty` rows) rather than rewriting
+   it. — traces to `drift-sweep.md` §Self-Test Fixture (REQ-GC-HARNESSP2-001,
+   -002 partial, -003 partial).
+4. [ ] [verify] `python3 tools/sdd-gc.py --self-test` exits 0; `--help` exits 0
+   and names every flag, the three sweep classes with rule ids, the counting
+   rule and the exclusions; `grep -n 'FORBIDDEN =\|REQUIRED =' tools/sdd-gc.py`
+   is empty; `grep -n 'FIXABLE = \[\]' tools/sdd-gc.py` hits once; on this
+   repository `--report` exits 0 with no fail finding from the implemented
+   sweeps (warn/info counts unpinned) and the `qimpl-*` counts are compared
+   with the 2026-09-17 reference values from the docstring (drift from
+   `Q-IMPL-HARNESSP2-*` expected and noted); lint exits 0. — traces to
+   `drift-sweep.md` §Verification — Automated (REQ-GC-HARNESSP2-001, -003,
+   -004).
+**Entry criteria**: Chunk 0 complete (non-interference table names gc as an
+out-of-loop tool that never reads `.sdd/`; lint `allow_files` mechanics in
+place so gc's pass-through parser sees the final finding shape); Chunk 1
+complete (the Q-IMPL-083/-084 `[resolved by …]` appends and the
+`sdd-implement` split have landed, so the `qimpl-*` sweeps and the live
+`--report` baseline see the final spec and skill text).
+**Exit criteria**: `tools/sdd-gc.py` exists with `--help` and a passing
+skeleton `--self-test`; live `--report` exits 0; `FIXABLE = []`; lint exits 0;
+traceability Test / Implementation filled for REQ-GC-HARNESSP2-001, -004 (the
+-002 / -003 rows close in Chunk 5 once every sweep exists).
+
+### Chunk 5: Drift sweep, part 2 — sweeps 7/11/12, `--fix` whitelist, full marker-4 fixture, cadence hooks, DONE routing
+**Goal**: `tools/sdd-gc.py` carries the full fifteen-row table — `stale-chain`,
+`trace-empty`, `traceability-aggregate` added, the pinned Q-IMPL counting rule
+confirmed against its reference values — the four-rule idempotent `--fix`
+whitelist and the complete two-workstream marker-`4` fixture of §Self-Test
+Fixture; `sdd-orchestrate` runs it at entry (`GC:` line) and at DONE
+(`record | ignore` routing into `verification.md` §Next Steps). Traces to
+`drift-sweep.md`.
+**Depends on**: Chunk 4.
+**Budget**: ≤ 80 tool calls for the dispatched leaf (gc extension, fixture
+growth, `SKILL.md` stubs + pointers, the verify task).
+**Risk**: `stale-chain` and `traceability-aggregate` re-implement the
+`ws-staleness.md` / `ws-traceability.md` contracts inside gc — any divergence
+surfaces as a false **fail** on the live repository; triage per Risks
+(genuine defect → corpus, tool bug → gc), never silence.
+**Tasks**:
+1. [ ] [implement] gc sweeps 7, 11, 12: `stale-chain` (research → requirements
    → specs → plan → verification by `last_updated`; per workstream via plan
    `traces to` → spec `requires:` → category files; `pending-red` read as
    "verification exists, not passed"; marker `3` walks flat `docs/plan.md`
@@ -522,10 +617,14 @@ fixture tree; `sdd-orchestrate` runs it at entry (`GC:` line) and at DONE
    Test-empty rows; an amendment row — Spec differs from the legacy row for
    the same id — inherits the legacy Verified and is never a gap);
    `traceability-aggregate` (aggregate == `regenerate(per-ws files)` per
-   `ws-traceability.md`; skipped at marker `3`). Never reads `.sdd/`. —
+   `ws-traceability.md`; skipped at marker `3`). Never reads `.sdd/`. Confirm
+   the **pinned Q-IMPL counting rule** from Chunk 4 is unchanged and that the
+   docstring's three reference commands still reproduce the 2026-09-17
+   reference values (the rule text is not restated here). —
    traces to `drift-sweep.md` §Sweep Table rows 7, 11, 12 (REQ-GC-HARNESSP2-002);
    `telemetry.md` §XSPEC amendment-row rule.
-4. [ ] [implement] `--fix` whitelist: module-level `FIXABLE = [xlink-dead,
+2. [ ] [implement] `--fix` whitelist: replace Chunk 4's `FIXABLE = []` with
+   `FIXABLE = [xlink-dead,
    index-requirements, traceability-aggregate, plan-history-name]` with the
    tabled rewrites (unique-candidate link repair, ID-sorted Files-table row
    insertion, deterministic aggregate regeneration with legacy rows in shipped
@@ -535,20 +634,17 @@ fixture tree; `sdd-orchestrate` runs it at entry (`GC:` line) and at DONE
    `--workstream` is given; any other rule → exit 2 `not a fixable rule`. —
    traces to `drift-sweep.md` §`--fix` Whitelist, §Routing at DONE (dates
    never auto-fixed) (REQ-GC-HARNESSP2-006, -007).
-5. [ ] [implement] `--self-test`: build the temporary git-initialised fixture
-   tree of §Self-Test Fixture (marker `4`, workstreams `alpha`/`beta`, Approved
-   `a.md` traced by alpha, Draft `b.md` traced only by beta, `D` definitions /
-   `B` referenced, the four exclusion cases, the `Q-IMPL-999` mutation, one
-   broken `**Spec reference**`, one missing index row each, one dead link, one
-   `requires: [REQ-ZZ-999]`, one undated `plan-history/replan-foo.md`, a
-   differing aggregate, the three `trace-empty` rows, a clean copy) and assert
-   every row's symbolic counts, exit codes (0 / 1 / 2 incl. `--fix
-   nonexistent-rule` and `--fix staleness`), `--fix traceability-aggregate`
-   idempotence, non-empty `fix` on every finding, summary line last, lint size
-   warnings passing through, and that each fail rule fires exactly once. —
-   traces to `drift-sweep.md` §Self-Test Fixture (REQ-GC-HARNESSP2-001, -002,
-   -003).
-6. [ ] [implement] In `skills/sdd-orchestrate/SKILL.md`: the **entry** step —
+3. [ ] [implement] `--self-test`, full fixture: extend Chunk 4's
+   `build_fixture()` to the complete tree of §Self-Test Fixture (marker `4`,
+   workstreams `alpha`/`beta`, Approved `a.md` traced by alpha, Draft `b.md`
+   traced only by beta, a differing aggregate, the three `trace-empty` rows,
+   the clean copy) and assert every row's symbolic counts, exit codes (0 / 1 /
+   2 incl. `--fix nonexistent-rule` and `--fix staleness`), `--fix
+   traceability-aggregate` idempotence, non-empty `fix` on every finding,
+   summary line last, lint size warnings passing through, and that each fail
+   rule fires exactly once. — traces to `drift-sweep.md` §Self-Test Fixture
+   (REQ-GC-HARNESSP2-001, -002, -003).
+4. [ ] [implement] In `skills/sdd-orchestrate/SKILL.md`: the **entry** step —
    run `python3 tools/sdd-gc.py --report` before the workstream picker (marker
    `4`) / before phase detection (marker `3`) and render one line `GC: clean`
    or `GC: F fail, W warn — run tools/sdd-gc.py --report`, then open the picker
@@ -564,8 +660,8 @@ fixture tree; `sdd-orchestrate` runs it at entry (`GC:` line) and at DONE
    `drift-sweep.md` §Cadence, §Routing at DONE, §Skill Changes
    (REQ-GC-HARNESSP2-005, -006, REQ-SKILL-HARNESSP2-004 gc half);
    `orchestration.md` Q-IMPL-HARNESSP2-008.
-7. [ ] [verify] Per `drift-sweep.md` §Verification — Automated: `python3
-   tools/sdd-gc.py --self-test` exits 0; `--help` exits 0 and names every flag,
+5. [ ] [verify] Per `drift-sweep.md` §Verification — Automated: `python3
+   tools/sdd-gc.py --self-test` exits 0 on the full fixture; `--help` exits 0 and names every flag,
    the three classes with rule ids and the exclusions; `grep -n 'FORBIDDEN =\|
    REQUIRED =' tools/sdd-gc.py` is empty; on this repository `--report` exits 0
    with no fail finding (warn/info counts unpinned) and the Q-IMPL counts are
@@ -578,18 +674,18 @@ fixture tree; `sdd-orchestrate` runs it at entry (`GC:` line) and at DONE
    lines appended under `## Next Steps`, `plan.md` byte-identical, `git
    ls-files docs/` gains no path); lint exits 0. — traces to `drift-sweep.md`
    §Verification — Automated / Manual (REQ-GC-HARNESSP2-001..007).
-**Entry criteria**: Chunk 0 complete (non-interference table names gc as an
-out-of-loop tool that never reads `.sdd/`; lint `allow_files` mechanics in
-place so gc's pass-through parser sees the final finding shape); Chunk 1
-complete (`SKILL.md` provisioning text merged, so the ≤ ~470 budget for the
-entry/DONE stubs is measured on the integrated wave-1 tree).
-**Exit criteria**: `tools/sdd-gc.py` exists with `--help` and a passing
-`--self-test`; live `--report` exits 0; `SKILL.md` names both cadence moments
-and the `record | ignore` routing; lint exits 0; traceability filled for
-REQ-GC-HARNESSP2-001..007 and the gc half of REQ-SKILL-HARNESSP2-004.
+**Entry criteria**: Chunk 4 complete (gc core, finding shape, `FIXABLE = []`
+and the skeleton `build_fixture()` in place; Chunk 1's `SKILL.md` provisioning
+text is already on Chunk 4's base, so the ≤ ~470 budget for the entry/DONE
+stubs is measured on the integrated tree).
+**Exit criteria**: `tools/sdd-gc.py` carries all fifteen rows with `--help` and
+a passing full `--self-test`; live `--report` exits 0; `FIXABLE` has four
+rules, each idempotent; `SKILL.md` names both cadence moments and the
+`record | ignore` routing; lint exits 0; traceability filled for
+REQ-GC-HARNESSP2-002, -003, -005..007 and the gc half of REQ-SKILL-HARNESSP2-004.
 
-### Chunk 5: Lint rows (`REQUIRED` a1/a2/b/c, d2 regex, `FORBIDDEN` `\.sdd/`) + self-test mutations + `SKILL.md` integration pass
-**Goal**: the linter enforces every marker Chunks 0–4 introduced — four new
+### Chunk 6: Lint rows (`REQUIRED` a1/a2/b/c, d2 regex, `FORBIDDEN` `\.sdd/`) + self-test mutations + `SKILL.md` integration pass
+**Goal**: the linter enforces every marker Chunks 0–5 introduced — four new
 `REQUIRED` rows, the `(?<!CHUNK_)(?<!RED_)VERDICT:` consumer regex and the
 file-granular `FORBIDDEN` `\.sdd/` row — with `--self-test` §7 mutation
 coverage; `skills/sdd-orchestrate/SKILL.md` carries every new gate stub once,
@@ -597,12 +693,14 @@ within ≤ ~470 lines, and the integrated skill set is lint-clean with size
 warnings only. Traces to `telemetry.md` §Lint Guard, `adversarial-verify.md`,
 `arbitrated-handoff.md` §Skill and Lint Changes, `skill-lint-v5.md`
 Q-IMPL-HARNESSP2-006, `orchestration.md` Q-IMPL-HARNESSP2-008.
-**Depends on**: Chunk 2, Chunk 3, Chunk 4.
+**Depends on**: Chunk 2, Chunk 3, Chunk 5.
 **Tasks**:
 1. [ ] [implement] In `tools/sdd-skill-lint.py` `REQUIRED`: (a1)
    `dispatch-templates.md` ∋ `RED_VERDICT: BROKEN \| HELD` min 1 (producer);
-   (a2) `skills/sdd-orchestrate/SKILL.md` or `references/return-contract.md`
-   ∋ `RED_VERDICT:` min 1 (consumer); (b) `references/loop-control.md` ∋
+   (a2) `skills/sdd-orchestrate/SKILL.md` ∋ `RED_VERDICT:` min 1 (consumer —
+   pinned to `SKILL.md`, where the d2 row and the Chunk 2 task 3 parse step
+   live; `references/return-contract.md` also carries the token but is not
+   this row's file); (b) `references/loop-control.md` ∋
    `REVIEW: CONTRADICTION` min 1 (consumer-only); (c) `skills/sdd-review/SKILL.md`
    ∋ a line matching `M1:.*affects` min 1; change the existing d2 pattern to
    `(?<!CHUNK_)(?<!RED_)VERDICT:`; each row with `reason` and a `fix` naming
@@ -623,11 +721,11 @@ Q-IMPL-HARNESSP2-006, `orchestration.md` Q-IMPL-HARNESSP2-008.
    — traces to `telemetry.md` §Lint Guard (REQ-TELEM-HARNESSP2-007,
    REQ-LINT-HARNESSP2-002); `skill-lint-v5.md` Q-IMPL-HARNESSP2-006.
 3. [ ] [implement] Integration pass over `skills/sdd-orchestrate/SKILL.md`
-   after the wave-2 merges: §The gate lists the REQ-ORCH-034 signal order
+   after the wave-2 and wave-3 merges: §The gate lists the REQ-ORCH-034 signal order
    **once** including `RED_VERDICT:` at the verify stage; the pause family
    (`REVIEW: MALFORMED`, `RETURN: MALFORMED`, reject-with-no-actionable-findings,
    `REVIEW: CONTRADICTION`) is one list with pointers; the telemetry stub is ≤
-   10 lines; the gc entry and DONE steps, the provisioning sentence, the red
+   10 lines counting the §LOOP block only; the gc entry and DONE steps, the provisioning sentence, the red
    opt-in and the `pending-red → verify` position row each appear once;
    duplicated stub text is deduplicated; the never-auto-advance sentence,
    `research_id` ≥ 3, `docs/.sdd-version`, the fan-out `Depends on` parser,
@@ -654,7 +752,7 @@ Q-IMPL-HARNESSP2-006, `orchestration.md` Q-IMPL-HARNESSP2-008.
    traces to `telemetry.md`, `adversarial-verify.md`, `arbitrated-handoff.md`
    §Verification (lint rows) (REQ-LINT-HARNESSP2-001, -002,
    REQ-TELEM-HARNESSP2-007); `skill-lint-v5.md` Q-IMPL-HARNESSP2-006.
-**Entry criteria**: Chunks 2, 3, 4 complete and merged into one tree (every
+**Entry criteria**: Chunks 2, 3, 5 (and 4 through 5) complete and merged into one tree (every
 marker present: `RED_VERDICT:`, `REVIEW: CONTRADICTION`, the Material
 `affects` line, the `.sdd/` mentions confined to the three files).
 **Exit criteria**: lint exits 0 with 20 files clean and the two-file warn set;
@@ -662,7 +760,7 @@ all five new rows present and mutation-tested; `SKILL.md` ≤ ~470;
 traceability filled for REQ-LINT-HARNESSP2-001, -002, REQ-TELEM-HARNESSP2-007
 and the `SKILL.md`-integration halves of REQ-SKILL-HARNESSP2-001..004.
 
-### Chunk 6: Documentation, evaluation deliverables, traceability closure, holistic verify + probe report
+### Chunk 7: Documentation, evaluation deliverables, traceability closure, holistic verify + probe report
 **Goal**: operators can read every new signal in `USAGE.md` and one paragraph
 in `CLAUDE.md`; the evaluation mode is defined-not-built with its guards
 verified, the scorer ships if there is room and the N = 3 pilot is recorded or
@@ -672,7 +770,7 @@ sections are walked on fixtures; the two RS-008 probes and this cycle's own
 measurements are recorded from real dispatch facts. Traces to `evaluation.md`,
 `telemetry.md` §Skill and Lint Changes, and the §Verification — Manual
 sections of all six specs.
-**Depends on**: Chunk 5.
+**Depends on**: Chunk 6.
 **Tasks**:
 1. [ ] [implement] `CLAUDE.md` §Driver (`sdd-orchestrate`): **one short
    paragraph** naming per-dispatch telemetry (`.sdd/telemetry.jsonl` —
@@ -738,9 +836,10 @@ sections of all six specs.
    Chunk 2 task 4). — traces to `evaluation.md` §Manual N = 3 Pilot
    (REQ-EVAL-HARNESSP2-003).
 6. [ ] [implement] Traceability closure: fill any still-empty Test /
-   Implementation cell in `docs/ws/harness-p2/traceability.md` for all 49 rows
-   (REQ-TELEM-, REDB-, ARB-, GC-, EVAL-, HARN-HARNESSP2-, LINT-HARNESSP2-,
-   SKILL-HARNESSP2-, REQ-HARN-027 amendment row — Verified inherits `pass`;
+   Implementation cell in `docs/ws/harness-p2/traceability.md` for the 49
+   HARNESSP2 rows + the REQ-HARN-027 amendment row (50 in total: REQ-TELEM-,
+   REDB-, ARB-, GC-, EVAL-, HARN-HARNESSP2-, LINT-HARNESSP2-,
+   SKILL-HARNESSP2-, plus the REQ-HARN-027 amendment row — Verified inherits `pass`;
    REQ-EVAL-HARNESSP2-003 Test cell = "pilot recorded" or "deferred to §Next
    Steps"); the Verified column stays for `sdd-verify`; regenerate the shared
    aggregate with `python3 tools/sdd-gc.py --fix traceability-aggregate`
@@ -774,16 +873,16 @@ sections of all six specs.
    simulated): from the workstream branch's `git log`, the orchestrator's gate
    text and, once Chunk 0 has landed, `.sdd/telemetry.jsonl` (`summarize`
    per-chunk block), tabulate — RS-008 probe 1: implement + verifier + fix +
-   redo dispatches per chunk for Chunks 0–6 against the "≤ 1 extra
+   redo dispatches per chunk for Chunks 0–7 against the "≤ 1 extra
    dispatch-equivalent per chunk" trigger; RS-008 probe 2: every `SCOPE:`
    finding this cycle, classed true violation / false positive (incl. any
    catch-up false positives before Chunk 1 landed) against the
    "recurring `OUT` on legitimate side-writes" trigger; this cycle's own
    counts: `REVIEW: CONTRADICTION` pauses by class, `RED_VERDICT:` outcomes if
    red was enabled, `TELEMETRY: WRITE FAILED` occurrences, `GC:` entry/DONE
-   findings. Deliver the table in the form of RS-008 probes 1 and 2 in
-   `docs/ws/default/verification.md`, for the sdd-verify stage to place in
-   `docs/ws/harness-p2/verification.md`; state explicitly which replan
+   findings. Deliver the table in the form used by RS-008 probes 1 and 2 (see
+   `docs/ws/default/verification.md` — never written there), for the
+   sdd-verify stage to place in `docs/ws/harness-p2/verification.md`; state explicitly which replan
    triggers below fired or did not. — traces to `docs/ws/harness-p2/kickoff.md`
    Q6; `evaluation.md` §Scorer Fields (fields 3, 5, 6, 7 as live values);
    `telemetry.md` §Out-of-Loop Reader (REQ-TELEM-HARNESSP2-009).
@@ -793,7 +892,10 @@ sections of all six specs.
    `sdd-implement` (+ its two references), `USAGE.md` and `CLAUDE.md` —
    `RED_VERDICT:`, `RED_BREAK`, `pending-red`, `Red team: enabled`, `REVIEW:
    CONTRADICTION`, `THIRD_OPINION`, `CATCH-UP`, `TELEMETRY:`, `GC:`,
-   `decision_by`, `contradiction_class`, `allow_files`, `FIXABLE`; the
+   `decision_by`, `contradiction_class`, `allow_files`, `FIXABLE`,
+   `## Next Steps` (confirm every pointer to that section — gc `record`
+   routing, the evaluation deferral lines, `USAGE.md` — resolves to the one
+   definition in `sdd-verify` Step 6 on the integrated tree); the
    four-layer table in `sdd-verify`, `sdd-review` and `CLAUDE.md` diffs clean
    against `c38922d`; `sdd-review` diff against `c38922d` is the Material line
    + example only; lint, all three tool self-tests and the scope self-test
@@ -801,7 +903,7 @@ sections of all six specs.
    unchanged, REQ-REDB-HARNESSP2-002); `arbitrated-handoff.md` §Review Key
    (REQ-ARB-HARNESSP2-008); `telemetry.md` §Skill and Lint Changes
    (REQ-SKILL-HARNESSP2-008).
-**Entry criteria**: Chunk 5 complete (integrated, lint-clean skill set with
+**Entry criteria**: Chunk 6 complete (integrated, lint-clean skill set with
 all rows; every token defined).
 **Exit criteria**: `CLAUDE.md` and `USAGE.md` updated; no empty Test /
 Implementation cell in `docs/ws/harness-p2/traceability.md`; aggregate
@@ -818,19 +920,19 @@ pass with no acceptance criterion failed; plan `status: complete`; ready for
   stub-able prose (red exit rule, gc routing table, provisioning block) into
   the owning reference file and keep a one-line pointer; if a pointer alone
   cannot satisfy a consumer row, re-point that row at the reference file
-  (`skill-lint-v5.md` guard 1 option b precedent) — Chunk 5, minor replan.
+  (`skill-lint-v5.md` guard 1 option b precedent) — Chunk 6, minor replan.
 - **Class (b) contradiction false-positive rate observed > 1 per cycle** (a
   legitimately new Critical pauses the loop more than once; `arbitrated-
   handoff.md` Open Question 1) → narrow the trigger to Critical-only lines or
   require `affects` overlap with round N for class (b); record the change in
   `arbitrated-handoff.md` §Contradiction Classes — Chunk 3 text.
 - **Per-chunk dispatch cost > 1 extra dispatch-equivalent per chunk** (RS-008
-  probe 1, measured by Chunk 6 task 8 from this cycle's dispatches) → flip the
+  probe 1, measured by Chunk 7 task 8 from this cycle's dispatches) → flip the
   chunk verifier default to opt-in at the fan-out opt-in gate and revisit
   `harness-chunk-verifier.md` Open Question 1 — a `SKILL.md` §Opt-in gate
   text change plus `USAGE.md`.
 - **Write-scope `OUT` false positives on legitimate side-writes** (RS-008
-  probe 2, measured by Chunk 6 task 8; catch-up false positives before Chunk 1
+  probe 2, measured by Chunk 7 task 8; catch-up false positives before Chunk 1
   lands are expected and excluded) → widen the default scope table in
   `references/write-scope.md` §2 and fold the widenings back into
   `harness-write-scope.md` §Default Scope Table; if spec-file `ADVISORY` proves
@@ -838,9 +940,9 @@ pass with no acceptance criterion failed; plan `status: complete`; ready for
 - **`sdd-gc.py` self-test fixture counts drift when specs change** (a
   symbolic `D`/`B` assertion breaks because the fixture mirrored live text, or
   the live `--report` gains a fail finding from a genuine corpus defect this
-  cycle introduced) → fixture must use synthetic counts only (Chunk 4 task 5
-  rework); a genuine corpus defect is fixed in the corpus by the owning skill,
-  never silenced in gc.
+  cycle introduced) → fixture must use synthetic counts only (Chunk 4 task 3 /
+  Chunk 5 task 3 rework); a genuine corpus defect is fixed in the corpus by
+  the owning skill, never silenced in gc.
 - **`sdd-implement/SKILL.md` cannot reach ≤ 400 lines while keeping every
   `REQUIRED` literal in the stub** → re-point the affected rows at
   `references/stuck-detection.md` / `leaf-return.md` (Chunk 1 task 5 already
@@ -850,7 +952,7 @@ pass with no acceptance criterion failed; plan `status: complete`; ready for
   `pass` or as `fail` → replan) discovered by Chunk 2 task 6 or the holistic
   verify → add the missing reader row (`sdd-plan`/`sdd-implement` only read
   `plan.md`, so this should be confined to `sdd-verify`, `sdd-replan`,
-  `sdd-orchestrate`, gc) — Chunk 2 / Chunk 4 text.
+  `sdd-orchestrate`, gc) — Chunk 2 / Chunk 5 text.
 - **Parallel wave-2 chunks conflict in `SKILL.md` §The gate or
   `write-scope.md` §3/§5 beyond what fan-out's redo-by-re-derivation
   resolves** → collapse wave 2 to sequential order 2 → 3 → 4 (plan-level
@@ -871,22 +973,24 @@ pass with no acceptance criterion failed; plan `status: complete`; ready for
   (b) exception; Chunk 1: provisioning + (c); Chunk 3: section resolution +
   (a) note). Mitigation: Chunk 0 and Chunk 1 add distinct, non-adjacent
   bullets (each task says exactly which line it adds); Chunk 3 depends on both
-  and lands on the merged tree; Chunk 5 task 3 and Chunk 6 task 9 check that
+  and lands on the merged tree; Chunk 6 task 3 and Chunk 7 task 9 check that
   `.sdd/` appears only in §3/§5 and that (a), (b), (c) each appear once.
-- **Wave-2 chunks all touch `sdd-orchestrate/SKILL.md` §The gate** (red
-  opt-in and exit rule; contradiction pointer; gc entry/DONE). Mitigation:
-  each adds a stub in a named position (red: signal-order sentence + verify
-  gate paragraph; arbitration: one pointer line in "Edge cases routed through
-  the gate"; gc: entry step and §Transition); Chunk 5 task 3 is the explicit
+- **Wave-2 chunks (2, 3) and wave-3 Chunk 5 all touch
+  `sdd-orchestrate/SKILL.md` §The gate** (red opt-in and exit rule;
+  contradiction pointer; gc entry/DONE). Mitigation: each adds a stub in a
+  named position (red: signal-order sentence + verify gate paragraph;
+  arbitration: one pointer line in "Edge cases routed through the gate"; gc:
+  entry step and §Transition); every one of them depends on Chunk 1 so the
+  stubs land on the integrated wave-1 tree; Chunk 6 task 3 is the explicit
   integration pass; the replan trigger collapses wave 2 to sequential if
   merges churn.
 - **Lint row ordering.** A `REQUIRED` or `FORBIDDEN` row added before its
   marker exists (or before `.sdd/` mentions are confined) breaks `exit 0` for
   every intermediate tree and every parallel worktree. Mitigation: Chunk 0
   ships `allow_files` mechanics + a synthetic self-test row only; all shipped
-  rows land in Chunk 5 after Chunks 2–4 merge.
+  rows land in Chunk 6 after Chunks 2–5 merge.
 - **`SKILL.md` size budget.** Five features add gate text to a 469-line file
-  with a ~470 target. Mitigation: every task in Chunks 0–4 is written as
+  with a ~470 target. Mitigation: every task in Chunks 0–5 is written as
   "stub + pointer", detail goes to the owning reference; the first replan
   trigger names the fallback; the target is a warn threshold (400) already
   exceeded, so the hard constraint is the `REQUIRED` rows, not the count.
@@ -894,17 +998,17 @@ pass with no acceptance criterion failed; plan `status: complete`; ready for
   telemetry writer, red gate, arbitration or provisioning; verification is
   fixture walkthroughs plus the three tools' self-tests and the scope
   self-test. Mitigation: verify tasks are behavioural (temp git repos, exact
-  finding strings, mutation tests); the live measurements are Chunk 6 task 8
+  finding strings, mutation tests); the live measurements are Chunk 7 task 8
   from this cycle's own dispatches, not pretended.
 - **Two leaves may append to `.sdd/telemetry.jsonl` inadvertently** once
-  Chunk 0's stub exists but before the lint row (Chunk 5) exists. Mitigation:
+  Chunk 0's stub exists but before the lint row (Chunk 6) exists. Mitigation:
   `.sdd/**` is never in any write scope, so the third observation (Chunk 0
   task 3/4) already reverts it; the templates never name the path.
 - **`sdd-gc.py` live `--report` may surface pre-existing corpus drift**
   (dead anchors, unreferenced Q-IMPL, stale dates in `docs/ws/default/`).
   Mitigation: warn/info are not pinned; a **fail** finding on the live repo is
-  triaged at Chunk 4 task 7 — genuine defect → fixed in the corpus by the
-  owning skill's rule (`--fix` where whitelisted), tool bug → fixed in gc;
+  triaged at Chunk 4 task 4 / Chunk 5 task 5 — genuine defect → fixed in the
+  corpus by the owning skill's rule (`--fix` where whitelisted), tool bug → fixed in gc;
   never silenced.
 - **The pilot and the scorer are `should` items.** Both may be deferred to
   §Next Steps by design (`evaluation.md` Open Question 2); the plan stays
@@ -917,45 +1021,55 @@ pass with no acceptance criterion failed; plan `status: complete`; ready for
 
 ## Open Questions / Assumptions
 
-- **Status `Approved` by instruction.** This plan was authored by a
-  non-interactive pipeline subagent; the dispatch set `status: Approved` and
-  `last_updated: 2026-09-17`. The orchestration gate remains the operator's
-  point of sign-off before `sdd-implement`.
-- **Single-milestone structure.** Seven chunks, one delivery (lint rows and
+- **Status `planned`.** This plan was authored by a non-interactive pipeline
+  subagent with `last_updated: 2026-09-17`; the frontmatter uses the plan
+  status vocabulary (`planned → active → complete`, `sdd-plan` SKILL.md) —
+  `sdd-implement` flips it to `active` and later `complete`. Operator sign-off
+  is the orchestration gate, not a frontmatter value.
+- **Single-milestone structure.** Eight chunks, one delivery (lint rows and
   skill text must ship together for `exit 0`); a single
   `docs/ws/harness-p2/plan.md` is used although it exceeds ~300 lines, as the
   v5 plan did. Default: keep single-milestone.
-- **Chunk 3 and Chunk 4 depend on Chunk 1 as well as Chunk 0.** The suggested
-  shape made Chunk 3 depend on Chunk 0 only; because Chunk 3 extends the same
-  `write-scope.md` §3 block that Chunk 1 rewrites (provisioning +
-  `HEAD_before`/`HEAD_after`), and Chunk 4's `SKILL.md` stubs must fit the
-  budget on the integrated wave-1 tree, both declare Chunk 1. Two independent
-  roots still exist (0 ‖ 1) and wave 2 still fans out three ways (2 ‖ 3 ‖ 4).
+- **Chunks 2, 3 and 4 depend on Chunk 1 as well as Chunk 0.** Chunk 3
+  extends the same `write-scope.md` §3 block that Chunk 1 rewrites
+  (provisioning + `HEAD_before`/`HEAD_after`); Chunk 2's §The gate block and
+  Chunk 5's entry/DONE stubs (via Chunk 4) must fit the `SKILL.md` budget on
+  the integrated wave-1 tree, after Chunk 1 task 2 edits §Pipeline subagent
+  dispatch; Chunk 4's `qimpl-*` baseline needs Chunk 1's Q-IMPL appends. Two
+  independent roots still exist (0 ‖ 1) and wave 2 still fans out three ways
+  (2 ‖ 3 ‖ 4); the gc split (4 → 5) adds one sequential wave.
+- **gc split into Chunk 4 / Chunk 5, integer ids.** The review asked for
+  `4a`/`4b`; `fan-out.md` §1 parses chunk **ordinals** from `### Chunk N:`
+  headers and its text must stay exactly as written, so alphanumeric ids are
+  not demonstrably tolerated — the halves are Chunk 4 and Chunk 5 and the
+  former Chunks 5/6 are now 6/7.
 - **`allow_files` mechanics in Chunk 0, row in Chunk 5.** The `\.sdd/` row
   would fail on any tree where `.sdd/` is still mentioned outside the three
   files (none today, but the risk table applies); mechanics + a synthetic
-  self-test row in Chunk 0 keep every intermediate tree green. Default: as
+  self-test row in Chunk 0 keep every intermediate tree green; the row lands
+  in Chunk 6. Default: as
   stated.
 - **`gate.decision` table duplicated in `telemetry.md`.** The spec contains
   the normalisation table twice (identical); `references/telemetry.md` carries
   it once. Not a spec contradiction; no Q-IMPL needed.
 - **`references/telemetry.md` is the third lint-allowlisted file, and the
   `sdd-implement` split adds two reference files** → the live lint file count
-  becomes 20. Default: assert 20 in Chunk 5 task 4; adjust only if Chunk 1
+  becomes 20. Default: assert 20 in Chunk 6 task 4; adjust only if Chunk 1
   merges the two `sdd-implement` references into one (then 19).
 - **Reference file names for the `sdd-implement` split**: `stuck-detection.md`
   and `leaf-return.md` (`dispatch-snapshot-base.md` Open Question 2 default).
-- **Scorer (`tools/sdd-eval.py`) ships only if Chunk 6 has room**
-  (`evaluation.md` Open Question 2 default); Chunk 6 task 3 is `should`. The
+- **Scorer (`tools/sdd-eval.py`) ships only if Chunk 7 has room**
+  (`evaluation.md` Open Question 2 default); Chunk 7 task 3 is `should`. The
   pilot (task 5) is `should` and **deferred by default** — a dispatched
   implement leaf cannot drive the orchestrator; the operator may run it during
   the verify stage instead.
-- **Red stays off for this cycle's own verify stage** by default
-  (`adversarial-verify.md` Open Question 2: prose-only acceptance criteria);
-  the operator may enable it to exercise Chunk 2 live — the probe report
-  records whichever happened.
+- **Red team stays OFF for this cycle's own verify stage** — operator
+  decision at the plan review gate (`adversarial-verify.md` Open Question 2:
+  prose-only acceptance criteria); Chunk 2 is exercised by its fixture
+  walkthroughs, not live; the probe report records `RED_VERDICT:` outcomes
+  only if the operator overrides this at the verify gate.
 - **Telemetry for this cycle starts when Chunk 0 merges.** Dispatches before
-  that are counted by hand from `git log` and gate text (Chunk 6 task 8);
+  that are counted by hand from `git log` and gate text (Chunk 7 task 8);
   `summarize` covers the rest.
 - **Heading normalisation** in arbitration keys strips a leading ordinal
   (`arbitrated-handoff.md` Open Question 3 default); the same rule serves gc's
