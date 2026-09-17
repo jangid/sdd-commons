@@ -111,6 +111,7 @@ Q-IMPL number block (allocate sequentially from the start of this block; do
 Success criterion: the chunk-group's tasks are implemented and committed on
   branch {branch} within this worktree.
 Budget: {budget}
+Write scope: {write_scope}          # this chunk-group's code and test paths ONLY (repo-relative globs)
 Deliverable contract: implement these chunks only — {chunk_group_tasks}.
 
 Worktree pin (HARD boundary):
@@ -125,6 +126,10 @@ Worktree pin (HARD boundary):
     (including chunk-close Check 2), instead RECORD the completed task list
     and the column fills in your return; the orchestrator applies them once
     after all merges (§3e).
+  - Do NOT edit spec files (docs/spec/*.md): leaves never write Q-IMPL entries
+    directly. Record any spec deviation as a one-line entry in
+    RETURN.open_questions (with the Q-IMPL id from your block); the
+    orchestrator files the entry at merge (§3e).
 
 Leaf clause:
   - You are a LEAF subagent. Do NOT dispatch any sub-subagent and do NOT fan out
@@ -147,6 +152,9 @@ Task:
      genuinely missing decision under Open Questions/Assumptions with a stated
      default and proceed — NEVER fabricate operator consent.
   3. Commit your work on {branch} using the inline git identity above.
+     Commit ownership: YOU commit, on your own branch only; the orchestrator
+     merges {branch} on `proceed` at the per-leaf gate and never commits on
+     your behalf.
   4. Return: end your return text with the RETURN: block below — every key
      present, status: first on its own line, values are path references and
      one-line strings only, no tracebacks. Populate commits with the shas you
@@ -187,6 +195,17 @@ Do not perform any stage other than sdd-implement.
   append-only and never reused; gaps are fine).
 - `{git_email}` / `{git_name}` — identity for the inline `-c` flags (REQ-ORCH-027).
 - `{budget}` — explicit bound (REQ-ORCH-007).
+- `{write_scope}` — the chunk-group's **code and test paths only**
+  (`write-scope.md` §2, fan-out-leaf row; REQ-HARN-020): derived per chunk
+  from task → spec → implementation module + test file, or the declared
+  source/test roots with the widening noted at the gate. Plan, traceability
+  and `docs/spec/*.md` are never in a leaf's scope — the worktree pin above
+  bars them and the scope check enforces the pin mechanically. On return the
+  orchestrator runs the three commands against the worktree with `<base>` /
+  branch tip (§3a.v) and tags every observed path `IN` / `OUT` (no `ADVISORY`
+  for a leaf). **Commit ownership row**: the leaf commits on its branch with
+  the inline identity; the orchestrator merges on `proceed` at the per-leaf
+  gate (`write-scope.md` §7).
 - **Return contract** — step 4 is the leaf half of `return-contract.md` §1: the
   orchestrator parses the `RETURN:` block (never prose); `commits` is populated
   (unlike a pipeline dispatch, where it is `[]`); `tasks_completed` and
@@ -236,7 +255,26 @@ of §3b (`docs/spec/harness-chunk-verifier.md` §Sequencing — Fan-out):
 
 ```
 for each leaf, on return:
-  (a) parse RETURN; scope check — procedure added by Chunk 4 (references/write-scope.md)
+  a. snapshot(after) IMMEDIATELY on return, in the leaf's worktree — before the
+     verifier, the per-leaf gate and any merge or §3e write (write-scope.md §3
+     snapshot ordering); then parse RETURN (return-contract.md §1) and run the
+     three commands worktree-rooted, with <base> for HEAD_before and the branch
+     tip for HEAD_after:
+       HEAD_after=$(git -C <worktree> rev-parse <branch>)
+       git -C <worktree> status --porcelain=v1 --untracked-files=all > "$TMPDIR/scope.after"
+       (a) porcelain delta : scope.after − scope.before                       → "uncommitted"
+       (b) committed delta : git -C <worktree> diff --name-status <base> "$HEAD_after"  → "committed <sha>"
+       (c) ancestry        : git -C <worktree> merge-base --is-ancestor <base> "$HEAD_after" || HISTORY_REWRITE
+     (scope.before was taken in the worktree immediately before the dispatch, §3a)
+     Tag each path against {write_scope} (IN / OUT — no ADVISORY for a leaf) and
+     render the write-scope block ending in the own-line token
+       SCOPE: CLEAN | VIOLATION (N paths)      # N = OUT paths + HISTORY_REWRITE
+     SCOPE: VIOLATION → resolve every OUT path inside the per-leaf gate (step c)
+     BEFORE the branch may enter §3b: revert path (on the LEAF BRANCH, in the
+     worktree — never the integration branch) | accept & widen scope
+     (session-only) | stop. HISTORY_REWRITE → stop + manual recovery hint, no
+     automatic reset. `proceed` is unavailable while an OUT path is unresolved.
+     Full procedure, tags, finding format: write-scope.md §3–§5.
   b. dispatch the CHUNK VERIFIER (dispatch-templates.md §CHUNK VERIFIER) with
      Working directory = the leaf's worktree, Plan = the plan as seen on that
      branch, Chunk = the leaf's chunk(s) — one verifier dispatch per chunk for a
@@ -394,6 +432,26 @@ orchestrator applies the shared-doc updates the leaves were barred from making
    dispatched for) with a `task not found in plan` prefix and raise it at the
    gate — never invent a task. `sdd-replan` Step 1 reads this note as the
    stuck state.
+5. **`blocked_writes` pre-persist scope match** (`write-scope.md` §6,
+   REQ-HARN-023): before persisting any `{path, content}` entry from a leaf's
+   `RETURN.blocked_writes`, match `path` against that leaf's `{write_scope}`
+   with the same matcher as step a of §3a.v. `IN` → persist and list it as
+   `IN … persisted by orchestrator`; `OUT` → **do not persist**, list it as
+   `OUT <path>  blocked-write  <- refused` in the leaf's write-scope block and
+   offer `persist & widen scope | drop | stop` at that leaf's gate. A leaf's
+   `blocked_writes` naming `docs/plan.md`, a traceability file or
+   `docs/spec/*.md` is therefore always refused — those writes travel as
+   `tasks_completed`, `traceability_fills` and `open_questions` instead. (The
+   match runs at the per-leaf gate, before merge; the persistence itself
+   happens here, after the snapshot, so it is never observed as a leaf write.)
+6. **Leaf deviations → Q-IMPL filed by the orchestrator.** Leaves never write
+   `docs/spec/*.md` (§2 pin; `write-scope.md` §2 fan-out-leaf row). For each
+   one-line `RETURN.open_questions` entry that cites a Q-IMPL id from the
+   leaf's `{qimpl_block}`, the orchestrator appends the entry under the named
+   spec's `## Implementation Questions` in the `sdd-implement` Q-IMPL format
+   (id, tier, spec reference, decision, rationale — lifted from the one-liner,
+   never from leaf prose) at merge, before the review. Entries without a
+   Q-IMPL id are raised at the gate as open questions, not filed.
 
 Only then dispatch the implement-stage review, which sees the fully merged,
 fully book-kept state.

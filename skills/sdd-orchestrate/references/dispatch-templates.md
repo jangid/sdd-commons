@@ -22,6 +22,7 @@ Stage skill to invoke: sdd-{stage}
 Assigned IDs (use these verbatim, do not scan/guess): {ids_if_any}
 Success criterion: {success_criterion}
 Budget: {budget}
+Write scope: {write_scope}          # repo-relative globs you may create/modify/delete/rename; nothing else
 Deliverable contract (exact files + frontmatter to produce): {deliverable_contract}
 {implement_only}Chunk: Chunk {N} — implement THIS chunk's tasks only (one chunk per dispatch, plan order)
 
@@ -51,6 +52,10 @@ Task:
      no tracebacks. If a write is blocked, put the file's full content under
      blocked_writes with the target path labeled so the orchestrator can
      persist it.
+     Commit ownership: you are not instructed to commit — the orchestrator
+     commits on `proceed` at the stage gate (implement: at the per-chunk
+     gate). Leave your writes in the working tree and list them in
+     files_written.
 
 RETURN:
   status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED   # own line, first key
@@ -76,6 +81,15 @@ Do not perform any stage other than sdd-{stage}.
   let the subagent pick its own ID.
 - `{success_criterion}` — how the stage knows it is done (mandated by REQ-ORCH-007).
 - `{budget}` — explicit scope/time bound for the stage (mandated by REQ-ORCH-007).
+- `{write_scope}` — comma-separated repo-relative globs the subagent may
+  create, modify, delete or rename (REQ-HARN-020), filled by the orchestrator
+  from the default scope table in `write-scope.md` §2 (per stage; for
+  `stage = implement` the chunk's source/test paths plus the plan, traceability
+  and advisory spec paths). An operator widening at the gate applies to the
+  redo and later dispatches of the stage in this session only. On return the
+  orchestrator observes writes with the three commands (`write-scope.md` §3)
+  and surfaces `SCOPE: CLEAN | VIOLATION (N paths)` at the gate — the subagent
+  never checks its own scope. An empty slot is a template violation.
 - `{deliverable_contract}` — the exact files to write and their frontmatter
   (mandated by REQ-ORCH-007). Also pins output paths, which the Precedence note
   uses to override the skill's default path/index behavior.
@@ -165,6 +179,9 @@ Deliverable to review: {deliverable_path}
                           # reads the research questions from the deliverable's
                           # own frontmatter.
 Budget: {budget}          # default: ≤ 15 tool calls, read-only
+Write scope: (empty — read-only)   # you may not create, modify, delete or rename any file
+Commit ownership: nobody commits — you write nothing and the orchestrator
+commits nothing for a review.
 
 You are non-interactive — do NOT ask questions; you have no operator to answer
 them. Where sdd-review Step 2 says to request inputs from the operator, use the
@@ -186,6 +203,11 @@ yourself — none is provided in this prompt by design.
   table: `return-contract.md` §Budget grammar). An empty slot is a template
   violation the orchestrator's pre-dispatch self-check catches. The budget is a
   bound, not an input — it leaks nothing about the artifact.
+- `Write scope: (empty — read-only)` — a literal, not a slot (REQ-HARN-020):
+  the reviewer may write nothing; the orchestrator's scope check on a review
+  return must observe zero writes and tags any write `OUT`
+  (`write-scope.md` §2, §4). Commit ownership row: **nobody commits**
+  (`write-scope.md` §7). Like the budget, the literal leaks nothing.
 
 ### What the review template MUST NOT contain
 (verified absent in the RS-005 dispatch; mirrors `sdd-review` Step 2)
