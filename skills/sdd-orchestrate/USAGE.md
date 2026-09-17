@@ -126,7 +126,20 @@ orch > [requirements pipeline → review]
 you  > loop-back-to-fix
 orch > [re-dispatch with that finding → re-review] Approve now. proceed?
 you  > proceed
-       ... specs, plan, implement, verify, each with a gate ...
+       ... specs and plan, each with a gate ...
+orch > [implement: Chunk 1 pipeline → scope check → chunk verifier]
+       Per-chunk gate — implement dispatch #1 (Chunk 1: Dry-run flag)
+         RETURN.status  : COMPLETE    budget_consumed: {tool_calls: 18, test_runs: 2}  vs  Budget: 1 chunk, ≤ 25 tool calls, ≤ 3 test runs
+         SCOPE: CLEAN
+         CHUNK_VERDICT: PASS
+         Files changed  : src/deploy/cli.py M, tests/test_dry_run.py A, docs/plan.md M
+         Redo           : 0 of 3 (per-chunk redo counter)
+         Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 1 with a repair packet; counts toward the per-chunk redo cap) │ stop
+you  > proceed
+       ... one per-chunk gate per remaining chunk, then ONE implement review ...
+orch > GATE (implement): VERDICT: APPROVE. proceed / loop-back-to-fix / stop?
+you  > proceed
+       ... verify, with its gate ...
 orch > DONE — verify passed review. Recommend committing the cycle.
 ```
 
@@ -264,6 +277,105 @@ research questions from the findings file's own frontmatter.)
 
 ---
 
+## 7b. Gate signals and caps (v5)
+
+The harness-hardening cycle (v5) made the gates machine-checkable without
+changing the phases, the artifacts or the one-word decisions you already make.
+This section is what the new lines mean when you see them.
+
+### Two kinds of gate
+
+| Gate | When | Options | What it shows |
+|------|------|---------|---------------|
+| **Per-chunk gate** | implement stage only — after each `### Chunk N:` dispatch returns | `proceed │ fix │ stop` | `RETURN.status`, `SCOPE:`, `CHUNK_VERDICT:`, files changed, `Redo: N of 3` |
+| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` or the replan re-entry count when a loop is active |
+
+Signals appear in the order they are produced: (1) the leaf's `RETURN.status`
+and `budget_consumed` against the dispatched `Budget:`; (2) the write-scope
+block ending in `SCOPE:`; (3) the chunk's `CHUNK_VERDICT:`; then, at the stage
+gate, (4) the review `VERDICT:` and (5) the loop counters. Non-implement stages
+show (1), (2), (4), (5) together at the stage gate.
+
+### Reading the per-chunk gate block
+
+```
+Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: leaf wt-g1 / branch fanout-g1]
+  RETURN.status  : COMPLETE    budget_consumed: {tool_calls: 22, test_runs: 3}  vs  Budget: 1 chunk, ≤ 25 tool calls, ≤ 3 test runs
+  SCOPE: CLEAN                                    # full write-scope block above when VIOLATION
+  CHUNK_VERDICT: PASS                             # verifier findings (Check 1 / Check 3 / Gates) listed above when FAIL
+  Files changed  : src/recon/engine.py M, tests/test_recon.py M, docs/plan.md M
+  Redo           : 0 of 3 (per-chunk redo counter)
+  Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 2 with a repair packet; counts toward the per-chunk redo cap) │ stop
+```
+
+- **`RETURN.status`** — the leaf's own one-word verdict on its deliverable:
+  `COMPLETE`, `PARTIAL` (some tasks done, none blocked), `BLOCKED` (stuck
+  detection fired — the checkpoint is in the plan), or `BUDGET_EXHAUSTED`.
+  `budget_consumed` is in the same units as the `Budget:` line you approved.
+- **`SCOPE: CLEAN`** — every file the leaf wrote is inside its declared
+  `Write scope:`. On **`SCOPE: VIOLATION`** the full write-scope block is shown
+  above the gate, one line per `OUT` path, and you must resolve each one before
+  `proceed` is available: **`revert path`** (the orchestrator runs the listed
+  `git checkout --` / `rm` command) or **`accept & widen scope`** (session-only —
+  nothing is persisted). Spec-file writes outside scope are `ADVISORY`, not a
+  violation.
+- **`CHUNK_VERDICT: PASS`** — a fresh, read-only verifier re-ran the chunk-close
+  checks (type alignment, test coverage, build/lint/tests) and found nothing.
+  On **`CHUNK_VERDICT: FAIL`** its findings are listed above the block and the
+  default choice becomes **`fix`**: the orchestrator composes a repair packet
+  from the verifier's `failures` and re-dispatches the same chunk. Choosing
+  `proceed` on a FAIL is an explicit override, recorded in the gate text only.
+- **`Redo: N of 3`** — the per-chunk redo counter (`REDO_MAX`, default 3). It
+  counts only your `fix` choices for this chunk; verifier re-dispatches do not
+  count. It is independent of the stage's fix-loop counter.
+- **Files changed** — the observed delta (sequential: the working tree;
+  fan-out: the branch's committed delta). On `proceed` in sequential mode the
+  orchestrator commits the chunk; under fan-out the leaf already committed.
+
+### Reading the stage gate
+
+- **`VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT`** — the review's own-line
+  token, parsed by the orchestrator; it never guesses a verdict from prose.
+- **`iteration N of 3`** — the fix-loop counter (`FIX_LOOP_MAX`, default 3, per
+  stage). Each `loop-back-to-fix` re-dispatches the pipeline with a **repair
+  packet** (the review's findings plus the paths they point at, never the
+  reviewer's reasoning) and then re-reviews. At the implement stage a fix
+  dispatch is followed by the scope check, one verifier per touched chunk and
+  that chunk's per-chunk gate **before** the re-review runs.
+- **Fix loop exhausted** — after iteration 3 still rejects, no further fix is
+  dispatched. The gate shows the **compiled findings log** (each iteration's
+  Critical/Material finding lines, verbatim, with `(persisting)` marks) and
+  offers only `stop | manual intervention | authorize extra iteration (cap → 4)`.
+  A chunk that hits `Redo: 3 of 3` renders the same shape with the verifier's
+  findings.
+- **Replan re-entry cap** — when a stage triggers a replan, the orchestrator
+  counts the `-replan-` archives in `docs/plan-history/` dated on or after the
+  kickoff's `date:` and shows the count against `REPLAN_MAX` (default 3) with
+  the counted filenames. At the cap, or when the message reads
+  `replan re-entry cap: kickoff date undeterminable — treated as reached`, it
+  routes into `sdd-replan` only on your explicit decision.
+
+### Pauses you may see
+
+| Message | Meaning | Options |
+|---------|---------|---------|
+| `RETURN: MALFORMED (<reason>)` | The leaf's `RETURN:` block is missing, has `status:` out of place or invalid, spans multiple lines, or contradicts itself. Shown with the raw tail of the return. | `re-dispatch │ accept manually │ stop` — never treated as `COMPLETE` |
+| `REVIEW: MALFORMED` | The review's `VERDICT:` token is missing, unrecognized, or disagrees with its prose. | `re-dispatch review │ accept prose manually │ stop` |
+| `RETURN.status: BUDGET_EXHAUSTED` | The leaf hit a term of its `Budget:` line and stopped cleanly; `budget_consumed` is mandatory. | treat like `fix` with a fresh budget, or `stop` |
+| `RETURN.status: BLOCKED` | Stuck detection (3 failed fixes, oscillation, spec contradiction) fired. | route to `sdd-replan` or `fix` |
+
+**Where the checkpoint lives.** On `BLOCKED` or `BUDGET_EXHAUSTED` the leaf's
+attempt ledger is condensed into a bounded (≤ 15 line) **circuit-break
+checkpoint** under the affected task in `docs/plan.md` — the blocked-task note
+`sdd-replan` already reads (`**Blocked** (<date>, <trigger>): checkpoint`, with
+`failing:` / `attempt N:` / `open question:` / `unblocks:` lines, no
+tracebacks). A sequential leaf writes it itself; under fan-out the orchestrator
+applies it after the merge. Nothing else is persisted: no counter file, no loop
+log, no review file — the caps are session-scoped or derived from artifacts that
+already exist.
+
+---
+
 ## 8. Sequential default and fan-out
 
 ### Sequential by default; implement-stage fan-out is opt-in
@@ -278,11 +390,23 @@ When you opt in, the orchestrator:
 - provisions one git worktree/branch per group and dispatches one **leaf**
   implement subagent per group (each runs `sdd-implement` and cannot fan out
   further),
-- then merges the branches **sequentially** back into the integration anchor —
-  `main` under marker `3`, the **workstream branch** under marker `4` (`main`
-  stays untouched until the workstream PR) — completing all merges **before**
-  the implement-stage review runs on the merged state, tearing down each
-  worktree as it merges.
+- on each leaf's return, runs the write-scope check on its worktree and
+  dispatches the **chunk verifier** against that branch (one verifier per chunk
+  the leaf owns), then shows you the per-leaf gate (§7b) **before** any merge —
+  a `CHUNK_VERDICT: FAIL` never reaches the integration branch; `fix` redoes the
+  leaf on the same branch, `proceed` makes it eligible for the merge,
+- then merges the `proceed`-ed branches **sequentially** back into the
+  integration anchor — `main` under marker `3`, the **workstream branch** under
+  marker `4` (`main` stays untouched until the workstream PR) — completing all
+  merges **before** the single implement-stage review runs on the merged state,
+  tearing down each worktree as it merges.
+
+The verifier is on by default. You can **opt out** at the same implement gate
+where you opt into fan-out; the per-leaf gate then shows the constant-shape line
+`CHUNK_VERDICT: (verifier disabled)` and relies on the leaf's own chunk-close checks plus the
+implement-stage review. The per-chunk sequence in §7b (scope check → verifier →
+per-chunk gate) is what runs per leaf; the only difference is that the
+orchestrator does not commit — the leaf already committed on its branch.
 
 Dispatched as a single batch, the per-group subagents run concurrently (measured in
 the RS-006 spike), so fan-out delivers a genuine wall-clock speedup on top of
@@ -335,6 +459,12 @@ non-research entry — are now built.
 - [`references/fan-out.md`](references/fan-out.md) — the implement-stage fan-out
   procedure (boundary derivation, per-group dispatch, sequential merge, teardown,
   conflict redo-by-re-derivation)
+- [`references/loop-control.md`](references/loop-control.md) — caps, per-chunk
+  loop, gate signal order and the pauses listed in §7b
+- [`references/return-contract.md`](references/return-contract.md) — the leaf
+  `RETURN:` block, repair packet and `VERDICT:` parsing
+- [`references/write-scope.md`](references/write-scope.md) — declared write
+  scope, the three-command check and `SCOPE:` findings
 - `docs/spec/orchestration.md` — the design spec
 - `docs/research/RS-005-sdd-orchestrate-feasibility/findings.md` — the feasibility
   evidence behind the isolation and non-interactivity guarantees

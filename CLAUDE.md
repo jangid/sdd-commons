@@ -117,6 +117,22 @@ implement-stage fan-out branches from the workstream branch — see
 SDD cycle end-to-end with built-in external review; invoke an individual `sdd-*`
 skill directly for a single phase.
 
+**Gate vocabulary (v5 harness hardening).** Every dispatched leaf ends with a
+structured `RETURN:` block (`status: COMPLETE | PARTIAL | BLOCKED |
+BUDGET_EXHAUSTED`, `budget_consumed` against the dispatched `Budget:`). At the
+implement stage each chunk is dispatched separately and closes at a **per-chunk
+gate** (`proceed │ fix │ stop`) showing, in order, `RETURN.status`, the
+write-scope check `SCOPE: CLEAN | VIOLATION`, and the fresh read-only chunk
+verifier's `CHUNK_VERDICT: PASS | FAIL`, with `Redo: N of REDO_MAX`. After all
+chunks (and after every non-implement stage) the **stage gate**
+(`proceed │ loop-back-to-fix │ stop`) shows the review's own-line `VERDICT:`
+token and, when a loop is active, `iteration N of FIX_LOOP_MAX` or the derived
+replan re-entry count against `REPLAN_MAX`. All three caps default to 3
+(`FIX_LOOP_MAX`, `REPLAN_MAX`, `REDO_MAX`). The no-new-artifact invariant holds:
+counters are session-scoped or derived, reviews stay ephemeral, and the only
+durable trace is the bounded circuit-break checkpoint in the plan's existing
+blocked-task note.
+
 ### Phase Detection
 
 Every skill checks `docs/.sdd-version` on entry. If missing, it suggests running `sdd-migrate`. `docs/.sdd-version` is the **sole layout gate**: marker `3` (or earlier) selects the flat single-operator layout; marker `4` selects the multi-workstream layout where phase detection is a **function of `(repo, workstream)`** — every skill takes a `workstream` argument (default `default`) and roots execution artifacts at `docs/ws/<id>/` (see [Multi-Workstream Layout (v4)](#multi-workstream-layout-v4)). Both markers are supported; this repo currently runs at marker `3`.
