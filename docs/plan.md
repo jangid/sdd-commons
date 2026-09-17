@@ -366,7 +366,7 @@ and snapshot ordering are pinned per dispatch type; `blocked_writes` are
 scope-matched before persistence. Traces to `harness-write-scope.md`.
 **Depends on**: Chunk 1, Chunk 3.
 **Tasks**:
-1. [implement] Create `skills/sdd-orchestrate/references/write-scope.md`
+1. [x] [implement] Create `skills/sdd-orchestrate/references/write-scope.md`
    carrying: the slot semantics (glob rules; `(empty — read-only)` for review
    and verifier; operator widening at the gate, session-only); the default scope
    table (all rows incl. ADVISORY markers, the fan-out-leaf bar on plan /
@@ -382,14 +382,14 @@ scope-matched before persistence. Traces to `harness-write-scope.md`.
    §Matching and Tags, §Finding Format, §Blocked-Write Fallback, §Commit
    Ownership, §Snapshot Ordering, §Recorded v1 Limitations, §Marker-4 Rooting
    (REQ-HARN-020..026).
-2. [implement] In `references/dispatch-templates.md`: add `Write scope:
+2. [x] [implement] In `references/dispatch-templates.md`: add `Write scope:
    {write_scope}` to the PIPELINE template and `Write scope: (empty —
    read-only)` to the REVIEW template, with slot-contract entries; make each
    template's return step state its commit-ownership row (pipeline: "you are not
    instructed to commit — the orchestrator commits on `proceed`"; review:
    nobody commits). — traces to `harness-write-scope.md` §Declared Write Scope
    Slot, §Commit Ownership (REQ-HARN-020, -024).
-3. [implement] In `references/fan-out.md`: add `Write scope: {write_scope}`
+3. [x] [implement] In `references/fan-out.md`: add `Write scope: {write_scope}`
    (the chunk-group's code and test paths only) to the §2 leaf template and slot
    contract; state the leaf's commit-ownership row (leaf commits on its branch
    with inline identity; the orchestrator merges on `proceed`); replace the
@@ -400,7 +400,7 @@ scope-matched before persistence. Traces to `harness-write-scope.md`.
    — traces to `harness-write-scope.md` §Default Scope Table (fan-out-leaf
    row), §Observation, §Blocked-Write Fallback, §Commit Ownership
    (REQ-HARN-020, -021, -023, -024).
-4. [implement] In `skills/sdd-orchestrate/SKILL.md`: add the `write-scope.md`
+4. [x] [implement] In `skills/sdd-orchestrate/SKILL.md`: add the `write-scope.md`
    stub in §LOOP (snapshot(before) immediately before dispatch, snapshot(after)
    immediately on return, scope check before verifier / gate / commit); §The
    gate references the `SCOPE:` token as signal (2) with the `revert path |
@@ -411,7 +411,7 @@ scope-matched before persistence. Traces to `harness-write-scope.md`.
    — traces to `harness-write-scope.md` §Finding Format and `SCOPE:` Token,
    §Snapshot Ordering; `harness-return-contract.md` §Orchestrator Owns Routing
    (REQ-HARN-019, -022, -025); `orchestration.md` §v5.
-5. [verify] Fixtures per `harness-write-scope.md` §Verification, run in a temp
+5. [x] [verify] Fixtures per `harness-write-scope.md` §Verification, run in a temp
    git repo with the three commands: before `?? .claude/worktrees/`, after adds
    ` M docs/plan.md`, committed delta empty, scope `src/**` → one `OUT
    docs/plan.md uncommitted`, `SCOPE: VIOLATION (1 path)`; clean porcelain with

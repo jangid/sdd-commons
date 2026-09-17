@@ -341,3 +341,10 @@ the flat paths and `main` apply unchanged.
 2. **False-positive rate of the default table** is a dogfooding question
    (RS-008). Default: keep the table as written; widen at the gate and fold
    recurring widenings back into the table in the next cycle.
+### Q-IMPL-062: "Recorded v1 Limitations" heading collides with a lint drift rule
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Recorded v1 Limitations
+**Decision**: `tools/sdd-skill-lint.py` forbids the literal phrase "v1 limitations" in skill text (drift rule); `references/write-scope.md` uses the heading "Recorded limitations, accepted for v1 (REQ-HARN-026)". The spec heading is unchanged.
+**Rationale**: the drift rule predates this cycle and protects skill prose from stale version-qualified wording; the reference must pass lint.
+**Date**: 2026-09-17 (Chunk 4)
+
