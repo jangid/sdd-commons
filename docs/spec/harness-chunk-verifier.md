@@ -342,7 +342,5 @@ changes and, on exhaustion, the checkpoint under the task.
    per-chunk gate the implement stage has two gate kinds and no `VERDICT:`
    exists yet at the per-chunk one. Default adopted (operator decision D1,
    2026-09-17): per-chunk gate = `RETURN.status` → `SCOPE:` → `CHUNK_VERDICT:`;
-   stage gate = the review `VERDICT:` plus the loop counters. Suggested
-   one-line requirement clarification (not applied here): "for the implement
-   stage the first three signals surface at a per-chunk gate before the stage
-   gate".
+   stage gate = the review `VERDICT:` plus the loop counters. **Resolved 2026-09-17**: REQ-ORCH-034 now carries an
+   `[Updated 2026-09-17]` clarification stating exactly this split.
