@@ -355,6 +355,23 @@ shape and field sources, `VERDICT:` and `RETURN.status` branching tables,
 finding → chunk mapping, pruned-state check — is
 `references/return-contract.md`.
 
+**Write scope (stub).** Every leaf template declares `Write scope:` (review
+and verifier: `(empty — read-only)`), filled from a per-stage default table.
+Around every dispatch the orchestrator takes `snapshot(before)` immediately
+before dispatch and `snapshot(after)` immediately on return — before the
+verifier, before the gate and before its own commit or merge — then computes
+the written paths as porcelain delta ∪ committed delta plus an ancestry check,
+tags each `IN` / `ADVISORY` / `OUT`, and surfaces an own-line
+`SCOPE: CLEAN | VIOLATION (N paths)` before the verifier, the gate and any
+commit. `blocked_writes` are scope-matched before persistence; commit
+ownership is fixed per dispatch type (pipeline: orchestrator on `proceed`;
+fan-out leaf: the leaf, orchestrator merges; review/verifier: nobody). The
+full procedure — slot semantics, default scope table, the three commands with
+the fan-out substitution, tags and hints, finding format, revert targets,
+pre-persist match, commit-ownership table, snapshot ordering, the recorded
+limitations list (v1), marker-4 rooting — is
+[`references/write-scope.md`](references/write-scope.md).
+
 ### Per-stage dispatch model
 
 Issue **two separate subagent dispatches** per stage — never a single combined
@@ -532,7 +549,15 @@ operator picks. For *Reject* verdicts the re-review is never skipped.
 **Stage-gate signals (REQ-ORCH-034 order).** The gate line surfaces the harness
 signals in the order they are produced, pointers only: (1) the leaf's
 `RETURN.status` and `budget_consumed` against the dispatched `Budget:`; (2) the
-write-scope block ending in `SCOPE:`; (3) implement stage only, per chunk, the
+write-scope block ending in the own-line `SCOPE: CLEAN | VIOLATION (N paths)`
+token (`references/write-scope.md` §5) — the orchestrator branches on the
+token, never on prose: `VIOLATION` offers, per `OUT` path, `revert path |
+accept & widen scope | stop`, resolved **inside the per-chunk gate** before
+its commit (sequential) or the leaf's merge (fan-out), and `proceed` there is
+unavailable while any `OUT` path is unresolved; `CLEAN` continues to signal
+(3), or at a non-implement stage gate straight to signal (4); a
+`HISTORY_REWRITE` finding counts as a violation and offers only `stop`
+(§Isolation Discipline); (3) implement stage only, per chunk, the
 chunk's `CHUNK_VERDICT:` with `Redo: N of REDO_MAX` (per-chunk gate — §LOOP);
 (4) the parsed review `VERDICT:`; (5) the **loop counters** when a loop is
 active — `iteration N of MAX` for the fix-loop cap and the derived count
@@ -800,7 +825,11 @@ replan cap arithmetic; repair-packet composition; and the decision to merge,
 re-dispatch, replan or stop. Templates tell a subagent what to *produce* (the
 `RETURN:` block, the `VERDICT:` token, findings) — never what to *decide next*.
 The verdict / status branching tables and packet composition live in
-`references/return-contract.md`.
+`references/return-contract.md`; `SCOPE:` branching — snapshot ordering, the
+three commands, tags, revert targets, the `blocked_writes` pre-persist match
+and the commit-ownership table — lives in `references/write-scope.md`. No
+template carries `Write scope:` as something for the subagent to judge; it is
+a bound the orchestrator checks.
 
 ## Isolation Discipline (normative)
 
@@ -813,9 +842,19 @@ The driver MUST:
    artifact, or draft/intermediate states.
 3. On a fix loop, pass the pipeline subagent **only** the review findings plus
    artifact paths — not a re-litigation of the reviewer's reasoning.
+4. **`HISTORY_REWRITE` — no automatic reset.** When the write-scope ancestry
+   check fails (`HEAD_after` — or a leaf's branch tip — does not descend from
+   `HEAD_before` / `<base>`: an amend, rebase or reset inside the dispatch),
+   surface `HISTORY_REWRITE` above the path list, count it as a
+   `SCOPE: VIOLATION`, and offer **only `stop`** plus a manual recovery hint
+   (`git reflog` in the affected tree). Never `git reset` the working tree or
+   a branch, never force-move a ref, never merge a rewritten leaf branch, on
+   the orchestrator's own initiative (`references/write-scope.md` §3, §5).
 
 These mirror `sdd-review` Step 2's "Do NOT accept as inputs" list, enforced at
-dispatch time rather than relying on operator vigilance.
+dispatch time rather than relying on operator vigilance; rule 4 is the
+write-scope analogue — the orchestrator observes and reports, the operator
+decides.
 
 ## Rules
 
