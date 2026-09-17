@@ -82,6 +82,31 @@ filling the Verified column is `SCOPE: CLEAN`.
 
 ## 3. Observation: three commands (REQ-HARN-021)
 
+**Snapshot base rule (REQ-HARN-HARNESSP2-001).** `snapshot(before)` is taken at
+the commit the leaf is **instructed to reach** — never at a stale worktree
+HEAD. Remedy **(i)**, the default: every sequential-pipeline, fix, verifier,
+review and red worktree is provisioned at the intended base — the **workstream
+branch tip** under marker `4`, `main`/HEAD under marker `3` — exactly as
+`fan-out.md` §3 already does for leaves, so the dispatch prompt names no
+catch-up and the leaf never needs to catch up. Remedy **(ii)**, the safety
+net: when a prompt nevertheless names a base commit for the leaf to
+fast-forward or merge to ("reach commit `<sha>`"), `HEAD_before` for the
+committed-delta and ancestry checks is that **named base**; commits reachable
+from the named base but not from the provisioned HEAD are excluded from the
+observed window and reported on the gate block as a `CATCH-UP` line (the
+named-base observation below). Contract: `docs/spec/dispatch-snapshot-base.md`;
+both remedies are restated under limitation (c) in §5.
+
+Provisioning step (sequential and fix dispatches), before `snapshot(before)`:
+
+```
+base      := git rev-parse <workstream-branch>          # marker 4; `main` or HEAD under marker 3
+worktree  := provision at base  (git worktree add <path> base, or `git merge --ff-only base` in an existing worktree)
+HEAD_prov := git -C <worktree> rev-parse HEAD           # == base under remedy (i)
+HEAD_before := base                                     # the instructed tip, not HEAD_prov
+snapshot(before) at HEAD_before
+```
+
 On a leaf's return the orchestrator computes the set of written paths as the
 union of a porcelain delta and a committed delta, plus an ancestry check:
 
@@ -116,7 +141,8 @@ fan-out    : snapshot(before) → dispatch → await return → snapshot(after) 
              → chunk verifier → PER-LEAF GATE → merge (on proceed)   # leaf commits are inside the window by design
 ```
 
-The "before" snapshot is taken immediately before dispatch and the "after"
+The "before" snapshot is taken immediately before dispatch — at `base`, the
+instructed tip, per the snapshot base rule above — and the "after"
 snapshot immediately **on return** — before the verifier dispatch, before the
 per-chunk gate and therefore before the per-chunk gate's commit (sequential) or
 merge (fan-out), and before any `fan-out.md` §3e bookkeeping writes (plan
@@ -154,6 +180,46 @@ render it inside the finding block as one more `OUT` counted in
 `telemetry.md` §4 (never restated here), and **revert before the gate**
 (truncate the file back to `n_before` lines; remove entries the leaf added).
 Fixture: scenario F7 of `tools/sdd-scope-check-selftest.py`.
+
+**Named-base observation (remedy (ii)).** With the named base `base` and the
+provisioned `HEAD_prov`, the observation on return has four parts:
+
+```
+(a) porcelain delta : unchanged (scope.after − scope.before)
+(b) committed delta : paths of commits in  git rev-list HEAD_after ^base ^HEAD_prov
+                      (== git diff --name-status base HEAD_after when HEAD_prov is an ancestor of base)
+(c) ancestry        : git merge-base --is-ancestor base HEAD_after || HISTORY_REWRITE
+(d) catch-up        : N := git rev-list --count HEAD_prov..base
+                      N > 0 → render  CATCH-UP <HEAD_prov>..<base> (N commits, excluded — base <base>)
+```
+
+- `CATCH-UP <from>..<base> (N commits, excluded — base <sha>)` is rendered in
+  the write-scope block's "Observed writes" header line, before the path list,
+  so the finding format names the base. Short shas. Absent when `N == 0`
+  (remedy (i) in effect) — the block is then byte-identical to the
+  three-command rendering.
+- The ancestry check stays intact: a leaf that rewrites history so that `base`
+  is no longer an ancestor of `HEAD_after` still fails it, even if the rewrite
+  also drops catch-up commits.
+- A catch-up performed by **merge** rather than fast-forward: the merge commit
+  is in `HEAD_after ^base ^HEAD_prov` and contributes only its conflict
+  resolutions (`git show --name-status --format=` on a merge commit lists the
+  combined-diff paths); commits reachable from `HEAD_prov` alone were in the
+  worktree before dispatch and are outside the window by definition.
+- Remedy (ii) never widens the window: a commit reachable from the named base
+  is by construction authored before the dispatch (the orchestrator named it),
+  so excluding it cannot hide a leaf write.
+- **Edge cases.** Named base not reachable from the branch (typo in a
+  hand-written prompt): `git rev-list HEAD_prov..base` fails → fall back to
+  `HEAD_before := HEAD_prov` and render `CATCH-UP base <sha> unresolved —
+  window from <HEAD_prov>`; no exclusion is applied. Leaf ignores the catch-up
+  instruction: `base` is not an ancestor of `HEAD_after` **and** `HEAD_prov`
+  is → render `CATCH-UP not performed (base <sha>)` as a warning, take
+  `HEAD_before := HEAD_prov`, and do not count it as a violation; only a
+  `HEAD_after` that contains neither is `HISTORY_REWRITE`. Fan-out leaves are
+  already provisioned at the branch point (`fan-out.md` §3): `<base>` is the
+  branch point and remedy (ii) never applies. The third observation above is
+  unaffected by the base choice — it reads `.sdd/`, not history.
 
 ---
 
@@ -219,6 +285,9 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
   non-implement stage gate after `RETURN.status` and before the review
   `VERDICT:`. When `CLEAN`, only the token line appears in the gate block; the
   full finding block appears only on `VIOLATION`.
+- **Catch-up.** Under remedy (ii) (§3) the `Observed writes` header line
+  carries `CATCH-UP <from>..<base> (N commits, excluded — base <sha>)` before
+  the path list; the line is absent when `N == 0`.
 
 **Recorded limitations, accepted for v1 (REQ-HARN-026)** — not fixed in this cycle:
 
@@ -232,6 +301,18 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
   - **Exception — `.sdd/`.** The telemetry file is observed by the third
     observation of §3 (line count + entry list), not by porcelain; its finding
     strings and the revert rule are defined once in `telemetry.md` §4.
+- **(c) Catch-up fast-forward false positive.** A worktree provisioned at a
+  stale HEAD and told to fast-forward to the tip shows the whole
+  `HEAD_prov..tip` delta as committed writes (RS-HARNESSP2-001 Q6: 20 false
+  `OUT` paths on the first dispatch of the harness-p2 cycle). Remedied by the
+  snapshot base rule (§3, REQ-HARN-HARNESSP2-001): **(i)** provision every
+  sequential-pipeline, fix, verifier, review and red worktree at the tip the
+  leaf is told to reach — the default, cheaper (one `rev-parse` before
+  provisioning) and removes the class rather than reporting it; **(ii)** when
+  a hand-written prompt, entry kickoff or resumed session still names a base,
+  take `HEAD_before` at that named base, exclude `HEAD_prov..base` from the
+  window and render the `CATCH-UP` line. Contract:
+  `docs/spec/dispatch-snapshot-base.md`.
 - Writes outside the repository (scratchpad, `$TMPDIR`) are the sandbox's
   concern, not this check's. The shared stash stack is out of scope (skills
   never stash).
@@ -257,6 +338,26 @@ returning `blocked_writes: [{path: docs/plan.md, …}]` is therefore refused
 `tasks_completed`, its column fills in `traceability_fills`, and its spec
 deviations in `open_questions` — the orchestrator files the Q-IMPL entry at
 merge (`fan-out.md` §3e).
+
+**Scratchpad staging path — expected, not an anomaly (REQ-HARN-HARNESSP2-002).**
+For research leaves and fix leaves that write prose about the harness, the
+following is the **expected** write path (RS-HARNESSP2-001 recorded it twice:
+the `Write` tool refused the research artifact and the worktree guard refused a
+shell heredoc whose prose merely mentioned version-control commands; staging
+under a neutral name and copying in worked both times):
+
+| # | Statement |
+|---|---|
+| (i) trigger | the harness's `Write` tool may refuse an artifact whose prose is about the harness or about version control, and the worktree guard may refuse a shell heredoc whose **prose** mentions version-control commands — including inside heredocs and even when no such command is executed |
+| (ii) path | stage the content in the scratchpad under a **neutral filename** (no version-control or harness vocabulary in the name), then copy or patch it into the repository at its final path |
+| (iii) scope match | the pre-persist match of REQ-HARN-023 and the snapshot pair observe the **final repository path**; the scratchpad name is never matched and never appears in the finding |
+| (iv) `blocked_writes` | reserved for writes that the fallback **also** could not land; a leaf that used the staging path reports `blocked_writes: []` and the file appears in the observed window as an ordinary `IN` path |
+
+The dispatch templates are unchanged (no template tells the leaf how to write
+files); this is a documentation statement on this reference only. The
+orchestrator does not treat a staged-then-copied write differently from any
+other `IN` path. Contract: `docs/spec/dispatch-snapshot-base.md` §Blocked-Write
+Staging Path.
 
 ---
 

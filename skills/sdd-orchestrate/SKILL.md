@@ -245,6 +245,12 @@ misdetects); **include a non-interactivity clause** (no questions, no
 fabricated consent; missing information goes under Open Questions /
 Assumptions with a stated default); and **include the labeled-content
 fallback** (an unwritable file is returned in full, target path labeled).
+**Provision at the tip the leaf is told to reach**: a sequential-pipeline or
+fix dispatch's worktree is provisioned at the workstream branch tip (marker
+`4`; `main`/HEAD under marker `3`) so the prompt names no catch-up commit and
+`snapshot(before)` is taken there — verifier, review and red worktrees the
+same way; procedure and the named-base `CATCH-UP` fallback in
+[`references/write-scope.md`](references/write-scope.md) §3.
 
 ### Per-chunk implement dispatch and per-chunk gate
 

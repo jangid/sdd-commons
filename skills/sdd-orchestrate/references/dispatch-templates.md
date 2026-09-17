@@ -76,6 +76,17 @@ Do not perform any stage other than sdd-{stage}.
 
 ### Slot contract (pipeline)
 - `{repo_root}` — absolute path; pins cwd so phase detection reads the right tree.
+  **Provisioning (remedy (i), `write-scope.md` §3):** when the dispatch runs
+  in a worktree, the orchestrator provisions it at the tip the leaf is told to
+  reach — `git rev-parse <workstream-branch>` under marker `4`, `main`/HEAD
+  under marker `3` — before `snapshot(before)`; the template therefore carries
+  **no** "reach commit `<sha>`" instruction and the leaf never catches up.
+  A hand-written prompt, entry kickoff or resumed session that still names a
+  base commit is remedy (ii): the orchestrator takes `HEAD_before` at that
+  named base and renders the `CATCH-UP` line on the gate block. Verifier,
+  review and red worktrees are provisioned the same way — a deliberate
+  extension beyond REQ-HARN-HARNESSP2-001, so read-only dispatches observe
+  the tip rather than a stale tree.
 - `{stage}` — one of research, requirements, specs, plan, implement, verify.
 - `{ids_if_any}` — IDs the orchestrator assigned centrally (e.g. `RS-006`). Never
   let the subagent pick its own ID.
