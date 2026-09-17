@@ -440,7 +440,7 @@ integrated skill set passes the lint with size warnings only. Traces to
 `skill-lint-v5.md`, `orchestration.md` §v5.
 **Depends on**: Chunk 0, Chunk 2, Chunk 3, Chunk 4.
 **Tasks**:
-1. [implement] Add the nine core `REQUIRED` rows to `tools/sdd-skill-lint.py`
+1. [x] [implement] Add the nine core `REQUIRED` rows to `tools/sdd-skill-lint.py`
    (a: `fix[- ]loop cap|iteration N of 3`; b: `replan re-entry cap`; c1/c2:
    `Budget:` ≥ 3 in `dispatch-templates.md`, ≥ 1 in `fan-out.md`; d1/d2:
    `VERDICT: APPROVE \| APPROVE_WITH_FIXES \| REJECT` in `sdd-review`,
@@ -449,13 +449,13 @@ integrated skill set passes the lint with size warnings only. Traces to
    `SKILL.md`; f: `-replan-` in `sdd-replan`), each with `reason` and a `fix`
    string that names the counterpart file for the d/e pairs. — traces to
    `skill-lint-v5.md` §`REQUIRED` Rows — Core Contracts (REQ-LINT-005).
-2. [implement] Add the nine remaining rows (`RETURN:` ≥ 2 / ≥ 1; `status:
+2. [x] [implement] Add the nine remaining rows (`RETURN:` ≥ 2 / ≥ 1; `status:
    COMPLETE \| PARTIAL \| BLOCKED \| BUDGET_EXHAUSTED`; `\{repair_packet\}` ≥ 2;
    `Write scope:` ≥ 3 / ≥ 1; `oscillation`; `checkpoint` in `sdd-implement` and
    `sdd-replan`) with `fix` strings; extend `self_test()` so each new row fails
    when its marker is removed from a temp copy. — traces to `skill-lint-v5.md`
    §`REQUIRED` Rows — Remaining Contracts, §Self-Test Extension (REQ-LINT-006).
-3. [implement] Create `skills/sdd-orchestrate/references/v4-workstreams.md` and
+3. [x] [implement] Create `skills/sdd-orchestrate/references/v4-workstreams.md` and
    move into it: §Workstream Picker + its three subsections; §Phase Detection
    "Workstream & version gate (v4)" and "Marker-4 gate for done-vs-new-cycle";
    the §Entry Points "Marker-4 scope" paragraph; §KICKOFF "Kickoff path —
@@ -467,14 +467,14 @@ integrated skill set passes the lint with size warnings only. Traces to
    the upgrade offer, phase table, §The gate, dispatch contracts, §Isolation
    Discipline, §Rules, §Orchestrator-Only Work. — traces to `skill-lint-v5.md`
    §Marker-4 Prose Move (REQ-LINT-007); `skill-updates.md` §v5 (REQ-SKILL-024).
-4. [implement] Append a new Q-IMPL entry (Tier 1) to `docs/spec/ws-orchestration.md`
+4. [x] [implement] Append a new Q-IMPL entry (Tier 1) to `docs/spec/ws-orchestration.md`
    §Implementation Questions — "Picker prose lives in
    `references/v4-workstreams.md`; gate and stub remain in `SKILL.md`;
    supersedes Q-IMPL-016's container statement" — and mark Q-IMPL-016
    `[superseded by Q-IMPL-NNN]` per `deviation-protocol.md` §Numbering; never
    edit Q-IMPL-016's body. — traces to `skill-lint-v5.md` §Marker-4 Prose Move
    guard 2 (REQ-LINT-007).
-5. [implement] Integration pass over `skills/sdd-orchestrate/SKILL.md` after the
+5. [implement] (partial — all items done except `wc -l` ≤ ~450: at 720; replan trigger fired 2026-09-17) Integration pass over `skills/sdd-orchestrate/SKILL.md` after the
    Chunk 2/3/4 merges: §The gate lists the REQ-ORCH-034 signal order once
    (per-chunk: `RETURN.status` + `budget_consumed` vs `Budget:` → `SCOPE:` →
    `CHUNK_VERDICT:` + `Redo: N of 3`; stage: review `VERDICT:` → `iteration N of
@@ -484,7 +484,7 @@ integrated skill set passes the lint with size warnings only. Traces to
    mention are intact; `wc -l` ≤ ~450. — traces to `orchestration.md` §v5
    (REQ-ORCH-034); `skill-lint-v5.md` §Marker-4 Prose Move size target
    (REQ-LINT-007); `skill-updates.md` §v5 (REQ-SKILL-019).
-6. [verify] `python3 tools/sdd-skill-lint.py --self-test` exits 0; the live lint
+6. [verify] (partial — all checks pass except the ≤ ~450 size target) `python3 tools/sdd-skill-lint.py --self-test` exits 0; the live lint
    exits 0 printing `OK: 16 file(s) clean, K warning(s)` — 13 baseline files +
    the 3 new `references/` files (`return-contract.md`, `write-scope.md`,
    `v4-workstreams.md`), since the tool enumerates `skills/**/*.md` via

@@ -180,13 +180,13 @@ last_updated: 2026-09-17
 | REQ-LINT-002 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
 | REQ-LINT-003 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
 | REQ-LINT-004 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
-| REQ-LINT-005 | skill-lint-v5.md | | | |
-| REQ-LINT-006 | skill-lint-v5.md | | | |
-| REQ-LINT-007 | skill-lint-v5.md | | | |
+| REQ-LINT-005 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (core rows) | tools/sdd-skill-lint.py REQUIRED core rows a–f | |
+| REQ-LINT-006 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (remaining rows) | tools/sdd-skill-lint.py REQUIRED remaining rows | |
+| REQ-LINT-007 | skill-lint-v5.md | lint exit 0 on references/v4-workstreams.md resolution; research_id row ≥ 3 (10); size target pending replan | references/v4-workstreams.md + SKILL.md stubs; ws-orchestration.md Q-IMPL-072 | |
 | REQ-ORCH-034 | orchestration.md | (partial) signal-order grep in SKILL.md §The gate; stage-gate fixture at Chunk 6 | (partial) sdd-orchestrate/SKILL.md §The gate — stage-gate signals + CHUNK_VERDICT: consumer | |
-| REQ-SKILL-019 | skill-updates.md | | | |
+| REQ-SKILL-019 | skill-updates.md | lint REQUIRED rows a, b, d2, e2 on SKILL.md | sdd-orchestrate/SKILL.md §The gate REQ-ORCH-034 ordered list, single canonical gate block | |
 | REQ-SKILL-020 | skill-updates.md | Chunk 1 task 7 fixture (^RETURN:$ in sdd-implement) — RETURN half; Chunk 2 task 7 fixture F4 — ledger half | sdd-implement/SKILL.md §Leaf Return Contract; Step 3 §Attempt ledger + §Oscillation rule | |
 | REQ-SKILL-021 | skill-updates.md | Chunk 1 task 7 fixture (own-line VERDICT token) | sdd-review/SKILL.md §Step 5 | |
 | REQ-SKILL-022 | skill-updates.md | Chunk 2 task 7 exit-criteria grep (checkpoint + -replan- sentence in sdd-replan) | sdd-replan/SKILL.md Step 1.6, Step 4 | |
-| REQ-SKILL-023 | skill-updates.md | sdd-skill-lint.py --self-test (mechanics half) | tools/sdd-skill-lint.py | |
-| REQ-SKILL-024 | skill-updates.md | | | |
+| REQ-SKILL-023 | skill-updates.md | sdd-skill-lint.py --self-test (mechanics half); sdd-skill-lint.py --self-test §7 (REQUIRED rows half) | tools/sdd-skill-lint.py; tools/sdd-skill-lint.py REQUIRED rows | |
+| REQ-SKILL-024 | skill-updates.md | lint exit 0; every stub has UNCHANGED + resolving link (move half) | references/v4-workstreams.md (move half; docs half in Chunk 6) | |
