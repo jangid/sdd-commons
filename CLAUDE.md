@@ -135,7 +135,7 @@ blocked-task note.
 
 ### Phase Detection
 
-Every skill checks `docs/.sdd-version` on entry. If missing, it suggests running `sdd-migrate`. `docs/.sdd-version` is the **sole layout gate**: marker `3` (or earlier) selects the flat single-operator layout; marker `4` selects the multi-workstream layout where phase detection is a **function of `(repo, workstream)`** — every skill takes a `workstream` argument (default `default`) and roots execution artifacts at `docs/ws/<id>/` (see [Multi-Workstream Layout (v4)](#multi-workstream-layout-v4)). Both markers are supported; this repo currently runs at marker `3`.
+Every skill checks `docs/.sdd-version` on entry. If missing, it suggests running `sdd-migrate`. `docs/.sdd-version` is the **sole layout gate**: marker `3` (or earlier) selects the flat single-operator layout; marker `4` selects the multi-workstream layout where phase detection is a **function of `(repo, workstream)`** — every skill takes a `workstream` argument (default `default`) and roots execution artifacts at `docs/ws/<id>/` (see [Multi-Workstream Layout (v4)](#multi-workstream-layout-v4)). Both markers are supported; this repo migrated to marker `4` on 2026-09-17 (solo work runs in the implicit `default` workstream).
 
 Skills then detect the current phase by checking which artifacts exist **and whether they are stale**. Execution-artifact paths depend on the marker — under marker `3` they are the flat paths below; under marker `4` the same artifacts live at `docs/ws/<id>/` (the shared corpus — `research/`, `requirements/`, `spec/` — stays at top level under both markers):
 
