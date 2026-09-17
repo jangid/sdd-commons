@@ -1,0 +1,220 @@
+---
+domain: HARN
+last_updated: 2026-09-17
+status: Approved
+research_refs: [RS-008, RS-005, RS-006]
+---
+
+# Requirements: Harness Hardening — Decoupled Verification
+
+## Overview
+
+Second of the three `HARN` files (see `harness-loop-control.md` for the domain
+overview, standing constraints, marker-4 resolution rule, procedure-placement
+rule and terminology; `harness-boundaries.md` for the write-scope check). This
+file covers **decoupled verification** and **context hygiene** (RS-008 Q2–Q4;
+catalogue B5–B7, C8, C9): a structured `RETURN:` block from every leaf, a
+fixed-shape repair packet for fix re-dispatches, a machine-parseable `VERDICT:`
+token from `sdd-review`, a fresh chunk-close verifier that re-executes
+`sdd-implement` Step 4's mechanical checks, pruned state on re-dispatch, and
+orchestrator-owned routing.
+
+Marker-4 resolution rule (restated): under `docs/.sdd-version` == `4` the same
+artifacts are rooted at `docs/ws/<id>/` and the revert/merge target is the
+workstream branch, not `main`; marker `3` is unchanged. Procedure text for the
+`RETURN:` field-source mapping, repair-packet field sources and verdict branching
+lands in the new `skills/sdd-orchestrate/references/return-contract.md`, with a
+stub/pointer in `SKILL.md`.
+
+## Requirements
+
+### Decoupled verification
+
+### REQ-HARN-009: Structured `RETURN:` block from every leaf
+Every leaf dispatch template (pipeline, fix re-dispatch, fan-out leaf, chunk
+verifier) must instruct the subagent to end its return text with a `RETURN:`
+block whose first line is `status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED`
+on its own line, followed by these keys (empty where not applicable):
+`budget_consumed`, `files_written`, `commits`, `tasks_completed`,
+`traceability_fills`, `chunk_close` (per-check pass/deferred/advisory/fail plus
+overrides), `failures` (REQ-HARN-010), `ledger` (REQ-HARN-006),
+`verified_do_not_touch`, `open_questions`, `blocked_writes` (the labeled-content
+fallback, as `[{path, content}]`). Values are path references and one-line
+strings only — no prose reasoning. The orchestrator must parse the block rather
+than free-form prose, and must treat a missing or malformed block as a gate
+pause (REQ-ORCH-018 analogue), never as success. `sdd-specs` may rename keys;
+the load-bearing decisions are: structured block first, own-line status token,
+one-line failures, no tracebacks. (see RS-008 Q3 Schema 1)
+**Acceptance**: the pipeline and fan-out templates' return step includes the
+block; `references/return-contract.md` names the field-to-consumer mapping
+(`tasks_completed` → plan `[x]`, `traceability_fills` → §3e, `failures` /
+`ledger` → repair packet and checkpoint, `blocked_writes` → persistence with
+scope check) and `SKILL.md` points to it; `tools/sdd-skill-lint.py` has a
+`REQUIRED` row for `RETURN:` / `status:` in the templates (REQ-LINT-006).
+[Priority: must]
+
+### REQ-HARN-010: Failures are one-line and traceback-free
+Each `failures[]` entry in a `RETURN:` block must carry `test` (test id or
+command), `kind` ∈ {assertion, error, lint, type, build}, `message` (the last
+frame / one line, ANSI-stripped) and `location` (`path:line` where known). Full
+tracebacks and tool output must never be carried in a return or a repair packet;
+they are regenerable by re-running the named test. (see RS-008 Q3)
+**Acceptance**: the template shows the four-field shape; a repair packet fixture
+contains no multi-line traceback.
+[Priority: must]
+
+### REQ-HARN-011: Repair packet for fix re-dispatches
+A fix re-dispatch (pipeline loop-back-to-fix, and a fan-out redo after a verifier
+FAIL or merge abort) must carry a fixed-shape **repair packet** in place of the
+free-form `{review_findings}` slot, with the fields: `stage`, `iteration N of
+MAX` (REQ-HARN-001), `budget` (REQ-HARN-004), `write_scope` (REQ-HARN-020),
+`target` (artifact paths + chunk), `failures` (verbatim from the previous
+`RETURN.failures` or the verifier's return), `findings` (verbatim Critical/
+Material finding lines from the `sdd-review` report — id, text, spec ref,
+affected REQ ids, suggested fix — nothing else), `spec_excerpt` (**path + section
+heading + line range only — no quoted spec text**; the leaf reads the lines
+itself), `ledger_summary` (one line per prior attempt, from `RETURN.ledger`),
+`verified_do_not_touch`. The packet must contain no reviewer reasoning, no
+quoted artifact content and no accumulated history beyond the ledger summary, so
+REQ-ORCH-012 ("findings and paths only") holds by construction. The leaf must be
+instructed to act on the packet and not re-derive the history. (see RS-008 Q3
+Schema 2; catalogue B6)
+**Acceptance**: `dispatch-templates.md` has a `{repair_packet}` slot in the
+`{on_fix_only}` block with the listed fields; `tools/sdd-skill-lint.py` has a
+`REQUIRED` row for the slot (REQ-LINT-006); a filled packet fixture for a
+two-iteration fix has exactly two `ledger_summary` lines and its `spec_excerpt`
+is of the form `docs/spec/<file>.md § <heading> L<from>-<to>` with no quoted
+text.
+[Priority: must]
+
+### REQ-HARN-012: Orchestrator fills the packet from returns, reports and disk
+The orchestrator must populate every repair-packet field from one of three
+sources only: the previous leaf's or verifier's `RETURN:` block (`failures`,
+`ledger_summary`, `verified_do_not_touch`), the review report's finding lines
+(`findings`, lifted line-for-line), or files it reads from disk (`target`, and
+the path / section heading / line range that make up `spec_excerpt` — never the
+spec's content). `iteration`, `budget` and `write_scope` are orchestrator state.
+It must never paraphrase, summarize, or add its own or the reviewer's reasoning.
+(see RS-008 Q3 "How the orchestrator fills it")
+**Acceptance**: `skills/sdd-orchestrate/references/return-contract.md` carries the
+field-source table and `SKILL.md` has a stub pointing to it; a packet's
+`findings` entries are byte-identical to the corresponding review report lines
+apart from structural quoting.
+[Priority: must]
+
+### REQ-HARN-013: Machine-parseable `VERDICT:` token from sdd-review
+`sdd-review` must emit `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT` as a
+single line on its own, in addition to its existing report (Verdict / Strengths
+/ Critical-Material-minor findings / Recommendation). The orchestrator must
+branch on that token — APPROVE → proceed offered; APPROVE_WITH_FIXES → proceed
+or fix offered, findings carried into the packet; REJECT → fix offered subject
+to REQ-HARN-001, or REQ-ORCH-018 pause when no actionable findings — and must
+never classify a verdict by parsing prose. A missing or unrecognized token must
+be surfaced at the gate as a malformed review, not interpreted. (see RS-008 Q4;
+catalogue B7)
+**Acceptance**: `sdd-review/SKILL.md` report template contains the token line;
+`sdd-orchestrate/SKILL.md` §The gate names the three values and points to the
+branching table in `references/return-contract.md`; `tools/sdd-skill-lint.py`
+carries the producer/consumer `REQUIRED` pair (REQ-LINT-005).
+[Priority: must]
+
+### REQ-HARN-014: Fresh chunk-close verifier re-executes Step 4 mechanics
+Under `sdd-orchestrate`, the orchestrator must dispatch a fresh, context-isolated
+**chunk-close verifier** per closed chunk that independently re-runs the
+deterministic parts of `sdd-implement` Step 4 — Check 1 (spec-implementation type
+alignment, REQ-CHKC-002), Check 3 (test coverage per spec, REQ-CHKC-004) and the
+project's quality gates (build / lint / type / tests from `CLAUDE.md`) — and
+returns `CHUNK_VERDICT: PASS | FAIL` on its own line plus findings in the
+existing chunk-close report shape (REQ-CHKC-007). Check 2 (traceability,
+REQ-CHKC-003) stays orchestrator-applied and is verified after the fill; Check 4
+(Q-IMPL audit, REQ-CHKC-005) stays with the implementer and the implement-stage
+`sdd-review`. The verifier is a **second executor** of the existing chunk-close
+layer, not a fifth verification layer: the implementer keeps Step 4 unchanged
+(standalone `sdd-implement` has no one to dispatch a verifier), and the verifier
+must **not** be `sdd-review` (REQ-REV-005/006 place these checks outside review's
+scope). A FAIL must route to a repair packet (REQ-HARN-011), never to a merge or
+to the implement-stage review. (see RS-008 Q2; catalogue B5)
+**Acceptance**: the verifier dispatch template invokes no `sdd-review`; its
+return contains the token line; the four-layer table in `sdd-review` and
+`CLAUDE.md` is unchanged; `tools/sdd-skill-lint.py` has a `REQUIRED` row for
+`CHUNK_VERDICT:` (REQ-LINT-005).
+[Priority: must]
+
+### REQ-HARN-015: Verifier runs per fan-out leaf, in the worktree, before merge
+Under fan-out, the orchestrator must run one chunk-close verifier per leaf
+**inside that leaf's worktree on its branch, before** the branch is merged. A
+`CHUNK_VERDICT: FAIL` means the branch is not merged; the orchestrator issues a
+repair packet to a redo dispatch on that branch (or aborts the group per
+REQ-ORCH-026). Only PASS branches proceed to the sequential merge
+(REQ-ORCH-025). (see RS-008 Q2)
+**Acceptance**: `fan-out.md` §3 sequences verifier → merge for each leaf; a FAIL
+fixture shows no `git merge` of that branch.
+[Priority: must]
+
+### REQ-HARN-016: Per-chunk implement dispatch in sequential mode
+Under `sdd-orchestrate` in sequential mode, the implement stage must be dispatched
+**per chunk** (one pipeline dispatch per `### Chunk N`, in plan order) rather than
+as one dispatch covering all chunks, so that the chunk-close verifier
+(REQ-HARN-014), the budget (REQ-HARN-004) and the write scope (REQ-HARN-020)
+have a natural per-chunk unit. This is a driver-level change: `sdd-implement`
+is not modified — it is told which chunk to run, exactly as fan-out already does
+(REQ-ORCH-001 unaffected). The implement-stage `sdd-review` still runs once,
+after all chunks (or after the fan-out merge), on the merged state. (see RS-008
+Q2 option (i); Q-REQ-E in `index.md`)
+**Acceptance**: `dispatch-templates.md` §PIPELINE (implement) takes a `Chunk N`
+parameter; a three-chunk plan run sequentially yields three implement dispatches,
+three verifier dispatches and one review dispatch.
+[Priority: must]
+
+### REQ-HARN-017: Verifier dispatch is a read-only leaf — paths-only, budgeted, ephemeral
+The chunk verifier **is a leaf dispatch** (REQ-HARN-009): its template carries
+the leaf slots and nothing else. The dispatch prompt must carry only: repository
+root or worktree path, plan path + `Chunk N`, the spec paths the chunk's tasks
+trace to, the project's gate commands, a `Budget:` in observable units (e.g. "1
+chunk, ≤ 15 tool calls, ≤ 2 test runs"), a `Write scope:` slot that is **empty
+(read-only)**, the instruction to run Checks 1 and 3 plus gates, the
+non-interactivity clause, and the instruction to end with the `RETURN:` block
+(REQ-HARN-009) with `CHUNK_VERDICT: PASS | FAIL` on its own line inside or
+immediately alongside it, plus findings in the chunk-close report shape — no
+implementer reasoning, no review report, no orchestrator conversation. The
+verifier never commits (REQ-HARN-024) and its result surfaces as gate text only;
+it is never written to disk (REQ-ORCH-013 analogue). (see RS-008 Q2 minimal
+contract)
+**Acceptance**: the verifier template has the listed slots — including `Budget:`,
+an empty `Write scope:` and a `RETURN:` block ending with or carrying
+`CHUNK_VERDICT:` — and nothing else; the scope check (REQ-HARN-021) on a
+verifier return observes zero writes; no `docs/` file is written by or on
+behalf of a verifier.
+[Priority: must]
+
+### Context hygiene
+
+### REQ-HARN-018: Pruned state on re-dispatch
+A fix re-dispatch or redo dispatch must pass only the **latest** artifact paths
+and the **latest** findings (the repair packet, REQ-HARN-011) — never
+accumulated prior packets, prior review reports, or conversation history. Large
+content must be referenced by path (spec references as path + section heading +
+line range per REQ-HARN-011; everything else by path). The orchestrator must
+keep dispatch prompts bounded to the template slots; an operator-visible warning
+is expected if a prompt exceeds the template's slot set. (see RS-008 Q3;
+catalogue C8)
+**Acceptance**: a second fix dispatch prompt for the same stage contains one
+repair packet, not two; no fenced review report and no quoted spec text appears
+in a fix prompt.
+[Priority: must]
+
+### REQ-HARN-019: Orchestrator owns routing and verdict classification
+Phase detection relay, verdict classification (REQ-HARN-013), `CHUNK_VERDICT:`
+and `SCOPE:` interpretation (REQ-HARN-014, REQ-HARN-022), cap arithmetic
+(REQ-HARN-001/002), repair-packet composition (REQ-HARN-012) and the decision to
+merge, re-dispatch, replan or stop are **orchestrator-only** work and must never
+be delegated to a pipeline, fix, fan-out, verifier or review subagent.
+`sdd-orchestrate/SKILL.md` must state this as a principle alongside REQ-ORCH-030
+(orchestrator-only dispatch); the per-token interpretation procedures themselves
+(verdict branching, `SCOPE:` branching, packet composition) live in
+`references/return-contract.md` and `references/write-scope.md`, not in the
+SKILL.md body. (see RS-008 Q4 "not mechanical"; catalogue C9)
+**Acceptance**: no dispatch template asks the subagent to decide the next stage,
+classify a verdict, or judge scope; the principle appears in §Orchestrator-Only
+Work with pointers to the two references files.
+[Priority: must]

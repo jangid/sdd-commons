@@ -1,5 +1,5 @@
 ---
-version: "12.0"
+version: "12.1"
 last_updated: 2026-09-17
 traceability: traceability.md
 ---
@@ -62,7 +62,9 @@ tools-skills-agents repository. Covers three scopes:
 | functional | [review.md](functional/review.md) | REV | REQ-REV-001..008 | Approved | 2026-05-25 |
 | functional | [orchestration.md](functional/orchestration.md) | ORCH | REQ-ORCH-001..034 | Approved | 2026-09-17 |
 | functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030 | Approved | 2026-07-23 |
-| functional | [harness-hardening.md](functional/harness-hardening.md) | HARN | REQ-HARN-001..027 | Approved | 2026-09-17 |
+| functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027 | Approved | 2026-09-17 |
+| functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019 | Approved | 2026-09-17 |
+| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026 | Approved | 2026-09-17 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024 | Approved | 2026-09-17 |
 | integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007 | Approved | 2026-09-17 |
@@ -109,7 +111,7 @@ tools-skills-agents repository. Covers three scopes:
 | REV | External Review | functional/review.md |
 | ORCH | SDD Orchestration Driver | functional/orchestration.md |
 | WS | Multi-Workstream SDD | functional/multi-workstream.md |
-| HARN | Harness Hardening | functional/harness-hardening.md |
+| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files) |
 | CTX | AI Context Budget | non-functional/context-and-compatibility.md |
 | COMPAT | Git Compatibility | non-functional/context-and-compatibility.md |
 | SKILL | Skill Updates | integration/skill-updates.md |
@@ -245,7 +247,8 @@ Resolved during requirements gathering for RS-002:
 
 - Code changes to skills (implementation phase)
 - Redesigning the broader SDD methodology
-- New skills not derived from RS-002, RS-003, or RS-004
+- New skills not derived from the research this corpus traces (RS-002 through
+  RS-008)
 - Forward planning to v4
 - Cross-project review (sdd-review operates on one SDD project at a time)
 - Review automation or auto-triggering
@@ -286,15 +289,13 @@ Resolved during requirements gathering for RS-002:
   **Default**: the verifier is default-on under orchestrate (REQ-HARN-014,
   REQ-HARN-016); dogfood one implement stage and revisit opt-in at verify.
 - **Write-scope false positives (RS-008 Q5):** the noise rate of the default
-  scope table is unmeasured. **Default**: ship the table in REQ-HARN-020 with the
-  spec-file case advisory (REQ-HARN-026); dogfood one real pipeline dispatch and
-  tune at verify.
-- **HARN file size:** `functional/harness-hardening.md` is 468 lines, above the
-  sdd-requirements 300-line split guideline. **Default**: keep one file for this
-  cycle (IDs are permanent either way); if the operator prefers, split along the
-  file's own section headings — loop control (REQ-HARN-001..008), decoupled
-  verification (009..017), context hygiene + boundaries + constraints (018..027)
-  — sharing the `HARN` prefix, as a follow-up edit.
+  scope table is unmeasured. The table in REQ-HARN-020 was re-walked on
+  2026-09-17 against every stage skill's `SKILL.md` (review finding C1 caught
+  `sdd-verify`'s Verified-column write), so skill-instructed side-writes are all
+  `IN`; residual noise is expected from project files a chunk touches beyond its
+  declared source/test globs, not from the skills. **Default**: ship the table
+  with the spec-file case `ADVISORY` (REQ-HARN-026); dogfood one real pipeline
+  dispatch and tune at verify.
 
 All other Q-REQ items resolved.
 

@@ -79,16 +79,19 @@ The `REQUIRED` table must gain rows asserting presence of the following
 contracts, each with `reason` and `fix` text: (a) the fix-loop cap in
 `skills/sdd-orchestrate/SKILL.md` (pattern matching `iteration N of 3` / "fix-loop
 cap", REQ-HARN-001); (b) the replan re-entry cap in the same file (REQ-HARN-002);
-(c) a `Budget:` slot in **all three** dispatch template homes —
-`references/dispatch-templates.md` (pipeline, review) and `references/fan-out.md`
-(leaf) — one row per file (REQ-HARN-004); (d) the `VERDICT:` token as a
+(c) a `Budget:` slot in **both** dispatch template files —
+`skills/sdd-orchestrate/references/dispatch-templates.md` (pipeline and review
+templates, plus the new chunk-verifier template) and
+`skills/sdd-orchestrate/references/fan-out.md` (leaf template) — one row per
+file, two rows (REQ-HARN-004); (d) the `VERDICT:` token as a
 producer/consumer pair — `skills/sdd-review/SKILL.md` and
 `skills/sdd-orchestrate/SKILL.md` (REQ-HARN-013), following the existing
 `**Depends on**` ↔ fan-out pair pattern; (e) the `CHUNK_VERDICT:` token in the
 verifier template and its consumer in `sdd-orchestrate` (REQ-HARN-014); (f) the
 `-replan-` filename segment in `skills/sdd-replan/SKILL.md` (REQ-HARN-003). (see
 RS-008 Q4 contract table)
-**Acceptance**: removing any one of the six markers from its file makes the lint
+Row count: (a) 1 + (b) 1 + (c) 2 + (d) 2 + (e) 2 + (f) 1 = **nine** rows.
+**Acceptance**: removing any one of the nine markers from its file makes the lint
 exit 1 with that row's fix string; with all present the lint exits 0 (modulo
 size warnings).
 [Priority: must]
@@ -130,5 +133,7 @@ check). (see RS-008 Q4 section table; catalogue C10)
 **Acceptance**: `tools/sdd-skill-lint.py` exits 0 after the move; every moved
 section has a stub containing "UNCHANGED" (or equivalent marker-3 sentence) and a
 resolving link (REQ-LINT-004); `ws-orchestration.md` has a new Q-IMPL entry
-citing Q-IMPL-016; `sdd-orchestrate/SKILL.md` ≤ ~450 lines.
+citing Q-IMPL-016; `sdd-orchestrate/SKILL.md` after this cycle — the marker-4
+move plus the HARN stubs pointing at `references/write-scope.md` and
+`references/return-contract.md` — is no larger than ~450 lines.
 [Priority: must]

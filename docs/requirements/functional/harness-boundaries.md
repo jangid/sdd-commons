@@ -1,0 +1,163 @@
+---
+domain: HARN
+last_updated: 2026-09-17
+status: Approved
+research_refs: [RS-008, RS-005, RS-006]
+---
+
+# Requirements: Harness Hardening — Boundaries
+
+## Overview
+
+Third of the three `HARN` files (see `harness-loop-control.md` for the domain
+overview, standing constraints, marker-4 resolution rule, procedure-placement
+rule and terminology; `harness-verification.md` for the `RETURN:` block, repair
+packet and chunk verifier). This file covers **boundaries** (RS-008 Q5;
+catalogue E13): a declared write scope per dispatch, filled from a per-stage
+default table, checked mechanically on return (porcelain delta + committed delta
++ ancestry) and surfaced as gate text, plus commit ownership per dispatch type
+and the snapshot ordering that keeps the orchestrator's own commit out of the
+observed window.
+
+Marker-4 resolution rule (restated): under `docs/.sdd-version` == `4` the same
+artifacts are rooted at `docs/ws/<id>/` and the revert/merge target is the
+workstream branch, not `main`; marker `3` is unchanged. Procedure text for the
+scope default table, the three-command check, the finding format, commit
+ownership, snapshot ordering and the v1 limitations lands in the new
+`skills/sdd-orchestrate/references/write-scope.md`, with a stub/pointer in
+`SKILL.md`.
+
+## Requirements
+
+### Boundaries
+
+### REQ-HARN-020: Declared write scope per dispatch
+Every leaf dispatch prompt must carry a `Write scope:` slot — a glob list of the
+repository paths the subagent may create, modify, delete or rename. The
+orchestrator must fill it from a per-stage default table, which must include
+each stage skill's legitimate side-writes. The default table (marker `3` paths;
+under `docs/.sdd-version` == `4` `docs/plan*.md`, `docs/plan-history/**`,
+`docs/verification.md` and the traceability write resolve to `docs/ws/<id>/`
+equivalents, while `docs/research/**`, `docs/requirements/**` and `docs/spec/**`
+stay shared; marker `3` unchanged):
+
+| Stage / dispatch | Default write scope |
+|------------------|---------------------|
+| research | `docs/research/RS-NNN-*/**`, `docs/research/index.md` |
+| requirements | `docs/requirements/**` (category files, `index.md`, `traceability.md` rows) |
+| specs | `docs/spec/**`, `docs/requirements/traceability.md` (Spec column only — no other requirements write) |
+| plan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**` (rewrite archives, never `-replan-`) |
+| implement (sequential, per chunk) | the chunk's source/test paths, `docs/plan.md`, `docs/plan-*.md`, `docs/requirements/traceability.md` (Test/Implementation columns), `docs/spec/*.md` (Q-IMPL entries — advisory, REQ-HARN-026), `docs/plan-history/*-complete.md` (milestone-complete archives, multi-milestone plans only), `docs/research/RS-NNN-*/**` + `docs/research/index.md` (spike tasks only) |
+| verify | `docs/verification.md`, `docs/requirements/traceability.md` (Verified column, Step 3b) |
+| replan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**` (`-replan-` archives); `docs/spec/*.md` only for a Level-2 inline spec change (advisory) |
+| fan-out leaf | the chunk-group's code and test paths **only** (plan and traceability are already barred by `fan-out.md` §2) |
+| review, chunk verifier | *(empty — read-only)* |
+
+The operator may widen a scope at the gate. **Rationale / re-walk note:** the
+table was re-walked on 2026-09-17 against every stage skill's `SKILL.md`
+(`sdd-research` Step 5–6, `sdd-requirements` Step 5, `sdd-specs` Step 3b,
+`sdd-plan` Step 6 archival, `sdd-implement` Steps 3–4 + spike tasks + milestone
+completion, `sdd-verify` Step 3b, `sdd-replan` Steps 3–4) after review finding
+C1 showed the first draft omitted `sdd-verify`'s Verified-column write; the
+side-writes listed are the ones those skills instruct today, so a legitimate
+side-write is tagged `IN`, never a false `VIOLATION`. (see RS-008 Q5; catalogue
+E13)
+**Acceptance**: pipeline and fan-out templates contain `Write scope:`; the
+default table is in `skills/sdd-orchestrate/references/write-scope.md` and
+`SKILL.md` has a stub pointing to it; a sequential verify dispatch that fills
+the Verified column yields `SCOPE: CLEAN`; `tools/sdd-skill-lint.py` has a
+`REQUIRED` row for the slot (REQ-LINT-006).
+[Priority: must]
+
+### REQ-HARN-021: Write-scope observation = porcelain delta + committed delta + ancestry
+On a leaf's return, the orchestrator must compute the set of written paths as the
+**union** of (a) the delta between a `git status --porcelain=v1
+--untracked-files=all` snapshot taken before dispatch and one taken on return,
+(b) the committed delta `git diff --name-status <HEAD_before> <HEAD_after>`, and
+(c) must run `git merge-base --is-ancestor <HEAD_before> <HEAD_after>`, flagging a
+non-zero exit as a history rewrite. For a fan-out worktree the same three
+commands run against the worktree path and `<base>..<branch>`. Deletions and
+renames (`D`/`R`) count as writes. Paths present in both snapshots (pre-existing
+untracked noise) cancel. A porcelain-only check is explicitly insufficient
+because committed writes vanish from porcelain output. Every observed path is
+matched against the declared scope; any path outside it is a **boundary
+finding**. (see RS-008 Q5)
+**Acceptance**: the three commands are named in
+`skills/sdd-orchestrate/references/write-scope.md` (with a one-line pointer in
+`SKILL.md`); a dispatch that commits `docs/plan.md` outside its scope is flagged
+even though porcelain is clean afterwards.
+[Priority: must]
+
+### REQ-HARN-022: `SCOPE:` finding surfaces as gate text only
+The write-scope result must be presented at the gate **next to** the review
+verdict as ephemeral text — never persisted (REQ-ORCH-013 analogue) — in a fixed
+shape: the dispatch identity (stage, chunk, worktree/branch), declared scope,
+observed writes tagged `IN` / `OUT` / `ADVISORY` (REQ-HARN-026) with status
+letter and committed/uncommitted provenance, then `SCOPE: CLEAN` or `SCOPE:
+VIOLATION (N paths)` on its own line (`ADVISORY` paths do not count toward N),
+followed by the options `revert path | accept & widen scope | stop`. The
+orchestrator must branch on the `SCOPE:` token, not prose. A path listed in the
+stage's default scope (REQ-HARN-020) — e.g. `sdd-verify`'s Verified-column
+write to `docs/requirements/traceability.md` — is `IN` and never a finding. For
+a fan-out leaf the check runs **before** merge, so a revert is a `git checkout`
+/ `git reset` on the leaf branch, never on the integration branch. Under
+`docs/.sdd-version` == `4` the integration branch — and therefore the
+revert/merge target for a sequential dispatch — is the workstream branch, not
+`main`; marker `3` is unchanged. (see RS-008 Q5 finding format)
+**Acceptance**: the format block is in
+`skills/sdd-orchestrate/references/write-scope.md` and `SKILL.md` §The gate
+points to it; a VIOLATION fixture on a leaf shows no merge of that branch; no
+`docs/` file records the finding.
+[Priority: must]
+
+### REQ-HARN-023: Scope check on the returned-content fallback
+When a leaf returns `blocked_writes` (the labeled-content fallback for writes the
+harness blocked), the orchestrator must run the same scope match on each labeled
+path **before** persisting it, and must refuse — or ask the operator at the
+gate — for any out-of-scope path. The orchestrator's own persistence is the
+observable event in this case, so the porcelain/commit check alone cannot catch
+it. (see RS-008 Q5)
+**Acceptance**: a `blocked_writes` entry for `docs/plan.md` from a fan-out leaf is
+not written and appears as a boundary finding.
+[Priority: must]
+
+### REQ-HARN-024: Commit ownership per dispatch type
+Who commits must be pinned per dispatch type: for a **pipeline** dispatch and a
+**fix re-dispatch** the orchestrator commits after the gate (the leaf returns
+`files_written`, and is not instructed to commit); a **fan-out leaf** commits on
+its own branch with inline identity flags (REQ-ORCH-027) and returns `commits`;
+**review** and **verifier** dispatches never commit. The dispatch templates must
+state the rule for their type, and the rule table lives in
+`skills/sdd-orchestrate/references/write-scope.md` (pointer in `SKILL.md`).
+(see RS-008 Q5 "Requirement to pin")
+**Acceptance**: each template's return step states commit ownership; a pipeline
+leaf that commits anyway is not a scope violation (its commit is inside the
+observed window and matched by path) but the template no longer invites it.
+[Priority: must]
+
+### REQ-HARN-025: Snapshot ordering excludes the orchestrator's own commit
+The "before" snapshot (`HEAD` + porcelain) must be taken immediately before the
+dispatch and the "after" snapshot immediately on return, **before** the
+orchestrator's own gate commit, so the orchestrator's commit is never inside the
+observed window and can never be flagged as a violation. (see RS-008 Q5)
+**Acceptance**: the ordering is stated in
+`skills/sdd-orchestrate/references/write-scope.md` next to the three commands;
+a sequential pipeline stage followed by an orchestrator commit yields `SCOPE:
+CLEAN` when the leaf stayed in scope.
+[Priority: must]
+
+### REQ-HARN-026: Write-scope check v1 limitations are recorded
+The v1 write-scope check should record two accepted blind spots in
+`skills/sdd-orchestrate/references/write-scope.md` rather than fix them: (a)
+implement legitimately edits spec files only inside their `## Implementation
+Questions` section (Q-IMPL), and replan only for a Level-2 inline change; a
+path-level check cannot see that, so a spec-file write in an implement or replan
+scope is tagged **`ADVISORY`** ("verify hunks are under ## Implementation
+Questions" / "verify this is the Level-2 spec change") until a hunk-level check
+exists; (b) paths matched by `.gitignore` are not observed (`--ignored` is not
+used) — they are not project content. Writes outside the repository are the
+sandbox's concern, not this check's. (see RS-008 Q5)
+**Acceptance**: both limitations appear in the references file next to the
+finding format; a spec-file write in an implement scope shows the `ADVISORY` tag
+in the finding, not `OUT`.
+[Priority: should]

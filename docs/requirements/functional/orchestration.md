@@ -334,7 +334,8 @@ research questions. It remains git-tracked and the only new on-disk artifact typ
 
 <!-- REQ-ORCH-034 adds the gate-text additions required by the harness-hardening
      cycle. The hardening mechanisms themselves live in the HARN domain
-     (functional/harness-hardening.md). (see RS-008) -->
+     (functional/harness-loop-control.md, harness-verification.md,
+     harness-boundaries.md). (see RS-008) -->
 
 ### REQ-ORCH-034: Gate text carries the hardening signals
 _(added 2026-09-17, RS-008)_
@@ -347,6 +348,11 @@ fix loop is active, `iteration N of MAX` (REQ-HARN-001) or the replan re-entry
 count against its cap (REQ-HARN-002). The operator's decision vocabulary stays
 proceed │ loop-back-to-fix │ stop, extended only by the scope options `revert
 path | accept & widen scope`. All of this is ephemeral gate text (REQ-ORCH-013).
-**Acceptance**: `sdd-orchestrate/SKILL.md` §The gate lists the five signals; a
-gate rendering fixture shows them in the stated order.
+The gate rendering procedure (token branching, scope finding format) lives in
+`skills/sdd-orchestrate/references/return-contract.md` and
+`references/write-scope.md`; `SKILL.md` §The gate carries the ordered signal list
+and a pointer only.
+**Acceptance**: `sdd-orchestrate/SKILL.md` §The gate lists the five signals and
+links the two references files (REQ-LINT-004 resolves the links); a gate
+rendering fixture shows them in the stated order.
 [Priority: must]

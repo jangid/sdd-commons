@@ -149,7 +149,12 @@ additions (REQ-ORCH-034). Template changes land in
 `skills/sdd-orchestrate/references/dispatch-templates.md` (pipeline, review, new
 verifier template, `{repair_packet}` slot) and `references/fan-out.md` (leaf
 template, verifier-before-merge sequencing, checkpoint application in §3e).
-(see RS-008)
+New procedure text lands in **new** references files — `references/write-scope.md`
+(scope default table, three-command check, finding format, commit ownership,
+snapshot ordering, v1 limitations) and `references/return-contract.md` (`RETURN:`
+field-source mapping, repair-packet field sources, `VERDICT:` / `CHUNK_VERDICT:`
+/ `SCOPE:` branching) — with short stubs/pointers in `SKILL.md`, so `SKILL.md`
+stays within the REQ-LINT-007 size target. (see RS-008)
 [Priority: must]
 
 ### REQ-SKILL-020: sdd-implement ledger, oscillation and checkpoint
@@ -189,5 +194,9 @@ its self-test must cover each new check. (see RS-008 Q4)
 `references/v4-workstreams.md` per REQ-LINT-007, with the `research_id` lint
 guard and the superseding Q-IMPL entry in `docs/spec/ws-orchestration.md`. The
 operator documentation (REQ-ORCH-020) should be updated to describe the new gate
-signals (caps, budgets, `SCOPE:`, chunk verifier). (see RS-008 Q4)
+signals (caps, budgets, `SCOPE:`, chunk verifier). `CLAUDE.md`'s SDD section
+must gain **one short paragraph** introducing the new gate vocabulary — chunk
+verifier, `RETURN:`, `SCOPE:`, `VERDICT:` / `CHUNK_VERDICT:` — and its
+four-verification-layer bullet stays **unchanged** (the verifier is a second
+executor of the chunk-close layer, REQ-HARN-014). (see RS-008 Q4)
 [Priority: must]
