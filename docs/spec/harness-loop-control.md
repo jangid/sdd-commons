@@ -462,6 +462,8 @@ Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
 **Rationale**: the warn tier is advisory by design (REQ-LINT-002); the ledger/checkpoint/budget prose is what the harness-hardening cycle added and splitting it mid-cycle would move text the implement-stage review has just approved.
 **Date**: 2026-09-17 (Chunk 6, implement-stage review fix loop)
 
+**Status**: `[resolved by REQ-SKILL-HARNESSP2-007]` — `skills/sdd-implement/SKILL.md` split into `references/stuck-detection.md` and `references/leaf-return.md` (harness-p2 Chunk 1).
+
 ### Q-IMPL-HARNESSP2-001: `.sdd/` prohibition sentence superseded by telemetry.md
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §No-New-Artifact Invariant (REQ-HARN-027)

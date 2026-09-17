@@ -304,6 +304,7 @@ row fails when its marker is removed from a temp copy.
 **Rationale**: a reader of this spec needs the pointer; the requirement text never fixed the count.
 **Date**: 2026-09-17 (verify-stage review m4)
 
+**Status**: `[resolved by REQ-SKILL-HARNESSP2-007]` — `skills/sdd-implement/SKILL.md` split into `references/stuck-detection.md` and `references/leaf-return.md` (harness-p2 Chunk 1).
 
 ### Q-IMPL-HARNESSP2-006: new REQUIRED rows, the FORBIDDEN `\.sdd/` row and the `allow_files` field
 **Tier**: 2 (spec ambiguity)
