@@ -297,3 +297,10 @@ row fails when its marker is removed from a temp copy.
 **Rationale**: the spec's arithmetic predates the loop-control prose; the progressive-disclosure goal is served by one more reference, not by relaxing the target.
 **Date**: 2026-09-17 (Chunk 5 replan)
 
+### Q-IMPL-084: baseline warn set is three after v5 (cross-reference)
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §SKILL.md Size Check — REQ-LINT-003 acceptance names the baseline warn set as exactly {`sdd-orchestrate`, `sdd-migrate`}
+**Decision**: after this cycle the live warn set is {`sdd-orchestrate` 469, `sdd-migrate` 464, `sdd-implement` 525}; the third is accepted via Q-IMPL-083 in `harness-loop-control.md` (references split queued for the next cycle). The acceptance snapshot is historical, not a ceiling.
+**Rationale**: a reader of this spec needs the pointer; the requirement text never fixed the count.
+**Date**: 2026-09-17 (verify-stage review m4)
+

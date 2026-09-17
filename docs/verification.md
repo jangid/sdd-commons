@@ -164,6 +164,14 @@ fixture repo under `$TMPDIR` (`docs/.sdd-version` = 3, a two-chunk plan with
 
 ## Regressions
 
+**Regression base note (amendment 2026-09-17, verify-stage review M2).** `sdd-verify`
+Step 5 under marker `3` diffs against `main` HEAD. This cycle was committed directly
+to `main`, so at verification time `main` HEAD was this report's own commit and had
+no separate tip to diff against. The base used throughout this section is therefore
+the **implement-stage start commit `d334c79`** (the plan-approved tree before any
+v5 skill edit), which is the nearest stable anchor and the one the plan's regression
+surfaces were defined against.
+
 Regression base (marker `3`): `main` at the stage-start commit `d334c79`,
 compared against HEAD `2bac7ac` (`git diff --stat`: 23 files, all in `skills/`,
 `tools/`, `docs/`, `CLAUDE.md`).
@@ -225,7 +233,20 @@ compared against HEAD `2bac7ac` (`git diff --stat`: 23 files, all in `skills/`,
    §Default Scope Table; noisy spec-file `ADVISORY` → revisit REQ-HARN-026. Not
    measured this cycle (this verify dispatch's own writes — `docs/verification.md`,
    `docs/requirements/traceability.md` — fall inside the verify row).
-4. **Live Manual items to observe on the first v5 run** (contract + fixture
+4. **Live Manual items to observe on the first v5 run** (amendment 2026-09-17,
+   verify-stage review M1 — the specs list ten Manual items; the seven not
+   fixture-exercised here are: (i) a stage driven to 3×`REJECT` shows the
+   compiled log and no fourth dispatch; (ii) an implement chunk with `Budget: ≤ 5
+   tool calls` returns `BUDGET_EXHAUSTED` + `budget_consumed` + a checkpoint;
+   (iii) a fan-out leaf with `CHUNK_VERDICT: FAIL` is absent from the integration
+   branch's log; (iv) a review return with its `VERDICT:` line removed renders
+   `REVIEW: MALFORMED` at the gate — `harness-return-contract.md` Manual #2;
+   (v) the scope check on a verifier return observes zero writes —
+   `harness-chunk-verifier.md` Manual #3 (no read-only scenario in
+   `sdd-scope-check-selftest.py` yet); (vi) a fan-out leaf editing `docs/plan.md`
+   shows `VIOLATION` at the per-leaf gate before merge — `harness-write-scope.md`
+   Manual #2; (vii) the per-chunk gate rendered from a live leaf return matches
+   the canonical block byte-for-byte.) Original text follows. (contract + fixture
    verified here; no failure): a stage driven to 3×`REJECT` shows the compiled
    log and no fourth dispatch; an implement chunk with `Budget: ≤ 5 tool calls`
    returns `BUDGET_EXHAUSTED` + `budget_consumed` + a checkpoint under the task;

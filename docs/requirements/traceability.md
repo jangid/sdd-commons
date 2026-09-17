@@ -155,8 +155,8 @@ last_updated: 2026-09-17
 | REQ-HARN-004 | harness-loop-control.md | Chunk 2 task 7 grep Budget: (dispatch-templates ×4, fan-out ×3); lint rows Chunk 5 | dispatch-templates.md §REVIEW Budget:; return-contract.md §Budget grammar; SKILL.md §KICKOFF self-check | pass |
 | REQ-HARN-005 | harness-loop-control.md | Chunk 2 task 7; Budget: ≤ 5 tool calls walkthrough at sdd-verify | sdd-implement/SKILL.md Step 3 §Budget exhaustion; return-contract.md §Budget grammar (v1 limitation) | pass |
 | REQ-HARN-006 | harness-loop-control.md | Chunk 2 task 7 fixture F4; grep: no ledger text in docs/spec or kickoff | sdd-implement/SKILL.md Step 3 §Attempt ledger; §Leaf Return Contract | pass |
-| REQ-HARN-007 | harness-loop-control.md | Chunk 2 task 7 fixtures F4a/F4b/F4c | sdd-implement/SKILL.md Step 3 §Oscillation rule | pass |
-| REQ-HARN-008 | harness-loop-control.md | Chunk 2 task 7 fixture F5 (checkpoint 8 lines, traceback-free) | sdd-implement/SKILL.md Step 3 §Circuit-break checkpoint; sdd-replan/SKILL.md Step 1.6, Step 4.2; fan-out.md §3e.4 | pass |
+| REQ-HARN-007 | harness-loop-control.md | Chunk 2 task 7 fixture F4 — rules (a) regression oscillation, (b) repeated patch, plus negative case | sdd-implement/SKILL.md Step 3 §Oscillation rule | pass |
+| REQ-HARN-008 | harness-loop-control.md | Chunk 2 task 7 fixture F5 (checkpoint 9 lines, traceback-free) | sdd-implement/SKILL.md Step 3 §Circuit-break checkpoint; sdd-replan/SKILL.md Step 1.6, Step 4.2; fan-out.md §3e.4 | pass |
 | REQ-HARN-009 | harness-return-contract.md | Chunk 1 task 7 fixture (RETURN block markers) | references/return-contract.md §1; dispatch-templates.md; fan-out.md; sdd-implement/SKILL.md | pass |
 | REQ-HARN-010 | harness-return-contract.md | Chunk 1 task 7 fixture (one-line failures) | references/return-contract.md §2; sdd-implement/SKILL.md | pass |
 | REQ-HARN-011 | harness-return-contract.md | Chunk 1 task 7 fixture (ledger_summary, spec_excerpt regex, {repair_packet}) | references/return-contract.md §3; dispatch-templates.md | pass |
@@ -175,11 +175,11 @@ last_updated: 2026-09-17
 | REQ-HARN-024 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F2 (leaf commit inside the observed window); commit-ownership table + gate block byte-identical (manual) | references/write-scope.md §7; dispatch-templates.md step 4; fan-out.md §2 step 3 | pass |
 | REQ-HARN-025 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1–F6 (snapshot before dispatch, after on return; orchestrator writes outside the window) | references/write-scope.md §3; SKILL.md §LOOP stub; fan-out.md §3a.v(a) | pass |
 | REQ-HARN-026 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F4 (ADVISORY docs/spec/recon.md, CLEAN) | references/write-scope.md §5 recorded limitations, §4 ADVISORY | pass |
-| REQ-HARN-027 | harness-loop-control.md | Chunk 2 task 7: diff touches only skills/; invariant table checked | state per harness-loop-control.md §State Placement — no new artifact | pass |
+| REQ-HARN-027 | harness-loop-control.md | Chunk 2 task 7 + verify: `git ls-files docs/` unchanged vs d334c79 (no new file type); invariant table checked | state per harness-loop-control.md §State Placement — no new artifact | pass |
 | REQ-LINT-001 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | pass |
 | REQ-LINT-002 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | pass |
 | REQ-LINT-003 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | pass |
-| REQ-LINT-004 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | pass |
+| REQ-LINT-004 | skill-lint-v5.md | sdd-skill-lint.py --self-test §6 (references/ fail, skills/<skill>/references/ fail, docs/spec warn, fenced spans skipped) | tools/sdd-skill-lint.py | pass |
 | REQ-LINT-005 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (core rows) | tools/sdd-skill-lint.py REQUIRED core rows a–f | pass |
 | REQ-LINT-006 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (remaining rows) | tools/sdd-skill-lint.py REQUIRED remaining rows | pass |
 | REQ-LINT-007 | skill-lint-v5.md | lint exit 0 (17 files, size warn only); research_id row ≥ 3; wc -l SKILL.md = 469 | references/v4-workstreams.md + references/loop-control.md + SKILL.md stubs; ws-orchestration.md Q-IMPL-072 | pass |
