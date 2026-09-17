@@ -148,7 +148,7 @@ exactly.
 
 ## Implementation Questions
 
-### Q-IMPL-016: Picker & uniform-lifecycle changes are marker-`4`-gated
+### Q-IMPL-016: Picker & uniform-lifecycle changes are marker-`4`-gated [superseded by Q-IMPL-072]
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Workstream Picker at Orchestration Entry; §Uniform Research-Entry Lifecycle
 **Decision**: The workstream picker, per-workstream done-vs-new-cycle resolution,
@@ -191,3 +191,23 @@ the workstream); a genuinely new idea mints a **new** workstream id with a fresh
 **Rationale**: Resolving DONE per workstream from the per-ws `verification.md` is exactly
 what makes done-vs-new-cycle a per-workstream decision rather than a global-intent appeal
 (REQ-WS-029); reusing the established overwrite semantics avoids inventing a new marker.
+
+### Q-IMPL-072: Picker prose lives in `references/v4-workstreams.md`
+**Tier**: 1 (implementation choice)
+**Spec reference**: §Workstream Picker at Orchestration Entry; `skill-lint-v5.md` §Marker-4 Prose Move guard 2
+**Decision**: The marker-`4` picker procedure (§Workstream Picker and its three
+subsections), the v4 version gate, the done-vs-new-cycle gate, the entry-points
+marker-4 scope, the kickoff path gate and the fan-out integration anchor live in
+`skills/sdd-orchestrate/references/v4-workstreams.md`. The `docs/.sdd-version`
+gate and a stub for each moved section — keeping the "behavior UNCHANGED under
+marker 3" sentence, a resolving link and (for the picker) a `research_id`
+mention — remain in `skills/sdd-orchestrate/SKILL.md`. This supersedes
+Q-IMPL-016's **container statement** only ("added as marker-`4` branches in
+`skills/sdd-orchestrate/SKILL.md`"); its gating decision and the marker-`3`
+behavior guarantee are unchanged.
+**Rationale**: `SKILL.md` is the entry point and should read as a table of
+contents (REQ-LINT-003 size warn, REQ-LINT-007); the picker text is
+marker-`4`-only procedure that a marker-`3` operator never needs, so it moves
+behind a stub. Q-IMPL entries are append-only, hence a new entry rather than an
+edit to Q-IMPL-016.
+**Date**: 2026-09-17 (Chunk 5)
