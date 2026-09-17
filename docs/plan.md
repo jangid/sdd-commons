@@ -488,7 +488,7 @@ integrated skill set passes the lint with size warnings only. Traces to
    exits 0 printing `OK: 16 file(s) clean, K warning(s)` — 13 baseline files +
    the 3 new `references/` files (`return-contract.md`, `write-scope.md`,
    `v4-workstreams.md`), since the tool enumerates `skills/**/*.md` via
-   `rglob` — with `K` ≥ 1 only from size warnings; mutation test — for each of the nine core rows delete the
+   `rglob` — with `K` ≥ 1 only from size warnings (17 files after task 7 adds `loop-control.md`); mutation test — for each of the nine core rows delete the
    marker in a temp copy → exit 1 with that row's `fix:` printed; `grep -c '"fix"'`
    equals the number of rule rows; `wc -l skills/sdd-orchestrate/SKILL.md` ≤ ~450;
    every moved section's stub contains "UNCHANGED" and a resolving link;
@@ -496,6 +496,19 @@ integrated skill set passes the lint with size warnings only. Traces to
    docs/` shows no new file type beyond `plan-history/` archives. — traces to
    `skill-lint-v5.md` §Verification — Automated / Manual (REQ-LINT-005..007);
    `harness-loop-control.md` §No-New-Artifact Invariant (REQ-HARN-027).
+7. [implement] (added by minor replan 2026-09-17 — size-target trigger fired at
+   720 lines) Create `skills/sdd-orchestrate/references/loop-control.md` and move
+   into it the loop-control procedure prose that no reference holds: the fix-loop
+   cap detail and exhaustion compiled-log shape, the replan re-entry cap
+   derivation block and its bullets, the per-chunk redo/edge-case bullets, and
+   any remaining fan-out lifecycle prose duplicated in `fan-out.md`. Leave stubs
+   in `SKILL.md` that keep every lint `REQUIRED` marker literal (`fix-loop cap`,
+   `iteration N of 3`, `replan re-entry cap`, `CHUNK_VERDICT:`,
+   `(?<!CHUNK_)VERDICT:`, `research_id`, `docs/.sdd-version`, the canonical
+   per-chunk gate block byte-identical to the spec) and a resolving link. Target
+   `wc -l` ≤ ~450; lint + self-test exit 0; the lint file count becomes 17. —
+   traces to `skill-lint-v5.md` §Marker-4 Prose Move size target (REQ-LINT-007);
+   `harness-loop-control.md` §Procedure placement (REQ-HARN-001, -002).
 **Entry criteria**: Chunks 0, 2, 3, 4 complete and merged into one tree (all
 markers present; lint v5 mechanics present).
 **Exit criteria**: lint exits 0 reporting 16 file(s) clean with size warnings
@@ -570,6 +583,8 @@ Implementation cell for the cycle's REQ ids; both verify tasks pass with no
 acceptance criterion failed; plan `status: complete`; ready for `sdd-verify`.
 
 ## Replan Triggers
+
+- **Fired 2026-09-17 (Chunk 5, minor replan, inline)**: SKILL.md 720 lines vs ≤ ~450 — resolved by adding Chunk 5 task 7 (`references/loop-control.md`). No archive (minor, in-place).
 
 - **Per-chunk dispatch cost too high (RS-008 dogfooding probe 1, Q2).** If the
   first real orchestrated implement stage shows per-chunk dispatch + verifier

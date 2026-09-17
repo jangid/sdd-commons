@@ -289,3 +289,11 @@ row fails when its marker is removed from a temp copy.
 **Decision**: backtick-path findings use the rule tag `[path]` (Markdown links keep `[link]`). Spans containing `*`, `<`, `>`, `{`, `}` or whitespace are treated as non-literal (globs/placeholders such as `references/<file>`) and skipped. `docs/spec/` spans must end in `.md` to be resolved. REQUIRED rows changed from tuples to dicts (`file`/`pattern`/`min`/`reason`/`fix`, optional `severity`) to carry the fix field — internal shape only.
 **Rationale**: the spec names the glob case but skill prose also uses `<placeholder>` paths, which would otherwise be false failures; a distinct tag keeps link vs. backtick findings distinguishable.
 **Date**: 2026-09-17 (Chunk 0)
+
+### Q-IMPL-073: a fourth references file (`loop-control.md`) is needed for the size target
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Marker-4 Prose Move — size target "≤ ~450 lines (607 − ~160 moved)"
+**Decision**: the move table listed only marker-4 prose; Chunks 2–4 added ~270 lines of loop-control procedure that no reference held, leaving `SKILL.md` at 720 after the move and dedup. A minor replan adds `skills/sdd-orchestrate/references/loop-control.md`; `SKILL.md` keeps marker stubs so REQUIRED rows a/b/d2/e2 still target it. The lint file count becomes 17.
+**Rationale**: the spec's arithmetic predates the loop-control prose; the progressive-disclosure goal is served by one more reference, not by relaxing the target.
+**Date**: 2026-09-17 (Chunk 5 replan)
+
