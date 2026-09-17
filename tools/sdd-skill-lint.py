@@ -14,7 +14,14 @@ Catches the classes of cross-skill drift found in the 2026-07-23 audit:
     exist in sdd-plan, `{qimpl_block}` in fan-out.md) so a contract edited in
     one file cannot silently vanish from its counterpart
   * duplicate/broken ordinals in numbered lists outside code fences
-  * relative Markdown links that do not resolve
+  * relative Markdown links and backtick-quoted `references/` /
+    `skills/<skill>/references/` / `docs/spec/*.md` paths that do not resolve
+  * SKILL.md entry points that outgrow a table of contents (warn > 400 lines,
+    fail > 1000)
+
+Every finding carries a `fix:` remediation line. Findings have a severity:
+`fail` sets exit code 1; `warn` is printed with a `WARN ` prefix and counted
+in the summary but never affects the exit code.
 
 Usage:
   tools/sdd-skill-lint.py [REPO_ROOT]   # lint (default: repo containing this script)
@@ -27,6 +34,8 @@ Exit codes: 0 = clean, 1 = findings, 2 = usage/internal error.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import re
 import sys
 import tempfile
@@ -47,55 +56,92 @@ FORBIDDEN = [
         # citations of the shipped RS-006 artifact are legitimate.
         "allow": [r"Do not create a separate", r"dispatch-concurrency"],
         "reason": "spike artifacts belong under docs/research/RS-* (audit F1)",
+        "fix": "point spike output at docs/research/RS-NNN-{topic}/ instead",
     },
     {"pattern": r"assign new domain prefixes", "files": None, "allow": [],
-     "reason": "file splits must keep requirement IDs permanent (audit F3)"},
+     "reason": "file splits must keep requirement IDs permanent (audit F3)",
+     "fix": "say that split files keep their existing requirement IDs"},
     {"pattern": r"upgrade to v2", "files": None, "allow": [],
-     "reason": "version-check wording must not hardcode v2 (audit F13)"},
+     "reason": "version-check wording must not hardcode v2 (audit F13)",
+     "fix": "say `upgrade to the latest version` (or run sdd-migrate)"},
     {"pattern": r"start fresh with v2", "files": None, "allow": [],
-     "reason": "greenfield wording must not hardcode v2 (final review #1)"},
+     "reason": "greenfield wording must not hardcode v2 (final review #1)",
+     "fix": "say `start fresh with the latest layout`"},
     {"pattern": r"30 min max", "files": None, "allow": [],
-     "reason": "budgets are stated in observable units (audit P3)"},
+     "reason": "budgets are stated in observable units (audit P3)",
+     "fix": "state the budget in tool calls / approaches / files, not minutes"},
     {"pattern": r"budget: 30min", "files": None, "allow": [],
-     "reason": "budgets are stated in observable units (audit P3)"},
+     "reason": "budgets are stated in observable units (audit P3)",
+     "fix": "state the budget in tool calls / approaches / files, not minutes"},
     {"pattern": r"\[Priority:", "files": None, "allow": [r"no separate"],
-     "reason": "priority is encoded by the modal verb only (audit P7)"},
+     "reason": "priority is encoded by the modal verb only (audit P7)",
+     "fix": "drop the [Priority: …] tag; use MUST / SHOULD / MAY in the statement"},
     {"pattern": r"no plan index in v4", "files": None, "allow": [],
-     "reason": "v4 per-workstream plan indexes exist (audit F17)"},
+     "reason": "v4 per-workstream plan indexes exist (audit F17)",
+     "fix": "say the plan index lives at docs/ws/<id>/plan.md under marker 4"},
     {"pattern": r"skills/\*/SKILL\.md", "files": "sdd-review", "allow": [],
-     "reason": "sdd-review must not hardcode this repo's layout (audit F11)"},
+     "reason": "sdd-review must not hardcode this repo's layout (audit F11)",
+     "fix": "describe the reviewed skill files generically (`the skill files`)"},
     {"pattern": r"v1 limitations", "files": None, "allow": [],
-     "reason": "stale USAGE heading (audit F14)"},
+     "reason": "stale USAGE heading (audit F14)",
+     "fix": "rename the heading to `Limitations` (version-neutral)"},
     {"pattern": r"version: 2\.0", "files": "sdd-migrate", "allow": [],
-     "reason": "index version: is a content counter, not a format signal (audit F20)"},
+     "reason": "index version: is a content counter, not a format signal (audit F20)",
+     "fix": "gate on docs/.sdd-version, not on the index `version:` field"},
     {"pattern": r"Co-Authored-By", "files": None, "allow": [],
-     "reason": "repo convention: no attribution lines in committed content"},
+     "reason": "repo convention: no attribution lines in committed content",
+     "fix": "delete the Co-Authored-By line"},
 ]
 
 # Contract markers that must keep existing where a counterpart file relies on
-# them. `min` is the minimum occurrence count in that file.
+# them. `min` is the minimum occurrence count in that file. Rows may carry
+# `"severity": "warn"` (default `fail`).
 REQUIRED = [
-    ("skills/sdd-orchestrate/SKILL.md", r"research_id", 3,
-     "kickoff research_id contract (audit F10) spans table/KICKOFF/picker"),
-    ("skills/sdd-plan/SKILL.md", r"\*\*Depends on\*\*", 3,
-     "canonical chunk-dependency field consumed by fan-out (audit F7)"),
-    ("skills/sdd-orchestrate/references/fan-out.md", r"\{qimpl_block\}", 2,
-     "per-leaf Q-IMPL block slot (audit F5): template + slot contract"),
-    ("skills/sdd-implement/SKILL.md", r"Parallel-dispatch exception", 1,
-     "leaf-side half of the Q-IMPL block contract (audit F5)"),
-    ("skills/sdd-plan/SKILL.md", r"last_updated: YYYY-MM-DD", 1,
-     "single-milestone plan frontmatter that staleness checks key off (audit F2)"),
-    ("skills/sdd-research/SKILL.md", r"early_exit: true", 1,
-     "research early-exit marker the orchestrate picker relies on"),
-    ("skills/sdd-review/SKILL.md", r"`questions:` frontmatter", 1,
-     "research review reads questions from findings frontmatter (audit F9)"),
-    ("skills/sdd-orchestrate/references/dispatch-templates.md", r"non-interactive", 2,
-     "both pipeline and review dispatch templates carry the clause (audit F15)"),
-    ("skills/sdd-implement/SKILL.md", r"status:.*`active`", 1,
-     "plan status lifecycle executor: planned→active (final review #5)"),
-    ("skills/sdd-implement/SKILL.md", r"status:.*`complete`", 1,
-     "plan status lifecycle executor: →complete (final review #5)"),
+    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"research_id", "min": 3,
+     "reason": "kickoff research_id contract (audit F10) spans table/KICKOFF/picker",
+     "fix": "keep `research_id` in the entry table, KICKOFF and the picker stub"},
+    {"file": "skills/sdd-plan/SKILL.md", "pattern": r"\*\*Depends on\*\*", "min": 3,
+     "reason": "canonical chunk-dependency field consumed by fan-out (audit F7)",
+     "fix": "restore the `**Depends on**` field in the chunk template, example and rules"},
+    {"file": "skills/sdd-orchestrate/references/fan-out.md", "pattern": r"\{qimpl_block\}", "min": 2,
+     "reason": "per-leaf Q-IMPL block slot (audit F5): template + slot contract",
+     "fix": "keep the `{qimpl_block}` slot in the leaf template and its slot contract"},
+    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"Parallel-dispatch exception", "min": 1,
+     "reason": "leaf-side half of the Q-IMPL block contract (audit F5)",
+     "fix": "restore the `Parallel-dispatch exception` bullet under Q-IMPL numbering"},
+    {"file": "skills/sdd-plan/SKILL.md", "pattern": r"last_updated: YYYY-MM-DD", "min": 1,
+     "reason": "single-milestone plan frontmatter that staleness checks key off (audit F2)",
+     "fix": "keep `last_updated: YYYY-MM-DD` in the plan frontmatter template"},
+    {"file": "skills/sdd-research/SKILL.md", "pattern": r"early_exit: true", "min": 1,
+     "reason": "research early-exit marker the orchestrate picker relies on",
+     "fix": "keep the `early_exit: true` findings frontmatter marker"},
+    {"file": "skills/sdd-review/SKILL.md", "pattern": r"`questions:` frontmatter", "min": 1,
+     "reason": "research review reads questions from findings frontmatter (audit F9)",
+     "fix": "say the research review reads the `questions:` frontmatter of findings.md"},
+    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"non-interactive", "min": 2,
+     "reason": "both pipeline and review dispatch templates carry the clause (audit F15)",
+     "fix": "add the `non-interactive` clause to every dispatch template"},
+    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"status:.*`active`", "min": 1,
+     "reason": "plan status lifecycle executor: planned→active (final review #5)",
+     "fix": "keep the step that flips plan `status:` to `active`"},
+    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"status:.*`complete`", "min": 1,
+     "reason": "plan status lifecycle executor: →complete (final review #5)",
+     "fix": "keep the completion step that sets plan `status:` to `complete`"},
 ]
+
+# SKILL.md size thresholds (strict `>`), module constants so a later audit can
+# retune them without touching check logic. references/*.md and USAGE.md are
+# exempt — the entry point is what must read as a table of contents.
+SIZE_WARN_LINES = 400   # entry point should read as a table of contents
+SIZE_FAIL_LINES = 1000  # project guideline (REQ-ORCH-019)
+SIZE_FIX = ("move detail to references/ and leave a stub; the entry point should "
+            "read as a table of contents")
+
+# Fixed remediation strings for the checks that have no rule table.
+LINK_FIX = "correct the relative path or create the target file"
+PATH_FIX = "create the referenced file or correct the path"
+ORDINAL_FIX = "renumber the list so ordinals are consecutive from 1 outside code fences"
+NAME_FIX = "set name: to the directory name"
 
 # Every phase skill gates its layout on the version marker.
 VERSION_GATED_SKILLS = [
@@ -114,16 +160,30 @@ NOT_USE_RE = re.compile(r"\b(Skip|Do NOT|Do not use|not for)\b", re.IGNORECASE)
 
 
 class Linter:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, suite_rules: bool = True):
         self.root = root
-        self.findings: list[str] = []
+        # `suite_rules=False` skips the repo-specific contract rows (REQUIRED,
+        # VERSION_GATED_SKILLS, V4_CONTRACT_SKILLS) so self-test fixtures can
+        # drive `run()` end to end without the real skill suite present.
+        self.suite_rules = suite_rules
+        # (severity, rendered text) — severity is "fail" or "warn".
+        self.findings: list[tuple[str, str]] = []
 
     # -- helpers ------------------------------------------------------------
 
-    def flag(self, path: Path, line_no: int | None, rule: str, msg: str) -> None:
+    def flag(self, path: Path, line_no: int | None, rule: str, msg: str, fix: str,
+             severity: str = "fail") -> None:
+        """Record a finding. `fix` is a required positional so no code path can
+        emit a finding without remediation (a call without it is a TypeError)."""
+        assert severity in ("fail", "warn"), severity
         rel = path.relative_to(self.root) if path.is_absolute() else path
         loc = f"{rel}:{line_no}" if line_no else str(rel)
-        self.findings.append(f"{loc}: [{rule}] {msg}")
+        self.findings.append((severity, f"{loc}: [{rule}] {msg}\n    fix: {fix}"))
+
+    def skill_dir_of(self, f: Path) -> Path:
+        """The `skills/<skill>/` directory a linted file belongs to."""
+        rel = f.relative_to(self.root / "skills")
+        return self.root / "skills" / rel.parts[0]
 
     def skill_files(self) -> list[Path]:
         """All lintable Markdown files under skills/ (SKILL.md, USAGE.md, references)."""
@@ -160,40 +220,49 @@ class Linter:
         """Every skill dir has a SKILL.md; frontmatter well-formed; name matches dir."""
         skills_dir = self.root / "skills"
         if not skills_dir.is_dir():
-            self.flag(self.root, None, "structure", "skills/ directory not found")
+            self.flag(self.root, None, "structure", "skills/ directory not found",
+                      "run the linter from the repo root or pass REPO_ROOT")
             return
         for d in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
             sk = d / "SKILL.md"
             if not sk.is_file():
-                self.flag(d, None, "structure", "skill directory has no SKILL.md")
+                self.flag(d, None, "structure", "skill directory has no SKILL.md",
+                          "add a SKILL.md with name/description frontmatter or delete the directory")
                 continue
             fm = self.frontmatter(sk.read_text(encoding="utf-8"))
             if fm is None:
-                self.flag(sk, 1, "frontmatter", "missing or malformed YAML frontmatter")
+                self.flag(sk, 1, "frontmatter", "missing or malformed YAML frontmatter",
+                          "start the file with a `---` block carrying name: and description:")
                 continue
             name = fm.get("name", "")
             if not name:
-                self.flag(sk, 1, "frontmatter", "frontmatter has no `name:`")
+                self.flag(sk, 1, "frontmatter", "frontmatter has no `name:`", NAME_FIX)
             elif name != d.name:
-                self.flag(sk, 1, "frontmatter", f"name `{name}` != directory `{d.name}`")
+                self.flag(sk, 1, "frontmatter", f"name `{name}` != directory `{d.name}`",
+                          NAME_FIX)
             if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name or "x"):
-                self.flag(sk, 1, "frontmatter", f"name `{name}` is not kebab-case")
+                self.flag(sk, 1, "frontmatter", f"name `{name}` is not kebab-case",
+                          "rename the directory and name: to lowercase kebab-case")
             desc = fm.get("description", "")
             if not desc:
-                self.flag(sk, 1, "frontmatter", "frontmatter has no `description:`")
+                self.flag(sk, 1, "frontmatter", "frontmatter has no `description:`",
+                          "add a description: stating when to use and when not to use the skill")
             elif not NOT_USE_RE.search(desc):
                 self.flag(sk, 1, "description",
                           "description never states when NOT to use the skill "
-                          "(repo quality check)")
+                          "(repo quality check)",
+                          "add a `Skip …` / `Do NOT use …` clause to the description")
         # Agent files must carry frontmatter too (repo quality check).
         agents_dir = self.root / "agents"
         if agents_dir.is_dir():
             for a in sorted(agents_dir.glob("*.md")):
                 fm = self.frontmatter(a.read_text(encoding="utf-8"))
                 if fm is None:
-                    self.flag(a, 1, "frontmatter", "agent file missing frontmatter")
+                    self.flag(a, 1, "frontmatter", "agent file missing frontmatter",
+                              "start the agent file with a `---` block carrying name:")
                 elif not fm.get("name"):
-                    self.flag(a, 1, "frontmatter", "agent frontmatter has no `name:`")
+                    self.flag(a, 1, "frontmatter", "agent frontmatter has no `name:`",
+                              "set name: to the agent file's basename")
 
     def check_forbidden(self) -> None:
         for f in self.skill_files():
@@ -206,28 +275,37 @@ class Linter:
                 for no, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
                     if pat.search(line) and not any(a.search(line) for a in allows):
                         self.flag(f, no, "forbidden",
-                                  f"`{rule['pattern']}` — {rule['reason']}")
+                                  f"`{rule['pattern']}` — {rule['reason']}",
+                                  rule["fix"], rule.get("severity", "fail"))
 
     def check_required(self) -> None:
-        for rel, pattern, minimum, reason in REQUIRED:
+        if not self.suite_rules:
+            return
+        for rule in REQUIRED:
+            rel, pattern, minimum = rule["file"], rule["pattern"], rule["min"]
+            severity = rule.get("severity", "fail")
             f = self.root / rel
             if not f.is_file():
-                self.flag(Path(rel), None, "required", "file missing entirely")
+                self.flag(Path(rel), None, "required", "file missing entirely",
+                          f"restore the file — {rule['reason']}", severity)
                 continue
             n = len(re.findall(pattern, f.read_text(encoding="utf-8")))
             if n < minimum:
                 self.flag(f, None, "required",
-                          f"`{pattern}` found {n}x, need >= {minimum} — {reason}")
+                          f"`{pattern}` found {n}x, need >= {minimum} — {rule['reason']}",
+                          rule["fix"], severity)
         for name in VERSION_GATED_SKILLS:
             f = self.root / "skills" / name / "SKILL.md"
             if f.is_file() and "docs/.sdd-version" not in f.read_text(encoding="utf-8"):
                 self.flag(f, None, "required", "never reads `docs/.sdd-version` "
-                          "(every phase skill gates on the version marker)")
+                          "(every phase skill gates on the version marker)",
+                          "add the version-gate paragraph that reads `docs/.sdd-version` on entry")
         for name in V4_CONTRACT_SKILLS:
             f = self.root / "skills" / name / "SKILL.md"
             if f.is_file() and "common v4 contract" not in f.read_text(encoding="utf-8"):
                 self.flag(f, None, "required",
-                          "lost the collapsed v4 ownership summary (audit P1)")
+                          "lost the collapsed v4 ownership summary (audit P1)",
+                          "restore the `common v4 contract` ownership summary paragraph")
 
     def check_ordinals(self) -> None:
         """Numbered-list ordinals outside code fences must increment by one.
@@ -252,16 +330,41 @@ class Linter:
                     n = int(m.group(1))
                     if prev is not None and n != prev + 1:
                         self.flag(f, no, "ordinal",
-                                  f"list ordinal {n} follows {prev} (expected {prev + 1})")
+                                  f"list ordinal {n} follows {prev} (expected {prev + 1})",
+                                  ORDINAL_FIX)
                     prev = n
                 elif line.startswith((" ", "\t")) and line.strip():
                     continue  # continuation of the current item
                 else:
                     prev = None  # blank line / heading / prose ends the block
 
+    def check_size(self) -> None:
+        """`skills/*/SKILL.md` over SIZE_WARN_LINES warns, over SIZE_FAIL_LINES fails.
+
+        Line count uses `wc -l` semantics (number of newline characters).
+        Only entry points are checked — `references/*.md` and `USAGE.md` are exempt.
+        """
+        skills_dir = self.root / "skills"
+        if not skills_dir.is_dir():
+            return
+        for sk in sorted(skills_dir.glob("*/SKILL.md")):
+            n = sk.read_text(encoding="utf-8").count("\n")
+            if n > SIZE_FAIL_LINES:
+                self.flag(sk, None, "size", f"SKILL.md is {n} lines (> {SIZE_FAIL_LINES})",
+                          SIZE_FIX)
+            elif n > SIZE_WARN_LINES:
+                self.flag(sk, None, "size", f"SKILL.md is {n} lines (> {SIZE_WARN_LINES})",
+                          SIZE_FIX, "warn")
+
     def check_links(self) -> None:
-        """Relative Markdown links must resolve on disk (skill-local files only)."""
+        """Relative paths must resolve on disk.
+
+        Two syntaxes outside fenced code: `[text](relative.md)` links resolve
+        against the linting file's directory; backtick-quoted paths resolve per
+        `resolve_backtick_path()`. Fenced examples are illustrative and skipped.
+        """
         link_re = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+        code_re = re.compile(r"`([^`\n]+)`")
         for f in self.skill_files():
             in_fence = False
             for no, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
@@ -277,7 +380,38 @@ class Linter:
                     if not path:
                         continue
                     if not (f.parent / path).exists():
-                        self.flag(f, no, "link", f"broken relative link `{target}`")
+                        self.flag(f, no, "link", f"broken relative link `{target}`", LINK_FIX)
+                for span in code_re.findall(line):
+                    resolved = self.resolve_backtick_path(f, span)
+                    if resolved is None:
+                        continue
+                    path, base, severity = resolved
+                    if not (base / path).exists():
+                        self.flag(f, no, "path", f"unresolved path `{path}`", PATH_FIX, severity)
+
+    def resolve_backtick_path(self, f: Path, span: str) -> tuple[str, Path, str] | None:
+        """Classify one backtick span; return (path, base dir, severity) or None.
+
+        | span                                     | base            | severity |
+        | `references/<file>`                      | the skill dir   | fail     |
+        | `skills/<skill>/references/<file>`       | repo root       | fail     |
+        | `docs/spec/<file>.md`                    | repo root       | warn     |
+
+        Fragments (`#…`) and trailing punctuation are stripped. Globs and
+        placeholders (`*`, `<`, `>`, `{`, `}`) and spans with whitespace are
+        not literal filenames and are skipped. `docs/spec/` mentions only warn
+        so the linter never assumes a consumer repo has this repo's layout.
+        """
+        path = span.split("#", 1)[0].rstrip(".,:;)")
+        if not path or any(c in path for c in "*<>{}") or re.search(r"\s", path):
+            return None
+        if path.startswith("references/"):
+            return path, self.skill_dir_of(f), "fail"
+        if re.match(r"skills/[^/]+/references/", path):
+            return path, self.root, "fail"
+        if path.startswith("docs/spec/") and path.endswith(".md"):
+            return path, self.root, "warn"
+        return None
 
     # -- driver -------------------------------------------------------------
 
@@ -287,13 +421,20 @@ class Linter:
         self.check_required()
         self.check_ordinals()
         self.check_links()
-        for finding in self.findings:
-            print(finding)
+        self.check_size()
+        for severity, text in self.findings:
+            print(("WARN " if severity == "warn" else "") + text)
         n_files = len(self.skill_files())
-        if self.findings:
-            print(f"\nFAIL: {len(self.findings)} finding(s) across {n_files} file(s)")
+        n_fail = sum(1 for sev, _ in self.findings if sev == "fail")
+        n_warn = len(self.findings) - n_fail
+        # Exit 1 iff any `fail`; warnings are reported but never change the code.
+        if n_fail:
+            print(f"\nFAIL: {n_fail} finding(s), {n_warn} warning(s)")
             return 1
-        print(f"OK: {n_files} file(s) clean")
+        if n_warn:
+            print(f"OK: {n_files} file(s) clean, {n_warn} warning(s)")
+        else:
+            print(f"OK: {n_files} file(s) clean")
         return 0
 
 
@@ -302,9 +443,44 @@ class Linter:
 # linter reports each rule (and that a clean fixture passes).
 # ---------------------------------------------------------------------------
 
+def _fixture_skill(root: Path, name: str, body: str, *, lines: int | None = None) -> Path:
+    """Write a minimal clean skill dir under `root/skills/<name>` and return its dir.
+
+    `body` is appended after well-formed frontmatter. When `lines` is given the
+    file is padded with filler lines so its `wc -l` count equals `lines`.
+    """
+    d = root / "skills" / name
+    d.mkdir(parents=True, exist_ok=True)
+    text = f"---\nname: {name}\ndescription: >\n  Use for X. Skip for Y.\n---\n\n# {name}\n\n{body}"
+    if not text.endswith("\n"):
+        text += "\n"
+    if lines is not None:
+        pad = lines - text.count("\n")
+        assert pad >= 0, "fixture body longer than requested line count"
+        text += "filler\n" * pad
+    (d / "SKILL.md").write_text(text, encoding="utf-8")
+    return d
+
+
+def _run_capture(root: Path) -> tuple[int, str]:
+    """Run the full driver on a fixture repo (suite-specific rows off) and capture stdout."""
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = Linter(root, suite_rules=False).run()
+    return code, buf.getvalue()
+
+
 def self_test() -> int:
+    failures: list[str] = []
+
+    def check(cond: bool, msg: str) -> None:
+        if not cond:
+            failures.append(msg)
+
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
+
+        # -- 1. one violation per check class fires; every finding carries fix:
         bad = root / "skills" / "bad-skill"
         bad.mkdir(parents=True)
         (bad / "SKILL.md").write_text(
@@ -328,40 +504,99 @@ def self_test() -> int:
         linter.check_forbidden()
         linter.check_ordinals()
         linter.check_links()
-        text = "\n".join(linter.findings)
+        text = "\n".join(t for _, t in linter.findings)
         expected = ["[frontmatter]", "[description]", "[forbidden]",
                     "[ordinal]", "[link]", "[structure]"]
         missing = [e for e in expected if e not in text]
-        if missing:
-            print(f"SELF-TEST FAIL: rules never fired: {missing}\n\n{text}")
-            return 1
-        # A clean minimal skill must produce zero findings from these checks.
+        check(not missing, f"rules never fired: {missing}\n{text}")
+        for sev, t in linter.findings:
+            check(sev == "fail", f"unexpected severity {sev!r} in bad fixture: {t}")
+            m = re.search(r"\n    fix: (.+)$", t)
+            check(bool(m and m.group(1).strip()), f"finding without remediation: {t}")
+
+        # -- 2. clean fixture: zero findings from the same checks
         good_root = root / "clean"
-        good = good_root / "skills" / "good-skill"
-        good.mkdir(parents=True)
-        (good / "SKILL.md").write_text(
-            "---\nname: good-skill\ndescription: >\n  Use for X. Skip for Y.\n---\n\n"
-            "# Good\n\n1. one\n2. two\n",
-            encoding="utf-8",
-        )
+        _fixture_skill(good_root, "good-skill", "1. one\n2. two\n")
         clean = Linter(good_root)
         clean.check_structure()
         clean.check_forbidden()
         clean.check_ordinals()
         clean.check_links()
-        if clean.findings:
-            print("SELF-TEST FAIL: clean fixture produced findings:\n"
-                  + "\n".join(clean.findings))
-            return 1
-        print("SELF-TEST OK: all rule classes fire; clean fixture passes")
-        return 0
+        check(not clean.findings,
+              "clean fixture produced findings:\n" + "\n".join(t for _, t in clean.findings))
+
+        # -- 3. flag() without fix is a TypeError (remediation is mandatory)
+        try:
+            Linter(root).flag(Path("x"), 1, "rule", "msg")  # type: ignore[call-arg]
+            check(False, "flag() accepted a call without fix")
+        except TypeError:
+            pass
+
+        # -- 4. size: 401 lines warns (exit 0, '1 warning(s)'); 400 is silent
+        warn_root = root / "warn"
+        _fixture_skill(warn_root, "long-skill", "prose\n", lines=401)
+        code, out = _run_capture(warn_root)
+        check(code == 0, f"warn-only fixture exited {code}:\n{out}")
+        check("WARN " in out and "[size]" in out and "401 lines (> 400)" in out,
+              f"401-line SKILL.md did not warn:\n{out}")
+        check("OK: 1 file(s) clean, 1 warning(s)" in out, f"warn summary wrong:\n{out}")
+        edge_root = root / "edge"
+        _fixture_skill(edge_root, "edge-skill", "prose\n", lines=400)
+        code, out = _run_capture(edge_root)
+        check(code == 0 and "[size]" not in out and "OK: 1 file(s) clean\n" in out,
+              f"400-line SKILL.md must not warn:\n{out}")
+
+        # -- 5. size: 1001 lines fails (exit 1); references/*.md are exempt
+        fail_root = root / "fail"
+        d = _fixture_skill(fail_root, "huge-skill", "prose\n", lines=1001)
+        (d / "references").mkdir()
+        (d / "references" / "big.md").write_text("x\n" * 1200, encoding="utf-8")
+        code, out = _run_capture(fail_root)
+        check(code == 1, f"1001-line fixture exited {code}:\n{out}")
+        check("1001 lines (> 1000)" in out and "big.md" not in out,
+              f"size fail wrong or references/ not exempt:\n{out}")
+        check("FAIL: 1 finding(s), 0 warning(s)" in out, f"fail summary wrong:\n{out}")
+
+        # -- 6. backtick path resolution
+        ref_root = root / "refs"
+        d = _fixture_skill(
+            ref_root, "ref-skill",
+            "Read `references/present.md` first, then `references/missing.md`.\n"
+            "Also `skills/ref-skill/references/present.md` and "
+            "`skills/ref-skill/references/absent.md`:\n"
+            "Contract: `docs/spec/nowhere.md#section`.\n"
+            "Globs like `references/*.md` are skipped.\n"
+            "```\n`references/fenced-missing.md`\n```\n",
+        )
+        (d / "references").mkdir()
+        (d / "references" / "present.md").write_text("# ok\n", encoding="utf-8")
+        code, out = _run_capture(ref_root)
+        check(code == 1, f"backtick fixture exited {code}:\n{out}")
+        check("`references/missing.md`" in out, f"backtick references/ miss not flagged:\n{out}")
+        check("`skills/ref-skill/references/absent.md`" in out,
+              f"backtick skills/<skill>/references/ miss not flagged:\n{out}")
+        check("WARN " in out and "`docs/spec/nowhere.md`" in out,
+              f"docs/spec/ mention should warn:\n{out}")
+        check("present.md" not in out, f"existing backtick path flagged:\n{out}")
+        check("fenced-missing" not in out and "*.md" not in out,
+              f"fenced or glob backtick path flagged:\n{out}")
+        check("FAIL: 2 finding(s), 1 warning(s)" in out, f"backtick summary wrong:\n{out}")
+        for sev, t in Linter(ref_root, suite_rules=False).findings:
+            check("fix: " in t, f"finding without fix: {t}")
+
+    if failures:
+        print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
+        return 1
+    print("SELF-TEST OK: all rule classes fire; fix/warn/size/backtick fixtures pass")
+    return 0
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(
         prog="sdd-skill-lint",
         description="Consistency linter for the SDD skill suite "
-                    "(frontmatter, drift phrases, contract markers, ordinals, links).",
+                    "(frontmatter, drift phrases, contract markers, ordinals, links, "
+                    "backtick paths, SKILL.md size).",
     )
     ap.add_argument("root", nargs="?", default=None,
                     help="repository root to lint (default: repo containing this script)")
