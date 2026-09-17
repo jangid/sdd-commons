@@ -441,6 +441,25 @@ Required fields: question ID, tier, decision, and rationale (or impact for tier 
 - **Parallel-dispatch exception**: when running as a fan-out leaf with an assigned Q-IMPL number block in your dispatch, allocate from that block instead of scanning — parallel leaves scanning globally would mint colliding numbers. Gaps left by unused block numbers are permanent and acceptable.
 - Append-only: retired entries stay in their spec with a `[superseded by Q-IMPL-NNN]` status note, not deleted or renumbered.
 
+**Workstream-prefixed IDs (marker `4` only).** `docs/.sdd-version` is the sole gate.
+When the marker is **not** `4` (v3 or earlier), number exactly as above — bare
+`Q-IMPL-NNN`, global sequential scan, behavior UNCHANGED. When the marker is `4`,
+resolve `ws` (the workstream argument, default `default`) and allocate
+`Q-IMPL-<WS>-NNN` with a **per-workstream counter**:
+- `{NNN}` is parsed **after** the `<WS>` token and scanned for its max per workstream
+  — not globally — so each workstream advances an independent Q-IMPL sequence
+  (`Q-IMPL-ISSUE42-003`, `Q-IMPL-ISSUE57-001`) with no cross-workstream collision
+  (REQ-WS-009, REQ-WS-011)
+- The entry heading becomes `### Q-IMPL-<WS>-NNN: <short topic>`
+- Legacy bare `Q-IMPL-NNN` entries from a v3 corpus are treated as the `default`
+  workstream and are NOT remapped. See `docs/spec/ws-ids.md`.
+
+**Do NOT touch (RS-007 Q4 — provably unaffected):** the chunk-close Q-IMPL audit and
+`sdd-review`'s Q-REQ/Q-SPEC/Q-IMPL content checks make no numeric-suffix assumption
+(Q-REQ/Q-SPEC already use letter suffixes) and match these ids as opaque strings —
+they tolerate the inserted `<WS>` segment unchanged. Do not add a numeric-suffix
+parser to them.
+
 ### Leaf Return Contract (dispatched by `sdd-orchestrate`)
 
 When this skill runs as a dispatched leaf of `sdd-orchestrate` — a pipeline
@@ -500,25 +519,6 @@ mandatory).
   what you wrote.
 - **`blocked_writes`** carries the full content of any file a harness policy
   refused to write, labeled by target path, so the orchestrator can persist it.
-
-**Workstream-prefixed IDs (marker `4` only).** `docs/.sdd-version` is the sole gate.
-When the marker is **not** `4` (v3 or earlier), number exactly as above — bare
-`Q-IMPL-NNN`, global sequential scan, behavior UNCHANGED. When the marker is `4`,
-resolve `ws` (the workstream argument, default `default`) and allocate
-`Q-IMPL-<WS>-NNN` with a **per-workstream counter**:
-- `{NNN}` is parsed **after** the `<WS>` token and scanned for its max per workstream
-  — not globally — so each workstream advances an independent Q-IMPL sequence
-  (`Q-IMPL-ISSUE42-003`, `Q-IMPL-ISSUE57-001`) with no cross-workstream collision
-  (REQ-WS-009, REQ-WS-011)
-- The entry heading becomes `### Q-IMPL-<WS>-NNN: <short topic>`
-- Legacy bare `Q-IMPL-NNN` entries from a v3 corpus are treated as the `default`
-  workstream and are NOT remapped. See `docs/spec/ws-ids.md`.
-
-**Do NOT touch (RS-007 Q4 — provably unaffected):** the chunk-close Q-IMPL audit and
-`sdd-review`'s Q-REQ/Q-SPEC/Q-IMPL content checks make no numeric-suffix assumption
-(Q-REQ/Q-SPEC already use letter suffixes) and match these ids as opaque strings —
-they tolerate the inserted `<WS>` segment unchanged. Do not add a numeric-suffix
-parser to them.
 
 ## Transition
 

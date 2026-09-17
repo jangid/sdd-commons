@@ -5,14 +5,14 @@ target; REQ-HARN-001, REQ-HARN-002 procedure placement). Each section below is
 referenced from a stub in `SKILL.md` that keeps the contract line and the lint
 marker literals (`fix-loop cap`, `iteration N of 3`, `replan re-entry cap`,
 `CHUNK_VERDICT:`); the canonical per-chunk gate block itself stays in
-`SKILL.md` §Per-chunk implement dispatch. Every counter here is orchestrator
+`SKILL.md` §Per-chunk implement dispatch and per-chunk gate. Every counter here is orchestrator
 session state (`docs/spec/harness-loop-control.md` §State Placement) — nothing
 is persisted, and no template tells a subagent to count anything
 (`SKILL.md` §Orchestrator-Only Work). Contracts:
 `docs/spec/harness-loop-control.md`, `docs/spec/harness-chunk-verifier.md`,
 `docs/spec/harness-return-contract.md`.
 
-## 1. Per-chunk implement loop — from §Per-chunk implement dispatch
+## 1. Per-chunk implement loop — from §Per-chunk implement dispatch and per-chunk gate
 
 The sequential implement stage runs this loop; the PER-CHUNK GATE block it
 renders is the canonical copy in `SKILL.md`:
@@ -50,6 +50,14 @@ after the last chunk: dispatch the implement-stage sdd-review ONCE on the merged
   counter is independent of the stage fix-iteration counter: the
   implement-stage review runs once after all chunks, so review-driven and
   verifier-driven loops are distinct.
+- **Checkpoint on redo exhaustion (REQ-HARN-008).** When `REDO_MAX` fires at
+  an implement chunk the implementer is not running, so the **orchestrator**
+  composes the circuit-break checkpoint from the last `RETURN` (`failures`,
+  `ledger`, `open_questions`) per the mapping table in
+  `sdd-implement/SKILL.md` §Step 3, with trigger label `fix-cap`, and applies
+  it as the blocked-task note under the chunk's open task (sequential: in the
+  working tree before the gate renders; fan-out: after merge per
+  `fan-out.md` §3e.4). `sdd-replan` Step 1 reads it as the stuck state.
 - **FAIL routing.** A FAIL routes **only** to a repair packet for a redo of the
   same chunk (`fix`); never directly to a merge, to the implement-stage review,
   or to `sdd-replan`. The per-chunk gate never shows a review `VERDICT:`.
@@ -111,6 +119,16 @@ Each line is the review's Critical/Material finding line lifted verbatim, one
 group per iteration; no reviewer reasoning, no prose summary (REQ-ORCH-012).
 The per-chunk redo cap (§1a) renders the same shape with the verifier's
 findings in place of the review's.
+
+- **Checkpoint on fix-loop exhaustion at an implement chunk (REQ-HARN-008).**
+  When `FIX_LOOP_MAX` fires while the stage is implement, the implementer is
+  not running; the **orchestrator** composes the circuit-break checkpoint from
+  the last `RETURN` (`failures`, `ledger`, `open_questions`) per the mapping
+  table in `sdd-implement/SKILL.md` §Step 3, trigger label `fix-cap`, and
+  applies it as the blocked-task note under the affected task (sequential:
+  working tree; fan-out: after merge per `fan-out.md` §3e.4) before rendering
+  the exhausted gate. Non-implement stages have no task to annotate — the
+  compiled findings log above is their only record.
 
 ## 3. Replan re-entry cap derivation (REQ-HARN-002, REQ-HARN-003) — from §The gate
 

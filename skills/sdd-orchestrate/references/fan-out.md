@@ -299,7 +299,7 @@ reaches the integration branch (marker `3`: `main`; marker `4`: the workstream
 branch — §0). The verifier is read-only and is never `sdd-review`; the single
 implement-stage review still runs once, after the last merge and the §3e
 bookkeeping. The operator may have opted the verifier out for the cycle at the
-implement gate (`../SKILL.md` §Opt-in gate) — then step b is skipped and the
+implement gate (`../SKILL.md` §Boundary derivation and opt-in gate) — then step b is skipped and the
 per-leaf gate shows `CHUNK_VERDICT: (verifier disabled)`.
 
 ### 3b. Sequential merge to main (REQ-ORCH-025)
@@ -431,7 +431,9 @@ orchestrator applies the shared-doc updates the leaves were barred from making
    apply the note under the **nearest chunk header** (the chunk the leaf was
    dispatched for) with a `task not found in plan` prefix and raise it at the
    gate — never invent a task. `sdd-replan` Step 1 reads this note as the
-   stuck state.
+   stuck state. The same composition applies when a cap fires at an implement
+   chunk (`REDO_MAX` / `FIX_LOOP_MAX`, trigger label `fix-cap`) — the
+   orchestrator is the writer there too (`loop-control.md` §1a, §2a).
 5. **`blocked_writes` pre-persist scope match** (`write-scope.md` §6,
    REQ-HARN-023): before persisting any `{path, content}` entry from a leaf's
    `RETURN.blocked_writes`, match `path` against that leaf's `{write_scope}`

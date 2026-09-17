@@ -298,7 +298,7 @@ gate, and the gate is re-rendered with the resulting `SCOPE:` line.
 | `OUT` path (`blocked_writes`) | `persist & widen scope` │ `drop` │ `stop` | never persisted without an explicit widen (§6) |
 | `ADVISORY` path | none required — hint shown | operator eyeballs the hunk; counts 0 toward `N` |
 | `HISTORY_REWRITE` | `stop` + manual recovery hint | never an automatic reset |
-| verifier / review wrote anything | every path `OUT`; revert before any redo | `../SKILL.md` §Verifier edge cases |
+| verifier / review wrote anything | every path `OUT`; revert before any redo | `loop-control.md` §1b Verifier edge cases |
 
 ---
 
