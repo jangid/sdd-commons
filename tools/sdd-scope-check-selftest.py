@@ -2,11 +2,13 @@
 """Self-test for the sdd-orchestrate write-scope check.
 
 Builds throwaway git repositories under a temporary directory and replays the
-seven write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
-(plan Chunk 4 task 5) plus ``docs/spec/telemetry.md`` §Third Observation (F7) against the observation procedure defined in
-``skills/sdd-orchestrate/references/write-scope.md``:
+eight write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
+(plan Chunk 4 task 5) plus ``docs/spec/telemetry.md`` §Third Observation (F7) and
+``docs/spec/dispatch-snapshot-base.md`` §Snapshot Base Rule (F9) against the
+observation procedure defined in ``skills/sdd-orchestrate/references/write-scope.md``:
 
-  §3  the three commands — porcelain delta, committed delta, ancestry check
+  §3  the three commands — porcelain delta, committed delta, ancestry check —
+      plus the named-base catch-up (d) and its ``CATCH-UP`` line (remedy (ii))
   §4  matching and tags — IN / ADVISORY / OUT
   §5  finding format and the own-line ``SCOPE:`` token
   §6  blocked-write fallback — pre-persist scope match
@@ -21,6 +23,8 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
   F5  blocked_writes docs/plan.md from a leaf   -> refused, listed OUT refused
   F6  amended HEAD                              -> HISTORY_REWRITE, VIOLATION
   F7  leaf appends to .sdd/telemetry.jsonl      -> OUT (+1 records, leaf write — reverted)
+  F9  catch-up base (worktree 1 commit behind)  -> CLEAN + CATCH-UP line; plus one
+                                                   OUT write -> VIOLATION (1 path)
 
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
@@ -129,6 +133,7 @@ class Observed:
 class Observation:
     writes: list[Observed] = field(default_factory=list)
     history_rewrite: str | None = None  # rendered HISTORY_REWRITE line, if any
+    catch_up: str | None = None  # rendered CATCH-UP note for the header line, if any
     # Third observation (telemetry.md §4): finding strings for leaf writes under
     # the gitignored ``.sdd/`` — each counts as one more OUT path.
     telemetry_findings: list[str] = field(default_factory=list)
@@ -217,23 +222,71 @@ def _porcelain_paths(line: str) -> tuple[str, list[str]]:
     return letter, [rest]
 
 
+def _add_name_status(obs: Observation, text: str, sha: str) -> None:
+    """Append every path of a ``--name-status`` listing as a committed write."""
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        letter = parts[0][0]
+        paths = parts[1:]  # renames/copies carry old and new
+        for p in paths:
+            obs.writes.append(Observed(p, letter, f"committed {sha[:7]}"))
+
+
 def observe(
     repo: str,
     head_before: str,
     before: list[str],
     telemetry_before: TelemetrySnapshot | None = None,
+    *,
+    base: str | None = None,
 ) -> Observation:
     """Run the AFTER half of §3 and return the union of the two deltas.
 
     (a) porcelain delta: lines in scope.after that are not in scope.before
-    (b) committed delta: ``git diff --name-status HEAD_before HEAD_after``
+    (b) committed delta: ``git diff --name-status HEAD_before HEAD_after``; under a
+        named base, the paths of every commit in ``git rev-list HEAD_after ^base ^HEAD_prov``
     (c) ancestry: ``git merge-base --is-ancestor HEAD_before HEAD_after``
+    (d) catch-up: ``N = git rev-list --count HEAD_prov..base``; ``N > 0`` renders the
+        ``CATCH-UP <from>..<base> (N commits, excluded — base <sha>)`` note
     Third observation (telemetry.md §4), when ``telemetry_before`` is given:
     ``n_after``/``e_after`` of .sdd/ taken here, before the orchestrator's own append.
+
+    ``head_before`` is the provisioned HEAD (``HEAD_prov``). ``base`` is the commit
+    the leaf was told to reach (remedy (ii) of the snapshot base rule); when it
+    is given and resolves, the effective ``HEAD_before`` becomes ``base`` and the
+    catch-up commits are excluded from the window. With ``N == 0`` the plain
+    three-command path runs, so the rendering is byte-identical to v5.
     """
     head_after = git(repo, "rev-parse", "HEAD").stdout.strip()
     after = snapshot(repo)
     obs = Observation()
+    head_prov = head_before
+
+    # (d) catch-up — resolve the named base and pick the effective HEAD_before.
+    if base is not None:
+        count = git(repo, "rev-list", "--count", f"{head_prov}..{base}", check=False)
+        if count.returncode != 0:
+            # Named base not reachable (typo): window from HEAD_prov, no exclusion.
+            obs.catch_up = f"CATCH-UP base {base[:7]} unresolved — window from {head_prov[:7]}"
+            base = None
+        else:
+            base = git(repo, "rev-parse", base).stdout.strip()
+            base_reached = git(repo, "merge-base", "--is-ancestor", base, head_after, check=False).returncode == 0
+            prov_reached = git(repo, "merge-base", "--is-ancestor", head_prov, head_after, check=False).returncode == 0
+            n = int(count.stdout.strip())
+            if not base_reached and prov_reached:
+                # Leaf ignored the catch-up instruction: a warning, not a violation.
+                obs.catch_up = f"CATCH-UP not performed (base {base[:7]})"
+                base = None
+            elif n == 0:
+                base = None  # remedy (i) in effect — nothing to exclude
+            else:
+                obs.catch_up = (
+                    f"CATCH-UP {head_prov[:7]}..{base[:7]} ({n} commits, excluded — base {base[:7]})"
+                )
+                head_before = base
     if telemetry_before is not None:
         obs.telemetry_after = telemetry_snapshot(repo)
         obs.telemetry_findings = telemetry_delta(telemetry_before, obs.telemetry_after)
@@ -249,15 +302,15 @@ def observe(
 
     # (b) committed delta — catches writes that vanished from porcelain.
     if head_after != head_before:
-        diff = git(repo, "diff", "--name-status", head_before, head_after).stdout
-        for line in diff.splitlines():
-            if not line.strip():
-                continue
-            parts = line.split("\t")
-            letter = parts[0][0]
-            paths = parts[1:]  # renames/copies carry old and new
-            for p in paths:
-                obs.writes.append(Observed(p, letter, f"committed {head_after[:7]}"))
+        if base is not None:
+            # Named base: only the commits the leaf added on top of base and
+            # HEAD_prov, each contributing its own paths (a merge commit only
+            # its conflict resolutions — combined diff).
+            shas = git(repo, "rev-list", head_after, f"^{base}", f"^{head_prov}").stdout.split()
+            for sha in reversed(shas):
+                _add_name_status(obs, git(repo, "show", "--name-status", "--format=", sha).stdout, sha)
+        else:
+            _add_name_status(obs, git(repo, "diff", "--name-status", head_before, head_after).stdout, head_after)
 
     # (c) ancestry — a non-zero exit is a HISTORY_REWRITE finding.
     rc = git(repo, "merge-base", "--is-ancestor", head_before, head_after, check=False).returncode
@@ -330,6 +383,10 @@ def render(scope: list[ScopeGlob], obs: Observation, label: str) -> Finding:
     """Render the §5 finding block and compute the own-line ``SCOPE:`` token."""
     declared = ", ".join(g.pattern + (" (advisory)" if g.advisory else "") for g in scope)
     lines = [f"Write-scope check — {label}", f"  Declared scope : {declared}"]
+    # The "Observed writes" header carries the CATCH-UP note under remedy (ii);
+    # it is omitted entirely when there is none so the v5 rendering is unchanged.
+    if obs.catch_up:
+        lines.append(f"  Observed writes: {obs.catch_up}")
     if obs.history_rewrite:
         lines.append(f"  {obs.history_rewrite}")
     out_paths: list[str] = []
@@ -516,6 +573,69 @@ def scenario_f7(repo: str) -> tuple[bool, str, list[str]]:
     return ok, f.token, f.lines
 
 
+def scenario_f9(repo: str) -> tuple[bool, str, list[str]]:
+    """Catch-up base: worktree provisioned one commit behind the named base.
+
+    Self-contained replay of ``dispatch-snapshot-base.md`` §Snapshot Base Rule
+    (F9) with three assertions:
+
+      1. leaf fast-forwards to the named base and commits one in-scope write
+         -> SCOPE: CLEAN, the CATCH-UP <from>..<base> (1 commits, excluded — base
+         <sha>) note in the "Observed writes" header, the tip's out-of-scope
+         path NOT listed;
+      2. plus one uncommitted out-of-scope write -> SCOPE: VIOLATION (1 path)
+         naming only that path, the CATCH-UP note still present;
+      3. N == 0 (base == HEAD_prov) -> no CATCH-UP line; the block is
+         byte-identical to the plain three-command rendering (the F1 shape).
+    """
+    head_prov = git(repo, "rev-parse", "HEAD").stdout.strip()
+    # The branch moves on after the worktree's base: one commit touching an
+    # out-of-scope path (RS-HARNESSP2-001 Q6's 20-path delta, in miniature).
+    write(repo, "docs/plan.md", "# Plan\ntip commit, authored before dispatch\n")
+    git(repo, "commit", "-q", "-am", "tip: plan edit")
+    base = git(repo, "rev-parse", "HEAD").stdout.strip()
+    # Provision the leaf's worktree one commit behind the named base.
+    wt = os.path.join(os.path.dirname(repo), os.path.basename(repo) + "-wt")
+    git(repo, "worktree", "add", "--detach", wt, head_prov)
+    before = snapshot(wt)
+    # Leaf: catch up by fast-forward, then one in-scope committed write.
+    git(wt, "merge", "-q", "--ff-only", base)
+    write(wt, "src/recon/engine.py", "def run():\n    return 1\n")
+    git(wt, "commit", "-q", "-am", "leaf: engine")
+    catch = f"CATCH-UP {head_prov[:7]}..{base[:7]} (1 commits, excluded — base {base[:7]})"
+    f_clean = render(LEAF_SCOPE, observe(wt, head_prov, before, base=base), "F9")
+    ok1 = (
+        f_clean.token == "SCOPE: CLEAN"
+        and f_clean.out_paths == []
+        and any(ln == f"  Observed writes: {catch}" for ln in f_clean.lines)
+        and not any("docs/plan.md" in ln for ln in f_clean.lines)  # catch-up excluded
+        and any("IN" in ln and "src/recon/engine.py" in ln and "committed" in ln for ln in f_clean.lines)
+    )
+    # Assertion 2: plus one out-of-scope uncommitted write.
+    write(wt, "docs/verification.md", "# Verification\nleaf edit\n")
+    f_out = render(LEAF_SCOPE, observe(wt, head_prov, before, base=base), "F9")
+    ok2 = (
+        f_out.token == "SCOPE: VIOLATION (1 path)"
+        and f_out.out_paths == ["docs/verification.md"]
+        and any(ln == f"  Observed writes: {catch}" for ln in f_out.lines)
+    )
+    # Assertion 3: N == 0 — replay the F1 shape with and without a named base
+    # equal to HEAD_prov; the two renderings must be byte-identical.
+    git(wt, "checkout", "-q", "--", "docs/verification.md")
+    head0, before0 = _begin(wt)
+    write(wt, "docs/plan.md", "# Plan\nleaf edit\n")
+    plain = render(SEQ_SCOPE_SRC, observe(wt, head0, before0), "F1")
+    named = render(SEQ_SCOPE_SRC, observe(wt, head0, before0, base=head0), "F1")
+    ok3 = (
+        plain.lines == named.lines
+        and plain.token == "SCOPE: VIOLATION (1 path)"
+        and not any("CATCH-UP" in ln for ln in named.lines)
+    )
+    ok = ok1 and ok2 and ok3
+    token = f"{f_clean.token} + {f_out.token}" + ("" if ok3 else " (N==0 rendering differs)")
+    return ok, token, f_clean.lines + f_out.lines
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -524,6 +644,7 @@ SCENARIOS = [
     ("F5", "blocked_writes docs/plan.md from a fan-out leaf", scenario_f5),
     ("F6", "amended HEAD (HISTORY_REWRITE)", scenario_f6),
     ("F7", "leaf appends to .sdd/telemetry.jsonl (third observation, reverted)", scenario_f7),
+    ("F9", "catch-up base: worktree one commit behind, leaf fast-forwards", scenario_f9),
 ]
 
 
@@ -536,8 +657,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="sdd-scope-check-selftest.py",
         description=(
-            "Replay the seven write-scope scenarios of docs/spec/harness-write-scope.md "
-            "§Verification in throwaway git repos. Exit 0 when all pass."
+            f"Replay the {len(SCENARIOS)} write-scope scenarios of docs/spec/harness-write-scope.md "
+            "§Verification, docs/spec/telemetry.md §Third Observation and "
+            "docs/spec/dispatch-snapshot-base.md §Snapshot Base Rule in throwaway git repos. "
+            "Exit 0 when all pass."
         ),
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="print each finding block")
