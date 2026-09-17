@@ -114,10 +114,14 @@ sequences the whole loop and only ever hands control back at a gate.
 ```
 you  > /sdd-orchestrate
       Idea: add a --dry-run flag to the deploy tool.
-orch > A few questions before I write a kickoff:
+orch > GC: clean                                  # drift sweep at entry — one line, never a gate
+       A few questions before I write a kickoff:
        - dry-run prints the plan only, or a diff?  - exit-code contract? ...
 you  > plan + diff; non-zero exit if drift. partial applies are out of scope.
-orch > Good — we're aligned. Writing docs/handoff/kickoff.md and starting research.
+orch > Good — we're aligned. Telemetry: on (default — say `telemetry: off` now to opt
+       out for this cycle; records go to .sdd/telemetry.jsonl — gitignored,
+       orchestrator-only, never read by phase detection).
+       Writing docs/handoff/kickoff.md and starting research.
        [dispatches research pipeline → research review]
 orch > GATE (research): reviewer says Approve. proceed / loop-back / stop?
 you  > proceed
@@ -139,8 +143,20 @@ you  > proceed
        ... one per-chunk gate per remaining chunk, then ONE implement review ...
 orch > GATE (implement): VERDICT: APPROVE. proceed / loop-back-to-fix / stop?
 you  > proceed
-       ... verify, with its gate ...
+       ... verify: red team: off | on? (default off)
+you  > on
+orch > [verify pipeline (Red team: enabled) → scope check → RED TEAM leaf → review]
+       Verify stage gate — pipeline #9 (sdd-verify), red #10, review #11
+         RETURN.status  : COMPLETE    budget_consumed: {tool_calls: 41, test_runs: 6}  vs  Budget: ~70 tool calls
+         SCOPE: CLEAN
+         RED_VERDICT: HELD
+         VERDICT: APPROVE
+         iteration 0 of 3
+         Options: proceed │ loop-back-to-fix │ stop
+you  > proceed                       # orchestrator flips verification.md pending-red → pass, then commits
 orch > DONE — verify passed review. Recommend committing the cycle.
+       GC: clean                                  # drift sweep at DONE — findings would be routed here
+       Post-cycle: python3 tools/sdd-telemetry.py summarize
 ```
 
 ### Coming back later (resume)
@@ -288,13 +304,15 @@ This section is what the new lines mean when you see them.
 | Gate | When | Options | What it shows |
 |------|------|---------|---------------|
 | **Per-chunk gate** | implement stage only — after each `### Chunk N:` dispatch returns | `proceed │ fix │ stop` | `RETURN.status`, `SCOPE:`, `CHUNK_VERDICT:`, files changed, `Redo: N of 3` |
-| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` or the replan re-entry count when a loop is active |
+| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` or the replan re-entry count when a loop is active; verify stage with red on: `RED_VERDICT:` and its `Rn` lines before the `VERDICT:` |
 
 Signals appear in the order they are produced: (1) the leaf's `RETURN.status`
 and `budget_consumed` against the dispatched `Budget:`; (2) the write-scope
 block ending in `SCOPE:`; (3) the chunk's `CHUNK_VERDICT:`; then, at the stage
-gate, (4) the review `VERDICT:` and (5) the loop counters. Non-implement stages
-show (1), (2), (4), (5) together at the stage gate.
+gate, (3b) at the verify stage only and only when red is on, `RED_VERDICT:` with
+its `Rn` lines verbatim; (4) the review `VERDICT:` and (5) the loop counters,
+followed by any `TELEMETRY:` line (at most once each, before the options).
+Non-implement stages show (1), (2), (4), (5) together at the stage gate.
 
 ### Reading the per-chunk gate block
 
@@ -361,6 +379,7 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
 |---------|---------|---------|
 | `RETURN: MALFORMED (<reason>)` | The leaf's `RETURN:` block is missing, has `status:` out of place or invalid, spans multiple lines, or contradicts itself. Shown with the raw tail of the return. | `re-dispatch │ accept manually │ stop` — never treated as `COMPLETE` |
 | `REVIEW: MALFORMED` | The review's `VERDICT:` token is missing, unrecognized, or disagrees with its prose. | `re-dispatch review │ accept prose manually │ stop` |
+| `REVIEW: CONTRADICTION (round N vs round N+1, class b\|c[, file-level])` | Inside a fix loop (stage gate, iteration ≥ 2) the later review round raised a Critical/Material on ground the earlier round did not name and the fix did not write (class b), or regressed `APPROVE_WITH_FIXES → REJECT` without new ground (class c). Both rounds' lines and `fix #N wrote:` are shown side by side. | `accept round N+1 (fix) │ accept round N (proceed, note) │ third opinion (re-dispatch review) │ stop` — see §7c |
 | `RETURN.status: BUDGET_EXHAUSTED` | The leaf hit a term of its `Budget:` line and stopped cleanly; `budget_consumed` is mandatory. | treat like `fix` with a fresh budget, or `stop` |
 | `RETURN.status: BLOCKED` | Stuck detection (3 failed fixes, oscillation, spec contradiction) fired; no verifier runs; the checkpoint is written (sequential) or applied (fan-out). | per-chunk gate with a replan option — default `route to sdd-replan`; not a redo (`references/return-contract.md` §7) |
 
@@ -373,6 +392,145 @@ tracebacks). A sequential leaf writes it itself; under fan-out the orchestrator
 applies it after the merge. Nothing else is persisted: no counter file, no loop
 log, no review file — the caps are session-scoped or derived from artifacts that
 already exist.
+
+## 7c. Cycle signals added in v5 part 2 (harness-p2)
+
+Five more lines can appear in gate text. None changes the one-word decisions;
+each is defined once in the reference file named beside it.
+
+### `TELEMETRY:` lines and the KICKOFF choice
+
+Telemetry is **on by default**. After every gate the orchestrator appends one
+record — counts, enums, shas and timestamps, never finding text — to
+`.sdd/telemetry.jsonl` (gitignored, orchestrator-only, never read by phase
+detection). The only place to turn it off is KICKOFF: say `telemetry: off`
+when the kickoff is written and the first gate shows `TELEMETRY: OFF` once;
+the choice is session state (not written to `kickoff.md`) and holds for the
+cycle. Nothing in the loop reads the file (`.sdd/` is gitignored,
+orchestrator-only, never read by phase detection — `rm -rf .sdd/` is
+behaviour-neutral) and no leaf may write it: a leaf append renders `OUT
+.sdd/telemetry.jsonl (+k records, leaf write — reverted)` — gitignored,
+orchestrator-only, never read by phase detection — in the write-scope block
+and is reverted before the gate. Lines you may see, at most once each, after the
+`iteration`/cap line and before the options:
+
+| Line | Meaning |
+|------|---------|
+| `TELEMETRY: WRITE FAILED` | the previous append raised an error; the gate continues unchanged — never a pause |
+| `TELEMETRY: OFF` | first gate of a cycle you opted out of |
+| `TELEMETRY: .gitignore updated` | the orchestrator added the `.sdd/` ignore line (gitignored, orchestrator-only, never read by phase detection; a bookkeeping commit outside any observed window) |
+
+**After the cycle** run `python3 tools/sdd-telemetry.py summarize [--workstream
+<id>]` yourself — one table per workstream, one row per stage, then a per-chunk
+block (RS-008 probe 1 as a query). It is an out-of-loop reader: no skill runs
+it. Schema and writer rules: `references/telemetry.md`.
+
+### Red team at the verify gate (opt-in)
+
+Before the verify pipeline is dispatched the orchestrator asks `red team: off |
+on` (default `off`; optionally `red input: +verification.md` to hand red the
+blue report — withheld by default so red is not anchored on what blue checked).
+With `on`, the verify pipeline carries `Red team: enabled` — `sdd-verify` then
+writes `status: pending-red`, never `pass` — and ONE read-only RED TEAM leaf
+follows each `COMPLETE` blue return, before the review. It picks the weakest
+acceptance criteria and tries to break them; a break counts only with a
+reproducible `reproduce:` command. Its last line is `RED_VERDICT: BROKEN |
+HELD`, rendered at the stage gate between `SCOPE:` and `VERDICT:`:
+
+```
+  RED_VERDICT: BROKEN
+    - R1: <criterion> — attack: … — observed: … — reproduce: `python -m app --window 0` — BROKEN
+    - R2: <criterion> — attack: … — observed: held — reproduce: `pytest -q tests/test_recon.py::test_window` — HELD
+  VERDICT: APPROVE
+  iteration 0 of 3
+  Options per BROKEN finding: R1 → fix (RED_BREAK packet) | accept (record) | stop
+  proceed: unavailable until every BROKEN Rn is fixed or accepted
+```
+
+- **`fix (RED_BREAK packet)`** — an implement-stage repair packet built from the
+  `Rn` line, routed to the chunk whose spec red was attacking; one red round is
+  at most one fix iteration of the verify stage's counter (shared with review
+  rounds). After the fix the verify pipeline is re-dispatched and red re-runs
+  once by default.
+- **`accept (record)`** — appends `- Rn accepted at gate <date>: <observed> —
+  reproduce: \`<cmd>\`` under `verification.md` §Issues Found → Minor. Nothing
+  else is persisted.
+- **`proceed`** becomes available when `VERDICT ≠ REJECT` and red either
+  `HELD` or every `BROKEN` line is fixed/accepted; on `proceed` the
+  orchestrator flips `pending-red → pass` immediately before its commit. A
+  blue `status: fail` or non-`COMPLETE` return shows `Red team: not run` and no
+  red is dispatched.
+- **`pending-red` on resume** — a `verification.md` left at `pending-red` puts
+  phase detection at the verify stage, before the red dispatch (never DONE).
+
+Templates and counting: `references/dispatch-templates.md` §RED TEAM,
+`references/loop-control.md` §2a "Red round".
+
+### `REVIEW: CONTRADICTION` — when two review rounds disagree
+
+Only inside a fix loop, at a stage gate (iteration ≥ 2). The orchestrator keys
+each round's Critical/Material lines by `(file, section)` and compares round
+N+1 with round N plus what fix #N actually wrote (section-resolved hunks). Two
+classes fire: **class b** — a new C/M on ground round N never named and the fix
+never touched; **class c** — `APPROVE_WITH_FIXES → REJECT` with no new ground.
+A `(file-level)` tag means a key could not be resolved to a section and the
+comparison may over-fire. The pause shows both rounds verbatim with `fix #N
+wrote:` between them, consumes no iteration, and offers:
+
+| Option | What it does | Counter |
+|--------|--------------|---------|
+| `accept round N+1 (fix)` | treat the later round as right — normal fix re-dispatch | +1 |
+| `accept round N (proceed, note)` | treat the earlier round as right and proceed; "note" means the round-N+1 line is carried into the gate text only — nothing is written to any artifact and no review is stored | 0 |
+| `third opinion (re-dispatch review)` | one more independent review; two-of-three decides (at most one per contradiction) | 0 |
+| `stop` | end the session | 0 |
+
+Reversals (a later round asking the opposite of an earlier one) are **not**
+detected — that is a semantic judgement the orchestrator never makes; the fix
+loop cap remains the backstop. Rule and fixture:
+`references/loop-control.md` §2a, §6.
+
+### `GC:` — the drift sweep at entry and at DONE
+
+`tools/sdd-gc.py` is a sweep, not a stage. It runs at exactly two moments:
+
+- **Entry** (before the workstream picker / phase detection): one line —
+  `GC: clean`, or `GC: F fail, W warn — run tools/sdd-gc.py --report`, or `GC:
+  unavailable (<reason>)` — then the picker opens regardless. Informational;
+  never a gate.
+- **DONE** (after verify passes review and you approve): the tool's findings
+  are shown verbatim with the summary line, and each finding class is routed
+  once: **mechanical** (`xlink-dead`, `index-requirements`,
+  `traceability-aggregate`, `plan-history-name`) → `python3 tools/sdd-gc.py
+  --fix <rule>` — you review the printed paths and commit; **needs a
+  decision** (`stale-chain`, `qimpl-broken-ref`, `trace-empty`, …) → `record |
+  ignore`, where `record` appends `- gc <rule>: <file:line> — <fix>` under that
+  cycle's `verification.md` `## Next Steps` (the one slot `sdd-verify` Step 6
+  defines) and `ignore` writes nothing; **out of scope** → note only.
+
+gc never runs between stages, never blocks a gate, is never scheduled, and
+never creates or modifies a plan task. It never reads `.sdd/telemetry.jsonl`
+(gitignored, orchestrator-only, never read by phase detection). Cadence and
+routing: `references/drift-sweep.md`; the tool: `python3 tools/sdd-gc.py --help`.
+
+### `CATCH-UP` in the write-scope block
+
+Sequential and fix dispatches are provisioned **at the workstream branch tip**,
+so the prompt names no catch-up commit and the observed window starts there.
+When a hand-written prompt, entry kickoff or resumed session still tells the
+leaf to "reach commit `<sha>`", the orchestrator takes the window from that
+named base and excludes the commits the leaf merely caught up on, rendering
+on the "Observed writes" header line:
+
+```
+CATCH-UP <HEAD_prov>..<base> (N commits, excluded — base <sha>)
+```
+
+Absent when there was nothing to catch up on. Those commits are not `OUT`
+paths; the ancestry check still fires (`HISTORY_REWRITE`) if the leaf rewrites
+history. Variants: `CATCH-UP base <sha> unresolved — window from <HEAD_prov>`
+(named base not reachable — no exclusion) and `CATCH-UP not performed (base
+<sha>)` (leaf ignored the instruction — a warning, not a violation). Detail:
+`references/write-scope.md` §3.
 
 ---
 
@@ -464,7 +622,15 @@ non-research entry — are now built.
 - [`references/return-contract.md`](references/return-contract.md) — the leaf
   `RETURN:` block, repair packet and `VERDICT:` parsing
 - [`references/write-scope.md`](references/write-scope.md) — declared write
-  scope, the three-command check and `SCOPE:` findings
+  scope, the three-command check, `CATCH-UP` and `SCOPE:` findings
+- [`references/telemetry.md`](references/telemetry.md) — the per-dispatch
+  record schema, `TELEMETRY:` lines and the post-cycle reader
+  (`.sdd/telemetry.jsonl` — gitignored, orchestrator-only, never read by phase
+  detection)
+- [`references/drift-sweep.md`](references/drift-sweep.md) — when
+  `tools/sdd-gc.py` runs, how `GC:` renders and where each finding goes
+- `tools/sdd-telemetry.py`, `tools/sdd-gc.py`, `tools/sdd-eval.py` — the
+  out-of-loop readers and the sweep (`--help`, `--self-test` on each)
 - `docs/spec/orchestration.md` — the design spec
 - `docs/research/RS-005-sdd-orchestrate-feasibility/findings.md` — the feasibility
   evidence behind the isolation and non-interactivity guarantees

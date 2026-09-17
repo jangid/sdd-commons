@@ -133,6 +133,26 @@ counters are session-scoped or derived, reviews stay ephemeral, and the only
 durable trace is the bounded circuit-break checkpoint in the plan's existing
 blocked-task note.
 
+**Cycle signals (v5 part 2 — harness-p2).** After every gate the driver appends
+one record — counts, enums, shas, timestamps, never finding text — to
+`.sdd/telemetry.jsonl` (gitignored, orchestrator-only, never read by phase
+detection; default on, opt-out at KICKOFF; `TELEMETRY: WRITE FAILED | OFF |
+.gitignore updated` are its only gate lines; post-cycle reader `python3
+tools/sdd-telemetry.py summarize`). At the verify stage the operator may opt in
+to a **red team** (`red team: off | on`, default off): one read-only leaf attacks
+the weakest acceptance criteria and ends with `RED_VERDICT: BROKEN | HELD`;
+`sdd-verify` then writes `status: pending-red` and `proceed` is withheld until
+every `BROKEN` `Rn` is fixed (`RED_BREAK` packet) or accepted (recorded under
+§Issues Found → Minor), after which the gate flips `pending-red → pass`. Inside a
+fix loop a later review round that raises new ground, or regresses without it,
+pauses the stage gate as `REVIEW: CONTRADICTION (round N vs round N+1, class
+b|c)` with `accept round N+1 (fix) | accept round N (proceed, note) | third
+opinion (re-dispatch review) | stop`. `python3 tools/sdd-gc.py --report` sweeps
+the docs corpus at entry (one informational `GC:` line) and at DONE (findings
+routed `--fix <rule>` │ `record | ignore` │ note; `record` appends to
+`verification.md` `## Next Steps`); gc never runs between stages, never blocks a
+gate and never touches a plan task.
+
 ### Phase Detection
 
 Every skill checks `docs/.sdd-version` on entry. If missing, it suggests running `sdd-migrate`. `docs/.sdd-version` is the **sole layout gate**: marker `3` (or earlier) selects the flat single-operator layout; marker `4` selects the multi-workstream layout where phase detection is a **function of `(repo, workstream)`** — every skill takes a `workstream` argument (default `default`) and roots execution artifacts at `docs/ws/<id>/` (see [Multi-Workstream Layout (v4)](#multi-workstream-layout-v4)). Both markers are supported; this repo migrated to marker `4` on 2026-09-17 (solo work runs in the implicit `default` workstream).
