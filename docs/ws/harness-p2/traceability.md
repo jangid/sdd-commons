@@ -25,10 +25,10 @@ its siblings — never hand-edited.
 | REQ-EVAL-HARNESSP2-002 | evaluation.md | harness-p2 |  |  |  |
 | REQ-EVAL-HARNESSP2-003 | evaluation.md | harness-p2 |  |  |  |
 | REQ-EVAL-HARNESSP2-004 | evaluation.md | harness-p2 |  |  |  |
-| REQ-GC-HARNESSP2-001 | drift-sweep.md | harness-p2 |  |  |  |
-| REQ-GC-HARNESSP2-002 | drift-sweep.md | harness-p2 |  |  |  |
-| REQ-GC-HARNESSP2-003 | drift-sweep.md | harness-p2 |  |  |  |
-| REQ-GC-HARNESSP2-004 | drift-sweep.md | harness-p2 |  |  |  |
+| REQ-GC-HARNESSP2-001 | drift-sweep.md | harness-p2 | tools/sdd-gc.py --self-test (exit codes, --help, clean fixture) | tools/sdd-gc.py (main, Gc, sweep_lint) | |
+| REQ-GC-HARNESSP2-002 | drift-sweep.md | harness-p2 | tools/sdd-gc.py --self-test (sweeps 6/8/9/10/13/14; 7/11/12 in Chunk 5) | tools/sdd-gc.py (sweep_xlink, sweep_qimpl, sweep_index, sweep_plan_history; partial) | |
+| REQ-GC-HARNESSP2-003 | drift-sweep.md | harness-p2 | tools/sdd-gc.py --self-test (counting rule D/B/D-B/0, exclusion cases, Q-IMPL-999 mutation; partial) | tools/sdd-gc.py (module docstring, Gc.is_countable, Gc.sweep_qimpl; partial) | |
+| REQ-GC-HARNESSP2-004 | drift-sweep.md | harness-p2 | tools/sdd-gc.py --self-test (finding shape, WARN/INFO, summary last, empty-fix refusal) | tools/sdd-gc.py (Gc.flag, Gc.passthrough, Gc.run) | |
 | REQ-GC-HARNESSP2-005 | drift-sweep.md | harness-p2 |  |  |  |
 | REQ-GC-HARNESSP2-006 | drift-sweep.md | harness-p2 |  |  |  |
 | REQ-GC-HARNESSP2-007 | drift-sweep.md | harness-p2 |  |  |  |

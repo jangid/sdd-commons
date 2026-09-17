@@ -527,7 +527,7 @@ its skeleton self-test; no skill text in this chunk).
 fixture it builds, never from the live corpus — a hard-coded live count is
 the fifth replan trigger waiting to fire in Chunk 5.
 **Tasks**:
-1. [ ] [implement] Create `tools/sdd-gc.py` (stdlib-only): argparse CLI
+1. [x] [implement] Create `tools/sdd-gc.py` (stdlib-only): argparse CLI
    (`--report` default, `--fast`, `--workstream <id>`, `--fix <rule>`,
    `--root <path>`, `--self-test`, `--help` listing flags, the three sweep
    classes with rule ids, the counting rule and the review-territory
@@ -544,7 +544,7 @@ the fifth replan trigger waiting to fire in Chunk 5.
    traces to `drift-sweep.md` §CLI and Exit Codes, §Finding Shape
    and Summary, §Q-IMPL Counting Rule (docstring) (REQ-GC-HARNESSP2-001, -003,
    -004).
-2. [ ] [implement] gc sweeps 6, 8, 9, 10, 13, 14: `xlink-dead` / `id-missing`
+2. [x] [implement] gc sweeps 6, 8, 9, 10, 13, 14: `xlink-dead` / `id-missing`
    (the linter's two link regexes over `docs/**/*.md` plus `(see …)` links,
    `research_refs`, `requires:` ids; `RS-`/`REQ-`/`Q-IMPL-` existence; anchor
    miss → warn); the Q-IMPL counting rule (`^### Q-IMPL-[A-Z0-9-]+` under
@@ -558,7 +558,7 @@ the fifth replan trigger waiting to fire in Chunk 5.
    warn); `plan-history-name` (`-replan-` only from `sdd-replan`; date
    prefix). — traces to `drift-sweep.md` §Sweep Table rows 6, 8–10, 13, 14,
    §Q-IMPL Counting Rule (REQ-GC-HARNESSP2-002, -003).
-3. [ ] [implement] `--self-test` **skeleton**: a `build_fixture()` function
+3. [x] [implement] `--self-test` **skeleton**: a `build_fixture()` function
    creating a temporary git-initialised marker-`4` tree with one workstream
    (`alpha`, Approved `a.md` traced by its plan), `D` Q-IMPL definitions / `B`
    references with the four exclusion cases and the `Q-IMPL-999` mutation, one
@@ -571,7 +571,7 @@ the fifth replan trigger waiting to fire in Chunk 5.
    (second workstream, aggregate, `trace-empty` rows) rather than rewriting
    it. — traces to `drift-sweep.md` §Self-Test Fixture (REQ-GC-HARNESSP2-001,
    -002 partial, -003 partial).
-4. [ ] [verify] `python3 tools/sdd-gc.py --self-test` exits 0; `--help` exits 0
+4. [x] [verify] `python3 tools/sdd-gc.py --self-test` exits 0; `--help` exits 0
    and names every flag, the three sweep classes with rule ids, the counting
    rule and the exclusions; `grep -n 'FORBIDDEN =\|REQUIRED =' tools/sdd-gc.py`
    is empty; `grep -n 'FIXABLE = \[\]' tools/sdd-gc.py` hits once; on this

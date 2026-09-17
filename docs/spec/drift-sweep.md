@@ -324,3 +324,48 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 2. **Should `qimpl-unreferenced` (info) be silenced by default?** Default:
    shown; `--quiet-info` may be added later.
 3. **Anchor resolution for `(see file.md#section)`**: Default: warn, as above.
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP2-050: Fixture lint delegation uses a `suite_rules=False` shim
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Self-Test Fixture / §Sweep Table rows 1–5
+**Decision**: The self-test runs the linter as a subprocess via a `-c` importlib shim with `Linter(root, suite_rules=False)` because the REQUIRED/version-gate rows fail any tree that lacks the real skill suite, making the "clean copy → exit 0" assertion impossible otherwise. Production runs never flip it.
+**Rationale**: The linter CLI exposes no such flag; the shim is the smallest change that keeps "lint is invoked, never copied".
+**Date**: 2026-09-18 (Chunk 4)
+
+### Q-IMPL-HARNESSP2-051: Finding location rendered exactly as the linter emits it
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Finding Shape and Summary
+**Decision**: gc renders `<file>:<line>: [<rule>] <msg>` (colon after the location) — the linter's literal shape — rather than the spec block's `<file>:<line> [<rule>]`.
+**Rationale**: "The linter's shape, verbatim" wins over the illustrative block, so pass-through and native findings are indistinguishable.
+**Date**: 2026-09-18 (Chunk 4)
+
+### Q-IMPL-HARNESSP2-052: `xlink-dead` skips `docs/**/plan-history/**`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Sweep Table row 6
+**Decision**: Archived plans are frozen snapshots whose relative links were valid at their original location; the live tree holds 38 such historical links and rewriting them via `--fix` would falsify history.
+**Rationale**: Narrows row 6's `docs/**/*.md` glob deliberately.
+**Date**: 2026-09-18 (Chunk 4)
+
+### Q-IMPL-HARNESSP2-053: `plan-history-name` exempts `verification-*.md` and checks `-replan-` provenance by body text
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Sweep Table row 14
+**Decision**: Pre-v4 hand-suffixed verification snapshots are not plan archives and are exempt; `-replan-` archives are checked by requiring the body to mention a replan, since no archive-reason field exists.
+**Rationale**: No mechanical provenance signal is available.
+**Date**: 2026-09-18 (Chunk 4)
+
+### Q-IMPL-HARNESSP2-054: Q-IMPL reference exclusion also skips double-quoted literals and one-line-wrapped inline-code spans
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Q-IMPL Counting Rule
+**Decision**: Required to reproduce the pinned 0 referenced-only (e.g. `"Q-IMPL-007"` at deviation-protocol.md and a wrapped span in leaf-return.md would otherwise be false fails). Small false-negative risk accepted.
+**Rationale**: The research's "fenced/quoted examples" skip, applied literally.
+**Date**: 2026-09-18 (Chunk 4)
+
+### Q-IMPL-HARNESSP2-055: `id-missing` scope is `requires:`, `research_refs` and `(see RS-…)` ids only
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Sweep Table row 6
+**Decision**: Bare REQ/RS mentions in prose are template examples and are not checked; `(see …)` `.md` targets resolve against the file dir, `docs/spec/`, `docs/`, then repo root; REQ ids count as defined from `### REQ-…` headings or first-column table rows under `docs/requirements/*/*.md`.
+**Rationale**: Keeps the sweep free of traceability-file reads and prose false positives.
+**Date**: 2026-09-18 (Chunk 4)
+
