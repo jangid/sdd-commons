@@ -115,13 +115,18 @@ Nine rows, each with `reason` and `fix`:
 | c1 | `skills/sdd-orchestrate/references/dispatch-templates.md` | `Budget:` | 3 | pipeline + review + verifier templates (REQ-HARN-004) |
 | c2 | `skills/sdd-orchestrate/references/fan-out.md` | `Budget:` | 1 | leaf template (REQ-HARN-004) |
 | d1 | `skills/sdd-review/SKILL.md` | `VERDICT: APPROVE \| APPROVE_WITH_FIXES \| REJECT` | 1 | producer (REQ-HARN-013) |
-| d2 | `skills/sdd-orchestrate/SKILL.md` | `VERDICT:` | 1 | consumer (REQ-HARN-013) |
+| d2 | `skills/sdd-orchestrate/SKILL.md` | `(?<!CHUNK_)VERDICT:` | 1 | consumer (REQ-HARN-013) |
 | e1 | `skills/sdd-orchestrate/references/dispatch-templates.md` | `CHUNK_VERDICT: PASS \| FAIL` | 1 | verifier template (REQ-HARN-014) |
 | e2 | `skills/sdd-orchestrate/SKILL.md` | `CHUNK_VERDICT:` | 1 | consumer (REQ-HARN-014) |
 | f | `skills/sdd-replan/SKILL.md` | `-replan-` | 1 | archive filename contract (REQ-HARN-003) |
 
 Producer/consumer pairs (d, e) follow the existing `**Depends on**` ↔ fan-out
-pattern: removing either half fails the lint with that row's fix string.
+pattern: removing either half fails the lint with that row's fix string. Row d2
+uses a negative lookbehind so that the e2 marker `CHUNK_VERDICT:` can never
+satisfy the review-verdict consumer row (a plain `VERDICT:` would match inside
+`CHUNK_VERDICT:`). The lint checks marker presence only; the orchestrator's own
+token parser matches `^VERDICT:` at line start, last occurrence wins
+(`harness-return-contract.md` §VERDICT Token).
 Removing any one of the nine markers exits 1; with all present the lint exits 0
 (modulo size warnings).
 

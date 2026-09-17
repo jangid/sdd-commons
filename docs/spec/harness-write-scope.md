@@ -62,7 +62,7 @@ regenerated aggregate `docs/requirements/traceability.md`), while
 | implement (sequential, per chunk) | the chunk's source/test paths, `docs/plan.md`, `docs/plan-*.md`, `docs/requirements/traceability.md`, `docs/spec/*.md` (**ADVISORY**), `docs/plan-history/*-complete.md`, `docs/research/RS-NNN-*/**` + `docs/research/index.md` | traceability: Test/Implementation columns; spec writes = Q-IMPL entries; `-complete` archives multi-milestone only; research paths spike tasks only |
 | verify | `docs/verification.md`, `docs/requirements/traceability.md` | traceability: Verified column (Step 3b) |
 | replan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**`, `docs/spec/*.md` (**ADVISORY**) | `-replan-` archives; spec only for a Level-2 inline change |
-| fan-out leaf | the chunk-group's code and test paths **only** | plan + traceability barred by `fan-out.md` §2 |
+| fan-out leaf | the chunk-group's code and test paths **only** | plan + traceability barred by `fan-out.md` §2; `docs/spec/*.md` barred too — leaves never write Q-IMPL entries directly; a deviation is returned in `RETURN.open_questions` and the orchestrator files the Q-IMPL entry at merge (§3e) |
 | review, chunk verifier | *(empty — read-only)* | any write is `OUT` |
 
 "The chunk's source/test paths" are derived by the orchestrator from the
@@ -142,16 +142,24 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
 - The token line is `SCOPE: CLEAN` or `SCOPE: VIOLATION (N paths)` on its own;
   `N` counts `OUT` paths plus a `HISTORY_REWRITE` finding; `ADVISORY` paths do
   not count.
-- The orchestrator branches on the token, not on prose. `CLEAN` → the gate
-  proceeds to the review verdict; `VIOLATION` → the gate offers, per `OUT`
-  path, `revert path | accept & widen scope | stop` before any merge or commit.
+- The orchestrator branches on the token, not on prose. `VIOLATION` → the
+  gate offers, per `OUT` path, `revert path | accept & widen scope | stop`
+  **before the per-chunk gate's commit** (sequential) or the leaf's merge
+  (fan-out): the scope options are resolved inside the per-chunk gate
+  (`harness-chunk-verifier.md` §Sequencing — Sequential Mode), and `proceed`
+  there is unavailable while any `OUT` path is unresolved. `CLEAN` → the
+  per-chunk gate continues to `CHUNK_VERDICT:`; at a non-implement stage gate
+  it continues to the review `VERDICT:`.
 - Revert target: sequential dispatch → the working tree (`git checkout --
   <path>` for tracked, `rm` for untracked, `git reset --soft HEAD_before` +
   re-checkout if the leaf committed); fan-out leaf → the **leaf branch**
   (`git checkout`/`git reset` in the worktree), never the integration branch.
   Under marker `4` the integration branch is the workstream branch, not `main`.
-- The block is rendered at the position REQ-ORCH-034 fixes (after `VERDICT:`
-  and any `CHUNK_VERDICT:` lines, before `RETURN.status` / budget).
+- The block is rendered at the position REQ-ORCH-034 fixes
+  (`orchestration.md` §v5): inside the per-chunk gate block after
+  `RETURN.status` / `budget_consumed` and before `CHUNK_VERDICT:`; at a
+  non-implement stage gate after `RETURN.status` and before the review
+  `VERDICT:`.
 
 ### Blocked-Write Fallback (REQ-HARN-023)
 
@@ -172,11 +180,34 @@ commands alone cannot catch it — hence the pre-persist match.
 
 | Dispatch type | Who commits | Return carries |
 |---|---|---|
-| pipeline (sequential stage, per-chunk implement) | **orchestrator**, after the gate | `files_written`; leaf is not instructed to commit |
-| fix re-dispatch / redo (sequential) | **orchestrator**, after the gate | `files_written` |
-| fan-out leaf (and its redo) | **leaf**, on its own branch with inline identity flags (REQ-ORCH-027) | `commits` |
+| pipeline (sequential stage) | **orchestrator**, on `proceed` at the stage gate | `files_written`; leaf is not instructed to commit |
+| pipeline (sequential per-chunk implement) | **orchestrator**, on `proceed` at the **per-chunk gate** (below) | `files_written`; leaf is not instructed to commit |
+| fix re-dispatch / redo (sequential) | **orchestrator**, on `proceed` at the per-chunk gate (implement) / stage gate (other stages) | `files_written` |
+| fan-out leaf (and its redo) | **leaf**, on its own branch with inline identity flags (REQ-ORCH-027); the orchestrator merges on `proceed` at the per-leaf gate | `commits` |
 | review | nobody | — |
 | chunk verifier | nobody | `files_written: []` |
+
+**Per-chunk gate (implement stage).** After each chunk's implement dispatch
+returns, the orchestrator runs the write-scope check, dispatches the chunk
+verifier, then shows the operator a compact block — `RETURN.status`, the
+`SCOPE:` line, the `CHUNK_VERDICT:` line, files changed — with the choices
+**proceed** (the orchestrator commits the chunk) │ **fix** (re-dispatch the
+chunk with a repair packet; counts toward the per-chunk redo cap) │ **stop**.
+The single implement-stage review gate remains once, after all chunks. Under
+fan-out the equivalent happens per leaf before its merge, with no commit by the
+orchestrator (the leaf already committed on its branch). Stated identically in
+`harness-chunk-verifier.md` §Sequencing — Sequential Mode and `orchestration.md`
+§v5:
+
+```
+Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: leaf wt-g1 / branch fanout-g1]
+  RETURN.status  : COMPLETE    budget_consumed: {tool_calls: 22, test_runs: 3}  vs  Budget: 1 chunk, ≤ 25 tool calls, ≤ 3 test runs
+  SCOPE: CLEAN                                    # full write-scope block above when VIOLATION
+  CHUNK_VERDICT: PASS                             # verifier findings (Check 1 / Check 3 / Gates) listed above when FAIL
+  Files changed  : src/recon/engine.py M, tests/test_recon.py M, docs/plan.md M
+  Redo           : 0 of 3 (per-chunk redo counter)
+  Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 2 with a repair packet; counts toward the per-chunk redo cap) │ stop
+```
 
 Each template's return step states its row. A pipeline leaf that commits anyway
 is not a scope violation (its commit falls inside the observed window and is
@@ -186,14 +217,20 @@ own commit then becomes a no-op for those paths.
 ### Snapshot Ordering (REQ-HARN-025)
 
 ```
-snapshot(before) → dispatch → await return → snapshot(after) → scope check → gate → orchestrator commit
+sequential : snapshot(before) → dispatch → await return → snapshot(after) → scope check
+             → chunk verifier → PER-CHUNK GATE → orchestrator commit (on proceed)
+fan-out    : snapshot(before) → dispatch → await return → snapshot(after) → scope check
+             → chunk verifier → PER-LEAF GATE → merge (on proceed)   # leaf commits are inside the window by design
 ```
 
 The "before" snapshot is taken immediately before dispatch and the "after"
-snapshot immediately on return, **before** the orchestrator's own gate commit
-and before any §3e bookkeeping writes, so the orchestrator's commit and
-bookkeeping are never inside the observed window and cannot be flagged. The
-ordering is stated in `references/write-scope.md` next to the three commands.
+snapshot immediately **on return** — before the verifier dispatch, before the
+per-chunk gate and therefore before the per-chunk gate's commit (sequential) or
+merge (fan-out), and before any §3e bookkeeping writes — so the orchestrator's
+commit and bookkeeping are never inside the observed window and cannot be
+flagged. The verifier is read-only and its own scope check must observe zero
+writes, so running it after the snapshot changes nothing. The ordering is stated
+in `references/write-scope.md` next to the three commands.
 
 ### Recorded v1 Limitations (REQ-HARN-026)
 
@@ -238,9 +275,9 @@ the flat paths and `main` apply unchanged.
   `VIOLATION`.
 
 ### Manual
-- Run one sequential pipeline stage followed by the orchestrator commit: the
-  gate showed `SCOPE: CLEAN` and the orchestrator's commit was not in the
-  observed window.
+- Run one sequential implement chunk followed by `proceed` at the per-chunk
+  gate: the gate showed `SCOPE: CLEAN` before `CHUNK_VERDICT:`, and the
+  orchestrator's commit was not in the observed window.
 - Fan-out with a leaf that edits `docs/plan.md`: `VIOLATION` shown before
   merge; `git log` on the integration branch shows no merge of that branch
   until the path is reverted.
@@ -248,10 +285,10 @@ the flat paths and `main` apply unchanged.
 ### Acceptance Criteria
 - [ ] Pipeline and fan-out templates carry `Write scope:`; the default table lives in `references/write-scope.md` with a `SKILL.md` stub; a verify dispatch filling the Verified column is `SCOPE: CLEAN` (REQ-HARN-020)
 - [ ] Observation = porcelain delta ∪ committed delta, plus ancestry check; D/R count; noise cancels; committed out-of-scope writes are flagged with clean porcelain (REQ-HARN-021)
-- [ ] The finding format and own-line `SCOPE:` token are in `references/write-scope.md`, referenced from `SKILL.md` §The gate; branching on the token; fan-out revert is on the leaf branch; nothing persisted (REQ-HARN-022)
+- [ ] The finding format and own-line `SCOPE:` token are in `references/write-scope.md`, referenced from `SKILL.md` §The gate; branching on the token; scope options resolved inside the per-chunk gate before its commit / merge; fan-out revert is on the leaf branch; nothing persisted (REQ-HARN-022)
 - [ ] `blocked_writes` paths are scope-matched before persistence; out-of-scope entries are refused and listed (REQ-HARN-023)
-- [ ] Commit ownership per dispatch type is stated in each template's return step and tabulated in `references/write-scope.md` (REQ-HARN-024)
-- [ ] Snapshot ordering excludes the orchestrator's commit; stated beside the three commands (REQ-HARN-025)
+- [ ] Commit ownership per dispatch type is stated in each template's return step and tabulated in `references/write-scope.md`; the orchestrator commits a chunk only on `proceed` at the per-chunk gate; fan-out leaves commit, the orchestrator merges on `proceed` at the per-leaf gate (REQ-HARN-024)
+- [ ] Snapshot ordering excludes the orchestrator's commit: snapshot(after) on return, before verifier, per-chunk gate and commit / merge; stated beside the three commands (REQ-HARN-025)
 - [ ] Both v1 limitations are recorded beside the finding format; spec-file writes under implement/replan show `ADVISORY` (REQ-HARN-026)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
 
@@ -282,7 +319,11 @@ the flat paths and `main` apply unchanged.
   the fan-out-leaf row — consistent; the check mechanically enforces an existing
   pin.
 - `deviation-protocol.md` Q-IMPL entries live under `## Implementation
-  Questions` in spec files — the `ADVISORY` hint quotes that heading verbatim.
+  Questions` in spec files — the `ADVISORY` hint quotes that heading verbatim;
+  a fan-out leaf never writes them (routes via `RETURN.open_questions`, the
+  orchestrator files the entry at merge) — additive to `fan-out.md` §2.
+- The per-chunk gate block and `proceed │ fix │ stop` vocabulary are those of
+  `harness-chunk-verifier.md` §Sequencing — Sequential Mode — consistent.
 - `orchestration.md` §Gate Protocol vocabulary is extended only by
   `revert path | accept & widen scope`, as REQ-ORCH-034 states.
 - `ws-integration.md` merge/revert target under marker `4` = workstream

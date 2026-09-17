@@ -56,10 +56,16 @@ RETURN:
   verified_do_not_touch: []
   open_questions: ["spec §Gap report silent on overlapping windows — filed Q-IMPL-021 (Tier 2)"]
   blocked_writes: []                                         # [{path, content}] labeled fallback
+  # CHUNK_VERDICT: PASS | FAIL                               # chunk verifier returns ONLY (last line)
 ```
 
-Key table — every key is present (empty list / omitted-value where not
-applicable); values are path references and one-line strings only.
+Key table — **every key is present** (empty list / omitted value where not
+applicable); values are path references and one-line strings only. A key the
+leaf omitted anyway **reads as empty** (`[]` / no value) and is surfaced as a
+`RETURN: KEYS MISSING (<names>)` warning, not a pause. **Unknown keys are
+ignored**, with one exception: `CHUNK_VERDICT`, the verifier-only key
+(`harness-chunk-verifier.md` §Verdict Rule) — required on a verifier return,
+and a warning when present on any other return.
 
 | Key | Type | Consumer |
 |---|---|---|
@@ -75,6 +81,7 @@ applicable); values are path references and one-line strings only.
 | `verified_do_not_touch` | path list | repair packet, verbatim |
 | `open_questions` | one-line list | checkpoint `open question:`; gate text |
 | `blocked_writes` | `{path, content}` list | orchestrator persistence **after** scope match (REQ-HARN-023) |
+| `CHUNK_VERDICT` | enum `PASS \| FAIL`, **verifier only**, last line | per-chunk gate (`harness-chunk-verifier.md`); ignored-with-warning elsewhere |
 
 Status semantics: `COMPLETE` — deliverable contract met; `PARTIAL` — some
 tasks done, none blocked, budget not exhausted (e.g. the leaf hit its
@@ -126,10 +133,11 @@ in the pipeline template's `{on_fix_only}` block, replacing the free-form
 ```yaml
 Repair packet (fixed shape — act on it; do not re-derive the history):
   stage: implement
-  iteration: 2 of 3                                  # harness-loop-control.md §Fix-Loop Cap
+  reason: REVIEW                                     # REVIEW | VERIFIER_FAIL | PARTIAL_CONTINUE | MERGE_CONFLICT
+  iteration: 2 of 3                                  # harness-loop-control.md §Fix-Loop Cap (REVIEW) / per-chunk redo counter (others)
   budget: "1 chunk, ≤ 25 tool calls, ≤ 3 test runs"
   write_scope: [src/recon/**, tests/test_recon.py, docs/spec/recon.md]   # harness-write-scope.md
-  target: {artifact_paths: [docs/plan.md], chunk: "Chunk 2: Reconciliation"}
+  target: {artifact_paths: [docs/plan.md], chunk: "Chunk 2: Reconciliation"}   # chunk: all — whole-plan fix (§Finding → Chunk Mapping)
   failures:                                          # verbatim RETURN.failures / verifier failures
     - {test: tests/test_recon.py::test_gap_report, kind: assertion,
        message: "AssertionError: expected 3 gaps, got 2", location: src/recon/engine.py:142}
@@ -160,6 +168,37 @@ Rules:
 - Leaf instruction (template text): "Act on the packet. Do not re-derive the
   history, re-read prior reviews, or re-open attempts listed in
   `ledger_summary`. Do not modify `verified_do_not_touch` paths."
+- `reason` names why the packet exists; `MERGE_CONFLICT` packets add
+  `conflict_paths` and `base` (see Edge Cases).
+
+### Finding → Chunk Mapping (implement-stage loop-back-to-fix)
+
+The implement-stage review runs once after all chunks, so its findings must be
+routed back to chunks before a fix dispatch can carry a chunk-sized `target`,
+`write_scope` and `budget`. The orchestrator groups the Critical/Material
+findings mechanically — no judgement, no paraphrase:
+
+1. **REQ → spec**: each finding's `affects` REQ IDs → the spec file(s) whose
+   `requires:` frontmatter lists them (or the finding's `ref` path when it
+   names a spec directly).
+2. **Spec → chunk**: the plan chunk whose tasks `trace to` that spec
+   (`### Chunk N:` headers; under marker `4` the workstream's plan).
+3. **Group**: findings that resolve to exactly one chunk are grouped per chunk
+   → one fix dispatch per affected chunk, in plan order, each with
+   `target.chunk: "Chunk N: …"`, that chunk's default write scope and per-chunk
+   budget.
+4. **Unmappable or multi-chunk**: findings with no `affects`, a `ref` that is
+   not a spec, a spec traced by no chunk, or a mapping to more than one chunk go
+   together into **one whole-plan fix dispatch** with `target.chunk: all`, the
+   union of the plan's chunk write scopes, dispatched after the per-chunk fix
+   dispatches.
+
+One review round is one fix iteration for the stage (`iteration N of MAX`)
+regardless of how many chunk-grouped dispatches it fans into. Every fix
+dispatch is followed by the scope check, one verifier dispatch per chunk it
+touched (from `files_written`), and that chunk's per-chunk gate
+(`harness-chunk-verifier.md` §Sequencing — Sequential Mode) before the
+re-review.
 
 ### Field Sources (REQ-HARN-012)
 
@@ -175,19 +214,26 @@ from its own state. It never paraphrases, summarizes, or adds reasoning.
 | `target` | disk: plan path + chunk header the stage is working |
 | `spec_excerpt` | disk: the spec file, heading and line range the finding's `ref` resolves to — path/heading/lines only |
 | `stage`, `iteration`, `budget`, `write_scope` | orchestrator state (`harness-loop-control.md`, `harness-write-scope.md`) |
+| `reason` | orchestrator state: which event composed the packet |
+| `conflict_paths`, `base` (`MERGE_CONFLICT` only) | disk: the paths `git merge` reported as conflicting; `git rev-parse` of the integration branch after the abort |
 
 This table lives in `references/return-contract.md`; `SKILL.md` carries a stub.
 
 ### VERDICT Token (REQ-HARN-013)
 
-`sdd-review` emits, immediately after its `**Verdict:**` line, a single line on
-its own:
+`sdd-review` emits, on a line of its own, anywhere in its report
+(conventionally next to the `**Verdict:**` line — position is not part of the
+contract), a single token line:
 
 ```
 VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT
 ```
 
-The prose verdict and the token must agree (`Approve` ↔ `APPROVE`, `Approve
+The orchestrator's token parser matches `^VERDICT:` **at line start** — so a
+`CHUNK_VERDICT:` line never matches — and when the token occurs more than once
+the **last occurrence wins** (the lint row for the consumer uses the equivalent
+`(?<!CHUNK_)VERDICT:`, `skill-lint-v5.md` §REQUIRED Rows — Core Contracts). The
+prose verdict and the token must agree (`Approve` ↔ `APPROVE`, `Approve
 with fixes` ↔ `APPROVE_WITH_FIXES`, `Reject` ↔ `REJECT`); the rest of the
 report (Strengths / Critical–Material–minor / Recommendation) and `sdd-review`'s
 scope boundaries are unchanged.
@@ -205,6 +251,26 @@ value list in `SKILL.md` §The gate):
 
 The orchestrator never classifies a verdict by parsing prose; when the token is
 missing it surfaces the review as malformed rather than guessing.
+
+### `RETURN.status` Branching (per-chunk gate)
+
+The leaf's `status` decides what runs between the return and the gate. For an
+implement dispatch (sequential per chunk, or a fan-out leaf) the gate is the
+**per-chunk gate** of `harness-chunk-verifier.md` §Sequencing — Sequential Mode
+(`proceed │ fix │ stop`; under fan-out the per-leaf gate before merge). The
+scope check always runs first (`harness-write-scope.md`).
+
+| `status` | Then | Gate | Default choice | Per-chunk redo counter |
+|---|---|---|---|---|
+| `COMPLETE` | scope check → verifier on the chunk | per-chunk gate | `proceed` on PASS + CLEAN; `fix` otherwise | `fix` → +1 |
+| `PARTIAL` | scope check → verifier on `tasks_completed` only | per-chunk gate | **`continue same chunk`** — a `fix` dispatch whose packet has `reason: PARTIAL_CONTINUE`, `failures: []`, `target` = the chunk with the remaining tasks named | counts as a redo → +1 |
+| `BLOCKED` | scope check; **no verifier**; checkpoint written (sequential: by the leaf, into the plan) or applied (fan-out: by the orchestrator, §3e) | per-chunk gate **with a replan option** (REQ-ORCH-017 gate event) | replan route | not a redo |
+| `BUDGET_EXHAUSTED` | as `BLOCKED`, plus `budget_consumed` shown against the dispatched `Budget:` | as `BLOCKED`; `fix` re-dispatches with a fresh per-chunk budget | replan │ `fix` (fresh budget) | `fix` → +1 |
+
+For a non-implement stage (no chunks, no verifier) the same rows apply with
+"verifier" removed and the gate being the stage gate after the review:
+`COMPLETE` → scope check → review; any other status → gate pause before any
+review is dispatched.
 
 ### Pruned State on Re-dispatch (REQ-HARN-018)
 
@@ -260,11 +326,11 @@ tell a subagent what to *produce* (block, token, findings) — never what to
   `REVIEW: MALFORMED` and offers re-dispatch, not proceed.
 
 ### Acceptance Criteria
-- [ ] Every leaf template's return step ends with the `RETURN:` block, `status:` first on its own line, the listed keys, path/one-line values only; missing or malformed block pauses at the gate (REQ-HARN-009)
+- [ ] Every leaf template's return step ends with the `RETURN:` block, `status:` first on its own line, the listed keys, path/one-line values only; missing keys read as empty with a warning, unknown keys are ignored except `CHUNK_VERDICT`; missing or malformed block pauses at the gate (REQ-HARN-009)
 - [ ] `failures[]` entries carry `test / kind / message / location`; no traceback anywhere in a return or packet (REQ-HARN-010)
 - [ ] `dispatch-templates.md` `{on_fix_only}` carries `{repair_packet}` with the listed fields; `spec_excerpt` is path + heading + line range only (REQ-HARN-011)
 - [ ] `references/return-contract.md` carries the field-source table; `SKILL.md` stubs to it; `findings` are byte-identical to report lines apart from structural quoting (REQ-HARN-012)
-- [ ] `sdd-review` emits the own-line `VERDICT:` token; `SKILL.md` §The gate names the three values and points to the branching table; missing token → malformed review (REQ-HARN-013)
+- [ ] `sdd-review` emits the own-line `VERDICT:` token; the orchestrator parses `^VERDICT:` at line start, last occurrence wins; `SKILL.md` §The gate names the three values and points to the `VERDICT:` and `RETURN.status` branching tables; missing token → malformed review (REQ-HARN-013)
 - [ ] A second fix prompt for one stage holds one packet, latest paths only, no fenced report; slot-set overflow warns (REQ-HARN-018)
 - [ ] §Orchestrator-Only Work states the routing principle with pointers to both references files; no template delegates a routing decision (REQ-HARN-019)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
@@ -280,8 +346,17 @@ tell a subagent what to *produce* (block, token, findings) — never what to
   the path with `section: (unresolved)` and no line range; the orchestrator
   notes it at the gate rather than quoting text to compensate.
 - **Redo packet with no review findings** (verifier FAIL before any review):
-  `findings: []`, `failures` from the verifier's `RETURN.failures`; `stage:
-  implement`, `iteration` from the per-chunk redo counter.
+  `reason: VERIFIER_FAIL`, `findings: []`, `failures` from the verifier's
+  `RETURN.failures`; `stage: implement`, `iteration` from the per-chunk redo
+  counter.
+- **Merge-abort re-derivation packet** (`orchestration.md` §Merge-Conflict
+  Handling, REQ-ORCH-026 / Q-IMPL-1): `reason: MERGE_CONFLICT`, `failures: []`,
+  `findings: []`, `conflict_paths: [<paths git merge reported>]`, `base: <sha>`
+  — the fresh integration-branch commit the leaf must branch from and
+  re-derive its chunk on — plus the usual `target`, `write_scope`, `budget`,
+  `iteration` (per-chunk redo counter) and `ledger_summary` /
+  `verified_do_not_touch` lifted from the leaf's last `RETURN`. No diff or
+  conflict-marker text is carried.
 - **Blocked write for a path outside scope**: `blocked_writes` is parsed here
   but the refusal is `harness-write-scope.md` §Blocked-Write Fallback.
 
@@ -302,6 +377,13 @@ tell a subagent what to *produce* (block, token, findings) — never what to
   superseded by `{repair_packet}` (recorded in the orchestration.md v5 section).
 - `SCOPE:` and `CHUNK_VERDICT:` are defined in `harness-write-scope.md` and
   `harness-chunk-verifier.md`; referenced here by name only — consistent.
+- §RETURN.status Branching feeds the per-chunk gate of
+  `harness-chunk-verifier.md` (identical `proceed │ fix │ stop` vocabulary) and
+  the `PARTIAL_CONTINUE` / `VERIFIER_FAIL` redos increment the same per-chunk
+  redo counter as `harness-loop-control.md` §Redo Cap per Chunk — consistent.
+- §Finding → Chunk Mapping uses the plan's `traces to` and the spec `requires:`
+  frontmatter only (`plan-management.md`, `overview.md` §Frontmatter) — no new
+  metadata.
 - **No unresolved contradictions.**
 
 ## Open Questions

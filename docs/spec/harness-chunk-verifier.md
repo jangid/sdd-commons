@@ -113,17 +113,29 @@ Verifier return shape:
 RETURN:
   status: COMPLETE                     # the verifier's own dispatch status
   budget_consumed: {tool_calls: 11, test_runs: 2}
-  files_written: []
+  files_written: []                    # must be empty — read-only dispatch
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {chunk: 2, check1: fail, check2: deferred, check3: advisory, check4: deferred, overrides: []}
   failures:
     - {test: "pytest -q", kind: assertion, message: "1 failed: tests/test_recon.py::test_gap_report", location: src/recon/engine.py:142}
-  CHUNK_VERDICT: FAIL
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
+  CHUNK_VERDICT: FAIL                  # verifier-only key, last line
 ```
 
-`CHUNK_VERDICT:` is the last line of the block (or the line immediately after
-it); the orchestrator accepts either placement and treats a missing or
-unrecognized token as a malformed return (`harness-return-contract.md`
-§Malformed Returns). `files_written` must be `[]`; the scope check on a verifier
-return must observe zero writes (`harness-write-scope.md`).
+The verifier carries the **full** leaf key set (`harness-return-contract.md`
+§RETURN Block — every key present, empties allowed) plus `CHUNK_VERDICT`, which
+is the one verifier-only key; `check2` / `check4` read `deferred` because the
+verifier does not run them. `CHUNK_VERDICT:` is the last line of the block (or
+the line immediately after it); the orchestrator accepts either placement and
+treats a missing or unrecognized token as a malformed return
+(`harness-return-contract.md` §Malformed Returns). `files_written` must be `[]`;
+the scope check on a verifier return must observe zero writes
+(`harness-write-scope.md`).
 
 ### Sequencing — Sequential Mode (REQ-HARN-016)
 
@@ -135,19 +147,53 @@ already tells a leaf which chunk-group to run; `sdd-implement` is not modified
 
 ```
 for each `### Chunk N:` in plan order:
-  1. snapshot (harness-write-scope.md) → dispatch PIPELINE implement, Chunk N
-  2. parse RETURN; scope check → gate text
-  3. dispatch CHUNK VERIFIER for Chunk N (repo root)
-  4. CHUNK_VERDICT: PASS → orchestrator commits (commit ownership) → next chunk
-     CHUNK_VERDICT: FAIL → compose repair packet (failures ← verifier RETURN.failures,
-                          findings: [], iteration ← per-chunk redo counter)
-                          → redo dispatch for Chunk N → back to 2
-after the last chunk: dispatch the implement-stage sdd-review once on the merged state
+  1. snapshot(before) (harness-write-scope.md) → dispatch PIPELINE implement, Chunk N
+  2. on return: snapshot(after) → parse RETURN → write-scope check → `SCOPE:` token
+  3. branch on RETURN.status (harness-return-contract.md §RETURN.status Branching):
+       COMPLETE / PARTIAL → dispatch CHUNK VERIFIER for Chunk N (repo root) → `CHUNK_VERDICT:`
+       BLOCKED / BUDGET_EXHAUSTED → no verifier; checkpoint already in the plan (sequential leaf writes it)
+  4. render the PER-CHUNK GATE (block below); wait for the operator:
+       proceed → orchestrator commits the chunk (commit ownership) → next chunk
+       fix     → compose repair packet (failures ← verifier RETURN.failures, findings: [],
+                 iteration ← per-chunk redo counter, incremented) → redo dispatch for Chunk N → back to 2
+       stop    → halt; the chunk's writes stay uncommitted in the working tree
+after the last chunk: dispatch the implement-stage sdd-review ONCE on the merged state
+                      → the single implement-stage review gate (proceed │ loop-back-to-fix │ stop)
 ```
 
+**Per-chunk gate (lightweight).** After each chunk's implement dispatch returns,
+the orchestrator runs the write-scope check, dispatches the chunk verifier, and
+then shows the operator a compact block — the `RETURN.status` line, the `SCOPE:`
+line, the `CHUNK_VERDICT:` line and the files changed — with three choices:
+**proceed** (the orchestrator commits the chunk), **fix** (re-dispatch the chunk
+with a repair packet; counts toward the per-chunk redo cap,
+`harness-loop-control.md` §Redo Cap per Chunk) or **stop**. On
+`CHUNK_VERDICT: PASS` with `SCOPE: CLEAN` the default is `proceed`; on `FAIL` or
+`VIOLATION` the default is `fix`, and `proceed` is an explicit operator override
+recorded as gate text. Any unresolved `OUT` path must first be resolved by the
+scope options (`revert path | accept & widen scope`, `harness-write-scope.md`
+§Finding Format). The block is stated identically in `harness-write-scope.md`
+§Commit Ownership / §Snapshot Ordering and `orchestration.md` §v5:
+
+```
+Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: leaf wt-g1 / branch fanout-g1]
+  RETURN.status  : COMPLETE    budget_consumed: {tool_calls: 22, test_runs: 3}  vs  Budget: 1 chunk, ≤ 25 tool calls, ≤ 3 test runs
+  SCOPE: CLEAN                                    # full write-scope block above when VIOLATION
+  CHUNK_VERDICT: PASS                             # verifier findings (Check 1 / Check 3 / Gates) listed above when FAIL
+  Files changed  : src/recon/engine.py M, tests/test_recon.py M, docs/plan.md M
+  Redo           : 0 of 3 (per-chunk redo counter)
+  Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 2 with a repair packet; counts toward the per-chunk redo cap) │ stop
+```
+
+The single implement-stage review gate remains **once**, after all chunks; the
+per-chunk gate never shows a review `VERDICT:`. Under fan-out the equivalent
+happens **per leaf before its merge** with no commit by the orchestrator — the
+leaf has already committed on its branch (§Sequencing — Fan-out).
+
 A three-chunk plan therefore yields three implement dispatches, three verifier
-dispatches (plus redos) and **one** review dispatch. The review still sees all
-chunks at once; the verifier sees one.
+dispatches (plus redos), three per-chunk gates and **one** review dispatch with
+**one** stage gate. The review still sees all chunks at once; the verifier sees
+one.
 
 ### Sequencing — Fan-out (REQ-HARN-015)
 
@@ -156,15 +202,23 @@ chunks at once; the verifier sees one.
 
 ```
 for each leaf, on return:
-  a. parse RETURN; scope check on <worktree>, <base>..<branch> → gate text
+  a. parse RETURN; scope check on <worktree>, <base>..<branch> → `SCOPE:` token
   b. dispatch CHUNK VERIFIER with Working directory = the leaf's worktree,
      Plan = the plan as seen on that branch, Chunk = the leaf's chunk(s)
-  c. CHUNK_VERDICT: PASS → branch is eligible for the sequential merge (§3b)
-     CHUNK_VERDICT: FAIL → NO merge; repair packet → redo dispatch on the same
-                          branch/worktree (or abort the group per REQ-ORCH-026)
+     (BLOCKED / BUDGET_EXHAUSTED: no verifier; the orchestrator applies the
+      returned checkpoint in §3e — harness-return-contract.md §RETURN.status Branching)
+  c. render the PER-LEAF GATE — the same block as §Sequencing — Sequential Mode,
+     `Files changed` taken from the branch's committed delta; NO commit by the
+     orchestrator (the leaf already committed on its branch):
+       proceed → branch is eligible for the sequential merge (§3b)
+       fix     → NO merge; repair packet → redo dispatch on the same branch/worktree
+                 (counts toward the per-chunk redo cap; or abort the group per REQ-ORCH-026)
+       stop    → halt
 ```
 
-Only PASS branches enter the merge order. A leaf that owns several chunks gets
+Only branches whose per-leaf gate decision was `proceed` enter the merge order
+(`proceed` is the default only on `CHUNK_VERDICT: PASS`; on `FAIL` it is an
+explicit override). A leaf that owns several chunks gets
 one verifier dispatch per chunk; all must PASS. The verifier runs **before**
 merge so a FAIL never reaches the integration branch (marker `3`: `main`;
 marker `4`: the workstream branch, `ws-integration.md`). After the last merge
@@ -174,20 +228,28 @@ orchestrator's Check 2 verification), then the single implement-stage review.
 ### FAIL Routing
 
 A FAIL routes **only** to a repair packet for a redo dispatch of the same
-chunk (`harness-return-contract.md` §Repair Packet, with `failures` from the
-verifier and `findings: []`). It never routes to a merge, to the implement-stage
-review, or to `sdd-replan` directly; if redos exhaust the per-chunk cap
-(`harness-loop-control.md` §Redo Cap), the gate offers stop / manual
-intervention / authorized extra redo, and the operator may choose a replan from
-there.
+chunk, chosen as `fix` at the per-chunk gate (`harness-return-contract.md`
+§Repair Packet, with `failures` from the verifier and `findings: []`). It never
+routes to a merge, to the implement-stage review, or to `sdd-replan` directly;
+if redos exhaust the per-chunk cap (`harness-loop-control.md` §Redo Cap per
+Chunk, `REDO_MAX`), the gate offers stop / manual intervention / authorized
+extra redo, and the operator may choose a replan from there.
+
+The reverse direction — routing the **implement-stage review's** findings back
+to chunks for a loop-back-to-fix — is `harness-return-contract.md` §Finding →
+Chunk Mapping: findings are grouped by affected REQ → spec → the chunk whose
+tasks `trace to` that spec; unmappable or multi-chunk findings go into one
+whole-plan fix dispatch (`target.chunk: all`). Each fix dispatch is followed by
+the per-chunk gate for every chunk it touched, before the re-review.
 
 ### Ephemerality and Gate Text
 
-The verifier's findings and token surface at the gate as text, per chunk, in
-the order REQ-ORCH-034 fixes (after the review `VERDICT:`, before the `SCOPE:`
-block). Nothing the verifier produces is written to `docs/` by it or on its
-behalf; the durable effects are the redo's code changes and, on exhaustion, the
-checkpoint under the task.
+The verifier's findings and token surface as text in the per-chunk gate block,
+in the order REQ-ORCH-034 fixes (`RETURN.status` → `SCOPE:` →
+`CHUNK_VERDICT:`); the review `VERDICT:` appears only at the stage gate after
+all chunks (`orchestration.md` §v5). Nothing the verifier produces is written
+to `docs/` by it or on its behalf; the durable effects are the redo's code
+changes and, on exhaustion, the checkpoint under the task.
 
 ## Verification
 
@@ -204,7 +266,9 @@ checkpoint under the task.
 
 ### Manual
 - Run a three-chunk plan sequentially under orchestrate: count 3 implement, 3
-  verifier, 1 review dispatches.
+  verifier, 1 review dispatches; 3 per-chunk gates each showing
+  `RETURN.status`, `SCOPE:`, `CHUNK_VERDICT:` and files changed, with the chunk
+  committed only on `proceed`.
 - Fan-out with two leaves, force one verifier FAIL: `git log` on the
   integration branch shows only the PASS branch merged; the FAIL leaf received a
   redo prompt carrying a repair packet.
@@ -213,7 +277,7 @@ checkpoint under the task.
 ### Acceptance Criteria
 - [ ] A fresh verifier re-runs Check 1, Check 3 and the quality gates per closed chunk and returns `CHUNK_VERDICT: PASS | FAIL` plus findings in the chunk-close report shape; Check 2 stays orchestrator-applied, Check 4 stays with implementer + review; implementer Step 4 unchanged; verifier is not `sdd-review`; FAIL routes to a repair packet only (REQ-HARN-014)
 - [ ] Under fan-out one verifier runs per leaf inside its worktree before merge; FAIL branches are not merged (REQ-HARN-015)
-- [ ] Sequential implement is dispatched per chunk with a `Chunk N` parameter; review runs once after all chunks (REQ-HARN-016)
+- [ ] Sequential implement is dispatched per chunk with a `Chunk N` parameter; each chunk closes at a per-chunk gate (`proceed │ fix │ stop`; `fix` counts toward the per-chunk redo cap) before the orchestrator commits it; the review and its stage gate run once after all chunks (REQ-HARN-016)
 - [ ] The verifier template carries only the listed slots including `Budget:`, an empty `Write scope:` and the `RETURN:` block with `CHUNK_VERDICT:`; it never commits; nothing is written to `docs/` for it (REQ-HARN-017)
 - [ ] Four-layer table in `sdd-review` and `CLAUDE.md` unchanged (REQ-HARN-014)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
@@ -232,8 +296,11 @@ checkpoint under the task.
   commands.
 - **Verifier budget exhausted before all gates ran**: `status:
   BUDGET_EXHAUSTED`, `CHUNK_VERDICT: FAIL` (unverified is not verified), and the
-  orchestrator may re-dispatch the verifier with a larger budget before issuing
-  a repair packet.
+  orchestrator may re-dispatch the verifier with a larger budget before
+  rendering the per-chunk gate (a verifier re-dispatch is not a redo).
+- **Operator chooses `proceed` on a FAIL**: allowed as an explicit override; the
+  gate text records `CHUNK_VERDICT: FAIL — proceeded by operator` and the chunk
+  is committed / merged; nothing is persisted.
 - **Flaky test**: a FAIL whose `failures[].test` passes on the redo with no
   code change is surfaced at the gate as `possible flake`; the orchestrator
   does not auto-PASS.
@@ -252,7 +319,11 @@ checkpoint under the task.
   before merge and FAIL redo reuses the existing redo mechanism with a packet.
 - `fan-out.md` §3e Check 2 deferral is preserved and referenced, not
   duplicated.
-- `RETURN:` field names match `harness-return-contract.md` — consistent.
+- `RETURN:` field names match `harness-return-contract.md`; the per-chunk gate
+  consumes its §RETURN.status Branching table and `CHUNK_VERDICT` is listed
+  there as the verifier-only key — consistent.
+- The per-chunk gate block is byte-identical in `harness-write-scope.md`
+  §Commit Ownership and `orchestration.md` §v5 — consistent.
 - `ws-integration.md`: merge target under marker `4` is the workstream branch —
   restated identically.
 - **No unresolved contradictions.**
@@ -266,3 +337,12 @@ checkpoint under the task.
 2. **Verifier for a chunk whose implementer already reported Check 1 `fail`
    and stopped.** Default: skip the verifier (the leaf is already BLOCKED) and
    go straight to the checkpoint / gate.
+3. **REQ-ORCH-034 gate-text order vs the per-chunk gate.** REQ-ORCH-034 lists
+   one ordered signal set per gate beginning with `VERDICT:`; with the
+   per-chunk gate the implement stage has two gate kinds and no `VERDICT:`
+   exists yet at the per-chunk one. Default adopted (operator decision D1,
+   2026-09-17): per-chunk gate = `RETURN.status` → `SCOPE:` → `CHUNK_VERDICT:`;
+   stage gate = the review `VERDICT:` plus the loop counters. Suggested
+   one-line requirement clarification (not applied here): "for the implement
+   stage the first three signals surface at a per-chunk gate before the stage
+   gate".

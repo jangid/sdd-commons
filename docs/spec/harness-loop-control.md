@@ -50,7 +50,7 @@ new file; nothing is written to `kickoff.md` frontmatter.
 | State | Home | Lifetime | Resume in a new session |
 |---|---|---|---|
 | Fix-iteration count, per stage | orchestrator session memory | session | restarts at 0 — a new session is itself a human intervention |
-| Redo count, per chunk (verifier-FAIL / merge-abort redos) | orchestrator session memory | session | restarts at 0 |
+| Redo count, per chunk — `chunk_redo_count[<chunk header>]` against `REDO_MAX` (verifier-FAIL / merge-abort / `PARTIAL` continue redos, i.e. every `fix` at the per-chunk gate) | orchestrator session memory | session | restarts at 0 |
 | Replan re-entry count, per cycle | **derived** from `plan-history/*-replan-*.md` archives | derived | recomputed on every replan trigger |
 | Attempt ledger, per task | leaf (implementer) context | session | not resumed — the checkpoint is what a fresh session reads |
 | Circuit-break checkpoint | plan's blocked-task note under the task | durable | read by `sdd-replan` Step 1 as the stuck state |
@@ -97,11 +97,16 @@ group per iteration; no reviewer reasoning, no prose summary (REQ-ORCH-012).
 ### Redo Cap per Chunk (extension, see Open Questions)
 
 Under the implement stage a second loop exists below the review loop: a chunk
-verifier `CHUNK_VERDICT: FAIL` or a fan-out merge abort triggers a redo
-dispatch carrying a repair packet (`harness-chunk-verifier.md`). Redos are
-counted **per chunk** with the same default `MAX = 3` and the same exhaustion
-behavior (gate with compiled findings — here the verifier's findings — and no
-automatic fourth redo). The redo counter is independent of the stage's
+verifier `CHUNK_VERDICT: FAIL`, a fan-out merge abort or a `PARTIAL` return
+leads to the operator choosing `fix` at the **per-chunk gate**
+(`harness-chunk-verifier.md` §Sequencing — Sequential Mode), which triggers a
+redo dispatch carrying a repair packet. Redos are counted **per chunk** in the
+named counter `chunk_redo_count[<chunk header>]` — incremented on every `fix`
+chosen at that chunk's per-chunk gate, never on `proceed` / `stop` / a replan
+route — against the orchestrator constant `REDO_MAX`, default **3** (the gate
+shows `Redo: N of REDO_MAX`), with the same exhaustion behavior (gate with
+compiled findings — here the verifier's findings — and no automatic fourth
+redo). The redo counter is independent of the stage's
 fix-iteration counter because the implement-stage review runs once after all
 chunks (REQ-HARN-016), so review-driven and verifier-driven loops are distinct.
 
@@ -111,12 +116,31 @@ chunks (REQ-HARN-016), so review-driven and verifier-driven loops are distinct.
 stored; on every replan trigger the orchestrator recomputes it:
 
 ```
-kickoff_date = frontmatter `date:` of <kickoff>            # docs/handoff/kickoff.md
-             | fallback: git log -1 --format=%cs -- <kickoff>   # same fallback §KICKOFF uses for research_id
+kickoff_date = frontmatter `date:` of <kickoff>            # PRIMARY — mandatory on every orchestrate-written kickoff
+             | legacy fallback (kickoff predates the date: rule):
+               git log -1 --format=%cs -S'research_id: <id>' -- <kickoff>
+               # = the most recent commit whose diff of <kickoff> changed the `research_id:` line,
+               #   i.e. the commit that started the CURRENT cycle (<id> = the kickoff's research_id)
+             | neither determinable → cap treated as REACHED (see below)
 count = number of files f in <plan-history>/ such that
           basename(f) matches ^(\d{4}-\d{2}-\d{2})-(m\d+-)?replan-.*\.md$
           and group(1) >= kickoff_date
 ```
+
+- **`date:` is mandatory** in the frontmatter of every kickoff `sdd-orchestrate`
+  §KICKOFF writes (`docs/handoff/kickoff.md`; under marker `4`
+  `docs/ws/<id>/kickoff.md`); a kickoff written without it is a template
+  violation the orchestrator's self-check catches before the pipeline starts.
+- The legacy fallback is deliberately **not** `git log --diff-filter=A --follow
+  --format=%cs -- <kickoff> | tail -1`: that yields the file's first creation,
+  which is wrong once the kickoff is overwritten per cycle. The `-S'research_id:
+  <id>'` pickaxe finds the commit that introduced the current cycle's
+  `research_id:` line, which is the cycle start.
+- If **neither** source is determinable (no `date:`, kickoff uncommitted or
+  `research_id:` unmatched), the cap is **treated as reached**: the gate shows
+  `replan re-entry cap: kickoff date undeterminable — treated as reached` with
+  every `-replan-` archive listed, and routes into `sdd-replan` only on an
+  explicit operator decision. The cap is never silently unreachable.
 
 - `<plan-history>` is `docs/plan-history/` under marker `3` and
   `docs/ws/<id>/plan-history/` under marker `4` (see §Marker-4 Rooting).
@@ -248,7 +272,9 @@ compose the checkpoint, then recommend / trigger `sdd-replan`.
 ### Circuit-Break Checkpoint (REQ-HARN-008)
 
 Trigger: stuck detection (including oscillation), budget exhaustion mid-task,
-or the fix-loop / redo cap firing on an implement task.
+the stage fix-loop cap (`FIX_LOOP_MAX`) firing on an implement task, or the
+per-chunk redo cap (`chunk_redo_count[<chunk>]` reaching `REDO_MAX`) firing at
+that chunk's per-chunk gate.
 
 Slot: the blocked-task note under that task in the plan — the slot `sdd-replan`
 Step 4 already defines ("mark blocked tasks — note why they're blocked and what
@@ -332,6 +358,10 @@ telemetry file is created.
 - Fixture: a `plan-history/` directory with `2026-09-01-replan-a.md`,
   `2026-09-18-replan-b.md`, `2026-09-19-m1-replan-c.md`, `2026-09-19-rewrite.md`,
   `2026-09-20-m1-complete.md` and kickoff `date: 2026-09-17` derives count = 2.
+- Fixture: a kickoff without `date:` whose `research_id: RS-008` line was last
+  changed by a commit dated 2026-09-17 (an earlier commit created the file with
+  `research_id: RS-007`) derives the same count = 2; a kickoff with neither
+  yields `treated as reached`.
 - Fixture: the ledger above is classified stuck by rule (a); a ledger with two
   identical `change` lines is classified stuck by rule (b).
 - Fixture: a checkpoint composed from the RS-008 Schema 1 example is ≤ 15 lines
@@ -347,7 +377,7 @@ telemetry file is created.
 
 ### Acceptance Criteria
 - [ ] Fix re-dispatches are capped per stage at a default of 3, each prompt states `iteration N of MAX`, exhaustion exits to the gate with a compiled findings log and no automatic dispatch; the counter is session-only (REQ-HARN-001)
-- [ ] Replan re-entries are capped per cycle at a default of 3, derived from `-replan-` archives dated ≥ kickoff `date:` (commit-date fallback), per workstream under marker `4` (REQ-HARN-002)
+- [ ] Replan re-entries are capped per cycle at a default of 3, derived from `-replan-` archives dated ≥ kickoff `date:` (mandatory on orchestrate-written kickoffs; legacy fallback = the last commit that changed the kickoff's `research_id:` line; undeterminable → cap treated as reached and surfaced), per workstream under marker `4` (REQ-HARN-002)
 - [ ] `sdd-replan` states the `-replan-` filename contract; no other skill uses the segment; lint enforces it (REQ-HARN-003)
 - [ ] Every dispatch template carries a `Budget:` slot in observable units, including review (REQ-HARN-004)
 - [ ] Budget exhaustion returns `status: BUDGET_EXHAUSTED` + `budget_consumed` in the dispatched units, with a checkpoint when mid-task; missing `budget_consumed` is malformed (REQ-HARN-005)
@@ -359,9 +389,11 @@ telemetry file is created.
 
 ## Edge Cases
 
-- **Kickoff without `date:` and never committed**: no fallback date exists →
-  count every `-replan-` archive present and surface that the count is an
-  upper bound at the gate. Never silently treat the cap as unreachable.
+- **Kickoff without `date:` and never committed** (or committed but its
+  `research_id:` line matches no commit): no date is determinable → the cap is
+  treated as reached and surfaced at the gate with every `-replan-` archive
+  listed (§Replan Re-entry Cap); the operator authorizes the replan explicitly.
+  Never silently treat the cap as unreachable.
 - **Operator raises the fix cap twice**: each authorization adds one; the gate
   shows `iteration 5 of 5 (cap raised ×2)` so the history is visible without
   persisting it.

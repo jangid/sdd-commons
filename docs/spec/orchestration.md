@@ -240,8 +240,13 @@ explicit operator decision — it never auto-advances (REQ-ORCH-011):
 | Decision | Driver action |
 |----------|---------------|
 | **proceed** | Advance to the next stage. |
-| **loop-back-to-fix** | Re-dispatch the pipeline subagent with **only** the review findings + relevant artifact paths (not a re-litigation of the reviewer's reasoning), then re-run the review for that stage (REQ-ORCH-012). |
+| **loop-back-to-fix** | Re-dispatch the pipeline subagent with **only** the review findings + relevant artifact paths (not a re-litigation of the reviewer's reasoning), then re-run the review for that stage (REQ-ORCH-012). _(v5)_ The re-dispatch carries the fixed-shape repair packet — `harness-return-contract.md` §Repair Packet; for the implement stage, findings are first mapped to chunks (§Finding → Chunk Mapping) and each touched chunk passes its per-chunk gate before the re-review. |
 | **stop** | Halt the loop; leave artifacts as-is. |
+
+_(v5)_ For the implement stage a lightweight **per-chunk gate** (`proceed │ fix
+│ stop`) precedes this stage gate — once per chunk, after the write-scope check
+and the chunk verifier, before the orchestrator commits the chunk; see §v5
+Harness Hardening and `harness-chunk-verifier.md` §Sequencing — Sequential Mode.
 
 Two non-standard events route through the gate as well:
 
@@ -317,6 +322,13 @@ The driver MUST recognize such tasks (those whose execution requires dispatch) a
 perform them itself, rather than constructing a pipeline dispatch that would stall
 (a leaf subagent cannot proceed) or silently under-deliver. Ordinary stage work
 (invoking an `sdd-*` skill, editing files) remains delegable as normal.
+
+_(v5)_ 3. **Routing on the harness signals** (REQ-HARN-019) — `VERDICT:` /
+`CHUNK_VERDICT:` / `SCOPE:` interpretation, `RETURN.status` branching, fix /
+redo / replan cap arithmetic, repair-packet composition and every gate decision
+(stage gate and per-chunk gate) are orchestrator-only; templates tell a subagent
+what to *produce*, never what to *decide next* — `harness-return-contract.md`
+§Orchestrator Owns Routing, `harness-write-scope.md` §Finding Format.
 
 ### Sequential Execution and Implement-Stage Fan-out
 
@@ -584,20 +596,49 @@ phases, artifacts or gate vocabulary. The designs live in four sibling specs:
   observation, `SCOPE: CLEAN | VIOLATION` gate text, commit ownership, snapshot
   ordering.
 
-**Gate text order (REQ-ORCH-034).** At every gate the driver surfaces, next to
-the review verdict and in this order: (1) the parsed `VERDICT:` value; (2) for
-the implement stage, each chunk's `CHUNK_VERDICT:`; (3) the write-scope block
-ending in `SCOPE:`; (4) the leaf's `RETURN.status` and `budget_consumed` against
-the dispatched `Budget:`; (5) when a loop is active, `iteration N of MAX` or the
-replan re-entry count against its cap. The decision vocabulary stays
-`proceed │ loop-back-to-fix │ stop`, extended only by the scope options
-`revert path | accept & widen scope`. All of it is ephemeral (REQ-ORCH-013).
+**Gate text order (REQ-ORCH-034).** The signals surface in the order they are
+produced: (1) the leaf's `RETURN.status` and `budget_consumed` against the
+dispatched `Budget:`; (2) the write-scope block ending in `SCOPE:`; (3) for the
+implement stage, the chunk's `CHUNK_VERDICT:`; **[per-chunk gate]** — for the
+implement stage signals (1)–(3) are shown per chunk at a lightweight per-chunk
+gate, with `Redo: N of REDO_MAX`; then, after all chunks, (4) the parsed review
+`VERDICT:` and (5) when a loop is active, `iteration N of MAX` or the replan
+re-entry count against its cap — at the **stage gate**. For a non-implement
+stage (1), (2), (4), (5) appear together at the stage gate. The stage-gate
+decision vocabulary stays `proceed │ loop-back-to-fix │ stop`, extended only by
+the scope options `revert path | accept & widen scope`; the per-chunk gate
+offers `proceed │ fix │ stop`. All of it is ephemeral (REQ-ORCH-013).
+
+**Per-chunk gate (implement stage, sequential).** After each chunk's implement
+dispatch returns: the orchestrator runs the write-scope check, dispatches the
+chunk verifier, then shows the operator a compact block — the `SCOPE:` line,
+the `CHUNK_VERDICT:` line, `RETURN.status`, files changed — with the choices
+**proceed** (the orchestrator commits the chunk) │ **fix** (re-dispatch the
+chunk with a repair packet; counts toward the per-chunk redo cap) │ **stop**.
+The single implement-stage review gate remains once, after all chunks. Under
+fan-out the equivalent happens per leaf before its merge, with no commit by the
+orchestrator (the leaf already committed on its branch). Stated identically in
+`harness-chunk-verifier.md` §Sequencing — Sequential Mode and
+`harness-write-scope.md` §Commit Ownership / §Snapshot Ordering:
+
+```
+Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: leaf wt-g1 / branch fanout-g1]
+  RETURN.status  : COMPLETE    budget_consumed: {tool_calls: 22, test_runs: 3}  vs  Budget: 1 chunk, ≤ 25 tool calls, ≤ 3 test runs
+  SCOPE: CLEAN                                    # full write-scope block above when VIOLATION
+  CHUNK_VERDICT: PASS                             # verifier findings (Check 1 / Check 3 / Gates) listed above when FAIL
+  Files changed  : src/recon/engine.py M, tests/test_recon.py M, docs/plan.md M
+  Redo           : 0 of 3 (per-chunk redo counter)
+  Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 2 with a repair packet; counts toward the per-chunk redo cap) │ stop
+```
+
 Rendering procedures live in `skills/sdd-orchestrate/references/return-contract.md`
 and `references/write-scope.md`; `SKILL.md` §The gate carries the ordered list
-and pointers only. §Gate Protocol's `loop-back-to-fix` row now carries the
-repair packet (findings + paths by construction) rather than a free-form
-findings slot; §Orchestrator-Only Work gains the routing principle
-(REQ-HARN-019).
+and pointers only. §Gate Protocol's `loop-back-to-fix` row is extended by the
+repair packet (findings + paths by construction) in place of a free-form
+findings slot; §Orchestrator-Only Work is extended by the routing principle
+(REQ-HARN-019) — both marked `(v5)` in place above. The ordering clarification
+against REQ-ORCH-034's single-gate wording is recorded in
+`harness-chunk-verifier.md` Open Questions #3.
 
 ## Verification
 

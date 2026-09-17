@@ -321,11 +321,14 @@ _(added 2026-09-17, RS-008)_ Per-skill changes for the HARN and LINT domains;
 designs in `harness-loop-control.md`, `harness-return-contract.md`,
 `harness-chunk-verifier.md`, `harness-write-scope.md`, `skill-lint-v5.md`.
 
-- **sdd-orchestrate (REQ-SKILL-019)**: caps, `Budget:` / `Write scope:` slots on
-  every template, `RETURN:` parsing, repair-packet composition, `VERDICT:` /
-  `CHUNK_VERDICT:` / `SCOPE:` branching, verifier dispatch, per-chunk sequential
-  implement, three-command scope check, commit ownership, snapshot ordering, gate
-  text order (REQ-ORCH-034). Templates change in `references/dispatch-templates.md`
+- **sdd-orchestrate (REQ-SKILL-019)**: caps (`FIX_LOOP_MAX` per stage,
+  `REPLAN_MAX` derived, `REDO_MAX` with the per-chunk session counter
+  `chunk_redo_count[<chunk header>]`), `Budget:` / `Write scope:` slots on
+  every template, `RETURN:` parsing and `RETURN.status` branching, repair-packet
+  composition and finding → chunk mapping, `VERDICT:` / `CHUNK_VERDICT:` /
+  `SCOPE:` branching, verifier dispatch, per-chunk sequential implement with
+  its per-chunk gate (`proceed │ fix │ stop`), three-command scope check, commit
+  ownership, snapshot ordering, gate text order (REQ-ORCH-034). Templates change in `references/dispatch-templates.md`
   (pipeline, review, new verifier, `{repair_packet}`) and `references/fan-out.md`
   (leaf template, verifier-before-merge, checkpoint application in §3e).
   Procedure text lands in **new** `references/write-scope.md` and
