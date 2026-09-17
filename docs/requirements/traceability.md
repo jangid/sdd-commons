@@ -168,13 +168,13 @@ last_updated: 2026-09-17
 | REQ-HARN-017 | harness-chunk-verifier.md | lint; byte-identity diff vs harness-chunk-verifier.md L64-85, L108-128; grep Budget:/Write scope:/CHUNK_VERDICT: | dispatch-templates.md §CHUNK VERIFIER | |
 | REQ-HARN-018 | harness-return-contract.md | Chunk 1 task 7 fixture (one packet, path-only excerpt, slot-overflow text) | references/return-contract.md §8 | |
 | REQ-HARN-019 | harness-return-contract.md | Chunk 1 task 7 grep guard (zero routing-phrase hits) | sdd-orchestrate/SKILL.md §Orchestrator-Only Work; references/return-contract.md §9 | |
-| REQ-HARN-020 | harness-write-scope.md | scope_fixtures.py static: Write scope: in all templates; F3 verify CLEAN | references/write-scope.md §1–§2; dispatch-templates.md; fan-out.md §2 | |
-| REQ-HARN-021 | harness-write-scope.md | scope_fixtures.py F1, F2, F6 (three commands in temp git repo) | references/write-scope.md §3; fan-out.md §3a.v(a) | |
-| REQ-HARN-022 | harness-write-scope.md | scope_fixtures.py finding block + token; F1/F2 VIOLATION (1 path) | references/write-scope.md §5; SKILL.md §The gate signal (2) | |
-| REQ-HARN-023 | harness-write-scope.md | scope_fixtures.py F5 blocked_writes refused | references/write-scope.md §6; fan-out.md §3e step 5 | |
-| REQ-HARN-024 | harness-write-scope.md | scope_fixtures.py commit-ownership table + gate block byte-identical | references/write-scope.md §7; dispatch-templates.md step 4; fan-out.md §2 step 3 | |
-| REQ-HARN-025 | harness-write-scope.md | scope_fixtures.py F1–F6 snapshot ordering | references/write-scope.md §3; SKILL.md §LOOP stub; fan-out.md §3a.v(a) | |
-| REQ-HARN-026 | harness-write-scope.md | scope_fixtures.py F4 ADVISORY docs/spec/recon.md CLEAN | references/write-scope.md §5 recorded limitations, §4 ADVISORY | |
+| REQ-HARN-020 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F3 (verify dispatch IN, CLEAN); static: `Write scope:` in all templates (lint REQUIRED rows) | references/write-scope.md §1–§2; dispatch-templates.md; fan-out.md §2 | |
+| REQ-HARN-021 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1, F2, F6 (three commands in a temp git repo) | references/write-scope.md §3; fan-out.md §3a.v(a) | |
+| REQ-HARN-022 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1/F2 finding block + own-line token `SCOPE: VIOLATION (1 path)` | references/write-scope.md §5; SKILL.md §The gate signal (2) | |
+| REQ-HARN-023 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F5 (blocked_writes docs/plan.md refused, not persisted) | references/write-scope.md §6; fan-out.md §3e step 5 | |
+| REQ-HARN-024 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F2 (leaf commit inside the observed window); commit-ownership table + gate block byte-identical (manual) | references/write-scope.md §7; dispatch-templates.md step 4; fan-out.md §2 step 3 | |
+| REQ-HARN-025 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F1–F6 (snapshot before dispatch, after on return; orchestrator writes outside the window) | references/write-scope.md §3; SKILL.md §LOOP stub; fan-out.md §3a.v(a) | |
+| REQ-HARN-026 | harness-write-scope.md | tools/sdd-scope-check-selftest.py F4 (ADVISORY docs/spec/recon.md, CLEAN) | references/write-scope.md §5 recorded limitations, §4 ADVISORY | |
 | REQ-HARN-027 | harness-loop-control.md | Chunk 2 task 7: diff touches only skills/; invariant table checked | state per harness-loop-control.md §State Placement — no new artifact | |
 | REQ-LINT-001 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
 | REQ-LINT-002 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
