@@ -217,8 +217,8 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-GC-HARNESSP2-006 | drift-sweep.md | harness-p2 |  |  |  |
 | REQ-GC-HARNESSP2-007 | drift-sweep.md | harness-p2 |  |  |  |
 | REQ-HARN-027 | telemetry.md | harness-p2 | git check-ignore exit 0 + git ls-files docs/ unchanged (amendment row; Verified inherits legacy pass) | .gitignore + SKILL.md §LOOP stub |  |
-| REQ-HARN-HARNESSP2-001 | dispatch-snapshot-base.md | harness-p2 |  |  |  |
-| REQ-HARN-HARNESSP2-002 | dispatch-snapshot-base.md | harness-p2 |  |  |  |
+| REQ-HARN-HARNESSP2-001 | dispatch-snapshot-base.md | harness-p2 | tools/sdd-scope-check-selftest.py F9 (3 assertions); replays test_catch_up_by_merge / test_ancestry_still_enforced / test_provision_at_branch_tip | write-scope.md §3 snapshot base rule + named-base observation, §5 (c); selftest observe()/render() |  |
+| REQ-HARN-HARNESSP2-002 | dispatch-snapshot-base.md | harness-p2 | write-scope.md §6 grep (i)–(iv) + expected; staged-write walkthrough = plain IN, blocked_writes [] | write-scope.md §6 scratchpad staging path |  |
 | REQ-LINT-HARNESSP2-001 | adversarial-verify.md, arbitrated-handoff.md | harness-p2 |  |  |  |
 | REQ-LINT-HARNESSP2-002 | telemetry.md | harness-p2 |  |  |  |
 | REQ-REDB-HARNESSP2-001 | adversarial-verify.md | harness-p2 |  |  |  |
@@ -233,10 +233,10 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-SKILL-HARNESSP2-001 | telemetry.md | harness-p2 | lint exit 0 (stub link); §LOOP stub = 10 lines; .sdd/ only in SKILL.md/telemetry.md/write-scope.md | SKILL.md §LOOP stub; references/telemetry.md |  |
 | REQ-SKILL-HARNESSP2-002 | adversarial-verify.md | harness-p2 |  |  |  |
 | REQ-SKILL-HARNESSP2-003 | arbitrated-handoff.md | harness-p2 |  |  |  |
-| REQ-SKILL-HARNESSP2-004 | drift-sweep.md, dispatch-snapshot-base.md | harness-p2 |  |  |  |
+| REQ-SKILL-HARNESSP2-004 | drift-sweep.md, dispatch-snapshot-base.md | harness-p2 | test_provision_at_branch_tip — snapshot half (gc half closes in Chunk 5) | SKILL.md §Pipeline subagent dispatch; dispatch-templates.md slot contract; write-scope.md §3/§5/§6 |  |
 | REQ-SKILL-HARNESSP2-005 | adversarial-verify.md | harness-p2 |  |  |  |
 | REQ-SKILL-HARNESSP2-006 | arbitrated-handoff.md | harness-p2 |  |  |  |
-| REQ-SKILL-HARNESSP2-007 | dispatch-snapshot-base.md | harness-p2 |  |  |  |
+| REQ-SKILL-HARNESSP2-007 | dispatch-snapshot-base.md | harness-p2 | lint exit 0 (warn set sdd-orchestrate, sdd-migrate; 20 files); --self-test §7; wc -l SKILL.md = 400; diff vs c38922d clean outside moved regions | sdd-implement/SKILL.md stubs; references/stuck-detection.md; references/leaf-return.md; Q-IMPL-083/-084 resolved notes |  |
 | REQ-SKILL-HARNESSP2-008 | telemetry.md | harness-p2 |  |  |  |
 | REQ-TELEM-HARNESSP2-001 | telemetry.md | harness-p2 | verify walkthrough test_record_key_set_matches_schema | references/telemetry.md §2 |  |
 | REQ-TELEM-HARNESSP2-002 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test (budget grammar) | references/telemetry.md §2; tools/sdd-telemetry.py parse_budget_line |  |

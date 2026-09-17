@@ -213,7 +213,7 @@ as expected; scope self-test F9 passes; `skills/sdd-implement/SKILL.md` reads
 `references/` links, lint still green. Traces to `dispatch-snapshot-base.md`.
 **Depends on**: None.
 **Tasks**:
-1. [ ] [implement] In `skills/sdd-orchestrate/references/write-scope.md`: §3
+1. [x] [implement] In `skills/sdd-orchestrate/references/write-scope.md`: §3
    gains the snapshot-base rule sentence, the provisioning step block (`base :=
    git rev-parse <workstream-branch>` … `HEAD_before := base`) inserted before
    `snapshot(before)`, and the four-part observation (a) porcelain, (b)
@@ -229,7 +229,7 @@ as expected; scope self-test F9 passes; `skills/sdd-implement/SKILL.md` reads
    "expected". — traces to `dispatch-snapshot-base.md` §Snapshot Base Rule,
    §Blocked-Write Staging Path, §Skill Changes, Edge Cases
    (REQ-HARN-HARNESSP2-001, -002, REQ-SKILL-HARNESSP2-004 snapshot half).
-2. [ ] [implement] In `skills/sdd-orchestrate/SKILL.md` §Pipeline subagent
+2. [x] [implement] In `skills/sdd-orchestrate/SKILL.md` §Pipeline subagent
    dispatch and `references/dispatch-templates.md` §PIPELINE: the sequential
    and fix provisioning step names the branch tip the leaf is told to reach
    (marker `4`: the workstream branch; marker `3`: `main`/HEAD) — one sentence
@@ -239,7 +239,7 @@ as expected; scope self-test F9 passes; `skills/sdd-implement/SKILL.md` reads
    review and red worktrees are provisioned the same way (deliberate
    extension). — traces to `dispatch-snapshot-base.md` §Snapshot Base Rule
    (scope of (i)), §Skill Changes (REQ-SKILL-HARNESSP2-004).
-3. [ ] [implement] In `tools/sdd-scope-check-selftest.py`: add scenario **F9**
+3. [x] [implement] In `tools/sdd-scope-check-selftest.py`: add scenario **F9**
    with two assertions — a worktree provisioned one commit behind the named
    base whose leaf fast-forwards → `SCOPE: CLEAN` with the `CATCH-UP
    <from>..<base> (1 commits, excluded — base <sha>)` line; the same plus one
@@ -249,7 +249,7 @@ as expected; scope self-test F9 passes; `skills/sdd-implement/SKILL.md` reads
    byte-identical to the F1 rendering (no `CATCH-UP` line); update the scenario
    table and docstring count. — traces to `dispatch-snapshot-base.md`
    §Snapshot Base Rule (F9), §Verification (REQ-HARN-HARNESSP2-001).
-4. [ ] [implement] Split `skills/sdd-implement/SKILL.md` (Q-IMPL-083): move
+4. [x] [implement] Split `skills/sdd-implement/SKILL.md` (Q-IMPL-083): move
    Step 3 detail — attempt ledger, oscillation rule, budget exhaustion,
    circuit-break checkpoint composition — to
    `skills/sdd-implement/references/stuck-detection.md`, and the §Leaf Return
@@ -267,7 +267,7 @@ as expected; scope self-test F9 passes; `skills/sdd-implement/SKILL.md` reads
    `dispatch-snapshot-base.md` §Skill Changes — `sdd-implement` references
    split (REQ-SKILL-HARNESSP2-007); `skill-lint-v5.md` §Marker-4 Prose Move
    precedent.
-5. [ ] [implement] In `tools/sdd-skill-lint.py`: confirm the four `REQUIRED`
+5. [x] [implement] In `tools/sdd-skill-lint.py`: confirm the four `REQUIRED`
    rows guarding `sdd-implement` (`oscillation`, `checkpoint`, `RETURN:`,
    `BUDGET_EXHAUSTED` / status enum) are still satisfied by the stubs; where a
    literal legitimately left the stub, re-point that row's `files` at the new
@@ -276,7 +276,7 @@ as expected; scope self-test F9 passes; `skills/sdd-implement/SKILL.md` reads
    traces to `dispatch-snapshot-base.md` §Skill Changes guards
    (REQ-SKILL-HARNESSP2-007); `skill-lint-v5.md` Q-IMPL-HARNESSP2-006 (warn-set
    baseline returns to two).
-6. [ ] [verify] Per `dispatch-snapshot-base.md` §Verification — Automated:
+6. [x] [verify] Per `dispatch-snapshot-base.md` §Verification — Automated:
    `python3 tools/sdd-scope-check-selftest.py` passes with F9's assertions; in
    a temp repo replay `test_catch_up_by_merge` (leaf merges the named base →
    merge commit's conflict-free paths not `OUT`) and
