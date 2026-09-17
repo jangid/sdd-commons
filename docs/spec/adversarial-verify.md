@@ -403,3 +403,13 @@ counter — a cycle cannot spend 3 red rounds *and* 3 review rounds.
    reports mostly `HELD`; the operator keeps it off for such cycles.
 3. **Should `accept (record)` lines also carry the `Rn` attack text?** Default:
    `observed:` and `reproduce:` only — the line must stay one line.
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP2-030: `RED_BREAK` packet `findings` entries carry `{id, text}` and no `affects`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Fix-Loop Interaction (RED_BREAK packet: "the routed `Rn` lines verbatim")
+**Decision**: each `findings` entry is `{id: Rn, text: <Rn line verbatim>}`; no `affects` field, since red findings name a spec via the `## Red team — <spec.md>` heading rather than a requirement id. Recorded in `references/return-contract.md` §3.
+**Rationale**: keeps the packet shape uniform with review findings while not inventing an `affects` the red return does not carry.
+**Date**: 2026-09-18 (Chunk 2)
+

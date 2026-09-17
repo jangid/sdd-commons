@@ -322,7 +322,7 @@ gate block — must land on the integrated wave-1 tree, after Chunk 1 task 2
 has edited `SKILL.md` §Pipeline subagent dispatch; otherwise the two edits
 churn on merge and the ≤ ~470 budget is measured on the wrong tree.)
 **Tasks**:
-1. [ ] [implement] In `skills/sdd-orchestrate/references/dispatch-templates.md`:
+1. [x] [implement] In `skills/sdd-orchestrate/references/dispatch-templates.md`:
    add the **RED TEAM** template pasted from the spec (non-interactive clause,
    `Repository root`, `Specs`, `Plan`, `Quality-gate commands`, the empty
    `{red_input_override}` slot, `Budget: ≤ 25 tool calls, ≤ 3 test runs,
@@ -336,7 +336,7 @@ churn on merge and the ≤ ~470 budget is measured on the wrong tree.)
    gains the `Red team: enabled` slot. — traces to `adversarial-verify.md`
    §Red Dispatch Template, §Return Contract, §`status: pending-red`
    (REQ-REDB-HARNESSP2-003, -004, -005, -006, -008).
-2. [ ] [implement] In `skills/sdd-orchestrate/references/return-contract.md`:
+2. [x] [implement] In `skills/sdd-orchestrate/references/return-contract.md`:
    `^RED_VERDICT:` parsing (line start; last non-blank line), the six-row
    malformed table (`RED_VERDICT missing`, `not last`, `RED_VERDICT/failures
    disagree` ×2, `BROKEN without reproduce`, `Rn/failures count mismatch`) with
@@ -349,7 +349,7 @@ churn on merge and the ≤ ~470 budget is measured on the wrong tree.)
    `adversarial-verify.md` §Return Contract and `RED_VERDICT:`, §Fix-Loop
    Interaction (REQ-REDB-HARNESSP2-005, -009); `harness-return-contract.md`
    Q-IMPL-HARNESSP2-003.
-3. [ ] [implement] In `skills/sdd-orchestrate/SKILL.md` §The gate: the opt-in
+3. [x] [implement] In `skills/sdd-orchestrate/SKILL.md` §The gate: the opt-in
    line `red team: off | on` (+ `red input: +verification.md`) asked before the
    verify pipeline is dispatched; the verify-stage signal order `RETURN.status`
    → `SCOPE:` → `RED_VERDICT:` → `VERDICT:` → counters (one sentence extending
@@ -368,7 +368,7 @@ churn on merge and the ≤ ~470 budget is measured on the wrong tree.)
    §Positioning, §Verify-Stage Gate and Exit Rule, §Fix-Loop Interaction,
    §Skill and Lint Changes (REQ-REDB-HARNESSP2-001, -007, -009,
    REQ-SKILL-HARNESSP2-002); `orchestration.md` Q-IMPL-HARNESSP2-008.
-4. [ ] [implement] In `skills/sdd-verify/SKILL.md`: Step 6 gains the
+4. [x] [implement] In `skills/sdd-verify/SKILL.md`: Step 6 gains the
    `pending-red` table (slot absent → `pass`/`fail` byte-identical to v5; slot
    `Red team: enabled` present → `pending-red`/`fail`) and the lifecycle note
    (flipped by the orchestrator, never by this skill); Phase Detection item 5
@@ -382,12 +382,12 @@ churn on merge and the ≤ ~470 budget is measured on the wrong tree.)
    — traces to `adversarial-verify.md` §Positioning, §`status: pending-red`,
    §Skill and Lint Changes (sdd-verify row) (REQ-REDB-HARNESSP2-002, -008,
    REQ-SKILL-HARNESSP2-005).
-5. [ ] [implement] In `skills/sdd-replan/SKILL.md` Phase Detection: a
+5. [x] [implement] In `skills/sdd-replan/SKILL.md` Phase Detection: a
    `verification.md` with `status: pending-red` is not a verification failure
    — route to `sdd-verify` (one bullet). `skills/sdd-review/SKILL.md` receives
    **no** red change. — traces to `adversarial-verify.md` §`status:
    pending-red` reader table (REQ-REDB-HARNESSP2-008, REQ-SKILL-HARNESSP2-002).
-6. [ ] [verify] Per `adversarial-verify.md` §Verification — Automated: grep the
+6. [x] [verify] Per `adversarial-verify.md` §Verification — Automated: grep the
    RED TEAM template for `Write scope: (empty — read-only)`, `Commit ownership:
    you never commit`, `sdd-verify` Steps 3–4, no `verification.md` path
    outside the override slot, no finding text; walk the malformed matrix on
@@ -434,7 +434,7 @@ line carries `affects`. Section resolution of fix hunks lands in
 `write-scope.md` §3 with scope self-test F8. Traces to `arbitrated-handoff.md`.
 **Depends on**: Chunk 0, Chunk 1.
 **Tasks**:
-1. [ ] [implement] In `skills/sdd-orchestrate/references/loop-control.md`: the
+1. [x] [implement] In `skills/sdd-orchestrate/references/loop-control.md`: the
    retained tuple (`round[N]`, `fix[N]`) beside the compiled findings log in
    §2a with the key-parsing table (file / section `§Name` incl. the leading
    ordinal strip / `affects` regex; unparsable → `(?, ∅)`; fallback `(file,
@@ -453,13 +453,13 @@ line carries `affects`. Section resolution of fix hunks lands in
    `arbitrated-handoff.md` §Retained Per-Round State, §Contradiction Classes,
    §`REVIEW: CONTRADICTION` Pause, §Third Opinion (REQ-ARB-HARNESSP2-001..004,
    -006, -007, REQ-SKILL-HARNESSP2-003).
-2. [ ] [implement] In `skills/sdd-orchestrate/SKILL.md` §The gate: one pointer
+2. [x] [implement] In `skills/sdd-orchestrate/SKILL.md` §The gate: one pointer
    line for `REVIEW: CONTRADICTION (round N vs round N+1, class b|c)` next to
    the `MALFORMED` family in "Edge cases routed through the gate" — options
    named, detail in `references/loop-control.md` §6. — traces to
    `arbitrated-handoff.md` §Skill and Lint Changes (REQ-ARB-HARNESSP2-006,
    REQ-SKILL-HARNESSP2-003); `orchestration.md` Q-IMPL-HARNESSP2-008.
-3. [ ] [implement] In `skills/sdd-orchestrate/references/write-scope.md` §3: the
+3. [x] [implement] In `skills/sdd-orchestrate/references/write-scope.md` §3: the
    section-resolution procedure as an extension of the observation commands —
    `git diff -U0 <HEAD_before> <HEAD_after> -- <path>` (committed), `git diff
    -U0 <HEAD_after> -- <path>` (uncommitted), untracked → every heading `(path,
@@ -470,7 +470,7 @@ line carries `affects`. Section resolution of fix hunks lands in
    §3 section resolution (`arbitrated-handoff.md`)". — traces to
    `arbitrated-handoff.md` §Section Resolution of Fix Hunks
    (REQ-ARB-HARNESSP2-005); `harness-write-scope.md` Q-IMPL-HARNESSP2-002.
-4. [ ] [implement] In `tools/sdd-scope-check-selftest.py`: add scenario **F8**
+4. [x] [implement] In `tools/sdd-scope-check-selftest.py`: add scenario **F8**
    "section resolution" — a fixture `docs/spec/x.md` with `## A`, `## B`,
    `## C`; a diff touching lines 40–58 under `## A` and line 120 under `## C`
    → `{x.md:§A, x.md:§C}` and the hunk strings `L40-58`, `L120`; an untracked
@@ -478,7 +478,7 @@ line carries `affects`. Section resolution of fix hunks lands in
    helper mirroring §3; update the scenario table and docstring count (F1–F9
    after Chunks 0 and 1 merge). — traces to `arbitrated-handoff.md` §Section
    Resolution (F8), §Verification (REQ-ARB-HARNESSP2-005).
-5. [ ] [implement] In `skills/sdd-review/SKILL.md` §Step 5 report format: the
+5. [x] [implement] In `skills/sdd-review/SKILL.md` §Step 5 report format: the
    Material template line becomes `- M1: [what's wrong] — [file:section] —
    affects [REQ-*] | affects —` and its example is updated; nothing else in
    the report format, verdict definitions or scope boundaries changes;
@@ -486,7 +486,7 @@ line carries `affects`. Section resolution of fix hunks lands in
    `arbitrated-handoff.md` §Review Key on Material Lines
    (REQ-ARB-HARNESSP2-008, REQ-SKILL-HARNESSP2-006); `review.md`
    Q-IMPL-HARNESSP2-004.
-6. [ ] [verify] Per `arbitrated-handoff.md` §Verification — Automated, by hand on
+6. [x] [verify] Per `arbitrated-handoff.md` §Verification — Automated, by hand on
    fixtures: `test_key_parse` (three lines → keys); class (b) fires on the
    untouched §C and not on §A; file-level degradation labels `(file-level)`;
    class (c) fires on `APPROVE_WITH_FIXES → REJECT` with (i)/(ii) and not when
