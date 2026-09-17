@@ -695,7 +695,7 @@ warnings only. Traces to `telemetry.md` §Lint Guard, `adversarial-verify.md`,
 Q-IMPL-HARNESSP2-006, `orchestration.md` Q-IMPL-HARNESSP2-008.
 **Depends on**: Chunk 2, Chunk 3, Chunk 5.
 **Tasks**:
-1. [ ] [implement] In `tools/sdd-skill-lint.py` `REQUIRED`: (a1)
+1. [x] [implement] In `tools/sdd-skill-lint.py` `REQUIRED`: (a1)
    `dispatch-templates.md` ∋ `RED_VERDICT: BROKEN \| HELD` min 1 (producer);
    (a2) `skills/sdd-orchestrate/SKILL.md` ∋ `RED_VERDICT:` min 1 (consumer —
    pinned to `SKILL.md`, where the d2 row and the Chunk 2 task 3 parse step
@@ -708,7 +708,7 @@ Q-IMPL-HARNESSP2-006, `orchestration.md` Q-IMPL-HARNESSP2-008.
    `adversarial-verify.md` §Skill and Lint Changes (rows a1, a2, d2);
    `arbitrated-handoff.md` §Skill and Lint Changes (rows b, c)
    (REQ-LINT-HARNESSP2-001).
-2. [ ] [implement] In `tools/sdd-skill-lint.py` `FORBIDDEN`: the `\.sdd/` row
+2. [x] [implement] In `tools/sdd-skill-lint.py` `FORBIDDEN`: the `\.sdd/` row
    (`files: None`, `allow_files` = `skills/sdd-orchestrate/SKILL.md`,
    `skills/sdd-orchestrate/references/telemetry.md`,
    `skills/sdd-orchestrate/references/write-scope.md`, `allow: []`, the spec's
@@ -720,7 +720,7 @@ Q-IMPL-HARNESSP2-006, `orchestration.md` Q-IMPL-HARNESSP2-008.
    exit 0; a file containing only `RED_VERDICT: HELD` does not satisfy row d2.
    — traces to `telemetry.md` §Lint Guard (REQ-TELEM-HARNESSP2-007,
    REQ-LINT-HARNESSP2-002); `skill-lint-v5.md` Q-IMPL-HARNESSP2-006.
-3. [ ] [implement] Integration pass over `skills/sdd-orchestrate/SKILL.md`
+3. [x] [implement] Integration pass over `skills/sdd-orchestrate/SKILL.md`
    after the wave-2 and wave-3 merges: §The gate lists the REQ-ORCH-034 signal order
    **once** including `RED_VERDICT:` at the verify stage; the pause family
    (`REVIEW: MALFORMED`, `RETURN: MALFORMED`, reject-with-no-actionable-findings,
@@ -736,8 +736,8 @@ Q-IMPL-HARNESSP2-006, `orchestration.md` Q-IMPL-HARNESSP2-008.
    (stub ≤ 10 lines, REQ-SKILL-HARNESSP2-001); `adversarial-verify.md`,
    `arbitrated-handoff.md`, `drift-sweep.md`, `dispatch-snapshot-base.md`
    §Skill Changes (REQ-SKILL-HARNESSP2-002, -003, -004).
-4. [ ] [verify] `python3 tools/sdd-skill-lint.py --self-test` exits 0; the live
-   lint exits 0 printing `OK: 20 file(s) clean, K warning(s)` (17 baseline +
+4. [x] [verify] `python3 tools/sdd-skill-lint.py --self-test` exits 0; the live
+   lint exits 0 printing `OK: 21 file(s) clean, K warning(s)` (17 baseline + `references/drift-sweep.md` (Chunk 5) +
    `references/telemetry.md` + `sdd-implement/references/stuck-detection.md`
    + `leaf-return.md`) with `K` from size warnings naming exactly
    `sdd-orchestrate` and `sdd-migrate`; mutation test — for each of the four
@@ -755,7 +755,7 @@ Q-IMPL-HARNESSP2-006, `orchestration.md` Q-IMPL-HARNESSP2-008.
 **Entry criteria**: Chunks 2, 3, 5 (and 4 through 5) complete and merged into one tree (every
 marker present: `RED_VERDICT:`, `REVIEW: CONTRADICTION`, the Material
 `affects` line, the `.sdd/` mentions confined to the three files).
-**Exit criteria**: lint exits 0 with 20 files clean and the two-file warn set;
+**Exit criteria**: lint exits 0 with 21 files clean and the two-file warn set;
 all five new rows present and mutation-tested; `SKILL.md` ≤ ~470;
 traceability filled for REQ-LINT-HARNESSP2-001, -002, REQ-TELEM-HARNESSP2-007
 and the `SKILL.md`-integration halves of REQ-SKILL-HARNESSP2-001..004.

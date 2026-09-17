@@ -553,4 +553,17 @@ derived this way, the schema — not the scorer — is defective.
 **Decision**: the shipped renderer pluralises (`1 path`, `2 paths`) as `write-scope.md` §5 and scenarios F1/F2/F6 already do; F7 asserts `SCOPE: VIOLATION (1 path)`. The `OUT .sdd/telemetry.jsonl (+1 records, leaf write — reverted)` string is byte-exact. The spec's `(N paths)` is read as a template.
 **Rationale**: consistency with the v5 renderer; no contract value depends on the plural form.
 **Date**: 2026-09-17 (Chunk 0)
+### Q-IMPL-HARNESSP2-070: `skill_files()` lints USAGE.md, so it is allowlisted for the `\.sdd/` row
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Lint Guard ("USAGE.md is outside `skill_files()`")
+**Decision**: the linter's `skill_files()` rglobs every `skills/**/*.md`, including `skills/sdd-orchestrate/USAGE.md`; the spec's factual claim was wrong. `skills/sdd-orchestrate/USAGE.md` is added to the `\.sdd/` row's `allow_files` (exact path) so operator docs may name the path per REQ-SKILL-HARNESSP2-008. The allow set is therefore the spec's three files plus USAGE.md.
+**Rationale**: minimal change preserving intent; excluding USAGE.md from `skill_files()` would silently drop its other lint coverage.
+**Date**: 2026-09-18 (Chunk 6)
+
+### Q-IMPL-HARNESSP2-071: a negative `.sdd/` mention in `references/drift-sweep.md` was reworded, not allowlisted
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Lint Guard (`allow: []`)
+**Decision**: `references/drift-sweep.md` (Chunk 5) said gc "never reads `.sdd/`"; reworded to "never reads the telemetry file (`telemetry.md`)" so the allow set stays minimal.
+**Rationale**: the row scans raw text incl. fences and negative mentions; rewording is cheaper and spec-conformant.
+**Date**: 2026-09-18 (Chunk 6)
 
