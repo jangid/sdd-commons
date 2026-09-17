@@ -444,3 +444,13 @@ Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
    change.
 2. **Per-stage cap override persistence.** A cap raised at the gate is
    session-only (consistent with REQ-HARN-001). Default: no persistence.
+
+## Implementation Questions
+
+
+### Q-IMPL-042: default-budget table rows beyond the spec's four examples
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Budget Slot
+**Decision**: the default table in `references/return-contract.md` has one row per dispatch type; two rows generalize spec prose: "pipeline stage (non-implement) = ~70 tool calls, no prototypes" (from the specs-stage example) and "fix re-dispatch = remaining or fresh per-chunk allowance sized from previous `budget_consumed`" (from §Budget Exhaustion).
+**Rationale**: the orchestrator needs a default for every dispatch type it issues; the spec gives examples, not a complete table.
+**Date**: 2026-09-17 (Chunk 2)

@@ -344,3 +344,27 @@ changes and, on exhaustion, the checkpoint under the task.
    2026-09-17): per-chunk gate = `RETURN.status` → `SCOPE:` → `CHUNK_VERDICT:`;
    stage gate = the review `VERDICT:` plus the loop counters. **Resolved 2026-09-17**: REQ-ORCH-034 now carries an
    `[Updated 2026-09-17]` clarification stating exactly this split.
+
+## Implementation Questions
+
+
+### Q-IMPL-052: "grep for `sdd-review`" reads as "no sdd-review invocation"
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Verification — Automated
+**Decision**: the verifier template is pasted verbatim and contains the prohibition line "do not invoke sdd-review or sdd-implement"; the automated check is read as zero hits for `Skill tool` and for `invoke sdd-` as an instruction, with the prohibition line as the sole `sdd-review` string.
+**Rationale**: the spec's own template makes a literal zero-hit grep unsatisfiable.
+**Date**: 2026-09-17 (Chunk 3)
+
+### Q-IMPL-053: verifier opt-out renders a constant-shape gate line
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: Open Question 1 (verifier default-on)
+**Decision**: when the operator opts the verifier out at the implement gate, the per-leaf/per-chunk gate renders `CHUNK_VERDICT: (verifier disabled)` so the block shape stays constant.
+**Rationale**: the spec says the opt-out is recorded as gate text but does not say how; a fixed-shape block stays greppable.
+**Date**: 2026-09-17 (Chunk 3)
+
+### Q-IMPL-054: PIPELINE slot naming for the per-chunk parameter
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Sequencing — Sequential Mode
+**Decision**: the PIPELINE template carries `{implement_only}Chunk: Chunk {N} — implement THIS chunk's tasks only`, mirroring the existing `{on_fix_only}` convention; the spec names the parameter "Chunk N" without a slot token.
+**Rationale**: consistency with the template's existing conditional-slot style.
+**Date**: 2026-09-17 (Chunk 3)

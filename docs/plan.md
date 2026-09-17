@@ -202,7 +202,7 @@ the oscillation rule and writes a bounded checkpoint into the plan's blocked-tas
 note that `sdd-replan` reads. Traces to `harness-loop-control.md`.
 **Depends on**: Chunk 1.
 **Tasks**:
-1. [implement] In `skills/sdd-orchestrate/SKILL.md` §The gate: state the
+1. [x] [implement] In `skills/sdd-orchestrate/SKILL.md` §The gate: state the
    **fix-loop cap** (`FIX_LOOP_MAX`, default 3, per stage, session-only; every fix
    prompt carries `iteration N of 3`; operator may raise it by one at the gate,
    and a raised cap renders as `iteration N of MAX` with the raise count — e.g.
@@ -216,12 +216,12 @@ note that `sdd-replan` reads. Traces to `harness-loop-control.md`.
    `^(\d{4}-\d{2}-\d{2})-(m\d+-)?replan-.*\.md$` regex; add the loop counters to
    the stage-gate signal list. — traces to `harness-loop-control.md` §State
    Placement, §Fix-Loop Cap, §Replan Re-entry Cap (REQ-HARN-001, -002).
-2. [implement] In `SKILL.md` §KICKOFF: make `date:` mandatory in the kickoff
+2. [x] [implement] In `SKILL.md` §KICKOFF: make `date:` mandatory in the kickoff
    frontmatter written by orchestrate and add the pre-pipeline self-check for it;
    add the `Budget:` slot self-check (an empty slot is a template violation caught
    before dispatch). — traces to `harness-loop-control.md` §Replan Re-entry Cap
    (`date:` rule), §Budget Slot (REQ-HARN-002, -004).
-3. [implement] Budget slot everywhere: add `Budget: {budget}` to the REVIEW
+3. [x] [implement] Budget slot everywhere: add `Budget: {budget}` to the REVIEW
    template in `dispatch-templates.md` (`≤ 15 tool calls, read-only`) and confirm
    the PIPELINE and fan-out leaf templates carry it; document the budget grammar
    (observable units only; `read-only`, `no prototypes` qualifiers) and the
@@ -229,7 +229,7 @@ note that `sdd-replan` reads. Traces to `harness-loop-control.md`.
    next to the `RETURN:` key table, with the recorded v1 limitation that
    `budget_consumed` is self-reported. — traces to `harness-loop-control.md`
    §Budget Slot, §Budget Exhaustion (REQ-HARN-004, -005).
-4. [implement] In `skills/sdd-implement/SKILL.md` Step 3: add the **attempt
+4. [x] [implement] In `skills/sdd-implement/SKILL.md` Step 3: add the **attempt
    ledger** (`attempt / hypothesis / change / result`, one line each, newest
    last) and `verified_do_not_touch` with its revert rule; list both
    **oscillation** conditions — (a) regression oscillation, (b) repeated patch
@@ -238,7 +238,7 @@ note that `sdd-replan` reads. Traces to `harness-loop-control.md`.
    kickoff or a new file; not a Q-IMPL entry) and surfaces as `RETURN.ledger`. —
    traces to `harness-loop-control.md` §Attempt Ledger, §Oscillation Rule
    (REQ-HARN-006, -007); `skill-updates.md` §v5 (REQ-SKILL-020).
-5. [implement] In `skills/sdd-implement/SKILL.md` Step 3 (stuck path) and the
+5. [x] [implement] In `skills/sdd-implement/SKILL.md` Step 3 (stuck path) and the
    leaf return guidance: define the **circuit-break checkpoint** — trigger list,
    slot (blocked-task note under the task), the ≤ ~15-line format pasted from the
    spec, the RETURN-field → checkpoint-line mapping table, who writes it
@@ -247,7 +247,7 @@ note that `sdd-replan` reads. Traces to `harness-loop-control.md`.
    mid-task, `status: BUDGET_EXHAUSTED` + `budget_consumed` in the dispatched
    units). — traces to `harness-loop-control.md` §Budget Exhaustion,
    §Circuit-Break Checkpoint (REQ-HARN-005, -008).
-6. [implement] In `skills/sdd-replan/SKILL.md`: Step 1 item 6 reads the
+6. [x] [implement] In `skills/sdd-replan/SKILL.md`: Step 1 item 6 reads the
    checkpoint (blocked-task note) as the stuck state in place of "recent
    conversation context"; Step 4 defines the blocked-task note as the checkpoint
    slot and states the `-replan-` filename contract verbatim ("every archive this
@@ -257,7 +257,7 @@ note that `sdd-replan` reads. Traces to `harness-loop-control.md`.
    with `task not found in plan` prefix). — traces to `harness-loop-control.md`
    §Replan Re-entry Cap (`-replan-` contract), §Circuit-Break Checkpoint, Edge
    Cases (REQ-HARN-003, -008); `skill-updates.md` §v5 (REQ-SKILL-022).
-7. [verify] Fixtures per `harness-loop-control.md` §Verification: a temp
+7. [x] [verify] Fixtures per `harness-loop-control.md` §Verification: a temp
    `plan-history/` with `2026-09-01-replan-a.md`, `2026-09-18-replan-b.md`,
    `2026-09-19-m1-replan-c.md`, `2026-09-19-rewrite.md`,
    `2026-09-20-m1-complete.md` + kickoff `date: 2026-09-17` derives count = 2; a
@@ -286,7 +286,7 @@ per-chunk redo counter; under fan-out the verifier runs per leaf before merge.
 Traces to `harness-chunk-verifier.md`.
 **Depends on**: Chunk 1.
 **Tasks**:
-1. [implement] Add §CHUNK VERIFIER to `references/dispatch-templates.md`: the
+1. [x] [implement] Add §CHUNK VERIFIER to `references/dispatch-templates.md`: the
    template pasted from the spec (non-interactive clause, `Working directory`,
    `Plan … verify Chunk {N} only`, `Specs the chunk's tasks trace to`,
    `Quality gate commands`, `Budget: {budget}`, `Write scope: (empty —
@@ -298,13 +298,13 @@ Traces to `harness-chunk-verifier.md`.
    the verdict rule (PASS iff Check 1 has zero blocking findings and every gate
    exits 0; Check 3 advisory). — traces to `harness-chunk-verifier.md`
    §Verifier Dispatch Template, §Verdict Rule (REQ-HARN-014, -017).
-2. [implement] In `dispatch-templates.md` §PIPELINE: add the `Chunk N`
+2. [x] [implement] In `dispatch-templates.md` §PIPELINE: add the `Chunk N`
    parameter to the implement-stage deliverable contract (one chunk per
    dispatch, plan order) and its slot; note the v2-vocabulary edge case (no
    `### Chunk N:` headers → one dispatch, no verifier). — traces to
    `harness-chunk-verifier.md` §Sequencing — Sequential Mode, Edge Cases
    (REQ-HARN-016).
-3. [implement] In `skills/sdd-orchestrate/SKILL.md` §LOOP: add a "Per-chunk
+3. [x] [implement] In `skills/sdd-orchestrate/SKILL.md` §LOOP: add a "Per-chunk
    implement dispatch and per-chunk gate" subsection with the sequential loop
    (snapshot → dispatch Chunk N → parse `RETURN` → scope check → branch on
    `RETURN.status` → verifier → per-chunk gate → commit on `proceed`), the
@@ -331,7 +331,7 @@ Traces to `harness-chunk-verifier.md`.
    §Ephemerality and Gate Text, Edge Cases; `harness-return-contract.md`
    §Finding → Chunk Mapping; `harness-loop-control.md` §Redo Cap per Chunk;
    `orchestration.md` §v5 gate text order (REQ-HARN-014, -016, REQ-ORCH-034).
-4. [implement] In `references/fan-out.md` §3: insert the per-leaf step between
+4. [x] [implement] In `references/fan-out.md` §3: insert the per-leaf step between
    "await leaf return" and "sequential merge" — (a) parse `RETURN` + scope-check
    placeholder (procedure in Chunk 4), (b) dispatch the verifier with the leaf's
    worktree / branch plan / chunk(s) (skipped on `BLOCKED` /
@@ -342,7 +342,7 @@ Traces to `harness-chunk-verifier.md`.
    opt-out choice to the fan-out opt-in gate text in `SKILL.md` §Opt-in gate. —
    traces to `harness-chunk-verifier.md` §Sequencing — Fan-out, Open Questions
    #1 (REQ-HARN-015).
-5. [verify] Per `harness-chunk-verifier.md` §Verification: grep the verifier
+5. [x] [verify] Per `harness-chunk-verifier.md` §Verification: grep the verifier
    template for `sdd-review` and `Skill tool` (zero hits); walk a fixture
    verifier return with `check1: fail` → FAIL and one with `check1: pass`,
    `check3: advisory`, all gates 0 → PASS; on a two-chunk fixture plan trace the
