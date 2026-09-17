@@ -1,8 +1,8 @@
 ---
 domain: SKILL
-last_updated: 2026-05-25
+last_updated: 2026-09-17
 status: Approved
-research_refs: [RS-003, RS-004]
+research_refs: [RS-003, RS-004, RS-008]
 ---
 
 # Requirements: Skill Updates
@@ -130,4 +130,64 @@ report format, required inputs specification, bias disclosure, trigger
 classification, scope boundaries against chunk-close/XSPEC/sdd-verify,
 session-isolation confirmation, and scope-completeness checking.
 (see RS-004)
+[Priority: must]
+
+<!-- REQ-SKILL-019..024: per-skill updates for the harness-hardening cycle
+     (HARN and LINT domains). (see RS-008) -->
+
+### REQ-SKILL-019: sdd-orchestrate hardening updates
+`sdd-orchestrate` must implement the driver-side HARN requirements: the fix-loop
+and replan re-entry caps (REQ-HARN-001, REQ-HARN-002), budget and write-scope
+slots on every dispatch (REQ-HARN-004, REQ-HARN-020), `RETURN:` block parsing and
+repair-packet composition (REQ-HARN-009, REQ-HARN-011, REQ-HARN-012), `VERDICT:`
+branching (REQ-HARN-013), the chunk-verifier dispatch and per-chunk sequential
+implement dispatch (REQ-HARN-014 through REQ-HARN-017), pruned re-dispatch state
+and the orchestrator-owns-routing principle (REQ-HARN-018, REQ-HARN-019), the
+three-command write-scope check with its gate format, commit ownership and
+snapshot ordering (REQ-HARN-021 through REQ-HARN-026), and the gate text
+additions (REQ-ORCH-034). Template changes land in
+`skills/sdd-orchestrate/references/dispatch-templates.md` (pipeline, review, new
+verifier template, `{repair_packet}` slot) and `references/fan-out.md` (leaf
+template, verifier-before-merge sequencing, checkpoint application in §3e).
+(see RS-008)
+[Priority: must]
+
+### REQ-SKILL-020: sdd-implement ledger, oscillation and checkpoint
+`sdd-implement` must add the attempt ledger and `verified_do_not_touch` list
+(REQ-HARN-006), the oscillation conditions in Step 3 stuck detection
+(REQ-HARN-007), the circuit-break checkpoint format and its RETURN-field mapping
+(REQ-HARN-008), and — when running as a dispatched leaf — the `RETURN:` block
+(REQ-HARN-009, REQ-HARN-010) and budget self-count with `BUDGET_EXHAUSTED`
+(REQ-HARN-005). Step 4 chunk close remains unchanged for the implementer
+(REQ-HARN-014); standalone behavior is otherwise untouched. (see RS-008 Q1–Q3)
+[Priority: must]
+
+### REQ-SKILL-021: sdd-review verdict token
+`sdd-review` must add the own-line `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT`
+token to its report format (REQ-HARN-013) without changing the rest of the
+report or its scope boundaries (REQ-REV-005, REQ-REV-006 — review is not the
+chunk verifier). (see RS-008 Q4)
+[Priority: must]
+
+### REQ-SKILL-022: sdd-replan archive convention and checkpoint intake
+`sdd-replan` must state the `-replan-` archive filename convention as a contract
+(REQ-HARN-003), define the blocked-task note as the checkpoint slot with the
+bounded format (REQ-HARN-008), and read that checkpoint in Step 1 as the stuck
+state under orchestrate instead of relying on conversation context. (see RS-008
+Q1)
+[Priority: must]
+
+### REQ-SKILL-023: sdd-skill-lint hardening checks
+`tools/sdd-skill-lint.py` must implement the LINT domain (REQ-LINT-001 through
+REQ-LINT-006): remediation text, warn tier, SKILL.md size check, backtick
+`references/` path resolution, and the `REQUIRED` rows for the new contracts;
+its self-test must cover each new check. (see RS-008 Q4)
+[Priority: must]
+
+### REQ-SKILL-024: sdd-orchestrate marker-4 prose to references/
+`skills/sdd-orchestrate/SKILL.md` must move its marker-4-only prose to
+`references/v4-workstreams.md` per REQ-LINT-007, with the `research_id` lint
+guard and the superseding Q-IMPL entry in `docs/spec/ws-orchestration.md`. The
+operator documentation (REQ-ORCH-020) should be updated to describe the new gate
+signals (caps, budgets, `SCOPE:`, chunk verifier). (see RS-008 Q4)
 [Priority: must]

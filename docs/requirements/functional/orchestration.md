@@ -1,8 +1,8 @@
 ---
 domain: ORCH
-last_updated: 2026-06-06
+last_updated: 2026-09-17
 status: Approved
-research_refs: [RS-005, RS-006]
+research_refs: [RS-005, RS-006, RS-008]
 ---
 
 # Requirements: SDD Orchestration Driver
@@ -330,4 +330,23 @@ as an **entry kickoff** rather than a research kickoff: it states the scope of t
 change, the entry stage, and which upstream artifacts are assumed approved — not
 research questions. It remains git-tracked and the only new on-disk artifact type
 (REQ-ORCH-004 holds). DISCUSS still runs first to converge on the change scope.
+[Priority: must]
+
+<!-- REQ-ORCH-034 adds the gate-text additions required by the harness-hardening
+     cycle. The hardening mechanisms themselves live in the HARN domain
+     (functional/harness-hardening.md). (see RS-008) -->
+
+### REQ-ORCH-034: Gate text carries the hardening signals
+_(added 2026-09-17, RS-008)_
+At every gate the driver must surface, next to the review verdict and in this
+order: the machine-parsed `VERDICT:` value (REQ-HARN-013); for the implement
+stage, each chunk's `CHUNK_VERDICT:` (REQ-HARN-014); the write-scope block ending
+in `SCOPE: CLEAN | VIOLATION` (REQ-HARN-022); the leaf's `RETURN.status` and
+`budget_consumed` against the dispatched `Budget:` (REQ-HARN-005); and, when a
+fix loop is active, `iteration N of MAX` (REQ-HARN-001) or the replan re-entry
+count against its cap (REQ-HARN-002). The operator's decision vocabulary stays
+proceed │ loop-back-to-fix │ stop, extended only by the scope options `revert
+path | accept & widen scope`. All of this is ephemeral gate text (REQ-ORCH-013).
+**Acceptance**: `sdd-orchestrate/SKILL.md` §The gate lists the five signals; a
+gate rendering fixture shows them in the stated order.
 [Priority: must]

@@ -1,6 +1,6 @@
 ---
-version: "11.0"
-last_updated: 2026-07-21
+version: "12.0"
+last_updated: 2026-09-17
 traceability: traceability.md
 ---
 
@@ -32,6 +32,14 @@ tools-skills-agents repository. Covers three scopes:
    shared corpus, workstream-prefixed IDs, merge-safe shared writes,
    workstream-scoped staleness, branch-per-workstream → PR integration, v3→v4
    migration, and a ceremony-free implicit `default` workstream for solo use.
+7. **Harness hardening** (RS-008): deterministic loop control and decoupled
+   verification for the orchestrated loop — fix-loop and replan re-entry caps,
+   budgets on every dispatch, attempt ledger with oscillation-aware stuck
+   detection, circuit-break checkpoint, structured `RETURN:` block and repair
+   packet, machine-parseable `VERDICT:` / `CHUNK_VERDICT:` / `SCOPE:` tokens, a
+   fresh chunk-close verifier, declared write scope per dispatch, and lint
+   changes (remediation text, warn tier, SKILL.md size check, `references/`
+   resolution, new contract markers, marker-4 prose moved to `references/`).
 
 ## Stakeholders
 
@@ -52,10 +60,12 @@ tools-skills-agents repository. Covers three scopes:
 | functional | [milestone-plans.md](functional/milestone-plans.md) | MPLAN | REQ-MPLAN-001..004 | Approved | 2026-05-25 |
 | functional | [cross-spec-consistency.md](functional/cross-spec-consistency.md) | XSPEC | REQ-XSPEC-001..002 | Approved | 2026-05-25 |
 | functional | [review.md](functional/review.md) | REV | REQ-REV-001..008 | Approved | 2026-05-25 |
-| functional | [orchestration.md](functional/orchestration.md) | ORCH | REQ-ORCH-001..033 | Approved | 2026-06-06 |
+| functional | [orchestration.md](functional/orchestration.md) | ORCH | REQ-ORCH-001..034 | Approved | 2026-09-17 |
 | functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030 | Approved | 2026-07-23 |
+| functional | [harness-hardening.md](functional/harness-hardening.md) | HARN | REQ-HARN-001..027 | Approved | 2026-09-17 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
-| integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..018 | Approved | 2026-05-25 |
+| integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024 | Approved | 2026-09-17 |
+| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007 | Approved | 2026-09-17 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
 
 > **ORCH delta note:** The ORCH domain mixes shipped requirements (REQ-ORCH-001..015,
@@ -75,6 +85,14 @@ tools-skills-agents repository. Covers three scopes:
 > out-of-scope note below, which applied to the RS-002/003 cycle: v4 is the
 > shipped work of this cycle.
 
+> **HARN / LINT delta note:** The `HARN` (REQ-HARN-001..027) and `LINT`
+> (REQ-LINT-001..007) domains, plus REQ-ORCH-034 and REQ-SKILL-019..024, are the
+> RS-008 harness-hardening delta added at the requirements phase on 2026-09-17.
+> They are **not yet specced or implemented**; their traceability columns are
+> intentionally blank. The specs phase should treat them as the new work to
+> design. Standing constraints they must not contradict: REQ-ORCH-004/012/013/014
+> and REQ-REV-005/006.
+
 ## Domain Prefixes
 
 | Prefix | Domain | File |
@@ -91,12 +109,42 @@ tools-skills-agents repository. Covers three scopes:
 | REV | External Review | functional/review.md |
 | ORCH | SDD Orchestration Driver | functional/orchestration.md |
 | WS | Multi-Workstream SDD | functional/multi-workstream.md |
+| HARN | Harness Hardening | functional/harness-hardening.md |
 | CTX | AI Context Budget | non-functional/context-and-compatibility.md |
 | COMPAT | Git Compatibility | non-functional/context-and-compatibility.md |
 | SKILL | Skill Updates | integration/skill-updates.md |
+| LINT | Skill Lint (`tools/sdd-skill-lint.py`) | integration/skill-lint.md |
 | CFG | Configuration | configuration/version-marker.md |
 
 ## Q-REQ Resolutions
+
+Resolved during requirements gathering for RS-008 (harness hardening) — the
+operator approved the scope (12 in-scope ideas) in DISCUSS; the defaults below
+are RS-008's stated defaults, carried as decided:
+
+- **Q-REQ-A** (cap values): fix-loop max-iteration cap **3** per stage per
+  session; replan re-entry cap **3** per cycle, derived from `-replan-` archives
+  since the kickoff date — no persisted counter (REQ-HARN-001, REQ-HARN-002,
+  REQ-HARN-003).
+- **Q-REQ-B** (SKILL.md size thresholds): **400 lines warn / 1000 lines fail**
+  (REQ-LINT-002, REQ-LINT-003). At baseline this warns on `sdd-orchestrate` and
+  `sdd-migrate` only.
+- **Q-REQ-C** (budget on read-only review dispatches): **yes** — every dispatch
+  type, including review and the chunk verifier, carries a `Budget:` slot
+  (REQ-HARN-004); cheap and consistent.
+- **Q-REQ-D** (who runs chunk-close checks): the **implementer keeps Step 4**
+  unchanged; the fresh verifier is an orchestrate-only second executor of Checks
+  1, 3 and the gates, never `sdd-review` (REQ-HARN-014; REQ-REV-005/006 hold).
+- **Q-REQ-E** (implement dispatch granularity in sequential mode): **per chunk**
+  (RS-008 Q2 option (i)) so the verifier, budget and write scope have a natural
+  unit; `sdd-implement` itself is unchanged (REQ-HARN-016).
+- **Q-REQ-F** (commit ownership and snapshot ordering): pipeline and fix
+  re-dispatch → orchestrator commits after the gate; fan-out leaf → leaf commits
+  on its branch; review/verifier never commit; snapshots bracket the dispatch
+  and exclude the orchestrator's own commit (REQ-HARN-024, REQ-HARN-025).
+- **Q-REQ-G** (loop-control state placement): no new artifact — session-scoped
+  fix count, derived replan count, ledger in leaf context, checkpoint in the
+  plan's existing blocked-task note (REQ-HARN-027; REQ-ORCH-014 satisfied).
 
 Resolved during requirements gathering for RS-006 (implement-stage fan-out):
 
@@ -208,6 +256,18 @@ Resolved during requirements gathering for RS-002:
 - Fan-out of any stage other than implement; changes to `sdd-implement` itself
 - Persisting review verdicts to disk (no docs/reviews/ — reaffirmed for the driver)
 - Two literal human terminal sessions (superseded by the orchestrator + subagent model)
+- Harness-hardening ideas deferred to the next cycle (idea catalogue
+  `docs/superpowers/specs/2026-09-17-harness-engineering-ideas.md`): D11
+  per-dispatch telemetry file, D12 multi-run evaluation of the skills, F14
+  Red/Blue adversarial verify, F15 arbitrated handoff between contradicting
+  review rounds, G17 `sdd-gc` drift-sweep tool
+- Persisting loop-control counters across sessions (a cap that resets per
+  session is the accepted v1; REQ-ORCH-014 holds)
+- A hunk-level write-scope check for spec-file `## Implementation Questions`
+  edits (path-level + advisory tag in v1, REQ-HARN-026)
+- Hard-fixing self-reported `budget_consumed` (harness exposes no counter;
+  recorded v1 limitation, REQ-HARN-005)
+- This repo's v3→v4 migration (stays at marker `3` for this cycle)
 
 ## Open Questions
 
@@ -220,6 +280,22 @@ Resolved during requirements gathering for RS-002:
   wall-clock speedup depends on it. Resolve at spec/implementation time before
   claiming a speedup guarantee. (RS-006 Open Questions; see also RS-005 Q4)
 
+- **Per-chunk implement dispatch cost (RS-008 Q2):** the added wall time / tool
+  calls of per-chunk dispatch + chunk verifier versus one implement dispatch is
+  unmeasured (needs a live dispatch the research subagent could not perform).
+  **Default**: the verifier is default-on under orchestrate (REQ-HARN-014,
+  REQ-HARN-016); dogfood one implement stage and revisit opt-in at verify.
+- **Write-scope false positives (RS-008 Q5):** the noise rate of the default
+  scope table is unmeasured. **Default**: ship the table in REQ-HARN-020 with the
+  spec-file case advisory (REQ-HARN-026); dogfood one real pipeline dispatch and
+  tune at verify.
+- **HARN file size:** `functional/harness-hardening.md` is 468 lines, above the
+  sdd-requirements 300-line split guideline. **Default**: keep one file for this
+  cycle (IDs are permanent either way); if the operator prefers, split along the
+  file's own section headings — loop control (REQ-HARN-001..008), decoupled
+  verification (009..017), context hygiene + boundaries + constraints (018..027)
+  — sharing the `HARN` prefix, as a follow-up edit.
+
 All other Q-REQ items resolved.
 
 ## Research References
@@ -231,6 +307,7 @@ All other Q-REQ items resolved.
 - [RS-005: sdd-orchestrate Feasibility](../research/RS-005-sdd-orchestrate-feasibility/findings.md)
 - [RS-006: Subagent Nesting & Worktrees (implement-stage fan-out)](../research/RS-006-subagent-nesting-worktrees/findings.md)
 - [RS-007: Multi-Workstream SDD (concurrent cycles in one repo)](../research/RS-007-multi-workstream/findings.md)
+- [RS-008: Harness Hardening (loop control, decoupled verification, boundaries)](../research/RS-008-harness-hardening/findings.md)
 
 ## See Also
 
