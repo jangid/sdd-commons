@@ -310,3 +310,12 @@ highest-value so operators know where to invest review time.
 - [ ] Trigger classification has mandatory/recommended/ad-hoc/skip tiers with specific boundaries (REQ-REV-005)
 - [ ] Chunk-close boundaries explicitly excluded from review scope (REQ-REV-005, REQ-REV-006)
 - [ ] Scope boundaries against chunk-close, XSPEC, sdd-verify explicit (REQ-REV-006)
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP2-004: Material finding template line gains `affects`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Report Format — Material findings template line
+**Decision**: Superseded by `arbitrated-handoff.md` §Review Key on Material Lines (REQ-ARB-HARNESSP2-008 amendment 2026-09-17): the Material template line becomes `- M1: [what's wrong] — [file:section] — affects [REQ-*] | affects —`. Nothing else in the report format (REQ-REV-002) or the scope boundaries (REQ-REV-005/006) changes; `sdd-review` gains no red, telemetry or arbitration text.
+**Rationale**: The arbitration key must be computable on both tiers; the change is one template line.
+**Date**: 2026-09-17 (harness-p2 specs stage)

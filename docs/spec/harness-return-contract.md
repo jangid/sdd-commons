@@ -403,3 +403,10 @@ tell a subagent what to *produce* (block, token, findings) — never what to
 **Rationale**: found by the Chunk 6 holistic fixture walkthrough; one header keeps the slot-set check (§8) exact.
 **Date**: 2026-09-17 (Chunk 6)
 
+
+### Q-IMPL-HARNESSP2-003: RED_VERDICT parsing, RED_BREAK packet reason and the review-consumer regex
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Malformed Returns, §Repair Packet, §Finding → Chunk Mapping, §VERDICT Token
+**Decision**: Extended by `adversarial-verify.md` (REQ-REDB-HARNESSP2-005/-009 amendment 2026-09-17): the malformed table gains the `RED_VERDICT:` rows; the repair-packet `reason` enum gains `RED_BREAK`; the finding → chunk mapping is reused with the spec taken from red's `## Red team — <spec.md>` heading in place of `affects`; the review-consumer lint regex becomes `(?<!CHUNK_)(?<!RED_)VERDICT:`. `arbitrated-handoff.md` annotates third-opinion review records with `dispatch.reason: THIRD_OPINION` in telemetry only — not a packet reason.
+**Rationale**: Tokens are defined once, in the spec that introduces them; this spec keeps the parser rules it already owns and points at the extensions.
+**Date**: 2026-09-17 (harness-p2 specs stage)

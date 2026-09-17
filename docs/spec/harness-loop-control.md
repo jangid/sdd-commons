@@ -461,3 +461,10 @@ Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
 **Decision**: the 525-line `sdd-implement/SKILL.md` (attempt ledger, checkpoint and budget detail plus the leaf return contract) trips the new 400-line warn; the warning is accepted this cycle and a `references/` split is queued for the next cycle. The operator deferred the split.
 **Rationale**: the warn tier is advisory by design (REQ-LINT-002); the ledger/checkpoint/budget prose is what the harness-hardening cycle added and splitting it mid-cycle would move text the implement-stage review has just approved.
 **Date**: 2026-09-17 (Chunk 6, implement-stage review fix loop)
+
+### Q-IMPL-HARNESSP2-001: `.sdd/` prohibition sentence superseded by telemetry.md
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §No-New-Artifact Invariant (REQ-HARN-027)
+**Decision**: The sentence "no `docs/reviews/`, `.sdd/` or telemetry file is created" is superseded by `telemetry.md` §Placement (REQ-HARN-027 amendment 2026-09-17): a gitignored, root-level `.sdd/telemetry.jsonl` written only by the orchestrator after each gate, never a phase-detection input, is permitted. The `docs/` invariant, the `docs/reviews/` prohibition and the mechanism table are unchanged; `telemetry.md` §Non-Interference Proof is the contract.
+**Rationale**: Marker-4 shared specs are extended by new files, never edited in place (`ws-ids.md`); the requirement text carries the same `[Updated 2026-09-17]` clause.
+**Date**: 2026-09-17 (harness-p2 specs stage)

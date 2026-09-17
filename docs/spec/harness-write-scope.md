@@ -348,3 +348,10 @@ the flat paths and `main` apply unchanged.
 **Rationale**: the drift rule predates this cycle and protects skill prose from stale version-qualified wording; the reference must pass lint.
 **Date**: 2026-09-17 (Chunk 4)
 
+
+### Q-IMPL-HARNESSP2-002: observation, limitations and blocked-write fallback extended by three harness-p2 specs
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Observation: Three Commands, §Snapshot Ordering, §Recorded v1 Limitations, §Blocked-Write Fallback
+**Decision**: Superseded/extended as follows (REQ-HARN-026 and REQ-HARN-HARNESSP2-001/-002 amendments 2026-09-17): (1) `dispatch-snapshot-base.md` §Snapshot Base Rule — `snapshot(before)` is taken at the branch tip the leaf is instructed to reach, the committed delta is based on the named base, and a `CATCH-UP <from>..<base> (N commits, excluded — base <sha>)` line names excluded catch-up commits; limitation (c) is recorded with both remedies; (2) `dispatch-snapshot-base.md` §Blocked-Write Staging Path — the scratchpad-staged-then-copied path is the expected fallback, points (i)–(iv); (3) `telemetry.md` §Third Observation — limitation (b) gains the `.sdd/` exception and a third, telemetry-specific observation whose finding string is defined there once; (4) `arbitrated-handoff.md` §Section Resolution — limitation (a) is partially closed for Markdown paths by hunk-to-heading resolution. The three commands, tags and `SCOPE:` token are unchanged.
+**Rationale**: New behaviour lands in new spec files under marker 4; this entry is the pointer readers of this spec need.
+**Date**: 2026-09-17 (harness-p2 specs stage)

@@ -262,3 +262,12 @@ contract: `ws-ids.md` (REQ-WS-009, REQ-WS-011, REQ-WS-012).
 - [ ] Overview documents plan vocabulary convention (REQ-MIG-015)
 - [ ] Overview documents version marker semantics as process version (REQ-MIG-015)
 - [ ] Overview lists v3 behavioral additions (REQ-MIG-015)
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP2-007: harness-p2 cycle adds six specs
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Design (spec inventory)
+**Decision**: The harness-p2 workstream (RS-HARNESSP2-001, marker 4) adds six new specs, no in-place body edits: `telemetry.md` (per-dispatch telemetry, REQ-HARN-027 amendment), `adversarial-verify.md` (red/blue verify, `RED_VERDICT:`, `pending-red`), `arbitrated-handoff.md` (`REVIEW: CONTRADICTION`, section resolution), `drift-sweep.md` (`tools/sdd-gc.py`), `evaluation.md` (evaluation mode defined, scorer fields, N = 3 pilot) and `dispatch-snapshot-base.md` (snapshot base / `CATCH-UP`, blocked-write staging, sdd-implement split). Supersessions of existing spec sentences are recorded as Q-IMPL-HARNESSP2-001..004 and -008 in the affected specs.
+**Rationale**: The overview stays the map of the spec corpus; under marker 4 it is extended by pointer entries.
+**Date**: 2026-09-17 (harness-p2 specs stage)

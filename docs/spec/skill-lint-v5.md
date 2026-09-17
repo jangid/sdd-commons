@@ -304,3 +304,10 @@ row fails when its marker is removed from a temp copy.
 **Rationale**: a reader of this spec needs the pointer; the requirement text never fixed the count.
 **Date**: 2026-09-17 (verify-stage review m4)
 
+
+### Q-IMPL-HARNESSP2-006: new REQUIRED rows, the FORBIDDEN `\.sdd/` row and the `allow_files` field
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §REQUIRED Rows — Core Contracts (row d2), §Self-Test Extension
+**Decision**: REQ-LINT-HARNESSP2-001/-002 are specified in `adversarial-verify.md` §Skill and Lint Changes (rows a1/a2 for `RED_VERDICT:`, and the d2 pattern change to `(?<!CHUNK_)(?<!RED_)VERDICT:`), `arbitrated-handoff.md` §Skill and Lint Changes (rows b for `REVIEW: CONTRADICTION` and c for the Material `affects` line) and `telemetry.md` §Lint Guard (the `FORBIDDEN` `\.sdd/` row with a new file-granular `allow_files` field, raw-text scan). `--self-test` §7's mutation loop covers the four new REQUIRED rows (`len(REQUIRED) >= 32`); the size-warn baseline of Q-IMPL-084 returns to two after `dispatch-snapshot-base.md`'s sdd-implement split.
+**Rationale**: Rule-table rows are owned by the spec that defines the token they guard.
+**Date**: 2026-09-17 (harness-p2 specs stage)

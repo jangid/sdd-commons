@@ -725,3 +725,12 @@ against REQ-ORCH-034's single-gate wording is recorded in
 - [ ] On entry the driver auto-detects the proposed entry stage via phase detection, presents and confirms it (operator may override earlier), and validates the upstream is approved — routing to the earliest incomplete upstream if not; never guesses without confirmation (REQ-ORCH-032)
 - [ ] A non-research entry writes an entry kickoff to `docs/handoff/kickoff.md` (scope + entry stage + assumed-approved upstream, not research questions); DISCUSS still runs first; kickoff remains the only new artifact (REQ-ORCH-033, REQ-ORCH-004)
 - [ ] Markdown well-formed; frontmatter valid; kebab-case skill name (project quality checks)
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP2-008: verify-gate signal order, pause family, entry/DONE gc steps and provisioning base
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §v5 Harness Hardening (gate text order), §Gate Protocol, §Driver Phases, §Sequential Execution
+**Decision**: Extended by the harness-p2 specs (amendments 2026-09-17): the verify stage gate order becomes `RETURN.status` → `SCOPE:` → `RED_VERDICT:` → `VERDICT:` → counters, with options `fix (RED_BREAK packet) | accept (record) | stop` per BROKEN finding and the opt-in `red team: off | on` (`adversarial-verify.md`); the stage-gate pause family gains `REVIEW: CONTRADICTION` with `accept round N+1 (fix) | accept round N (proceed, note) | third opinion | stop` (`arbitrated-handoff.md`); entry runs `tools/sdd-gc.py --report` before the workstream picker and DONE renders its findings with `record | ignore` (`drift-sweep.md`); sequential and fix worktrees are provisioned at the branch tip the leaf is told to reach (`dispatch-snapshot-base.md`); `TELEMETRY:` lines appear once per gate when relevant (`telemetry.md`). REQ-ORCH-011/-013/-014 and the never-auto-advance rule are unchanged (`evaluation.md`).
+**Rationale**: The driver spec keeps its phases and vocabulary; each extension is owned by the spec that defines its token.
+**Date**: 2026-09-17 (harness-p2 specs stage)

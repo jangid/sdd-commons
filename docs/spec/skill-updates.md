@@ -389,3 +389,12 @@ designs in `harness-loop-control.md`, `harness-return-contract.md`,
 - [ ] `sdd-requirements` detects research-to-requirements staleness (REQ-STALE-002)
 - [ ] `sdd-migrate` implements v2→v3 migration steps (REQ-SKILL-017)
 - [ ] `sdd-review` skill exists with session isolation, phase checklists, report format (REQ-SKILL-018)
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP2-005: per-skill changes for the harness-p2 cycle live in the new specs
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Design (per-skill update tables)
+**Decision**: REQ-SKILL-HARNESSP2-001..008 are carried by the new harness-p2 specs, each in a "Skill and Lint Changes" / "Skill Changes" section: `telemetry.md` (-001 orchestrate telemetry, -008 operator docs and CLAUDE.md), `adversarial-verify.md` (-002 red dispatch, -005 sdd-verify pending-red / accepted breaks / gc slot), `arbitrated-handoff.md` (-003 arbitration, -006 sdd-review Material `affects`), `drift-sweep.md` (-004 gc cadence), `dispatch-snapshot-base.md` (-004 snapshot base, -007 sdd-implement references split closing Q-IMPL-083). This spec's tables are unchanged.
+**Rationale**: Marker-4 rule: new work adds new spec files; the per-skill table for a workstream stays with the designs it serves.
+**Date**: 2026-09-17 (harness-p2 specs stage)
