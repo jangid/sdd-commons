@@ -2,13 +2,15 @@
 """Self-test for the sdd-orchestrate write-scope check.
 
 Builds throwaway git repositories under a temporary directory and replays the
-eight write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
-(plan Chunk 4 task 5) plus ``docs/spec/telemetry.md`` §Third Observation (F7) and
+nine write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
+(plan Chunk 4 task 5) plus ``docs/spec/telemetry.md`` §Third Observation (F7),
+``docs/spec/arbitrated-handoff.md`` §Section Resolution (F8) and
 ``docs/spec/dispatch-snapshot-base.md`` §Snapshot Base Rule (F9) against the
 observation procedure defined in ``skills/sdd-orchestrate/references/write-scope.md``:
 
   §3  the three commands — porcelain delta, committed delta, ancestry check —
       plus the named-base catch-up (d) and its ``CATCH-UP`` line (remedy (ii))
+      and the section resolution of fix hunks (hunk -> enclosing ``§Name``)
   §4  matching and tags — IN / ADVISORY / OUT
   §5  finding format and the own-line ``SCOPE:`` token
   §6  blocked-write fallback — pre-persist scope match
@@ -23,6 +25,8 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
   F5  blocked_writes docs/plan.md from a leaf   -> refused, listed OUT refused
   F6  amended HEAD                              -> HISTORY_REWRITE, VIOLATION
   F7  leaf appends to .sdd/telemetry.jsonl      -> OUT (+1 records, leaf write — reverted)
+  F8  section resolution (L40-58 under ## A,   -> {x.md:§A, x.md:§C}; untracked -> (path, *);
+      L120 under ## C of docs/spec/x.md)           .py -> (path, ?)
   F9  catch-up base (worktree 1 commit behind)  -> CLEAN + CATCH-UP line; plus one
                                                    OUT write -> VIOLATION (1 path)
 
@@ -320,6 +324,96 @@ def observe(
             f"from HEAD_before {head_before[:7]}"
         )
     return obs
+
+
+# ---------------------------------------------------------------------------
+# write-scope.md §3 — section resolution of fix hunks (arbitrated-handoff.md)
+# ---------------------------------------------------------------------------
+
+HUNK_HEADER = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+MARKDOWN_SUFFIXES = (".md", ".markdown")
+
+
+def section_name(heading: str) -> str:
+    """Normalise a heading line to ``§Name`` as loop-control.md §2a does for review keys.
+
+    Leading ``#``s and a leading ordinal (``3.``, ``3)``, ``3``) are stripped,
+    whitespace is collapsed, case is kept — so ``## 3. Foo`` and ``§Foo`` compare equal.
+    """
+    text = heading.lstrip("#").strip()
+    text = re.sub(r"^\d+[.)]?\s*", "", text)
+    return "§" + " ".join(text.split())
+
+
+def _headings(lines: list[str]) -> list[tuple[int, str]]:
+    """``(line number, §Name)`` for every ``#``-heading, 1-based, in file order."""
+    return [(i, section_name(ln)) for i, ln in enumerate(lines, start=1) if ln.startswith("#")]
+
+
+def _hunk_ranges(diff_text: str) -> list[tuple[int, int]]:
+    """After-image ``(start, end)`` line pairs for every ``@@ -a,b +c,d @@`` header.
+
+    A missing count means 1; a pure deletion (``d == 0``) keeps ``c`` as both ends.
+    """
+    ranges: list[tuple[int, int]] = []
+    for line in diff_text.splitlines():
+        m = HUNK_HEADER.match(line)
+        if not m:
+            continue
+        c = int(m.group(3))
+        d = int(m.group(4)) if m.group(4) is not None else 1
+        ranges.append((c, c + d - 1 if d > 0 else c))
+    return ranges
+
+
+def resolve_sections(
+    repo: str, path: str, head_before: str, head_after: str
+) -> tuple[set[tuple[str, str]], dict[tuple[str, str], str]]:
+    """Resolve a written path's hunks to ``(path, §Name)`` pairs per write-scope.md §3.
+
+    committed  : ``git diff -U0 HEAD_before HEAD_after -- path`` against ``git show HEAD_after:path``
+    uncommitted: ``git diff -U0 HEAD_after -- path`` against the working file
+    untracked  : ``(path, *)`` — a new file is written in full
+    non-Markdown: ``(path, ?)`` — falls back to file-level comparison
+
+    Each hunk's after-image start line ``c`` resolves to the nearest ``#``-heading
+    at or above it; a hunk above the first heading resolves to ``§(preamble)``.
+    Returns the pair set and, per pair, the rendered hunk ranges (``L40-58, L120``).
+    """
+    if not path.endswith(MARKDOWN_SUFFIXES):
+        return {(path, "?")}, {}
+    tracked = git(repo, "ls-files", "--error-unmatch", path, check=False).returncode == 0
+    if not tracked:
+        return {(path, "*")}, {}
+
+    sections: set[tuple[str, str]] = set()
+    hunks: dict[tuple[str, str], list[str]] = {}
+
+    def resolve(diff_text: str, after_lines: list[str]) -> None:
+        heads = _headings(after_lines)
+        for start, end in _hunk_ranges(diff_text):
+            name = "§(preamble)"
+            for line_no, sec in heads:
+                if line_no <= start:
+                    name = sec
+                else:
+                    break
+            key = (path, name)
+            sections.add(key)
+            hunks.setdefault(key, []).append(f"L{start}" if start == end else f"L{start}-{end}")
+
+    # committed hunks, read against the after-image at HEAD_after
+    if head_before != head_after:
+        diff = git(repo, "diff", "-U0", head_before, head_after, "--", path).stdout
+        shown = git(repo, "show", f"{head_after}:{path}", check=False)
+        if diff and shown.returncode == 0:
+            resolve(diff, shown.stdout.splitlines())
+    # uncommitted hunks (porcelain-only writes), read against the working file
+    diff = git(repo, "diff", "-U0", head_after, "--", path).stdout
+    if diff:
+        with open(os.path.join(repo, path), encoding="utf-8") as fh:
+            resolve(diff, fh.read().splitlines())
+    return sections, {k: ", ".join(v) for k, v in hunks.items()}
 
 
 # ---------------------------------------------------------------------------
@@ -636,6 +730,69 @@ def scenario_f9(repo: str) -> tuple[bool, str, list[str]]:
     return ok, token, f_clean.lines + f_out.lines
 
 
+def scenario_f8(repo: str) -> tuple[bool, str, list[str]]:
+    """Section resolution of fix hunks (arbitrated-handoff.md §Section Resolution).
+
+    Self-contained replay of write-scope.md §3 "Section resolution" with four
+    assertions over one fixture ``docs/spec/x.md`` carrying ``## A`` / ``## B`` /
+    ``## C``:
+
+      1. a committed diff touching lines 40–58 under ``## A`` and line 120
+         under ``## C`` -> ``{x.md:§A, x.md:§C}`` with hunk strings ``L40-58``
+         and ``L120`` (``## B`` untouched, absent);
+      2. an untracked new Markdown file -> ``(path, *)`` (written in full);
+      3. a ``.py`` path -> ``(path, ?)`` (non-Markdown, file-level fallback);
+      4. an uncommitted edit above the first heading -> ``§(preamble)``.
+    """
+    # Fixture: a two-line preamble (no heading), then A at line 3, B at line 70,
+    # C at line 100; 130 lines total.
+    body = ["intro", ""]
+    for name, start, end in (("A", 3, 69), ("B", 70, 99), ("C", 100, 130)):
+        body.append(f"## {name}")
+        body.extend(f"{name.lower()} line {i}" for i in range(start + 1, end + 1))
+    assert len(body) == 130 and body[2] == "## A" and body[69] == "## B" and body[99] == "## C"
+    write(repo, "docs/spec/x.md", "\n".join(body) + "\n")
+    git(repo, "add", "docs/spec/x.md")
+    git(repo, "commit", "-q", "-m", "fixture x.md")
+    head_before = git(repo, "rev-parse", "HEAD").stdout.strip()
+    # The fix rewrites lines 40–58 (under A) and line 120 (under C), committed.
+    for i in range(39, 58):
+        body[i] = f"a line {i + 1} (fixed)"
+    body[119] = "c line 120 (fixed)"
+    write(repo, "docs/spec/x.md", "\n".join(body) + "\n")
+    git(repo, "commit", "-q", "-am", "fix #1")
+    head_after = git(repo, "rev-parse", "HEAD").stdout.strip()
+    sections, hunks = resolve_sections(repo, "docs/spec/x.md", head_before, head_after)
+    ok1 = (
+        sections == {("docs/spec/x.md", "§A"), ("docs/spec/x.md", "§C")}
+        and hunks[("docs/spec/x.md", "§A")] == "L40-58"
+        and hunks[("docs/spec/x.md", "§C")] == "L120"
+    )
+    # Assertion 2: untracked new Markdown file -> every section, rendered (path, *).
+    write(repo, "docs/spec/new.md", "# New\n\n## Only\nbody\n")
+    sections_new, _ = resolve_sections(repo, "docs/spec/new.md", head_before, head_after)
+    ok2 = sections_new == {("docs/spec/new.md", "*")}
+    # Assertion 3: non-Markdown path -> (path, ?), file-level comparison.
+    write(repo, "src/a.py", "x = 2\n")
+    sections_py, _ = resolve_sections(repo, "src/a.py", head_before, head_after)
+    ok3 = sections_py == {("src/a.py", "?")}
+    # Assertion 4: uncommitted hunk above the first heading -> §(preamble).
+    body[0] = "intro (edited)"
+    write(repo, "docs/spec/x.md", "\n".join(body) + "\n")
+    sections_pre, hunks_pre = resolve_sections(repo, "docs/spec/x.md", head_before, head_after)
+    ok4 = ("docs/spec/x.md", "§(preamble)") in sections_pre and hunks_pre.get(("docs/spec/x.md", "§(preamble)")) == "L1"
+    ok = ok1 and ok2 and ok3 and ok4
+    rendered = [f"docs/spec/x.md {sec} (hunks {hunks[('docs/spec/x.md', sec)]})" for sec in ("§A", "§C") if ("docs/spec/x.md", sec) in hunks]
+    token = "{" + ", ".join(f"x.md:{s}" for _, s in sorted(sections)) + "}"
+    if not ok2:
+        token += " (untracked != *)"
+    if not ok3:
+        token += " (.py != ?)"
+    if not ok4:
+        token += " (preamble)"
+    return ok, token, rendered + [f"docs/spec/new.md {s}" for _, s in sections_new] + [f"src/a.py {s}" for _, s in sections_py]
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -644,6 +801,7 @@ SCENARIOS = [
     ("F5", "blocked_writes docs/plan.md from a fan-out leaf", scenario_f5),
     ("F6", "amended HEAD (HISTORY_REWRITE)", scenario_f6),
     ("F7", "leaf appends to .sdd/telemetry.jsonl (third observation, reverted)", scenario_f7),
+    ("F8", "section resolution: hunks L40-58 under ## A, L120 under ## C", scenario_f8),
     ("F9", "catch-up base: worktree one commit behind, leaf fast-forwards", scenario_f9),
 ]
 
@@ -658,7 +816,8 @@ def main(argv: list[str] | None = None) -> int:
         prog="sdd-scope-check-selftest.py",
         description=(
             f"Replay the {len(SCENARIOS)} write-scope scenarios of docs/spec/harness-write-scope.md "
-            "§Verification, docs/spec/telemetry.md §Third Observation and "
+            "§Verification, docs/spec/telemetry.md §Third Observation, "
+            "docs/spec/arbitrated-handoff.md §Section Resolution and "
             "docs/spec/dispatch-snapshot-base.md §Snapshot Base Rule in throwaway git repos. "
             "Exit 0 when all pass."
         ),

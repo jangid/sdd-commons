@@ -221,6 +221,31 @@ provisioned `HEAD_prov`, the observation on return has four parts:
   branch point and remedy (ii) never applies. The third observation above is
   unaffected by the base choice — it reads `.sdd/`, not history.
 
+**Section resolution of fix hunks (REQ-ARB-HARNESSP2-005).** An extension of
+the observation commands, run for each path in a **fix dispatch's** written
+set so that `fix[N].written` (`loop-control.md` §2a) is keyed at section level
+rather than file level. It partially closes limitation (a) of §5 for Markdown
+paths; contract: `docs/spec/arbitrated-handoff.md` §Section Resolution.
+
+```
+committed  : git diff -U0 <HEAD_before> <HEAD_after> -- <path>
+uncommitted: git diff -U0 <HEAD_after> -- <path>            # porcelain-only writes
+untracked  : every heading of the file → (path, *)          # a new file is written in full
+```
+
+For each hunk header `@@ -a,b +c,d @@`: take the after-image start line `c`
+(for a pure deletion, `d == 0`, use `c` as well); the enclosing section is the
+nearest `#`-heading line ≤ `c` in the after-image (`git show <HEAD_after>:<path>`
+or the working file); normalise the heading text as `loop-control.md` §2a does
+for review keys (`§Name` — leading `#`s and a leading ordinal stripped,
+whitespace collapsed, case kept). A hunk above the first heading resolves to
+`§(preamble)`. Non-Markdown paths resolve to `(path, ?)` and fall back to
+file-level comparison. The result per path is the set of `(path, §Name)` pairs
+plus the hunk ranges for rendering (`docs/spec/x.md §A (hunks L40-58)`; a
+one-line hunk renders `L120`). Under remedy (ii) `<HEAD_before>` is the named
+base, as for (b) above. Fixture: scenario F8 of
+`tools/sdd-scope-check-selftest.py`.
+
 ---
 
 ## 4. Matching and tags
@@ -295,7 +320,10 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
   inside `## Implementation Questions` (Q-IMPL); replan only for a Level-2
   inline change. A path-level check cannot see that, so such writes are
   `ADVISORY` until a hunk-level check (`git diff -U0`, verify every hunk's
-  enclosing heading) exists.
+  enclosing heading) exists. Partially closed for Markdown paths by §3 section
+  resolution (`arbitrated-handoff.md`) — it resolves each fix hunk to its
+  enclosing `§Name` for arbitration; the `ADVISORY` tag rule itself is
+  unchanged (Q-IMPL-HARNESSP2-002).
 - **(b) Ignored paths.** Paths matched by `.gitignore` are not observed
   (`--ignored` is not used) — they are not project content.
   - **Exception — `.sdd/`.** The telemetry file is observed by the third

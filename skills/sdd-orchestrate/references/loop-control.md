@@ -102,6 +102,111 @@ persisting it.
 
 ### 2a. Exhaustion and the compiled findings log
 
+**Retained per-round state (REQ-ARB-HARNESSP2-001).** Beside the compiled
+findings log below, the orchestrator keeps — in session state only, never as
+an artifact (REQ-HARN-027) — one tuple per review round and one per fix
+dispatch of the active loop. Contract: `docs/spec/arbitrated-handoff.md`
+§Retained Per-Round State; the schema is pasted from it:
+
+```
+round[N]      = { verdict: APPROVE | APPROVE_WITH_FIXES | REJECT,
+                  lines: [ { tier: C | M, text: <verbatim line>,
+                             key: { file: <repo-relative path>, section: <§Name> | "?",
+                                    affects: { REQ-… } } } ] }
+fix[N]        = { written: { (file, section) }, hunks: { (file, section): "L40-58, L120" } }
+```
+
+Key parsing from a review line `- C1: <what> — [file:section] — affects
+[REQ-A-001, REQ-A-004]` (finding ids `C1`/`M1` are not stable across rounds,
+so the key is `(file:section, affects)`):
+
+| Part | Rule |
+|---|---|
+| `file` | the text before the first `:` inside `[…]`, normalised to a repo-relative path (leading `./` stripped); an unresolvable path keeps the raw text |
+| `section` | the text after that `:`, with a leading `§` or `#`s stripped, then a leading ordinal `\d+[.)]?\s*` stripped (`§3. Foo` ≡ `§Foo`), whitespace collapsed, kept case-sensitive → stored as `§Name`; missing → `?` |
+| `affects` | every `REQ-[A-Z]+(-[A-Z0-9]+)?-\d{3}` id in the `affects` clause; `affects —` or none → `∅` |
+
+A line whose `[file:section]` cannot be parsed at all is retained with
+`section = ?`, `affects = ∅` and participates only in file-level comparison.
+`fix[N].written` comes from section resolution of the fix dispatch's hunks
+(`write-scope.md` §3, "Section resolution"); when that is unavailable for a
+path it falls back to `(file, *)` — every section of the file — from the
+path-level delta (REQ-HARN-021). A fix dispatch fanned into several
+chunk-grouped dispatches contributes the **union** of their written pairs.
+
+**Contradiction classes (REQ-ARB-HARNESSP2-002, -003, -004).** Let `K_N` =
+set of `(file, section)` keys of round N's C/M lines, `W_N` = `fix[N].written`,
+`F(K)` = the files of a key set. With `∈` at section level unless degraded:
+
+| Class | Rule | Detected? |
+|---|---|---|
+| **(b) new C/M on approved ground** | ∃ line ∈ round N+1 (tier C or M) with key `k` such that `k ∉ K_N` **and** `k ∉ W_N` | **yes** — set membership |
+| **(c) verdict regression without new ground** | `round[N].verdict == APPROVE_WITH_FIXES` ∧ `round[N+1].verdict == REJECT` ∧ (i) `W_N ⊆ K_N` ∧ (ii) `K_{N+1} ⊆ K_N ∪ W_N` | **yes** — weaker signal, labelled `class c` |
+| **(a) reversal** | a round-N+1 line with `k ∈ K_N` asking the opposite change | **no** — "opposite" is semantic; rendered `(persisting)` in the compiled log exactly as today and surfaced by REQ-HARN-001's exhausted-log gate |
+
+Trigger = (b) ∨ (c); when both hold, (b) is reported (it is the stronger
+signal). **Degradation**: when a key or a written pair has `section = ?` or
+`*`, the comparison for that key is at **file level** (`file ∉ F(K_N)` ∧ `file
+∉ F(W_N)`), the pause labels itself `(file-level)`, and the operator is told it
+may over-fire when the fix touched the same file elsewhere. Section resolution
+is the remedy, not a spike. Reversals are **not detected** by design: a rule
+that guessed "opposite" from text would be a semantic judgement inside the
+orchestrator, which REQ-HARN-019 and REQ-ORCH-012 keep out; the cap remains
+the backstop for reversals. Red findings (`adversarial-verify.md`) are not
+review lines and never enter `K_N` — arbitration compares review rounds only.
+
+**`REVIEW: CONTRADICTION` pause (REQ-ARB-HARNESSP2-006).** On (b) or (c) at a
+**stage gate** (never the per-chunk gate, which shows no review verdict —
+REQ-ORCH-018 precedent), the orchestrator pauses. Fixture, pasted from the
+spec §`REVIEW: CONTRADICTION` Pause:
+
+```
+REVIEW: CONTRADICTION (round 1 vs round 2, class b) — stage: specs, iteration 2 of 3
+  round 1 (APPROVE_WITH_FIXES): C1 <verbatim line> — docs/spec/x.md §A — affects REQ-X-001
+  fix #1 wrote: docs/spec/x.md §A (hunks L40-58)
+  round 2 (REJECT):             C1 <verbatim line> — docs/spec/x.md §C — affects REQ-X-004   <- section untouched by fix #1, not raised in round 1
+  Options: accept round 2 (fix) | accept round 1 (proceed, note) | third opinion (re-dispatch review) | stop
+```
+
+Shape rules: the token line is `REVIEW: CONTRADICTION (round N vs round N+1,
+class b|c[, file-level]) — stage: <stage>, iteration N of MAX`; both rounds'
+verdicts and C/M lines verbatim with their keys, side by side; `fix #N wrote:`
+between them; each new-ground line annotated `<- section untouched by fix #N,
+not raised in round N`; verbatim lines and paths only, never reviewer reasoning
+(REQ-ORCH-012); ephemeral (REQ-ORCH-013). When a fix renamed a heading the old
+`§Name` is not in `W_N`, so (b) may over-fire — the pause shows both names and
+the operator resolves (accepted; renames are rare inside a fix).
+
+| Option | Effect | Iteration counter |
+|---|---|---|
+| `accept round N+1 (fix)` | normal fix re-dispatch with round N+1's packet | **+1** |
+| `accept round N (proceed, note)` | proceed; the note lands where a gate decision already lands — the artifact's own Open Questions, or a Q-IMPL entry when the artifact is a spec — never a review store | unchanged |
+| `third opinion (re-dispatch review)` | §Third Opinion | unchanged |
+| `stop` | halt | unchanged |
+
+The pause is not a dispatch and not an iteration; it can occur only at
+iteration ≥ 2 and therefore always inside the `FIX_LOOP_MAX` window
+(REQ-HARN-001 stays the terminal backstop). It is the **fourth** member of the
+pause family in §6. Telemetry records the class as
+`verdict.contradiction_class` (`∈ {null, b, c}`) on the round-N+1 review
+record and the operator's option as `gate.decision` (`telemetry.md`).
+
+**Third opinion (REQ-ARB-HARNESSP2-007).** `third opinion` dispatches a fresh
+review of the same stage artifacts (reviews are idempotent and isolated,
+REQ-ORCH-014) — **not** a fix iteration (the verifier re-dispatch rule).
+Resolution against **both** prior rounds:
+
+| Round 3 relation | Outcome |
+|---|---|
+| `K_3 == K_N`, or (`verdict_3 == verdict_N` ∧ `K_3 ⊆ K_N ∪ W_N`) | resolves in round N's favour → gate re-renders with round N's verdict and normal options |
+| `K_3 == K_{N+1}`, or (`verdict_3 == verdict_{N+1}` ∧ `K_3 ⊆ K_{N+1} ∪ W_N`) | resolves in round N+1's favour → gate re-renders with round N+1's verdict and normal options |
+| both (degenerate: rounds agree on keys) | round N+1 (the later, and the one whose packet is current) |
+| neither | pause re-renders with **three columns** and only `fix | proceed | stop` |
+
+At most **one** third opinion per contradiction; `iteration N of MAX` is
+unchanged throughout. The third round's record is a `review` telemetry record
+with `dispatch.reason: THIRD_OPINION`.
+
 When the stage's review returns `VERDICT: REJECT` (or `APPROVE_WITH_FIXES` and
 the operator would fix again) after iteration `MAX`, do **not** dispatch another
 fix. Render the gate with the **compiled findings log** and offer only
@@ -254,3 +359,14 @@ per-signal detail:
   multiple lines, or the block is self-contradictory, **pause** with the raw
   tail of the return and `re-dispatch | accept manually | stop`. Never treat a
   malformed return as `COMPLETE` (`references/return-contract.md` §1).
+- **`REVIEW: CONTRADICTION (round N vs round N+1, class b|c[, file-level])`**:
+  if, inside a fix loop at a **stage gate** (iteration ≥ 2), round N+1 raises a
+  Critical/Material on ground round N did not name and the fix did not write
+  (class b), or regresses `APPROVE_WITH_FIXES → REJECT` without new ground
+  (class c), **pause** with both rounds' verbatim lines and `fix #N wrote:`
+  side by side and offer `accept round N+1 (fix) | accept round N (proceed,
+  note) | third opinion (re-dispatch review) | stop`. The pause consumes no
+  iteration; only `accept round N+1 (fix)` increments the counter; at most one
+  third opinion per contradiction. Fourth member of the pause family, beside
+  `REVIEW: MALFORMED`, `RETURN: MALFORMED` and reject-with-no-actionable-
+  findings above (§2a; `docs/spec/arbitrated-handoff.md`).
