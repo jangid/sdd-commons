@@ -454,3 +454,10 @@ Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
 **Decision**: the default table in `references/return-contract.md` has one row per dispatch type; two rows generalize spec prose: "pipeline stage (non-implement) = ~70 tool calls, no prototypes" (from the specs-stage example) and "fix re-dispatch = remaining or fresh per-chunk allowance sized from previous `budget_consumed`" (from §Budget Exhaustion).
 **Rationale**: the orchestrator needs a default for every dispatch type it issues; the spec gives examples, not a complete table.
 **Date**: 2026-09-17 (Chunk 2)
+
+### Q-IMPL-083: sdd-implement/SKILL.md size warning accepted for v5
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Circuit-Break Checkpoint, §Budget Slot; `skill-lint-v5.md` size warn tier
+**Decision**: the 525-line `sdd-implement/SKILL.md` (attempt ledger, checkpoint and budget detail plus the leaf return contract) trips the new 400-line warn; the warning is accepted this cycle and a `references/` split is queued for the next cycle. The operator deferred the split.
+**Rationale**: the warn tier is advisory by design (REQ-LINT-002); the ledger/checkpoint/budget prose is what the harness-hardening cycle added and splitting it mid-cycle would move text the implement-stage review has just approved.
+**Date**: 2026-09-17 (Chunk 6, implement-stage review fix loop)

@@ -362,7 +362,7 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
 | `RETURN: MALFORMED (<reason>)` | The leaf's `RETURN:` block is missing, has `status:` out of place or invalid, spans multiple lines, or contradicts itself. Shown with the raw tail of the return. | `re-dispatch │ accept manually │ stop` — never treated as `COMPLETE` |
 | `REVIEW: MALFORMED` | The review's `VERDICT:` token is missing, unrecognized, or disagrees with its prose. | `re-dispatch review │ accept prose manually │ stop` |
 | `RETURN.status: BUDGET_EXHAUSTED` | The leaf hit a term of its `Budget:` line and stopped cleanly; `budget_consumed` is mandatory. | treat like `fix` with a fresh budget, or `stop` |
-| `RETURN.status: BLOCKED` | Stuck detection (3 failed fixes, oscillation, spec contradiction) fired. | route to `sdd-replan` or `fix` |
+| `RETURN.status: BLOCKED` | Stuck detection (3 failed fixes, oscillation, spec contradiction) fired; no verifier runs; the checkpoint is written (sequential) or applied (fan-out). | per-chunk gate with a replan option — default `route to sdd-replan`; not a redo (`references/return-contract.md` §7) |
 
 **Where the checkpoint lives.** On `BLOCKED` or `BUDGET_EXHAUSTED` the leaf's
 attempt ledger is condensed into a bounded (≤ 15 line) **circuit-break

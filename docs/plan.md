@@ -52,8 +52,9 @@ spike** tasks; the two RS-008 dogfooding probes are recorded as replan triggers.
   added only after their markers exist (Chunk 5) so no intermediate tree fails.
 - **Per-chunk gate block**: the compact block in `harness-chunk-verifier.md`
   §Sequencing — Sequential Mode is the canonical text; every copy
-  (`SKILL.md`, `references/write-scope.md`, `references/return-contract.md`) is
-  pasted from it, never paraphrased, so the byte-identical requirement holds.
+  (`SKILL.md`, `references/write-scope.md`) is pasted from it, never
+  paraphrased, so the byte-identical requirement holds
+  (`references/return-contract.md` references the block but carries no copy).
 - **Dates**: authored 2026-09-17. This repo stays at marker `3`; every marker-4
   path in the specs is written as a rooting rule, not exercised here.
 
@@ -511,8 +512,7 @@ integrated skill set passes the lint with size warnings only. Traces to
    `harness-loop-control.md` §Procedure placement (REQ-HARN-001, -002).
 **Entry criteria**: Chunks 0, 2, 3, 4 complete and merged into one tree (all
 markers present; lint v5 mechanics present).
-**Exit criteria**: lint exits 0 reporting 16 file(s) clean with size warnings
-only; all 18 new rows present and mutation-tested; `SKILL.md` ≤ ~450 lines;
+**Exit criteria**: lint exits 0 reporting 16 file(s) clean with size warnings only (three: sdd-orchestrate 469, sdd-migrate 464, sdd-implement 525 — the last accepted via Q-IMPL-083); all 18 new rows present and mutation-tested; `SKILL.md` ≤ ~450 lines;
 `v4-workstreams.md` exists with both guards satisfied; traceability filled for
 REQ-LINT-005..007, REQ-SKILL-019, REQ-SKILL-023 (`REQUIRED` rows half),
 REQ-SKILL-024 (move half).
@@ -575,7 +575,7 @@ whole cycle is walked end-to-end on fixtures. Traces to `skill-updates.md` §v5,
    `chunk_redo_count`, `RETURN:`, `CHUNK_VERDICT:`, `SCOPE:`, `VERDICT:`,
    `proceed │ fix │ stop`); the four-layer table in `sdd-review` and `CLAUDE.md`
    diffs clean against `adb73e3`; standalone `sdd-implement` Step 4 diffs clean
-   against `adb73e3`; lint exits 0. — traces to `harness-chunk-verifier.md`
+   against `adb73e3`; lint exits 0 with size warnings only (three: sdd-orchestrate 469, sdd-migrate 464, sdd-implement 525 — the last accepted via Q-IMPL-083). — traces to `harness-chunk-verifier.md`
    §Positioning, §Verification (REQ-HARN-014); `skill-updates.md` §v5.
 **Entry criteria**: Chunk 5 complete (integrated, lint-clean skill set).
 **Exit criteria**: `CLAUDE.md` and `USAGE.md` updated; no empty Test /
