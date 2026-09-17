@@ -352,6 +352,12 @@ The gate rendering procedure (token branching, scope finding format) lives in
 `skills/sdd-orchestrate/references/return-contract.md` and
 `references/write-scope.md`; `SKILL.md` §The gate carries the ordered signal list
 and a pointer only.
+_[Updated 2026-09-17, specs review C1]_ In sequential implement mode these signals
+are rendered at a lightweight **per-chunk gate** after each chunk dispatch returns
+(order: `RETURN.status` → `SCOPE:` → `CHUNK_VERDICT:`; options proceed │ fix │ stop,
+where proceed commits the chunk); under fan-out the same block renders per leaf
+before its merge. The stage review `VERDICT:` and loop counters render once at the
+stage gate after all chunks. See `docs/spec/harness-chunk-verifier.md` §Sequencing.
 **Acceptance**: `sdd-orchestrate/SKILL.md` §The gate lists the five signals and
 links the two references files (REQ-LINT-004 resolves the links); a gate
 rendering fixture shows them in the stated order.
