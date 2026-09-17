@@ -37,6 +37,7 @@ import argparse
 import contextlib
 import io
 import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -127,6 +128,67 @@ REQUIRED = [
     {"file": "skills/sdd-implement/SKILL.md", "pattern": r"status:.*`complete`", "min": 1,
      "reason": "plan status lifecycle executor: →complete (final review #5)",
      "fix": "keep the completion step that sets plan `status:` to `complete`"},
+    # -- v5 core contract rows (skill-lint-v5.md §REQUIRED Rows — Core, REQ-LINT-005)
+    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"fix[- ]loop cap|iteration N of 3", "min": 1,
+     "reason": "stage fix-loop cap the gate counts down (REQ-HARN-001)",
+     "fix": "keep the `fix-loop cap` / `iteration N of 3` gate text in §The gate"},
+    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"replan re-entry cap", "min": 1,
+     "reason": "replan re-entry cap derived from `-replan-` archives (REQ-HARN-002)",
+     "fix": "keep the `replan re-entry cap` paragraph in §The gate"},
+    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"Budget:", "min": 3,
+     "reason": "pipeline + review + verifier dispatch templates carry a Budget: line (REQ-HARN-004)",
+     "fix": "add the `Budget:` line to the pipeline, review and chunk-verifier dispatch templates"},
+    {"file": "skills/sdd-orchestrate/references/fan-out.md", "pattern": r"Budget:", "min": 1,
+     "reason": "fan-out leaf template carries a Budget: line (REQ-HARN-004)",
+     "fix": "add the `Budget:` line to the leaf dispatch template in fan-out.md"},
+    {"file": "skills/sdd-review/SKILL.md", "pattern": r"VERDICT: APPROVE \| APPROVE_WITH_FIXES \| REJECT", "min": 1,
+     "reason": "review verdict token producer (REQ-HARN-013); consumer is sdd-orchestrate/SKILL.md",
+     "fix": "restore the `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT` token line — "
+            "its consumer lives in skills/sdd-orchestrate/SKILL.md"},
+    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"(?<!CHUNK_)VERDICT:", "min": 1,
+     "reason": "review verdict token consumer (REQ-HARN-013); producer is sdd-review/SKILL.md",
+     "fix": "keep the review `VERDICT:` parse step in §The gate — its producer lives in "
+            "skills/sdd-review/SKILL.md"},
+    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"CHUNK_VERDICT: PASS \| FAIL", "min": 1,
+     "reason": "chunk-verifier verdict token producer (REQ-HARN-014); consumer is sdd-orchestrate/SKILL.md",
+     "fix": "restore `CHUNK_VERDICT: PASS | FAIL` in the chunk-verifier dispatch template — "
+            "its consumer lives in skills/sdd-orchestrate/SKILL.md"},
+    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"CHUNK_VERDICT:", "min": 1,
+     "reason": "chunk-verifier verdict consumer (REQ-HARN-014); producer is dispatch-templates.md",
+     "fix": "keep the `CHUNK_VERDICT:` line in the per-chunk gate — its producer lives in "
+            "skills/sdd-orchestrate/references/dispatch-templates.md"},
+    {"file": "skills/sdd-replan/SKILL.md", "pattern": r"-replan-", "min": 1,
+     "reason": "`-replan-` archive filename the re-entry cap counts (REQ-HARN-003)",
+     "fix": "keep the `{date}-replan-{reason}.md` archive filename convention"},
+    # -- v5 remaining contract rows (skill-lint-v5.md §REQUIRED Rows — Remaining, REQ-LINT-006)
+    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"RETURN:", "min": 2,
+     "reason": "pipeline + verifier templates require the RETURN: block (REQ-HARN-009)",
+     "fix": "keep the `RETURN:` block requirement in the pipeline and chunk-verifier templates"},
+    {"file": "skills/sdd-orchestrate/references/fan-out.md", "pattern": r"RETURN:", "min": 1,
+     "reason": "fan-out leaf template requires the RETURN: block (REQ-HARN-009)",
+     "fix": "keep the `RETURN:` block requirement in the leaf dispatch template"},
+    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md",
+     "pattern": r"status: COMPLETE \| PARTIAL \| BLOCKED \| BUDGET_EXHAUSTED", "min": 1,
+     "reason": "own-line status token the orchestrator parses first (REQ-HARN-009)",
+     "fix": "keep the `status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED` token line"},
+    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"\{repair_packet\}", "min": 2,
+     "reason": "fix re-dispatch repair-packet slot: template + slot contract (REQ-HARN-011)",
+     "fix": "keep the `{repair_packet}` slot in the fix re-dispatch template and its slot contract"},
+    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"Write scope:", "min": 3,
+     "reason": "pipeline + review + verifier templates declare a Write scope: (REQ-HARN-020)",
+     "fix": "add the `Write scope:` line to the pipeline, review and chunk-verifier templates"},
+    {"file": "skills/sdd-orchestrate/references/fan-out.md", "pattern": r"Write scope:", "min": 1,
+     "reason": "fan-out leaf template declares a Write scope: (REQ-HARN-020)",
+     "fix": "add the `Write scope:` line to the leaf dispatch template in fan-out.md"},
+    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"oscillation", "min": 1,
+     "reason": "attempt-ledger oscillation stuck rule (REQ-HARN-007)",
+     "fix": "keep the `oscillation` rule under stuck detection"},
+    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"checkpoint", "min": 1,
+     "reason": "circuit-break checkpoint format in the blocked-task note (REQ-HARN-008)",
+     "fix": "keep the circuit-break `checkpoint` format under stuck detection"},
+    {"file": "skills/sdd-replan/SKILL.md", "pattern": r"checkpoint", "min": 1,
+     "reason": "circuit-break checkpoint intake as replan stuck state (REQ-HARN-008)",
+     "fix": "keep the step that reads the blocked-task `checkpoint` note as stuck state"},
 ]
 
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
@@ -276,7 +338,7 @@ class Linter:
                     if pat.search(line) and not any(a.search(line) for a in allows):
                         self.flag(f, no, "forbidden",
                                   f"`{rule['pattern']}` — {rule['reason']}",
-                                  rule["fix"], rule.get("severity", "fail"))
+                                  rule['fix'], rule.get("severity", "fail"))
 
     def check_required(self) -> None:
         if not self.suite_rules:
@@ -293,7 +355,7 @@ class Linter:
             if n < minimum:
                 self.flag(f, None, "required",
                           f"`{pattern}` found {n}x, need >= {minimum} — {rule['reason']}",
-                          rule["fix"], severity)
+                          rule['fix'], severity)
         for name in VERSION_GATED_SKILLS:
             f = self.root / "skills" / name / "SKILL.md"
             if f.is_file() and "docs/.sdd-version" not in f.read_text(encoding="utf-8"):
@@ -583,6 +645,36 @@ def self_test() -> int:
         check("FAIL: 2 finding(s), 1 warning(s)" in out, f"backtick summary wrong:\n{out}")
         for sev, t in Linter(ref_root, suite_rules=False).findings:
             check("fix: " in t, f"finding without fix: {t}")
+
+        # -- 7. contract-row mutation: copy the real suite, strip one REQUIRED
+        #       marker at a time; the suite lint must exit 1 and print that
+        #       row's own fix string (REQ-LINT-005/006 mutation test).
+        real_skills = Path(__file__).resolve().parent.parent / "skills"
+        if real_skills.is_dir():
+            for rule in REQUIRED:
+                mut_root = root / "mut"
+                if mut_root.exists():
+                    shutil.rmtree(mut_root)
+                shutil.copytree(real_skills, mut_root / "skills")
+                target = mut_root / rule["file"]
+                check(target.is_file(), f"REQUIRED row targets a missing file: {rule['file']}")
+                if not target.is_file():
+                    continue
+                stripped, n = re.subn(rule["pattern"], "", target.read_text(encoding="utf-8"))
+                check(n >= rule["min"],
+                      f"marker `{rule['pattern']}` occurs {n}x in {rule['file']} (< {rule['min']})")
+                target.write_text(stripped, encoding="utf-8")
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    code = Linter(mut_root).run()
+                out = buf.getvalue()
+                check(code == 1, f"stripping `{rule['pattern']}` from {rule['file']} did not fail:\n{out}")
+                check(rule['fix'] in out,
+                      f"fix string not printed for `{rule['pattern']}` in {rule['file']}:\n{out}")
+            # every rule-table row carries a fix (the mutation loop above proves REQUIRED;
+            # FORBIDDEN rows are asserted by shape)
+            check(all(r.get('fix') for r in FORBIDDEN), "FORBIDDEN row without fix")
+            check(len(REQUIRED) >= 28, f"expected the v5 REQUIRED rows (>= 28), found {len(REQUIRED)}")
 
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
