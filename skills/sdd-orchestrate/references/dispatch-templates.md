@@ -26,8 +26,11 @@ Deliverable contract (exact files + frontmatter to produce): {deliverable_contra
 
 Inputs you have been given:
   - Kickoff / upstream artifact path(s): {input_paths}
-  {on_fix_only}- Review findings to address (paths-only; no reviewer reasoning
-    beyond the findings themselves): {review_findings}
+  {on_fix_only}- Repair packet (fixed shape — act on it; do not re-derive the history):
+    {repair_packet}
+    Act on the packet. Do not re-derive the history, re-read prior reviews, or
+    re-open attempts listed in `ledger_summary`. Do not modify
+    `verified_do_not_touch` paths.
 
 Precedence: where the sdd-{stage} skill tells you to scan for the next ID,
 update an index, or choose an output path, THESE dispatch instructions override
@@ -41,9 +44,26 @@ Task:
      "Open Questions" / "Assumptions" section in the artifact and proceed with
      a stated default — NEVER invent requirements or fabricate operator consent.
   3. Write the stage's SDD artifact(s) to disk per the deliverable contract.
-  4. Return: the list of files written + a one-paragraph summary of what the
-     stage produced. If a write is blocked, return the file's full content with
-     the target path labeled so the orchestrator can persist it.
+  4. Return: end your return text with the RETURN: block below — every key
+     present (empty list / omitted value where not applicable), status: first
+     on its own line, values are path references and one-line strings only,
+     no tracebacks. If a write is blocked, put the file's full content under
+     blocked_writes with the target path labeled so the orchestrator can
+     persist it.
+
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED   # own line, first key
+  budget_consumed: {tool_calls: N, test_runs: N}            # same units as the dispatched Budget:
+  files_written: []                                          # paths
+  commits: []                                                # fan-out leaves only; else []
+  tasks_completed: []                                        # task labels, e.g. "Chunk 2 task 1"
+  traceability_fills: []                                     # [{req, test, impl}]
+  chunk_close: {}                                            # {chunk, check1..check4, overrides}
+  failures: []                                               # [{test, kind, message, location}] one-line each; empty when COMPLETE
+  ledger: []                                                 # [{attempt, hypothesis, change, result}]
+  verified_do_not_touch: []                                  # paths
+  open_questions: []                                         # one-line each, citing Q-IMPL ids
+  blocked_writes: []                                         # [{path, content}] labeled fallback
 
 Do not perform any stage other than sdd-{stage}.
 ```
@@ -59,15 +79,60 @@ Do not perform any stage other than sdd-{stage}.
   (mandated by REQ-ORCH-007). Also pins output paths, which the Precedence note
   uses to override the skill's default path/index behavior.
 - `{input_paths}` — kickoff path (research stage) or prior SDD artifact paths.
-- `{on_fix_only}` / `{review_findings}` — present only on a fix re-dispatch;
-  carries the review findings + artifact paths, nothing of the reviewer's
-  chain-of-thought.
+- `{on_fix_only}` / `{repair_packet}` — present only on a fix re-dispatch
+  (pipeline loop-back-to-fix, or a fan-out / per-chunk redo after
+  `CHUNK_VERDICT: FAIL` or a merge abort). The packet is the **only** fix
+  context the leaf receives — a fixed shape composed by the orchestrator from
+  the three sources in `return-contract.md` §4 (previous `RETURN`, the review
+  report's Critical/Material lines, disk), nothing of the reviewer's
+  chain-of-thought, no prior packets, no quoted spec text. The fixed shape:
+
+```yaml
+Repair packet (fixed shape — act on it; do not re-derive the history):
+  stage: implement
+  reason: REVIEW                                     # REVIEW | VERIFIER_FAIL | PARTIAL_CONTINUE | MERGE_CONFLICT
+  iteration: 2 of 3                                  # harness-loop-control.md §Fix-Loop Cap (REVIEW) / per-chunk redo counter (others)
+  budget: "1 chunk, ≤ 25 tool calls, ≤ 3 test runs"
+  write_scope: [src/recon/**, tests/test_recon.py, docs/spec/recon.md]   # harness-write-scope.md
+  target: {artifact_paths: [docs/plan.md], chunk: "Chunk 2: Reconciliation"}   # chunk: all — whole-plan fix (return-contract.md §5)
+  failures:                                          # verbatim RETURN.failures / verifier failures
+    - {test: tests/test_recon.py::test_gap_report, kind: assertion,
+       message: "AssertionError: expected 3 gaps, got 2", location: src/recon/engine.py:142}
+  findings:                                          # verbatim Critical/Material lines from the review
+    - {id: C1, text: "gap detection ignores overlapping windows", ref: "docs/spec/recon.md §Gap report",
+       affects: [REQ-RECON-003], fix: "treat overlap as one gap"}
+  spec_excerpt: [{path: docs/spec/recon.md, section: "§Gap report", lines: "88-104"}]
+  ledger_summary:
+    - "attempt 1: engine.py key by contract_id -> test_gap_report still fails"
+    - "attempt 2: engine.py:140 range(n+1) -> test_drift REGRESSED (reverted)"
+  verified_do_not_touch: [tests/test_bootstrap.py, src/recon/bootstrap.py]
+```
+
+  `spec_excerpt` is path + section heading + line range only (rendered
+  `docs/spec/<file>.md § <heading> L<from>-<to>`); `MERGE_CONFLICT` packets
+  add `conflict_paths` and `base`. Full rules: `return-contract.md` §3.
+
+### Return contract (pipeline)
+
+Step 4 is the leaf half of `return-contract.md` §1: the orchestrator parses the
+`RETURN:` block and never infers success from prose. A return without the
+block, with `status:` not first, or with any multi-line value is malformed and
+pauses at the gate (`RETURN: MALFORMED`). `failures[]` entries are one line
+each — `test / kind / message / location`, `message` ANSI-stripped and ≤ 200
+chars — never a traceback (`return-contract.md` §2).
+
+**Grep guard (REQ-HARN-019).** No template in this file — pipeline or review —
+delegates a routing decision to the subagent: no next-stage decision, no
+verdict classification, no scope judgement. Templates say what to *produce*
+(the block, the token, findings); the orchestrator alone routes
+(`return-contract.md` §9, which lists the guarded phrases — they must have zero
+hits in any template).
 
 **Disk-write reality (validated live):** a dispatched subagent's write can be
 blocked by harness policy (e.g. writing a report-style file to a non-conventional
-path). The labeled-content fallback in step 4 is therefore load-bearing, not
-decorative — the orchestrator MUST be ready to persist returned content itself
-when a subagent reports a blocked write.
+path). The `blocked_writes` labeled-content fallback in step 4 is therefore
+load-bearing, not decorative — the orchestrator MUST be ready to persist
+returned content itself when a subagent reports a blocked write.
 
 ---
 
