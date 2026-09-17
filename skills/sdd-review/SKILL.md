@@ -176,6 +176,7 @@ Use this template:
 Omit this section entirely if you have no prior involvement.]
 
 **Verdict:** Approve | Approve with fixes | Reject
+VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT
 
 **Strengths:**
 - [2-4 substantive items demonstrating thorough reading]
@@ -197,6 +198,8 @@ Omit this section entirely if you have no prior involvement.]
 - **Approve**: No blocking findings. Proceed to next phase.
 - **Approve with fixes**: Critical findings exist but are bounded. Fix them, then proceed without re-review.
 - **Reject**: Significant rework needed. Return to current or earlier phase. Consider sdd-replan.
+
+**`VERDICT:` token** (REQ-HARN-013): emit the token line **on a line of its own**, exactly one of `VERDICT: APPROVE`, `VERDICT: APPROVE_WITH_FIXES`, `VERDICT: REJECT`. Conventionally it sits beside the `**Verdict:**` line, but its position is not part of the contract — a consumer (e.g. `sdd-orchestrate`) matches `^VERDICT:` at line start, so nothing else may precede it on that line. The prose verdict and the token map 1:1 and **must agree**: `Approve` ↔ `APPROVE`, `Approve with fixes` ↔ `APPROVE_WITH_FIXES`, `Reject` ↔ `REJECT`. A report whose token and prose disagree (or that omits the token) is treated as malformed by the consumer and re-dispatched rather than acted on. The rest of the report shape (Strengths / Critical–Material–minor / Recommendation) and §Scope Boundaries are unchanged; the token only encodes the verdict already stated.
 
 **Strengths section**: Required. Must be substantive — "the staleness detection chain correctly handles the multi-milestone case" is useful; "good work" is not. The strengths section demonstrates the reviewer read the work thoroughly, not just hunted for flaws.
 

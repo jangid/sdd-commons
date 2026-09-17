@@ -325,6 +325,18 @@ source of truth for resume — the SDD artifacts are (see Phase Detection).
 For each stage in order — research, requirements, specs, plan, implement, verify
 — run pipeline → review → gate.
 
+**Return contract (stub).** Every leaf dispatch ends its return with a
+structured `RETURN:` block (`status:` first, then budget, files, commits, task
+and traceability fills, one-line `failures`, ledger, open questions, blocked
+writes) and `sdd-review` emits an own-line `VERDICT:` token; the orchestrator
+parses both — never prose — branches on them, and composes any fix re-dispatch's
+fixed-shape repair packet from three sources only (the previous `RETURN`, the
+review's Critical/Material lines, disk paths). Malformed returns and reviews
+pause at the gate. The full procedure — key table, malformed rules, packet
+shape and field sources, `VERDICT:` and `RETURN.status` branching tables,
+finding → chunk mapping, pruned-state check — is
+`references/return-contract.md`.
+
 ### Per-stage dispatch model
 
 Issue **two separate subagent dispatches** per stage — never a single combined
@@ -391,13 +403,19 @@ permitted, non-leaking input.
 
 ### The gate
 
-After review, surface the verdict (the review subagent's return text) to the
-operator and **wait** for an explicit decision. Never auto-advance.
+After review, parse the review's own-line token — one of `VERDICT: APPROVE`,
+`VERDICT: APPROVE_WITH_FIXES`, `VERDICT: REJECT` (match `^VERDICT:` at line
+start; last occurrence wins; never classify the verdict from prose) — surface
+it with the review's return text to the operator and **wait** for an explicit
+decision. Never auto-advance. Which choices the gate offers per token, and what
+runs between a leaf's return and its gate per `RETURN.status`, are the
+`VERDICT:` and `RETURN.status` branching tables in
+`references/return-contract.md` §6 and §7.
 
 | Decision | Action |
 |----------|--------|
 | **proceed** | Advance to the next stage. |
-| **loop-back-to-fix** | Re-dispatch the pipeline subagent with **only** the review findings + the relevant artifact paths — not a re-litigation of the reviewer's reasoning — then re-run the review for this stage. |
+| **loop-back-to-fix** | Re-dispatch the pipeline subagent with a repair packet (findings + paths by construction — `references/return-contract.md` §3; never a re-litigation of the reviewer's reasoning), then re-run the review for this stage. |
 | **stop** | Halt the loop; leave artifacts as-is. |
 
 **Approve-with-fixes shortcut.** `sdd-review` defines *Approve with fixes* as
@@ -417,6 +435,15 @@ operator picks. For *Reject* verdicts the re-review is never skipped.
 - **Reject with no actionable findings**: if a review returns a reject/fail
   verdict carrying no actionable findings, **pause** and let the operator decide
   (re-dispatch, override, or stop). Do not auto-loop the pipeline.
+- **`REVIEW: MALFORMED`**: if the review's `VERDICT:` token is missing,
+  unrecognized, or disagrees with its prose verdict, **pause** with
+  `re-dispatch review | accept prose manually | stop`. Never guess the verdict
+  from prose (`references/return-contract.md` §6).
+- **`RETURN: MALFORMED (<reason>)`**: if a leaf's `RETURN:` block is absent,
+  `status:` is not its first key or not one of the four values, a value spans
+  multiple lines, or the block is self-contradictory, **pause** with the raw
+  tail of the return and `re-dispatch | accept manually | stop`. Never treat a
+  malformed return as `COMPLETE` (`references/return-contract.md` §1).
 
 ## Reviews Are Ephemeral
 
@@ -569,6 +596,16 @@ under-deliver. The two cases that arise:
 Ordinary stage work — invoking an `sdd-*` skill, reading/writing files — remains
 delegable to a pipeline subagent as normal. The test is simply: *does executing
 this task require dispatching a subagent?* If yes, the orchestrator does it.
+
+**Routing is orchestrator-only (REQ-HARN-019).** Beside the dispatch rule above,
+a second class of work never appears as an instruction in any pipeline, fix,
+fan-out, verifier or review template: phase-detection relay; `VERDICT:`
+classification; `CHUNK_VERDICT:` and `SCOPE:` interpretation; fix / redo /
+replan cap arithmetic; repair-packet composition; and the decision to merge,
+re-dispatch, replan or stop. Templates tell a subagent what to *produce* (the
+`RETURN:` block, the `VERDICT:` token, findings) — never what to *decide next*.
+The verdict / status branching tables and packet composition live in
+`references/return-contract.md`.
 
 ## Isolation Discipline (normative)
 

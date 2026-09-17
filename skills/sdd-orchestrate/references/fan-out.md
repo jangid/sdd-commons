@@ -147,9 +147,29 @@ Task:
      genuinely missing decision under Open Questions/Assumptions with a stated
      default and proceed — NEVER fabricate operator consent.
   3. Commit your work on {branch} using the inline git identity above.
-  4. Return: the list of files written + commits made + a one-paragraph summary.
-     If a write is blocked, return the file's full content with the target path
-     labeled so the orchestrator can persist it.
+  4. Return: end your return text with the RETURN: block below — every key
+     present, status: first on its own line, values are path references and
+     one-line strings only, no tracebacks. Populate commits with the shas you
+     made on {branch}. Put the plan [x] marks you were barred from writing in
+     tasks_completed and the Test/Implementation column fills in
+     traceability_fills (the orchestrator applies them after all merges, §3e).
+     If any other write is blocked, put the file's full content under
+     blocked_writes with the target path labeled so the orchestrator can
+     persist it.
+
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED   # own line, first key
+  budget_consumed: {tool_calls: N, test_runs: N}            # same units as the dispatched Budget:
+  files_written: []                                          # paths
+  commits: []                                                # shas on {branch}
+  tasks_completed: []                                        # task labels, e.g. "Chunk 2 task 1"
+  traceability_fills: []                                     # [{req, test, impl}]
+  chunk_close: {}                                            # {chunk, check1..check4, overrides}; check2: deferred
+  failures: []                                               # [{test, kind, message, location}] one-line each; empty when COMPLETE
+  ledger: []                                                 # [{attempt, hypothesis, change, result}]
+  verified_do_not_touch: []                                  # paths
+  open_questions: []                                         # one-line each, citing Q-IMPL ids
+  blocked_writes: []                                         # [{path, content}] labeled fallback
 
 Do not perform any stage other than sdd-implement.
 ```
@@ -167,6 +187,15 @@ Do not perform any stage other than sdd-implement.
   append-only and never reused; gaps are fine).
 - `{git_email}` / `{git_name}` — identity for the inline `-c` flags (REQ-ORCH-027).
 - `{budget}` — explicit bound (REQ-ORCH-007).
+- **Return contract** — step 4 is the leaf half of `return-contract.md` §1: the
+  orchestrator parses the `RETURN:` block (never prose); `commits` is populated
+  (unlike a pipeline dispatch, where it is `[]`); `tasks_completed` and
+  `traceability_fills` carry the plan/traceability writes the worktree pin bars
+  (consumed in §3e); `chunk_close.check2` is `deferred`; `blocked_writes` is the
+  labeled fallback for any other barred write. A redo dispatch (§3c) adds the
+  pipeline template's `{on_fix_only}` / `{repair_packet}` block with
+  `reason: MERGE_CONFLICT`, `conflict_paths` and `base`
+  (`return-contract.md` §10).
 
 **Concurrency note (RS-006 spike, 2026-06-05):** issuing all per-group dispatches
 **in a single batch** was **observed to run them concurrently** on this harness —
@@ -305,10 +334,13 @@ After all merges and teardowns, before the implement-stage review, the
 orchestrator applies the shared-doc updates the leaves were barred from making
 (§2 worktree pin):
 
-1. Mark each returned completed task `[x]` in the plan (`docs/plan.md`, or
-   `docs/ws/<ws>/plan.md` under marker `4`) and bump its `last_updated`.
-2. Apply the returned traceability Test/Implementation fills per the active
-   marker's contract (marker `3`: the single shared
+1. Mark each task listed in the leaf's `RETURN.tasks_completed` `[x]` in the
+   plan (`docs/plan.md`, or `docs/ws/<ws>/plan.md` under marker `4`) and bump
+   its `last_updated`. Read the labels from the block (`return-contract.md`
+   §1), never from the leaf's prose.
+2. Apply each `{req, test, impl}` entry of the leaf's
+   `RETURN.traceability_fills` to the Test/Implementation columns per the
+   active marker's contract (marker `3`: the single shared
    `docs/requirements/traceability.md`; marker `4`: the workstream's own
    `docs/ws/<ws>/traceability.md`, then regenerate the shared aggregate).
 3. Re-run any chunk-close Check 2 that a leaf deferred, now that the columns
