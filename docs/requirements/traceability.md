@@ -182,7 +182,7 @@ last_updated: 2026-09-17
 | REQ-LINT-004 | skill-lint-v5.md | sdd-skill-lint.py --self-test | tools/sdd-skill-lint.py | |
 | REQ-LINT-005 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (core rows) | tools/sdd-skill-lint.py REQUIRED core rows a–f | |
 | REQ-LINT-006 | skill-lint-v5.md | sdd-skill-lint.py --self-test §7 mutation loop (remaining rows) | tools/sdd-skill-lint.py REQUIRED remaining rows | |
-| REQ-LINT-007 | skill-lint-v5.md | lint exit 0 on references/v4-workstreams.md resolution; research_id row ≥ 3 (10); size target pending replan | references/v4-workstreams.md + SKILL.md stubs; ws-orchestration.md Q-IMPL-072 | |
+| REQ-LINT-007 | skill-lint-v5.md | lint exit 0 (17 files, size warn only); research_id row ≥ 3; wc -l SKILL.md = 469 | references/v4-workstreams.md + references/loop-control.md + SKILL.md stubs; ws-orchestration.md Q-IMPL-072 | |
 | REQ-ORCH-034 | orchestration.md | (partial) signal-order grep in SKILL.md §The gate; stage-gate fixture at Chunk 6 | (partial) sdd-orchestrate/SKILL.md §The gate — stage-gate signals + CHUNK_VERDICT: consumer | |
 | REQ-SKILL-019 | skill-updates.md | lint REQUIRED rows a, b, d2, e2 on SKILL.md | sdd-orchestrate/SKILL.md §The gate REQ-ORCH-034 ordered list, single canonical gate block | |
 | REQ-SKILL-020 | skill-updates.md | Chunk 1 task 7 fixture (^RETURN:$ in sdd-implement) — RETURN half; Chunk 2 task 7 fixture F4 — ledger half | sdd-implement/SKILL.md §Leaf Return Contract; Step 3 §Attempt ledger + §Oscillation rule | |

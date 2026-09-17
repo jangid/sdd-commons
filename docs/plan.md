@@ -474,7 +474,7 @@ integrated skill set passes the lint with size warnings only. Traces to
    `[superseded by Q-IMPL-NNN]` per `deviation-protocol.md` §Numbering; never
    edit Q-IMPL-016's body. — traces to `skill-lint-v5.md` §Marker-4 Prose Move
    guard 2 (REQ-LINT-007).
-5. [implement] (partial — all items done except `wc -l` ≤ ~450: at 720; replan trigger fired 2026-09-17) Integration pass over `skills/sdd-orchestrate/SKILL.md` after the
+5. [x] [implement] Integration pass over `skills/sdd-orchestrate/SKILL.md` after the
    Chunk 2/3/4 merges: §The gate lists the REQ-ORCH-034 signal order once
    (per-chunk: `RETURN.status` + `budget_consumed` vs `Budget:` → `SCOPE:` →
    `CHUNK_VERDICT:` + `Redo: N of 3`; stage: review `VERDICT:` → `iteration N of
@@ -484,7 +484,7 @@ integrated skill set passes the lint with size warnings only. Traces to
    mention are intact; `wc -l` ≤ ~450. — traces to `orchestration.md` §v5
    (REQ-ORCH-034); `skill-lint-v5.md` §Marker-4 Prose Move size target
    (REQ-LINT-007); `skill-updates.md` §v5 (REQ-SKILL-019).
-6. [verify] (partial — all checks pass except the ≤ ~450 size target) `python3 tools/sdd-skill-lint.py --self-test` exits 0; the live lint
+6. [x] [verify] `python3 tools/sdd-skill-lint.py --self-test` exits 0; the live lint
    exits 0 printing `OK: 16 file(s) clean, K warning(s)` — 13 baseline files +
    the 3 new `references/` files (`return-contract.md`, `write-scope.md`,
    `v4-workstreams.md`), since the tool enumerates `skills/**/*.md` via
@@ -496,7 +496,7 @@ integrated skill set passes the lint with size warnings only. Traces to
    docs/` shows no new file type beyond `plan-history/` archives. — traces to
    `skill-lint-v5.md` §Verification — Automated / Manual (REQ-LINT-005..007);
    `harness-loop-control.md` §No-New-Artifact Invariant (REQ-HARN-027).
-7. [implement] (added by minor replan 2026-09-17 — size-target trigger fired at
+7. [x] [implement] (added by minor replan 2026-09-17; done — SKILL.md 469 lines, 17 files clean — size-target trigger fired at
    720 lines) Create `skills/sdd-orchestrate/references/loop-control.md` and move
    into it the loop-control procedure prose that no reference holds: the fix-loop
    cap detail and exhaustion compiled-log shape, the replan re-entry cap
