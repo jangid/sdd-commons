@@ -1,5 +1,5 @@
 ---
-version: "12.1"
+version: "13.0"
 last_updated: 2026-09-17
 traceability: traceability.md
 ---
@@ -40,6 +40,17 @@ tools-skills-agents repository. Covers three scopes:
    fresh chunk-close verifier, declared write scope per dispatch, and lint
    changes (remediation text, warn tier, SKILL.md size check, `references/`
    resolution, new contract markers, marker-4 prose moved to `references/`).
+8. **Harness hardening part 2** (RS-HARNESSP2-001, workstream `harness-p2`):
+   per-dispatch telemetry in a gitignored root-level `.sdd/telemetry.jsonl`
+   that is provably not a loop-position marker (TELEM), an opt-in read-only
+   Red/Blue adversarial pass at verify gating the `pass` commit via
+   `RED_VERDICT:` and `status: pending-red` (REDB), arbitration of
+   contradicting review rounds via a `REVIEW: CONTRADICTION` pause (ARB), a
+   docs-scoped `tools/sdd-gc.py` drift sweep run at entry and DONE (GC), a
+   defined-not-built evaluation mode with fixed scorer fields and a manual
+   N = 3 pilot (EVAL), plus the write-scope catch-up limitation (c)
+   (REQ-HARN-HARNESSP2-001), the `sdd-implement` references split (Q-IMPL-083)
+   and the corresponding lint rows and per-skill updates.
 
 ## Stakeholders
 
@@ -64,10 +75,15 @@ tools-skills-agents repository. Covers three scopes:
 | functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030 | Approved | 2026-07-23 |
 | functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027 | Approved | 2026-09-17 |
 | functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019 | Approved | 2026-09-17 |
-| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026 | Approved | 2026-09-17 |
+| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001 | Approved | 2026-09-17 |
+| functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008 | Approved | 2026-09-17 |
+| functional | [adversarial-verify.md](functional/adversarial-verify.md) | REDB | REQ-REDB-HARNESSP2-001..009 | Approved | 2026-09-17 |
+| functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009 | Approved | 2026-09-17 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
-| integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024 | Approved | 2026-09-17 |
-| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007 | Approved | 2026-09-17 |
+| non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
+| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007 | Approved | 2026-09-17 |
+| integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008 | Approved | 2026-09-17 |
+| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002 | Approved | 2026-09-17 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
 
 > **ORCH delta note:** The ORCH domain mixes shipped requirements (REQ-ORCH-001..015,
@@ -95,6 +111,19 @@ tools-skills-agents repository. Covers three scopes:
 > design. Standing constraints they must not contradict: REQ-ORCH-004/012/013/014
 > and REQ-REV-005/006.
 
+> **harness-p2 delta note (marker 4, workstream `harness-p2`):** the `TELEM`,
+> `REDB`, `ARB`, `GC` and `EVAL` domains plus REQ-HARN-HARNESSP2-001,
+> REQ-SKILL-HARNESSP2-001..008 and REQ-LINT-HARNESSP2-001..002 are the
+> RS-HARNESSP2-001 delta added at the requirements phase on 2026-09-17. Their
+> ids carry the `HARNESSP2` workstream token per `docs/spec/ws-ids.md`; their
+> traceability rows are owned by `docs/ws/harness-p2/traceability.md` and
+> aggregated into `traceability.md`. They are **not yet specced or
+> implemented**. Standing constraints they must not contradict: REQ-ORCH-011
+> (no auto-advance — the EVAL carve-out is defined, not adopted), REQ-ORCH-013/014,
+> REQ-REV-005/006 (red is never review), and REQ-HARN-027 **as amended** (the
+> gitignored root-level telemetry file is the one permitted exception; the
+> `docs/` invariant is unchanged). Plan ordering constraint: TELEM lands first.
+
 ## Domain Prefixes
 
 | Prefix | Domain | File |
@@ -111,14 +140,55 @@ tools-skills-agents repository. Covers three scopes:
 | REV | External Review | functional/review.md |
 | ORCH | SDD Orchestration Driver | functional/orchestration.md |
 | WS | Multi-Workstream SDD | functional/multi-workstream.md |
-| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files) |
+| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md) |
+| ARB | Arbitrated Handoff (contradicting review rounds) | functional/arbitrated-handoff.md |
+| REDB | Adversarial (Red/Blue) Verify | functional/adversarial-verify.md |
+| TELEM | Per-Dispatch Telemetry | functional/telemetry.md |
 | CTX | AI Context Budget | non-functional/context-and-compatibility.md |
 | COMPAT | Git Compatibility | non-functional/context-and-compatibility.md |
+| EVAL | Multi-Run Evaluation | non-functional/evaluation.md |
+| GC | Drift Sweep (`tools/sdd-gc.py`) | integration/drift-sweep.md |
 | SKILL | Skill Updates | integration/skill-updates.md |
 | LINT | Skill Lint (`tools/sdd-skill-lint.py`) | integration/skill-lint.md |
 | CFG | Configuration | configuration/version-marker.md |
 
 ## Q-REQ Resolutions
+
+Resolved during requirements gathering for RS-HARNESSP2-001 (harness hardening
+part 2, workstream `harness-p2`) — the operator approved the scope (five
+deferred ideas + Q-IMPL-083) at the research gate; the defaults below are the
+research's stated defaults carried as decided, except where noted:
+
+- **Q-REQ-A** (telemetry default and placement): **on** under orchestrate,
+  operator may switch off at KICKOFF; file `.sdd/telemetry.jsonl`, root-level,
+  gitignored, one file per repo attributed by `cycle.workstream`; budget recorded
+  as enumerated units (REQ-TELEM-HARNESSP2-002, -004, -008). REQ-HARN-027 amended
+  in place; REQ-ORCH-004/013/014 unamended.
+- **Q-REQ-B** (red default): **off**, opt-in at the verify gate
+  (REQ-REDB-HARNESSP2-001); red input withholds `verification.md` by default
+  (REQ-REDB-HARNESSP2-004; A/B is an open question).
+- **Q-REQ-C** (red exit-rule strictness): **narrowed from the research default.**
+  RS-HARNESSP2-001 stated "rely on commit ownership" as its default and
+  `pending-red` as the safer variant; this cycle adopts **`status: pending-red`**
+  (REQ-REDB-HARNESSP2-008) because the operator's success criterion requires
+  that `verification.md` never read `pass` on disk while red is pending, which
+  commit ownership alone cannot guarantee across sessions. Commit ownership
+  (REQ-HARN-024) remains the second guard. Cost: one `sdd-verify` Step 6 edit
+  plus a position-table row.
+- **Q-REQ-D** (arbitration default): **on** — it only pauses and consumes no
+  iteration (REQ-ARB-HARNESSP2-006); class (a) reversals are not detected;
+  class (b) is file-level until section resolution lands
+  (REQ-ARB-HARNESSP2-005, needs code, not a spike).
+- **Q-REQ-E** (gc cadence): orchestrator at **entry and DONE**; pre-commit
+  `--fast` optional (repo choice); scheduled routine rejected
+  (REQ-GC-HARNESSP2-005). Findings park in `verification.md` §Next Steps, never
+  as plan tasks (REQ-GC-HARNESSP2-006).
+- **Q-REQ-F** (evaluation): **not built** beyond the mode definition, the scorer
+  field list and a manual N = 3 pilot; the REQ-ORCH-011 evaluation-mode
+  carve-out is **not adopted** (REQ-EVAL-HARNESSP2-001, -004).
+- **Q-REQ-G** (write-scope limitation (c)): new `REQ-HARN-HARNESSP2-001` rather
+  than an edit of REQ-HARN-026, so the remedy has its own traceability row;
+  provisioning at the intended base is the default remedy.
 
 Resolved during requirements gathering for RS-008 (harness hardening) — the
 operator approved the scope (12 in-scope ideas) in DISCUSS; the defaults below
@@ -259,11 +329,23 @@ Resolved during requirements gathering for RS-002:
 - Fan-out of any stage other than implement; changes to `sdd-implement` itself
 - Persisting review verdicts to disk (no docs/reviews/ — reaffirmed for the driver)
 - Two literal human terminal sessions (superseded by the orchestrator + subagent model)
-- Harness-hardening ideas deferred to the next cycle (idea catalogue
-  `docs/superpowers/specs/2026-09-17-harness-engineering-ideas.md`): D11
-  per-dispatch telemetry file, D12 multi-run evaluation of the skills, F14
-  Red/Blue adversarial verify, F15 arbitrated handoff between contradicting
-  review rounds, G17 `sdd-gc` drift-sweep tool
+- _(superseded 2026-09-17 by scope item 8 — the five ideas D11, D12, F14, F15,
+  G17 from `docs/superpowers/specs/2026-09-17-harness-engineering-ideas.md` are
+  now in scope via RS-HARNESSP2-001; D12 only as the mode definition, scorer
+  fields and manual pilot)_
+- An automated N ≥ 30 headless evaluation harness for the SDD skills
+  (REQ-EVAL-HARNESSP2-004) — blocked until (a) telemetry ships and the N = 3
+  pilot is recorded, (b) an evaluation-mode carve-out to REQ-ORCH-011 is
+  explicitly adopted, and (c) an orchestrator-only outer loop (human or verified
+  headless driver) exists
+- `sdd-review` as a red team or as any executor of acceptance-criteria breaks
+  (REQ-REV-005/006; red is a second executor of `sdd-verify`)
+- Semantic contradiction detection between review rounds (class (a) reversals)
+  and any persisted review store for arbitration
+- Non-mechanical gc sweeps (new skill-text drift from spec wording, semantic
+  orphaning) and a scheduled-routine cadence for gc
+- A `.sdd/` entry under `docs/ws/<id>/` or any per-workstream telemetry file
+- A marker bump (the layout stays at `4`)
 - Persisting loop-control counters across sessions (a cap that resets per
   session is the accepted v1; REQ-ORCH-014 holds)
 - A hunk-level write-scope check for spec-file `## Implementation Questions`
@@ -297,6 +379,25 @@ Resolved during requirements gathering for RS-002:
   with the spec-file case `ADVISORY` (REQ-HARN-026); dogfood one real pipeline
   dispatch and tune at verify.
 
+- **Red input A/B (RS-HARNESSP2-001 Q2, dispatch-requiring):** whether giving
+  red `verification.md` finds more or fewer breaks is unmeasured. **Default**:
+  withhold it (REQ-REDB-HARNESSP2-004); the orchestrator runs red twice on one
+  toy verify stage during the N = 3 pilot and records the BROKEN counts.
+- **Headless outer driver (RS-HARNESSP2-001 Q5, dispatch-requiring):** whether
+  the harness can run `/sdd-orchestrate` non-interactively is unverified from
+  a subagent. **Default**: manual-N-only (REQ-EVAL-HARNESSP2-003/-004); no
+  requirement depends on the answer this cycle.
+- **Probe 1 / probe 2 (RS-HARNESSP2-001 Q6):** the per-chunk dispatch table is
+  filled by the orchestrator from this cycle's implement stage; the snapshot
+  base used for dispatch #1 decides whether the 20-path `VIOLATION` was the
+  catch-up false positive (REQ-HARN-HARNESSP2-001). **Default**: telemetry makes
+  probe 1 a query (REQ-TELEM-HARNESSP2-009); limitation (c) is adopted on the
+  self-reported evidence regardless.
+- **Class (b) false-positive rate (RS-HARNESSP2-001 Q3):** a legitimately new
+  Critical the first reviewer missed will pause the loop. **Default**: accepted
+  — the pause costs one operator decision and is the intended ROUTE_TO_HUMAN
+  behaviour; the rate is telemetered via `verdict.contradiction_class`.
+
 All other Q-REQ items resolved.
 
 ## Research References
@@ -309,6 +410,7 @@ All other Q-REQ items resolved.
 - [RS-006: Subagent Nesting & Worktrees (implement-stage fan-out)](../research/RS-006-subagent-nesting-worktrees/findings.md)
 - [RS-007: Multi-Workstream SDD (concurrent cycles in one repo)](../research/RS-007-multi-workstream/findings.md)
 - [RS-008: Harness Hardening (loop control, decoupled verification, boundaries)](../research/RS-008-harness-hardening/findings.md)
+- [RS-HARNESSP2-001: Harness Hardening, Part 2 (telemetry, adversarial verify, arbitration, drift sweep, evaluation)](../research/RS-HARNESSP2-001-harness-p2/findings.md)
 
 ## See Also
 

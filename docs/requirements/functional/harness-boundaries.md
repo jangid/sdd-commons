@@ -161,3 +161,37 @@ sandbox's concern, not this check's. (see RS-008 Q5)
 finding format; a spec-file write in an implement scope shows the `ADVISORY` tag
 in the finding, not `OUT`.
 [Priority: should]
+[Updated 2026-09-17, RS-HARNESSP2-001] A third limitation, (c) the catch-up
+fast-forward false positive, is recorded and remedied by
+REQ-HARN-HARNESSP2-001 below; limitation (a) is partially closed for Markdown
+paths by the section resolution of REQ-ARB-HARNESSP2-005; limitation (b) gains
+the `.sdd/` exception of REQ-TELEM-HARNESSP2-005.
+
+<!-- REQ-HARN-HARNESSP2-NNN: workstream-prefixed additions to the HARN domain
+     (marker 4, workstream harness-p2, per docs/spec/ws-ids.md). -->
+
+### REQ-HARN-HARNESSP2-001: Snapshot base is the branch tip the leaf is instructed to reach
+The "before" snapshot of REQ-HARN-021/025 must be taken at the commit the leaf
+is **instructed to reach**, never at a stale worktree HEAD. Concretely: (i) the
+orchestrator must provision every sequential-pipeline and fix worktree at the
+intended base — the workstream branch tip under `docs/.sdd-version` == `4`,
+`main`/HEAD under marker `3` — exactly as fan-out §3 already does, so the leaf
+never needs to catch up; and (ii) when a dispatch prompt nevertheless names a
+base commit for the leaf to fast-forward or merge to, `HEAD_before` for the
+committed-delta and ancestry checks must be that named base, and any commit
+reachable from the named base but not from the provisioned HEAD is excluded
+from the observed window and reported on the gate block as `CATCH-UP
+<from>..<base> (N commits, excluded — base <sha>)` so the finding format names
+the base. The ancestry check stays intact (a rewrite still fails it). Without
+this, an instructed catch-up merge renders every commit it brings in as `OUT` —
+RS-HARNESSP2-001 Q6 measured 20 false-positive paths on this cycle's first
+dispatch. This is limitation (c), recorded beside (a) and (b) in
+`references/write-scope.md` §5 with both remedies; (i) is the cheaper and the
+default. (see RS-HARNESSP2-001 Q6 probe 2; Implications for Design)
+**Acceptance**: `write-scope.md` §5 lists limitation (c) and §3 states the
+snapshot-base rule; a `tools/sdd-scope-check-selftest.py` scenario in which the
+worktree is provisioned one commit behind the named base and the leaf
+fast-forwards yields `SCOPE: CLEAN` with a `CATCH-UP` line naming the base;
+the same scenario with an additional out-of-scope leaf write still yields
+`VIOLATION (1 paths)`.
+[Priority: must]

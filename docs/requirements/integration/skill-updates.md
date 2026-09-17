@@ -200,3 +200,115 @@ verifier, `RETURN:`, `SCOPE:`, `VERDICT:` / `CHUNK_VERDICT:` — and its
 four-verification-layer bullet stays **unchanged** (the verifier is a second
 executor of the chunk-close layer, REQ-HARN-014). (see RS-008 Q4)
 [Priority: must]
+
+<!-- REQ-SKILL-HARNESSP2-NNN: per-skill updates for the harness-p2 cycle
+     (TELEM, REDB, ARB, GC, EVAL domains + HARN/LINT additions). Workstream-
+     prefixed ids per docs/spec/ws-ids.md (marker 4). (see RS-HARNESSP2-001) -->
+
+### REQ-SKILL-HARNESSP2-001: sdd-orchestrate telemetry
+`sdd-orchestrate` must implement the TELEM domain's driver side: the
+per-dispatch record, enumerated budget parsing, orchestrator-only append after
+each gate, `TELEMETRY: WRITE FAILED | OFF | .gitignore updated` gate lines, the
+`.sdd/` third observation of the scope check, and the KICKOFF on/off choice
+(REQ-TELEM-HARNESSP2-001 through -008). The record schema, field-source mapping
+from the gate signals, the scorer-derivation table (REQ-EVAL-HARNESSP2-002) and
+the timestamp procedure land in a **new** `references/telemetry.md`; `SKILL.md`
+carries a short telemetry stub — the only two places allowed to name the path
+(REQ-LINT-HARNESSP2-002). No dispatch template may mention `.sdd/`.
+**Acceptance**: `references/telemetry.md` exists and resolves (REQ-LINT-004);
+the stub is ≤ 10 lines; `tools/sdd-skill-lint.py` exits 0.
+[Priority: must]
+
+### REQ-SKILL-HARNESSP2-002: sdd-orchestrate red dispatch
+`sdd-orchestrate` must add the `red` dispatch kind: the opt-in at the verify
+gate (default off), a RED TEAM template in `references/dispatch-templates.md`
+with the input contract, empty write scope, commit-ownership and budget slots
+and the `RED_VERDICT:` return shape, the `Red team: enabled` slot on the verify
+pipeline template, `^RED_VERDICT:` parsing and malformed rules in
+`references/return-contract.md`, the exit rule and `accept (record)`
+bookkeeping in `SKILL.md` §The gate, the `RED_BREAK` repair packet, the
+`pending-red` → `pass` flip and its position-table row, and the one default red
+re-run (REQ-REDB-HARNESSP2-001 through -009). Signal order at the verify gate
+extends REQ-ORCH-034: `RETURN.status`, `SCOPE:`, `RED_VERDICT:`, `VERDICT:`.
+**Acceptance**: the RED TEAM template carries `Budget:`, `Write scope:`,
+`RETURN:` and `RED_VERDICT:`; the position table maps `pending-red` to verify;
+lint exits 0 with the new `REQUIRED` rows (REQ-LINT-HARNESSP2-001).
+[Priority: must]
+
+### REQ-SKILL-HARNESSP2-003: sdd-orchestrate arbitration
+`sdd-orchestrate` must implement the ARB domain in `references/loop-control.md`
+(retained per-round tuple, class (b)/(c) rules, the reversal limitation, the
+`REVIEW: CONTRADICTION` pause text and options, third-opinion resolution) with a
+pointer in `SKILL.md` §The gate next to the `MALFORMED` family, and must extend
+`references/write-scope.md` §3 and `tools/sdd-scope-check-selftest.py` with
+section resolution of fix hunks (REQ-ARB-HARNESSP2-001 through -007).
+Arbitration is default on.
+**Acceptance**: `loop-control.md` §6 lists `REVIEW: CONTRADICTION` as the fourth
+pause; the pause consumes no iteration in the fixture walkthrough; the scope
+self-test gains the section-resolution and `.sdd/` scenarios and passes.
+[Priority: must]
+
+### REQ-SKILL-HARNESSP2-004: sdd-orchestrate gc cadence and snapshot base
+`sdd-orchestrate` must run `tools/sdd-gc.py --report` at entry (one-line
+summary before the workstream picker) and at DONE (full findings, `record |
+ignore` routing into `verification.md` §Next Steps) per REQ-GC-HARNESSP2-005/006,
+and must adopt the snapshot-base rule and limitation (c) of
+REQ-HARN-HARNESSP2-001 in `references/write-scope.md` §3/§5 and in its worktree
+provisioning step (provision at the branch tip the leaf is told to reach).
+**Acceptance**: `SKILL.md` §Transition and the entry step name the gc command;
+`write-scope.md` §5 lists limitations (a), (b), (c).
+[Priority: must]
+
+### REQ-SKILL-HARNESSP2-005: sdd-verify pending-red, accepted breaks and gc slot
+`sdd-verify` must: read the `Red team: enabled` dispatch slot and write
+`status: pending-red` in place of `pass` when set (REQ-REDB-HARNESSP2-008),
+listing `pending-red` in its Phase Detection as a re-verification state;
+document §Issues Found → Minor as the slot for `- Rn accepted at gate …` lines
+and §Next Steps as the slot for `- gc <rule>: …` lines written by the
+orchestrator (REQ-REDB-HARNESSP2-007, REQ-GC-HARNESSP2-006); and state in
+§Verification Layers that red is a second executor of this layer (REQ-REDB-
+HARNESSP2-002). Standalone behavior with red off is unchanged.
+**Acceptance**: `sdd-verify/SKILL.md` Step 6 contains the `pending-red` rule
+guarded by the slot; the four-layer table is unchanged; lint exits 0.
+[Priority: must]
+
+### REQ-SKILL-HARNESSP2-006: sdd-review Material `affects` key
+`sdd-review` must add `affects REQ-…` (or `affects —`) to its Material finding
+template line so every Critical and Material line carries the arbitration key
+(REQ-ARB-HARNESSP2-008), changing nothing else in the report format
+(REQ-REV-002) or scope boundaries (REQ-REV-005/006); `sdd-review` gains no red
+or telemetry text.
+**Acceptance**: the Material template line contains `affects`; a diff of
+`sdd-review/SKILL.md` against v5 touches only that line and its example.
+[Priority: should]
+
+### REQ-SKILL-HARNESSP2-007: sdd-implement references split (Q-IMPL-083)
+`skills/sdd-implement/SKILL.md` (525 lines, lint size warn accepted for v5 by
+Q-IMPL-083) must move its Step 3 detail (attempt ledger, oscillation rule,
+budget exhaustion, checkpoint composition) and the leaf return contract to
+`skills/sdd-implement/references/` files, leaving stubs with resolving links —
+the same operation the v5 cycle performed on `sdd-orchestrate` (REQ-LINT-007).
+Guard: the `oscillation` and `BUDGET_EXHAUSTED` / `RETURN:` `REQUIRED` literals
+(REQ-LINT-006) must remain in the stub, or their rows must be re-pointed, so the
+lint stays green; standalone `sdd-implement` behavior is unchanged. (see
+`docs/ws/default/verification.md` §Next Steps item 5; RS-HARNESSP2-001
+Implications for Design)
+**Acceptance**: `sdd-implement/SKILL.md` is ≤ 400 lines (no size warn); the
+moved sections' stubs each contain a resolving `references/` link; `tools/
+sdd-skill-lint.py` exits 0 and `--self-test` §7 still covers the re-pointed rows.
+[Priority: must]
+
+### REQ-SKILL-HARNESSP2-008: Operator documentation and CLAUDE.md
+The operator documentation (`skills/sdd-orchestrate/USAGE.md`, REQ-ORCH-020)
+must describe the new gate signals and choices — telemetry on/off and the
+`TELEMETRY:` lines, the red opt-in, `RED_VERDICT:` and `pending-red`, the
+`REVIEW: CONTRADICTION` pause and its four options, the gc summary at entry and
+DONE — and `CLAUDE.md`'s SDD section must gain **one short paragraph** naming
+them; its four-verification-layer bullet stays **unchanged** (red is a second
+executor of the sdd-verify layer, REQ-REDB-HARNESSP2-002). `CLAUDE.md` must not
+name the telemetry path (REQ-LINT-HARNESSP2-002 scans skills only, but the
+non-read guarantee is documented as "gitignored, orchestrator-only, never read
+by phase detection").
+**Acceptance**: `USAGE.md` has a section per signal; `CLAUDE.md` diff is one
+paragraph plus zero changes to the four-layer bullet.
+[Priority: must]

@@ -137,3 +137,46 @@ citing Q-IMPL-016; `sdd-orchestrate/SKILL.md` after this cycle — the marker-4
 move plus the HARN stubs pointing at `references/write-scope.md` and
 `references/return-contract.md` — is no larger than ~450 lines.
 [Priority: must]
+
+<!-- REQ-LINT-HARNESSP2-NNN: workstream-prefixed additions for the harness-p2
+     cycle (RS-HARNESSP2-001; marker 4, per docs/spec/ws-ids.md). -->
+
+### REQ-LINT-HARNESSP2-001: REQUIRED rows for the `RED_VERDICT:` pair, the `REVIEW: CONTRADICTION` consumer and the Material `affects` key
+The `REQUIRED` table must gain, each with `reason` and `fix` text: (a) the
+`RED_VERDICT: BROKEN | HELD` token as a producer/consumer pair — producer in
+the red template in `skills/sdd-orchestrate/references/dispatch-templates.md`,
+consumer in `skills/sdd-orchestrate/SKILL.md` or `references/return-contract.md`
+(REQ-REDB-HARNESSP2-005), following the `CHUNK_VERDICT:` pair pattern; (b) the
+`REVIEW: CONTRADICTION` token in `skills/sdd-orchestrate/references/loop-control.md`
+with its pointer in `SKILL.md` §The gate (REQ-ARB-HARNESSP2-006) — consumer-only,
+the orchestrator both raises and handles it; (c) `affects` on the Material
+template line of `skills/sdd-review/SKILL.md` (REQ-ARB-HARNESSP2-008). The
+existing review-verdict consumer row's negative look-behind `(?<!CHUNK_)VERDICT:`
+must also exclude `RED_` (`(?<!CHUNK_)(?<!RED_)VERDICT:`) so a red token never
+satisfies the review consumer row. Row count: (a) 2 + (b) 1 + (c) 1 = **four**
+rows plus one regex change; `--self-test` §7's mutation loop must cover them
+(`len(REQUIRED) >= 32`). (see RS-HARNESSP2-001 Implications for Design — "two
+new tokens need lint pairs")
+**Acceptance**: removing `RED_VERDICT:` from the red template, or `REVIEW:
+CONTRADICTION` from `loop-control.md`, or `affects` from the Material template
+line, each makes the lint exit 1 with that row's fix string; a file containing
+only `RED_VERDICT: HELD` does not satisfy the review `VERDICT:` consumer row;
+the shipped skill set exits 0.
+[Priority: must]
+
+### REQ-LINT-HARNESSP2-002: FORBIDDEN row — telemetry path never read by a skill
+The `FORBIDDEN` table must gain a fail-severity row matching `\.sdd/` in every
+`skills/*/SKILL.md` and `skills/*/references/*.md` **except** the telemetry
+stub section of `skills/sdd-orchestrate/SKILL.md` and
+`skills/sdd-orchestrate/references/telemetry.md` (an explicit per-row allowlist
+of paths — the linter must gain an `allow` field on `FORBIDDEN` rows if it lacks
+one), with `reason` "telemetry is orchestrator-written and never a
+phase-detection or staleness input (REQ-ORCH-014)" and a `fix:` that says to
+remove the reference. Fenced code blocks are **not** exempt for this row — a
+skill must not even show the path in an example — so the row scans raw text.
+(see RS-HARNESSP2-001 Q1 guard (i); REQ-TELEM-HARNESSP2-007)
+**Acceptance**: adding `.sdd/telemetry.jsonl` inside a fence in
+`skills/sdd-plan/SKILL.md` makes the lint exit 1 with the row's fix; the two
+allowlisted locations mentioning the path exit 0; `--self-test` covers the
+allowlist.
+[Priority: must]

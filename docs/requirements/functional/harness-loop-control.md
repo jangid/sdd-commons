@@ -213,3 +213,18 @@ D11). (see RS-008 Implications for Design)
 type that did not exist before this feature, other than the `docs/plan-history/`
 archives `sdd-replan` already produces.
 [Priority: must]
+[Updated 2026-09-17, RS-HARNESSP2-001] The sentence "no `docs/reviews/`, `.sdd/`
+or telemetry file is created (telemetry is deferred to the next cycle, catalogue
+D11)" is amended: a **gitignored, root-level** `.sdd/telemetry.jsonl` (TELEM
+domain, `functional/telemetry.md`) is permitted under these non-interference
+conditions, all of which must hold: (a) it lives outside `docs/` and is matched
+by `.gitignore`, so it is not a project artifact and `git ls-files docs/` is
+unchanged (this requirement's acceptance stands verbatim); (b) it is written
+only by the orchestrator, after each gate (REQ-TELEM-HARNESSP2-004); (c) it is
+never a phase-detection or staleness input and carries no resume field
+(REQ-TELEM-HARNESSP2-003, -006), with a lint guard (REQ-TELEM-HARNESSP2-007) —
+so REQ-ORCH-014 remains satisfied by mechanism; (d) records are counts, enums,
+shas and timestamps, never finding text (REQ-ORCH-012/013 hold). The `docs/`
+invariant, the `docs/reviews/` prohibition and REQ-ORCH-004 are unchanged; the
+mirroring sentence at `docs/spec/harness-loop-control.md` §Constraints needs
+the same amendment at the specs stage. Same device as REQ-ORCH-034's note.
