@@ -99,7 +99,8 @@ FORBIDDEN = [
     #    Raw-line scan (fences included) — a skill must not even show the path in
     #    an example. File-granular allowlist per telemetry.md §Lint Guard; USAGE.md
     #    is operator documentation that may name the path (REQ-SKILL-HARNESSP2-008;
-    #    Q-IMPL-HARNESSP2-070 — skill_files() also lints USAGE.md, so it is listed).
+    #    skill_files() also lints USAGE.md, so it is listed — deviation recorded as a
+    #    Q-IMPL in the Chunk 6 return, minted by the orchestrator at plan close).
     {"pattern": r"\.sdd/", "files": None, "allow": [],
      "allow_files": ["skills/sdd-orchestrate/SKILL.md",
                      "skills/sdd-orchestrate/references/telemetry.md",
