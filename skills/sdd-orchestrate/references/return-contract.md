@@ -186,6 +186,9 @@ are regenerable by re-running `test`.
 
 ## 3. Repair packet (REQ-HARN-011)
 
+> **Slot boundary (Q-IMPL-082).** The `{repair_packet}` slot holds the packet **body from `stage:` on**; the `Repair packet (fixed shape …):` header line is emitted once by the PIPELINE template's `{on_fix_only}` block, never inside the slot.
+
+
 A fix re-dispatch — pipeline loop-back-to-fix, or a fan-out / per-chunk redo
 after `CHUNK_VERDICT: FAIL` or a merge abort — carries a `{repair_packet}` slot
 in the pipeline template's `{on_fix_only}` block (`dispatch-templates.md`

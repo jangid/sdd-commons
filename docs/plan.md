@@ -1,6 +1,6 @@
 ---
 last_updated: 2026-09-17
-status: Approved
+status: complete
 ---
 
 # Implementation Plan: Harness Hardening (v5)
@@ -524,7 +524,7 @@ whole cycle is walked end-to-end on fixtures. Traces to `skill-updates.md` §v5,
 `orchestration.md` §v5, `overview.md` §v5.
 **Depends on**: Chunk 5.
 **Tasks**:
-1. [implement] `CLAUDE.md` §Driver (`sdd-orchestrate`): add one short paragraph
+1. [x] [implement] `CLAUDE.md` §Driver (`sdd-orchestrate`): add one short paragraph
    on the v5 gate vocabulary — the per-chunk gate (`proceed │ fix │ stop`) with
    its `RETURN.status` / `SCOPE:` / `CHUNK_VERDICT:` signals, the stage gate
    (`proceed │ loop-back-to-fix │ stop`) with the review `VERDICT:` and the caps
@@ -532,7 +532,7 @@ whole cycle is walked end-to-end on fixtures. Traces to `skill-updates.md` §v5,
    invariant. The "Four verification layers" bullet stays byte-unchanged. —
    traces to `skill-updates.md` §v5 (REQ-SKILL-024); `harness-chunk-verifier.md`
    §Positioning (REQ-HARN-014).
-2. [implement] `skills/sdd-orchestrate/USAGE.md`: add a §"Gate signals and caps
+2. [x] [implement] `skills/sdd-orchestrate/USAGE.md`: add a §"Gate signals and caps
    (v5)" operator guide — what the per-chunk gate block shows and how to read
    `SCOPE: VIOLATION` options, `CHUNK_VERDICT: FAIL` → `fix`, `iteration N of 3`
    and the compiled findings log, `Redo: N of 3`, the replan re-entry cap
@@ -541,7 +541,7 @@ whole cycle is walked end-to-end on fixtures. Traces to `skill-updates.md` §v5,
    merge and the verifier opt-out; update the abridged exchange in §3 to show one
    per-chunk gate. — traces to `skill-updates.md` §v5 (REQ-SKILL-024);
    `orchestration.md` §User Documentation, §v5 (REQ-ORCH-034).
-3. [implement] Traceability sweep: fill any still-empty Test / Implementation
+3. [x] [implement] Traceability sweep: fill any still-empty Test / Implementation
    cells for REQ-HARN-001..027, REQ-LINT-001..007, REQ-ORCH-034 and
    REQ-SKILL-019..024 in `docs/requirements/traceability.md` (Verified column
    stays for `sdd-verify`); confirm `docs/spec/overview.md` §v5 needs no edit
@@ -549,7 +549,7 @@ whole cycle is walked end-to-end on fixtures. Traces to `skill-updates.md` §v5,
    `v4-workstreams.md`) — edit only if a shipped filename differs. — traces to
    `skill-updates.md` §Shared Changes (traceability) ; `overview.md` §v5
    Harness Hardening.
-4. [verify] Holistic fixture walkthrough across the five specs' Manual sections
+4. [x] [verify] Holistic fixture walkthrough across the five specs' Manual sections
    without a live dispatch: on a throwaway two-chunk fixture repo, instantiate the
    PIPELINE (Chunk 1), CHUNK VERIFIER and REVIEW templates verbatim with filled
    `Budget:` / `Write scope:` / `Chunk N` slots and confirm no empty slot and no
@@ -568,7 +568,7 @@ whole cycle is walked end-to-end on fixtures. Traces to `skill-updates.md` §v5,
    `harness-chunk-verifier.md`, `harness-write-scope.md` §Verification — Manual;
    `orchestration.md` §v5 (REQ-HARN-001, -011, -016, -018, -020, -027,
    REQ-ORCH-034).
-5. [verify] Cross-skill consistency sweep: every reference to a token, cap
+5. [x] [verify] Cross-skill consistency sweep: every reference to a token, cap
    constant, key name or gate option across `SKILL.md`, the four `references/`
    files, `sdd-implement`, `sdd-review`, `sdd-replan`, `USAGE.md` and `CLAUDE.md`
    uses the spec's spelling (`FIX_LOOP_MAX`, `REDO_MAX`, `REPLAN_MAX`,

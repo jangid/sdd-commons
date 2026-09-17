@@ -393,3 +393,13 @@ tell a subagent what to *produce* (block, token, findings) — never what to
    the dispatch's deliverable contract (the assigned chunk), not the plan.
 2. **`message` length cap.** Default 200 characters; the leaf truncates with
    `…` and never wraps to a second line.
+
+## Implementation Questions
+
+### Q-IMPL-082: repair packet header emitted once, slot holds the body
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Repair Packet
+**Decision**: the PIPELINE template's `{on_fix_only}` block carries the `Repair packet (fixed shape …):` header; the `{repair_packet}` slot holds the body from `stage:` on. Literal composition from the spec's fixture (which shows the header as line 1) would emit two headers.
+**Rationale**: found by the Chunk 6 holistic fixture walkthrough; one header keeps the slot-set check (§8) exact.
+**Date**: 2026-09-17 (Chunk 6)
+
