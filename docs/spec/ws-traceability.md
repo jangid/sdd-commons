@@ -198,6 +198,17 @@ aggregate in the same bookkeeping step. One writer per state; no new artifact.
 `tools/sdd-gc.py`'s `trace-empty` sweep does not constrain this cell's
 vocabulary, so no code change follows. See `docs/spec/adversarial-verify.md`.
 
+[Amended 2026-09-18, harness-p4 — REQ-REDB-HARNESSP4-001, owned by
+`adversarial-verify.md`] The gc criterion for these cells reads "`python3
+tools/sdd-gc.py --report` raises no new finding **on a `pending-red` cell**"; the
+`[traceability-aggregate]` warning raised between a per-workstream traceability
+write and the orchestrator's post-gate regeneration (§Aggregate Regeneration
+Ownership) is the **designed handshake** and is expected, not a finding.
+
+**Duplicate requirement id across per-workstream files** — see
+Q-IMPL-HARNESSP4-001 below: legal, aggregated as-is, newest-workstream row
+authoritative.
+
 ## Verification
 
 ### Automated
@@ -234,6 +245,8 @@ vocabulary, so no code change follows. See `docs/spec/adversarial-verify.md`.
 - [ ] A walkthrough of an orchestrated dispatch shows the aggregate regenerated in a separate orchestrator commit and the leaf's `files_written` containing no aggregate path; a standalone run of the same skill regenerates the aggregate itself (REQ-WS-HARNESSP3-001)
 - [ ] A walkthrough of a gate resolved `stop`, and one resolved `loop-back-to-fix`, each shows the aggregate regenerated and committed before the session ends (REQ-WS-HARNESSP3-001)
 - [ ] This spec lists `pass`, `fail` and `pending-red` as the legal `Verified` cell values (REQ-REDB-HARNESSP3-003)
+- [ ] §Legal `Verified` Cell Values states the qualified gc criterion ("no new finding on a `pending-red` cell") and names the `[traceability-aggregate]` handshake warning as expected (REQ-REDB-HARNESSP4-001, owned by `adversarial-verify.md`)
+- [ ] A requirement id present in two per-workstream files yields two adjacent aggregate rows; the newest-kickoff workstream's row is authoritative; `trace-empty` runs per file unchanged (Q-IMPL-HARNESSP4-001; REQ-ARB-HARNESSP4-001 cross-reference)
 
 ## Cross-Spec Consistency (XSPEC)
 
@@ -307,3 +320,33 @@ session state, not an artifact, so the no-new-artifact invariant holds; on a
 resumed session the flag starts set, which costs at most one redundant
 regeneration (idempotent) and never a missed one.
 **Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP4-001: A requirement id carried into a second workstream yields two aggregate rows; the newest workstream's row is authoritative
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Aggregation Contract
+**Decision**:
+
+`REQ-ARB-HARNESSP3-001` has a row in `docs/ws/harness-p3/traceability.md`
+(`fail` = not exercised, history) and in `docs/ws/harness-p4/traceability.md`
+(carried for live exercise — REQ-ARB-HARNESSP4-001). `regenerate_aggregate()`
+concatenates and stable-sorts **without de-duplication**, so the aggregate
+carries **two rows for one id** with divergent `Verified` values once p4 writes
+`pass`. This is legal under §Per-Workstream File Shape (re-use rows) and is
+**documented as-is — no de-duplication is added**: the aggregate is a
+convenience view whose job is to show every workstream's join, and collapsing
+rows would hide the history the carried row exists to preserve.
+
+**Authority rule** (for a reader, `tools/sdd-gc.py` and `sdd-verify`): when one
+requirement id appears in more than one per-workstream file, the row of the
+workstream whose `kickoff.md` `date:` is **latest** is authoritative for the
+requirement's current state; ties (no kickoff, equal dates) fall back to the
+lexically greatest workstream id. Consequences: (i) `sdd-gc.py`'s `trace-empty`
+sweep already runs per file and needs **no tolerance change** — each row is
+judged in its own file; (ii) `sdd-verify` writes only its own workstream's file
+and applies the cycle's DONE rule to that file's rows, so it never reads the
+other row; (iii) any future aggregate-level reader (a completeness report, the
+scorer) applies the authority rule rather than counting the id twice. The stable
+sort by requirement id places the two rows adjacent, so the history is visible
+at a glance. No code change this cycle; the rule is the contract a future reader
+implements.
+**Date**: 2026-09-18 (specs stage, harness-p4)

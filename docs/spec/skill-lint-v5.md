@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-LINT-001
   - REQ-LINT-002
@@ -9,6 +9,8 @@ requires:
   - REQ-LINT-005
   - REQ-LINT-006
   - REQ-LINT-007
+  - REQ-LINT-HARNESSP4-001
+  - REQ-LINT-HARNESSP4-002
 ---
 
 # Skill Lint v5
@@ -181,6 +183,66 @@ check). Target size after the move plus the HARN stubs (pointers to
 `references/write-scope.md` and `references/return-contract.md`): ≤ ~450 lines —
 still a size warn, which is acceptable; a size fail is not.
 
+### `[template-drift]` — Fenced Leaf Bodies Restated in Specs Stay Byte-Identical (REQ-LINT-HARNESSP4-001)
+
+[Added 2026-09-18, harness-p4 — REQ-LINT-HARNESSP4-001; `docs/ws/harness-p3/verification.md` §V8;
+guards REQ-HARN-HARNESSP3-002's byte-consistency contract]
+
+A new rule extracts the fenced bodies of named **pairs** — source of record on
+the skill side, restatement on the spec side — hashes them and, on divergence,
+emits:
+
+```
+[template-drift] <spec file>:<line>: fenced body diverges from dispatch-templates.md L<n>
+  fix: edit skills/sdd-orchestrate/references/dispatch-templates.md (source of record) — the spec side is Approved and stable; if the spec is the intended change, amend both in one commit
+```
+
+The pair list is a **table in the linter**, so a future restated body is one
+row:
+
+| Source (skill side) | Body | Restated in (spec side) |
+|---|---|---|
+| `references/dispatch-templates.md` §CHUNK VERIFIER | dispatch prompt body (incl. the `RETURN:` block) | `docs/spec/harness-chunk-verifier.md` §Verifier Dispatch Template |
+| `references/dispatch-templates.md` §CHUNK VERIFIER | verdict rule | `docs/spec/harness-chunk-verifier.md` §Verdict Rule |
+| `references/dispatch-templates.md` §RED TEAM | dispatch prompt body | `docs/spec/adversarial-verify.md` §Red Dispatch Template |
+| `references/dispatch-templates.md` §RED TEAM | `RETURN:` block | `docs/spec/adversarial-verify.md` §Return Contract and `RED_VERDICT:` |
+
+Matching is by the **fence's first line** (an anchor text per row, e.g. `You are
+a non-interactive chunk-close verifier`) so the rule survives a heading rename;
+comparison is byte-for-byte on the fence body after stripping the fence markers
+only — no whitespace normalisation, because the token-position contract of
+REQ-HARN-HARNESSP4-007 is itself a whitespace fact. The four bodies (the
+four rows above) are byte-identical today and nothing keeps them so; a divergence would first surface
+as a leaf returning the wrong shape. Severity: **fail** (exit 1), with
+`--self-test` mutating one character inside the RED TEAM `RETURN:` block and
+asserting the finding names `adversarial-verify.md` and the fix.
+
+**Plan-ordering constraint** (carried from requirements): this rule
+(REQ-LINT-HARNESSP4-001) lands **before** the terminal-token column-0 edit
+(REQ-HARN-HARNESSP4-007, `harness-chunk-verifier.md` §Terminal Token at Column
+0), and that edit is made with the rule active in the same commit on both
+sides, leaving the lint at exit 0.
+
+### `REQUIRED` Row — `COMMIT: COMPLETE | INCOMPLETE` (REQ-LINT-HARNESSP4-002)
+
+[Added 2026-09-18, harness-p4 — REQ-LINT-HARNESSP4-002; every gate token so far shipped with a lint pair]
+
+| File | Pattern (regex) | min | Contract |
+|---|---|---|---|
+| `skills/sdd-orchestrate/references/loop-control.md` | the fenced pattern below | 1 | §5 order, item 8 (REQ-HARN-HARNESSP4-001) |
+| `skills/sdd-orchestrate/SKILL.md` | same | 1 | §The gate one-line summary |
+
+```
+COMMIT: (COMPLETE \| INCOMPLETE|COMPLETE|INCOMPLETE)
+```
+
+The pattern matches `COMMIT: COMPLETE` / `COMMIT: INCOMPLETE` (and the family
+spelling `COMMIT: COMPLETE | INCOMPLETE`) and does **not** match a file that
+only names `SCOPE:` — the same guard the `CHUNK_VERDICT:` row applies. `fix:`
+points at `references/write-scope.md` §7 as the defining section. Removing the
+line from either file exits 1 with the row's fix; `--self-test`'s mutation loop
+covers the row.
+
 ### Self-Test Extension
 
 `--self-test` gains fixtures for: a finding without `fix` (must be impossible —
@@ -217,6 +279,8 @@ row fails when its marker is removed from a temp copy.
 - [ ] Remaining `REQUIRED` rows present; lint exits 0 on the implemented skill set (REQ-LINT-006)
 - [ ] Marker-4 prose moved to `references/v4-workstreams.md` with stubs, `research_id` guard and superseding Q-IMPL; `SKILL.md` ≤ ~450 lines; lint exits 0 (REQ-LINT-007)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
+- [ ] `[template-drift]` rule present with the four-row pair table; the shipped skill set exits 0; changing one character inside the RED TEAM `RETURN:` block of `dispatch-templates.md` exits 1 with a `[template-drift]` line naming `adversarial-verify.md` and the fix; `--self-test`'s mutation loop covers it; REQ-HARN-HARNESSP4-007's edit is made with the rule active and leaves exit 0 (REQ-LINT-HARNESSP4-001)
+- [ ] `REQUIRED` row for `COMMIT: COMPLETE | INCOMPLETE` in `loop-control.md` and `SKILL.md`; removing either line exits 1 with the row's fix (pointing at `write-scope.md` §7); a file containing only `SCOPE: CLEAN` does not satisfy it; `--self-test` covers it; shipped skill set exits 0 (REQ-LINT-HARNESSP4-002)
 
 ## Edge Cases
 

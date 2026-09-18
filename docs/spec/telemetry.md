@@ -17,6 +17,14 @@ requires:
   - REQ-LINT-HARNESSP2-002
   - REQ-TELEM-HARNESSP3-001
   - REQ-TELEM-HARNESSP3-002
+  - REQ-TELEM-HARNESSP4-001
+  - REQ-TELEM-HARNESSP4-002
+  - REQ-TELEM-HARNESSP4-003
+  - REQ-TELEM-HARNESSP4-004
+  - REQ-TELEM-HARNESSP4-005
+  - REQ-TELEM-HARNESSP4-006
+  - REQ-TELEM-HARNESSP4-007
+  - REQ-TELEM-HARNESSP4-008
 ---
 
 # Per-Dispatch Telemetry
@@ -70,15 +78,26 @@ a per-repo gitignored directory is the smallest thing that does both.
 
 ### Record Schema (REQ-TELEM-HARNESSP2-001, -002, -003)
 
-One JSON object per line. `v` is the schema version and is `1` for this spec.
+One JSON object per line. `v` is the schema version: `1` for every record
+written before harness-p4 and `2` for a record carrying the `[p4]` fields
+(Q-IMPL-HARNESSP4-002 amends REQ-TELEM-HARNESSP2-001's literal `1` to the
+admitted set `{1, 2}`).
 Every value is a **count, enum, sha, boolean, null or ISO-8601 UTC timestamp**;
 the record never contains a finding line, a path list, file content, reviewer
 reasoning, or any other prose (REQ-ORCH-012/013). The key set is fixed; field
 names are as below.
 
+[Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-004] **This table is a
+rendering of the domain table in `tools/sdd-telemetry.py`, which is the
+schema's single source of truth**; `references/telemetry.md` §2 is the second
+rendering. The tool's self-test parses this table and diffs it against the code
+table (§Schema Lint), so a row added here without a code row — or the reverse —
+fails the self-test. Rows marked `[p4]` were added 2026-09-18 for harness-p4
+(REQ-TELEM-HARNESSP4-002, -003, -006, -007) and are written with `v: 2`.
+
 | Group | Key | Type / domain | Source (gate signal) |
 |---|---|---|---|
-| — | `v` | int, `1` | constant |
+| — | `v` | int, `1` \| `2` — `2` for records carrying the `[p4]` fields; `1` records keep the pre-p4 key set; the per-`v` key set is the domain table filtered by its `[p4]` marks (Q-IMPL-HARNESSP4-002) | constant per writer version |
 | — | `ts_dispatch` | timestamp | orchestrator clock, immediately before dispatch |
 | — | `ts_return` | timestamp | orchestrator clock, on return, before `snapshot(after)` |
 | — | `ts_gate` | timestamp | orchestrator clock, when the gate decision is taken |
@@ -92,16 +111,18 @@ names are as below.
 | | `chunk` | int or null | `### Chunk N:` number for per-chunk dispatches |
 | | `iteration` | int or null | fix-loop iteration this dispatch belongs to |
 | | `redo` | int or null | per-chunk redo count at dispatch |
-| | `reason` | repair-packet `reason` enum or null | `harness-return-contract.md` §Repair Packet (plus `RED_BREAK`, `adversarial-verify.md`) |
+| | `reason` | repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below | `harness-return-contract.md` §Repair Packet (plus `RED_BREAK`, `adversarial-verify.md`) |
+| `const` | `FIX_ONLY_REASONS` | subset of `dispatch.reason`: `red_break` `[p4]` — a **schema constant, not a record key**; no record carries it | §Implication-Derived `expected` clause (b); `--lint` asserts the subset relation |
 | | `budget` | budget object (below) | parsed from the dispatched `Budget:` line |
 | | `write_scope_n` | int | number of declared scope globs |
 | `return` | `status` | `COMPLETE` \| `PARTIAL` \| `BLOCKED` \| `BUDGET_EXHAUSTED` \| `MALFORMED` | `RETURN.status`; `MALFORMED` when the block failed to parse |
 | | `budget_consumed` | budget object + `self_reported: true` | `RETURN.budget_consumed` |
 | | `files_written_n`, `commits_n`, `tasks_completed_n`, `failures_n`, `ledger_n`, `open_questions_n`, `blocked_writes_n` | int | lengths of the corresponding `RETURN` lists |
-| | `warnings` | list of enums ⊆ {`KEYS_MISSING`, `MULTIPLE_STATUS`, `FOREIGN_TOKEN`} | parser warnings (`return-contract.md` §1) |
+| | `warnings` | list of enums ⊆ {`KEYS_MISSING`, `MULTIPLE_STATUS`, `FOREIGN_TOKEN`, `RETURN_DRIFT` `[p4]`} | parser warnings (`return-contract.md` §1; `RETURN_DRIFT` = `harness-return-contract.md` §Return-Drift Warning) |
 | `scope` | `token` | `CLEAN` \| `VIOLATION` \| null | `SCOPE:` line (null for a dispatch with no scope check) |
 | | `in`, `advisory`, `out` | int | tag counts in the write-scope block |
 | | `history_rewrite` | bool | `HISTORY_REWRITE` finding present |
+| | `widened` | int, default 0 `[p4]` | globs the operator added to the dispatched scope beyond the stage's template default (§`scope.widened`) |
 | `verdict` | `chunk_verdict` | `PASS` \| `FAIL` \| null | `CHUNK_VERDICT:` |
 | | `review_verdict` | `APPROVE` \| `APPROVE_WITH_FIXES` \| `REJECT` \| null | `VERDICT:` |
 | | `red_verdict` | `BROKEN` \| `HELD` \| null | `RED_VERDICT:` (`adversarial-verify.md`) |
@@ -114,7 +135,20 @@ names are as below.
 | | `redo_count` | int or null | `Redo: N of REDO_MAX` |
 | | `replan_count`, `replan_cap` | int | derived replan re-entry count and cap |
 | — | `replan_trigger` | enum or null | replan trigger class surfaced at this gate (`stuck`, `spike`, `verification`, `operator`) |
-| `git` | `head_before`, `head_after` | short sha | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) |
+| `git` | `head_before`, `head_after` | short sha (`^[0-9a-f]{7,12}$`) | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) |
+| `commit` | `token` | `COMPLETE` \| `INCOMPLETE` \| null `[p4]` | the `COMMIT:` closing line (`harness-commit-fidelity.md`); null for a dispatch whose gate commits nothing |
+| | `missing_n`, `extra_n` | int `[p4]` | the `observed, not landed` / `landed, not observed` counts of that line |
+| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (§In-Place Migration) |
+
+**`const` rows** [Added 2026-09-18, harness-p4 specs review r1 — M3]: a row
+whose `Group` cell is the literal `const` declares a **schema constant** —
+`FIX_ONLY_REASONS` is the only one today. It is rendered as a real table row in
+both renderings (here and `references/telemetry.md` §2), it names no record key
+(`--lint` reports a record carrying a `const` name as `key-undeclared`), its
+members are the backticked tokens of its `Type / domain` cell, and the
+parse-and-diff self-test (§Schema Lint) compares the set of `const` names and
+each one's member set against the code table's constants — separately from the
+`group.key` set, so the constant can never be mistaken for a key.
 
 **`gate.decision` normalisation** — every gate option rendered anywhere in the
 harness maps to exactly one enum value; an option not in this table is `other`
@@ -134,26 +168,7 @@ harness maps to exactly one enum value; an option not in this table is `other`
 | `third opinion` | `third-opinion` |
 | `re-dispatch` | `re-dispatch` |
 | `route to sdd-replan` | `replan` |
-| anything else | `other` |
-
-**`gate.decision` normalisation** — every gate option rendered anywhere in the
-harness maps to exactly one enum value; an option not in this table is `other`
-(no text is recorded):
-
-| Gate option (as rendered) | `gate.decision` |
-|---|---|
-| `proceed` | `proceed` |
-| `fix` (stage gate) · `accept round N+1 (fix)` | `fix` |
-| `fix` (per-chunk gate — increments `Redo:`) | `redo` |
-| `loop-back-to-fix` | `loop-back-to-fix` |
-| `stop` | `stop` |
-| `revert path` | `revert` |
-| `accept & widen scope` | `widen` |
-| `manual intervention` · `authorize extra iteration` (recorded with `cap_raised`) | `override` |
-| `accept round N (proceed, note)` · `accept manually` · `accept (record)` | `accept` |
-| `third opinion` | `third-opinion` |
-| `re-dispatch` | `re-dispatch` |
-| `route to sdd-replan` | `replan` |
+| `amend` (the `COMMIT: INCOMPLETE` pause, `harness-commit-fidelity.md`) | `other` — decided at the specs gate 2026-09-18; the `commit` group already records the outcome |
 | anything else | `other` |
 
 **Resume-class keys are forbidden** (REQ-TELEM-HARNESSP2-003): no `next_stage`,
@@ -200,6 +215,49 @@ Example (a review dispatch with two Material findings):
  "replan_trigger":null,"git":{"head_before":"8515816","head_after":"8515816"}}
 ```
 
+
+[Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-001, -004] Two further
+worked examples with a **non-null `chunk`** — the p3 mis-typing (`"Chunk 0"`
+strings, `seq` 6–13) traces to the sole `"chunk":null` example above. A
+**verifier** record for Chunk 3 (its own record, not a field on the chunk's
+record):
+
+```json
+{"v":2,"ts_dispatch":"2026-09-19T10:02:00Z","ts_return":"2026-09-19T10:06:30Z","ts_gate":"2026-09-19T10:07:10Z",
+ "cycle":{"workstream":"harness-p4","research_id":"RS-HARNESSP4-001","kickoff_date":"2026-09-18","marker":"4"},
+ "dispatch":{"seq":9,"kind":"verifier","stage":"implement","chunk":3,"iteration":null,"redo":0,"reason":null,
+             "budget":{"tool_calls":15,"test_runs":2,"prototypes":false,"read_only":true},"write_scope_n":0},
+ "return":{"status":"COMPLETE","budget_consumed":{"tool_calls":9,"test_runs":2,"self_reported":true},
+           "files_written_n":0,"commits_n":0,"tasks_completed_n":0,"failures_n":0,"ledger_n":0,"open_questions_n":0,"blocked_writes_n":0,"warnings":[]},
+ "scope":{"token":"CLEAN","in":0,"advisory":0,"out":0,"history_rewrite":false,"widened":0},
+ "verdict":{"chunk_verdict":"PASS","review_verdict":null,"red_verdict":null,"findings":{"C":0,"M":0,"m":1},"malformed":false,"contradiction_class":null},
+ "gate":{"decision":"proceed","decision_by":"operator","fix_iteration":0,"fix_cap":3,"cap_raised":0,"redo_count":0,"replan_count":0,"replan_cap":3},
+ "replan_trigger":null,"git":{"head_before":"a1b2c3d","head_after":"a1b2c3d"},
+ "commit":{"token":null,"missing_n":0,"extra_n":0}}
+```
+
+A **fix** record — the redo of Chunk 2 after `CHUNK_VERDICT: FAIL` (`kind: fix`,
+`redo: 1`, `reason: VERIFIER_FAIL`; the first attempt's `pipeline` record with
+`redo: 0` and `gate.decision: redo` stays in the file):
+
+```json
+{"v":2,"ts_dispatch":"2026-09-19T09:20:00Z","ts_return":"2026-09-19T09:41:12Z","ts_gate":"2026-09-19T09:45:00Z",
+ "cycle":{"workstream":"harness-p4","research_id":"RS-HARNESSP4-001","kickoff_date":"2026-09-18","marker":"4"},
+ "dispatch":{"seq":7,"kind":"fix","stage":"implement","chunk":2,"iteration":null,"redo":1,"reason":"VERIFIER_FAIL",
+             "budget":{"tool_calls":25,"test_runs":3,"prototypes":false,"read_only":false},"write_scope_n":4},
+ "return":{"status":"COMPLETE","budget_consumed":{"tool_calls":18,"test_runs":2,"self_reported":true},
+           "files_written_n":3,"commits_n":0,"tasks_completed_n":1,"failures_n":0,"ledger_n":2,"open_questions_n":0,"blocked_writes_n":0,"warnings":[]},
+ "scope":{"token":"CLEAN","in":3,"advisory":0,"out":0,"history_rewrite":false,"widened":1},
+ "verdict":{"chunk_verdict":"PASS","review_verdict":null,"red_verdict":null,"findings":{"C":0,"M":0,"m":0},"malformed":false,"contradiction_class":null},
+ "gate":{"decision":"proceed","decision_by":"operator","fix_iteration":0,"fix_cap":3,"cap_raised":0,"redo_count":1,"replan_count":0,"replan_cap":3},
+ "replan_trigger":null,"git":{"head_before":"a1b2c3d","head_after":"e4f5a6b"},
+ "commit":{"token":"COMPLETE","missing_n":0,"extra_n":0}}
+```
+
+`scope.widened: 1` on the fix record says the operator added one glob to the
+template default for that dispatch (§`scope.widened`); the verifier's
+`commit.token: null` says its gate commits nothing (§`commit` Group).
+
 **Why a transcript and not a log**: every value under `return`, `scope`,
 `verdict` and `gate` is copied from what the gate already renders, so the record
 can never expose more than the operator already saw — and because the gate
@@ -224,6 +282,32 @@ Rules:
 - **One append per dispatch**, after that dispatch's gate. A verifier, red or
   review dispatch is its own dispatch and gets its own record (its
   `gate.decision` is the stage/per-chunk gate decision it fed).
+  [Amended 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-001] **One record per
+  dispatch, for every kind the schema admits** — `pipeline`, `fix`,
+  `fanout_leaf`, `verifier`, `review`, `red` — with `dispatch.kind` set to the
+  kind **actually dispatched**. Concretely: (i) a chunk verifier gets a
+  `verifier` record of its own; its `CHUNK_VERDICT:` is *also* copied onto the
+  chunk's own record's `verdict.chunk_verdict`, which is the field the
+  implication of §Records-vs-Expected reads; (ii) a fix dispatch — a stage
+  `loop-back-to-fix`, a per-chunk `fix` (redo) or a `RED_BREAK` packet — gets a
+  `fix` record, **never** a `pipeline` one; (iii) the first attempt of a redone
+  chunk **keeps its record** when the redo is dispatched; the redo is a further
+  `fix` record with `dispatch.redo` incremented and `dispatch.reason` set
+  (`VERIFIER_FAIL`, `REVIEW`, …). The p3 file held zero `verifier` and zero
+  `fix` records across eight verifiers and three redos, and its one fix at
+  `seq` 18 was typed `pipeline` — the writer text above did not say where the
+  verifier's record goes, so none was written.
+- **`scope.widened` source** [Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-006]:
+  `|dispatched write scope globs| − |template default globs for the stage|`,
+  both held in session state at dispatch time (the filled `Write scope:` slot
+  and the default table of `references/write-scope.md` §2); floor 0; no read
+  of the telemetry file.
+- **`commit` source** [Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-007]:
+  the `COMMIT:` line the gate rendered for this dispatch, read from the
+  orchestrator's own rendering state — the token and the two clause counts;
+  `{null, 0, 0}` for a dispatch whose gate commits nothing. Because the append
+  happens after the gate decision and the `COMMIT:` line is a post-decision
+  closing line, the append is ordered **after** that line is rendered.
 - **Append-only.** The orchestrator never rewrites or truncates the file, with
   the **single exception** of the leaf-write revert in §Third Observation.
 - **Never load-bearing.** On any write error (unwritable directory, disk full)
@@ -359,8 +443,15 @@ out-of-loop tools, not skills; gc never reads `.sdd/` either.
 subcommand:
 
 ```
-python3 tools/sdd-telemetry.py summarize [--file .sdd/telemetry.jsonl] [--workstream <id>] [--since <ISO>]
+python3 tools/sdd-telemetry.py summarize [--file .sdd/telemetry.jsonl] [--workstream <id>] [--since <ISO>] [--plan <path>]
+python3 tools/sdd-telemetry.py --lint    [--file .sdd/telemetry.jsonl]                      # REQ-TELEM-HARNESSP4-004
+python3 tools/sdd-telemetry.py migrate   --file <path> [--out <path>]                       # REQ-TELEM-HARNESSP4-005, operator-run
+python3 tools/sdd-telemetry.py --self-test
 ```
+
+[Amended 2026-09-18, harness-p4] `--lint`, `migrate` and `--plan` are added
+below (§Schema Lint, §In-Place Migration, §`--plan` Floor); all three are
+post-cycle readers/rewriters run by the operator, never by a skill.
 
 Output: one table per workstream, one row per `dispatch.stage`, columns:
 
@@ -474,6 +565,268 @@ orchestrator still performs zero reads of the file during a cycle
 `verification.md` §Next Steps rather than dropped — the `may` acceptance is
 conditioned accordingly.
 
+#### Implication-Derived `expected` and the Headline (REQ-TELEM-HARNESSP4-002, -003)
+
+[Changed 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-002, REQ-TELEM-HARNESSP4-003.
+Q-IMPL-HARNESSP3-006's `expected` (highest `dispatch.seq` per session) saw no gap
+on the p3 file because a writer that never appends also never increments; every
+count below is recomputed from `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+(RS-HARNESSP4-001 §Q2, evidence-appendix §B).]
+
+`expected` is derived from **cross-field implications already present in the
+records** — fields the writer filled for its own gate rendering — and only
+starts from the highest `seq`. Per session (Q-IMPL-HARNESSP3-018), per kind,
+`dispatch.redo` read as 0 when null. The chunk-shaped implications are computed
+**per `(stage, chunk)` group** — the `pipeline` and `fix` records sharing one
+`dispatch.stage` and `dispatch.chunk` (a null `chunk` is its own group) — never
+by summing `(1 + redo)` over records, because §Writer rule (iii) keeps the
+first attempt's record *and* adds a `fix` record per redo, so a per-record sum
+counts the same attempt twice [Amended 2026-09-18, harness-p4 specs review r1 —
+C1]:
+
+```
+attempts(stage, chunk) := 1 + max(dispatch.redo) over that group's pipeline/fix records           # the redo counter is per chunk, so its max IS the attempt count
+implied.verifier       := Σ over groups with ≥ 1 record carrying verdict.chunk_verdict != null (kind != verifier) of attempts(stage, chunk)
+implied.pipeline       := Σ over implement groups of ( 1                                             # the first attempt is always a pipeline dispatch
+                                                     + #records in the group with kind == pipeline and dispatch.redo ≥ 1 )   # a redo recorded as pipeline (the p3 collapsed shape) stands in for its own first attempt
+implied.review         := #records with kind != review and verdict.review_verdict != null           # one per carrying record
+implied.red            := #records with kind != red    and verdict.red_verdict    != null
+implied.fix            := #records with gate.decision ∈ {loop-back-to-fix, fix, redo}               # clause (a): each such decision dispatches one fix (a per-chunk `fix` normalises to `redo`, §Writer rule (ii))
+                        + #records with kind != fix and dispatch.reason ∈ FIX_ONLY_REASONS          # clause (b): a reason only a fix dispatch carries
+missing.<kind>         := max(0, implied.<kind> − recorded.<kind>)   matched PER STAGE, never cross-stage, never negative
+missing.fix            := 0 for an implied fix that is PRESENT as a record of another kind (mis-typed fix — a --lint finding, not a missing append)
+expected               := highest dispatch.seq + Σ missing.<kind>
+```
+
+**Worked numbers, both record shapes** (the formula must hold on each):
+
+| Shape | Records in one implement group | `attempts` | `implied.verifier` | `implied.pipeline` vs recorded |
+|---|---|---|---|---|
+| p3 collapsed (fixture `seq` 7, 10, 13) | one `pipeline` record, `redo: 1`, `chunk_verdict: PASS` | 2 | 2 | 1 + 1 = 2 vs 1 → 1 missing |
+| p3 single attempt (fixture `seq` 6, 8, 9, 11, 12) | one `pipeline` record, `redo: null`, `chunk_verdict: PASS` | 1 | 1 | 1 vs 1 → 0 missing |
+| compliant redo (§Writer rule (iii)) | `pipeline` `redo: 0` + `fix` `redo: 1`, both `chunk_verdict` non-null | 2 | **2** | 1 + 0 = **1** vs 1 → 0 missing |
+
+On `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` (recomputed at this
+amendment): 8 implement groups, three with `max(redo) = 1`, so
+`implied.verifier = 5 × 1 + 3 × 2 = 11` against 0 recorded and
+`implied.pipeline = 5 × 1 + 3 × 2 = 11` against 8 recorded (3 missing) —
+`expected 39` is unchanged. The compliant redone chunk yields 2 verifiers and
+1 pipeline against 2 `verifier` and 1 `pipeline` records, so
+REQ-TELEM-HARNESSP4-001's "0 missing" holds on a live redo; the previous
+per-record sum read it as 3 verifiers / 2 pipelines. Clause (a)'s `redo` member
+counts the per-chunk `fix` decision that dispatches that `fix` record; the
+fixture carries no `redo` decision, so its `implied.fix` stays 2.
+
+`FIX_ONLY_REASONS` is a **`const` row of the domain table** (§Record Schema;
+`{red_break}` today), so adding a reason later is a schema change, not a code
+constant. Clause (b) is
+needed: on the p3 fixture `seq` 18 (`pipeline`, `reason: red_break`) is
+reachable only through it — its predecessor `seq` 17 has `gate.decision: null`.
+
+**Mis-typed-fix rule.** An implied fix that exists as a record of another kind
+— a `pipeline` record with `dispatch.iteration ≥ 1` whose predecessor at the
+same stage decided `loop-back-to-fix`, or whose `dispatch.reason` is fix-only —
+counts **0** toward `missing.fix` and is reported by `--lint` as
+`[mistyped-fix]`; it is a wrong `kind`, not a missing append, and must not
+inflate `expected`. `reason: REVIEW` at `iteration ≥ 1` with **no** preceding
+`loop-back-to-fix` at the stage (p3 `seq` 3–5) is a `--lint` **warning**
+`[reason-review]`, never a count: the fixture cannot distinguish a mis-recorded
+fix from a mis-labelled first dispatch, and a legitimate chunk redo (`seq` 13)
+carries the same reason. Promote to a clause at replan only if this cycle's live
+file shows the pattern with a known cause.
+
+**Headline definition (ratified, Q-REQ-P4-D).** The reported gap is the **total
+shortfall of every implied append, per session**. Output shape:
+
+```
+records-vs-expected: 20 recorded, expected 39 (19 missing)                     # headline: Σ missing over all kinds
+  implied vs recorded — verifier : 11 vs 0  (11 missing)
+  implied vs recorded — pipeline : 11 vs 8  (3 missing)        [implement]
+  implied vs recorded — review   :  6 vs 2  (5 missing)
+  implied vs recorded — red      :  1 vs 2  (0 missing)
+  implied vs recorded — fix      :  2 vs 0  (0 missing; 2 mis-typed — see --lint)
+  implement: 14 missing (3 pipeline first attempts + 11 verifier)             # the FULL implication count, never 8 + 3
+  secondary: 11 dispatches with no record of their own kind (8 verifier chunks + 3 first attempts)   # optional, never the headline
+```
+
+Why the total and not the 8 + 3 reading: `expected` counts appends that should
+exist; any narrower headline understates the file's incompleteness, which is the
+defect P2 exists to expose. The implications are independent of `seq` and of the
+writer's append discipline because each is triggered by a field the writer *did*
+fill; the original class (`seq` incremented, record lost) is retained because
+`expected` starts from the highest `seq`. The tool still reads nothing but the
+telemetry file, and the orchestrator still performs zero reads of it during a
+cycle (REQ-TELEM-HARNESSP2-004).
+
+### Schema Lint — `--lint` From One Domain Table (REQ-TELEM-HARNESSP4-004)
+
+[Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-004; `docs/ws/harness-p3/verification.md`
+§P1/§P3: the R1 fix validated one field and the same session wrote `kind: "gate"`]
+
+`python3 tools/sdd-telemetry.py --lint [--file <path>]` validates **every field
+of every record** against its declared domain and exits 1 on any finding, 0
+when clean. Finding line shape (one per violation, no record text beyond the
+offending value):
+
+```
+seq <n>: [<class>] <group.key>: <message>          classes: enum │ type │ key-undeclared │ key-missing │ cross-field │ mistyped-fix
+WARN seq <n>: [reason-review] dispatch.reason REVIEW at iteration ≥ 1 with no preceding loop-back-to-fix at <stage>
+```
+
+| Check | Rule |
+|---|---|
+| enum membership | `dispatch.kind`, `dispatch.stage`, `dispatch.reason`, `return.status`, `return.warnings[]`, `scope.token`, every `verdict.*` token, `gate.decision`, `gate.decision_by`, `replan_trigger`, `commit.token`, `cycle.marker` against the table's member sets |
+| type | `dispatch.chunk` int-or-null (a header **string** is a finding); every counter int; `scope.widened` int ≥ 0; shas match `^[0-9a-f]{7,12}$` (`"HEAD"` literal and 40-char shas are findings); timestamps ISO-8601 UTC; `v` ∈ the admitted set `{1, 2}` (Q-IMPL-HARNESSP4-002) |
+| fixed key set | per `v`: an undeclared key (e.g. `git.commit_n`) is `key-undeclared`; a declared key absent is `key-missing`; the optional `migration` marker (§In-Place Migration) is admitted only with its declared shape |
+| cross-field | the two fix clauses and the mis-typed-fix rule (§Implication-Derived `expected`); non-null `chunk_verdict` on a non-verifier record with **no** `verifier` record for that chunk in the session; `proceed` implement record with `head_before == head_after`; `commit.token` non-null on a kind whose gate never commits (review, verifier, red) |
+
+**The domain table in the tool is the single source of truth for the record
+schema** — one table, two readers. `docs/spec/telemetry.md` §Record Schema and
+`references/telemetry.md` §2 are **renderings** of it (stated there). Agreement
+is enforced by **parse-and-diff**, not generation: the self-test
+`test_schema_table_agrees` parses the `| Group | Key | Type / domain |` rows of
+both documents — the `Key` cell may list several backticked keys sharing one
+type; enum members are the backticked tokens separated by `\|`; scalar types
+are the leading word (`int`, `bool`, `timestamp`, `short sha`, `date`, `string`,
+`list`); a row whose `Group` cell is `const` is parsed into a **separate
+constant set** `{name: members}` (§Record Schema, `const` rows) and never into
+`group.key` — and asserts that the set of `group.key`, for enum-typed keys the
+member set, and the constant set with each constant's members, equal the code
+table's; it further asserts `FIX_ONLY_REASONS ⊆ dispatch.reason` members
+[M3]. Adding a row on either side alone fails the self-test. Why not generate the spec block from the code: a generated block
+would be a code-owned write into an Approved spec on every schema change,
+which the write-scope contract tags `ADVISORY` and review must re-read; parsing
+keeps the spec the human-reviewed artifact and the code the executable one.
+The `Source (gate signal)` column is prose and is not compared.
+
+### In-Place Migration of the 8 p3 Records, Stamped Partial (REQ-TELEM-HARNESSP4-005)
+
+[Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-005; decided at DISCUSS
+(`docs/ws/harness-p4/kickoff.md`), inherited unchanged]
+
+`python3 tools/sdd-telemetry.py migrate --file <path> [--out <path>]` rewrites
+every `dispatch.chunk` header string `"Chunk N"` to the integer `N` and adds a
+**migration marker** to each rewritten record:
+
+```
+"migration": {"from": "chunk-string", "at": "2026-09-18"}      # enum + date; admitted by the domain table as OPTIONAL, present only on migrated records
+```
+
+- **Operator-invoked, between sessions.** This is the **second exception** to
+  §Writer's append-only rule (the first is the leaf-write revert). It is run by
+  the operator with no orchestrator session open — never by a leaf (which would
+  breach the orchestrator-only-writer rule) and never while a session is
+  appending (a race with the orchestrator's appends). No dispatch template
+  mentions it; `--help` and `references/telemetry.md` §7 state the rule.
+- **In place** when `--out` is absent: write to a sibling temp file, verify the
+  line count is unchanged, then rename over the original. `--out` writes
+  elsewhere and leaves the input untouched.
+- **Idempotent**: an already-int `chunk` and an already-present `migration`
+  marker are left alone; a second run changes nothing.
+- **Fixture guard**: a `--file` (or `--out`) path under `tools/fixtures/` is
+  refused with exit 2 and **no write**; every test runs against the frozen
+  fixture as input with `--out` in a temporary directory.
+- **Ordered**: the plan schedules the migration task only after
+  REQ-TELEM-HARNESSP4-001, -002, -003 and -004 have landed and `--lint` reports
+  the migrated records clean on their **typed** fields; otherwise the migrated
+  block asserts more than the evidence supports.
+
+**Stamped-partial block shape.** `summarize`'s per-chunk block renders, for any
+chunk whose records carry the marker, a `partial` stamp naming the kinds that
+cannot be reconstructed:
+
+```
+per-chunk (implement)
+  Chunk 0   pipeline 1   verifier 0   fix 0   redo 0   partial — migrated from "Chunk 0"; verifier, fix and redo records were never written and cannot be reconstructed
+  …
+  Chunk 7   pipeline 1   verifier 0   fix 0   redo 1   partial — migrated from "Chunk 7"; verifier, fix and redo records were never written and cannot be reconstructed
+```
+
+The block therefore cannot be read as a full per-chunk history. The frozen
+fixture `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` is read-only
+evidence and is **never** modified, reformatted or migrated (its sha256 is in
+`tools/fixtures/README.md`).
+
+### `scope.widened` (REQ-TELEM-HARNESSP4-006)
+
+[Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-006; `docs/ws/harness-p3/verification.md` §L6]
+
+`scope.widened` (int, default 0) is the number of globs the operator added to
+the dispatched write scope beyond the stage's template default — a count, never
+the glob text (REQ-TELEM-HARNESSP2-002). Source: §Writer. `summarize` prints
+the number of widened dispatches per session (`widened dispatches: N`). Why:
+fixing R1 in p3 required widening the verify scope to `tools/` and `skills/`;
+the check read those paths `IN` and `SCOPE: CLEAN` looked identical to an
+unwidened stage, so nothing durable recorded that a widening happened.
+
+### `commit` Group (REQ-TELEM-HARNESSP4-007)
+
+[Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-007; RS-HARNESSP4-001 §Q1 cost table]
+
+`commit: {token: COMPLETE | INCOMPLETE | null, missing_n: int, extra_n: int}` is
+the post-cycle trace of the `COMMIT:` signal (`harness-commit-fidelity.md`) for
+the dispatch the record describes: `missing_n` = the `observed, not landed`
+count, `extra_n` = the `landed, not observed` count; `{null, 0, 0}` for a
+dispatch whose gate does not commit (review, verifier, red). Only the token and
+the two counts are recorded, never paths. **Telemetry remains non-load-bearing**:
+`COMMIT:` is rendered from git and the record copies the rendering; nothing
+reads the record to render the line. `summarize` prints per-session
+`COMMIT: INCOMPLETE` counts. Because two record groups are added this cycle,
+records that carry them are written with **`v: 2`**; `v: 1` records (every
+record before this cycle, including the frozen fixture) remain valid against
+the `v: 1` key set, so `--lint` does not report `key-missing` for `scope.widened`
+or `commit` on them. Both versions are admitted by the domain table, by
+`summarize` and by `--lint` — the bump is a schema decision recorded as
+Q-IMPL-HARNESSP4-002, not prose: the shipped reader's `v != SCHEMA_V` skip
+would otherwise drop every live p4 record from `summarize` at DONE
+[Amended 2026-09-18, harness-p4 specs review r1 — M1].
+
+### `--plan` Floor for Implement-Stage Expectations (REQ-TELEM-HARNESSP4-008) [may]
+
+[Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-008; medium confidence, RS-HARNESSP4-001 §Q2 candidates table]
+
+`summarize --plan <path>` **may** compute an implement-stage **floor**:
+`chunk_count(plan)` pipeline dispatches, doubled when any chunk record in the
+session carries a non-null `chunk_verdict` (the verifier was on), and report
+`implement floor: 8 pipeline (16 with verifier); recorded implement records: N;
+shortfall: max(0, floor − N)`. It is the only reader-side check that sees a
+chunk whose pipeline **and** verifier records are both missing; it can never see
+redos (session state the plan does not hold). Opt-in; reads an artifact that
+already exists; no new artifact and no phase-detection input. If not built, it
+is queued under `verification.md` §Next Steps.
+
+### Fixture-Based Test Contract
+
+[Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-001..005]
+
+Every reader-side test runs against `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+**as read-only input**: the test asserts the file's sha256
+(`7e20b630…af9237`, `tools/fixtures/README.md`) before and after, writes any
+output (`migrate --out`) under a temporary directory, and never opens the
+fixture for writing. Expected values on the fixture:
+
+| Command | Expected |
+|---|---|
+| `summarize --file <fixture>` | headline `expected 39` against 20 records (19 missing); implement line 14 missing; verifier 11 vs 0; pipeline 11 vs 8 at implement; review 6 vs 2 (5 missing); red 1 vs 2 (0 missing); fix implied 2, recorded 0, missing 0 |
+| `--lint --file <fixture>` | exit 1; at minimum: `kind: gate` on `seq` 20; header strings in `dispatch.chunk` on `seq` 6–13; `head_after: "HEAD"` on `seq` 5; null `git` heads on `seq` 6–14; 40-character shas on `seq` 15–20; undeclared `git.commit_n` on `seq` 15–20; `[mistyped-fix]` on `seq` 2 and 18; `[reason-review]` warnings on `seq` 3–5 |
+| `migrate --file <copy> --out <tmp>` | output on which `summarize` renders a per-chunk block for chunks 0–7 carrying `partial` and the unreconstructable kinds |
+| `migrate --file <fixture>` | exit 2, no write, fixture sha unchanged |
+| `summarize --plan docs/ws/harness-p3/plan.md --file <fixture>` (if built) | floor 8 (16 with verifier); no shortfall against 8 recorded pipeline records; the implication line still reports 14 missing |
+
+`--self-test` builds synthetic fixtures in a temporary directory for: each
+implication (verifier, redo first attempt, review, red), clause (b) (`red_break`
+pipeline record with a null-decision predecessor), a `loop-back-to-fix` followed
+by no record at all (1 missing fix), a gapless negative fixture (0 missing)
+that **includes one compliant redone chunk** — `pipeline` `redo: 0` + `fix`
+`redo: 1`, both carrying `chunk_verdict`, with their two `verifier` records —
+asserting 2 implied verifiers / 1 implied pipeline / 0 missing [C1], a
+`v: 1`-and-`v: 2` mixed fixture summarised with zero skipped records [M1], a
+record carrying `FIX_ONLY_REASONS` as a key (`key-undeclared`) [M3], one
+mutation per domain class, `scope.widened: 2` in-domain vs a string value,
+`commit` in-domain (`INCOMPLETE, 1, 0`) vs `token: DROPPED`, the
+schema-agreement diff (a row added on one side only), and a plan with a chunk
+that has no record at all (if `--plan` is built).
+
 ## Verification
 
 ### Automated
@@ -536,6 +889,16 @@ conditioned accordingly.
 - [ ] A resumption walkthrough of three gated dispatches whose second append fails renders `rec 1`, `WRITE FAILED`, `rec 2` — **not** `rec 3`; the same holds after a mid-cycle opt-out, whose `OFF` gates append nothing and do not advance `<n>` (REQ-TELEM-HARNESSP3-001)
 - [ ] `grep` for a telemetry-file read in the orchestrator's gate path returns nothing (REQ-TELEM-HARNESSP3-001, REQ-TELEM-HARNESSP2-004)
 - [ ] **If built**: `python3 tools/sdd-telemetry.py summarize` on a fixture whose session records fewer appends than gates prints a records-vs-expected line for that session, and `--self-test` exits 0. **If not built**: it is queued under `verification.md` §Next Steps and nothing else changed (REQ-TELEM-HARNESSP3-002)
+- [ ] §Writer names every kind and states the one-record-per-dispatch rule with the verifier / fix / redo-first-attempt clauses; `references/telemetry.md` §2 states the same with worked `verifier` and `fix` examples (non-null `chunk`); this cycle's live file summarised at DONE shows `verifier` count = chunk verifiers dispatched and `fix` count = fix dispatches rendered, with `implied vs recorded` reporting 0 missing for both kinds in this cycle's session (REQ-TELEM-HARNESSP4-001)
+- [ ] `summarize --file tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` prints `expected 39` against 20 records (19 missing), an implement line of 14 missing, and per-kind lines verifier 11 vs 0, pipeline 11 vs 8 at implement, review 6 vs 2 (5 missing), red 1 vs 2 (0 missing); `--self-test` covers each implication and a gapless negative fixture reading 0 missing, that fixture including one compliant redone chunk (`pipeline` `redo: 0` + `fix` `redo: 1`, both with `chunk_verdict`) that yields 2 implied verifiers / 1 implied pipeline; the formulas are computed per `(stage, chunk)` group and §Records-vs-Expected states both worked shapes beside them; §Records-vs-Expected and `references/telemetry.md` §7 state the definition and the headline; Q-IMPL-HARNESSP3-006 is amended to name the fields; the tool reads only the telemetry file and the orchestrator performs zero reads of it (REQ-TELEM-HARNESSP4-002)
+- [ ] On the fixture the tool reports `implied.fix 2, recorded 0, missing 0` with `seq` 2 and 18 listed as `[mistyped-fix]` by `--lint` and `seq` 3–5 as `[reason-review]` warnings; a `red_break` pipeline record with a null-decision predecessor is flagged (clause (b)); a `loop-back-to-fix` followed by no record counts 1 missing fix; `FIX_ONLY_REASONS` is a `const` row of the domain table rendered as a real row in §Record Schema and `references/telemetry.md` §2, parsed into the constant set (never `group.key`) by `test_schema_table_agrees`, with `--lint` asserting it is a subset of `dispatch.reason` (REQ-TELEM-HARNESSP4-003, -004)
+- [ ] `--lint --file <fixture>` exits non-zero reporting at minimum `kind: gate` (`seq` 20), header strings (`seq` 6–13), `head_after: "HEAD"` (`seq` 5), null `git` heads (`seq` 6–14), 40-character shas and undeclared `git.commit_n` (`seq` 15–20); a gapless in-domain fixture exits 0; `--self-test` covers each domain class with one mutation; `test_schema_table_agrees` fails when a row is added to the code table but not this spec's table or vice versa; §Record Schema states it is a rendering of the code table; `python3 tools/sdd-skill-lint.py` exits 0 (REQ-TELEM-HARNESSP4-004)
+- [ ] `sha256sum tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` reads `7e20b630…af9237` at DONE and `git diff --stat main -- tools/fixtures/` is empty; `migrate --file <copy> --out <tmp>` yields a file whose per-chunk block for chunks 0–7 carries `partial` and names the unreconstructable kinds; `migrate --file <fixture>` exits 2 without writing; the plan lists the migration task after the four prerequisite tasks; the operator ran `migrate` on the live file before the verify stage with no session open, and `verification.md` records the `--lint` result on the migrated records (no typed-field finding) (REQ-TELEM-HARNESSP4-005)
+- [ ] The domain table declares `scope.widened` int default 0; §Record Schema and `references/telemetry.md` §2 render it; `summarize` prints widened dispatches per session; a fixture with `scope.widened: 2` is in-domain and a string value is a `--lint` finding; §Writer names the source without any telemetry-file read (REQ-TELEM-HARNESSP4-006)
+- [ ] The domain table declares the `commit` group; both telemetry documents render it; `summarize` prints per-session `COMMIT: INCOMPLETE` counts; `{INCOMPLETE, 1, 0}` passes `--lint` and `token: DROPPED` fails it; `grep -n 'commit' skills/sdd-orchestrate/references/loop-control.md` shows the gate reading git, not telemetry; records carrying the group are `v: 2` and `v: 1` records lint clean against the `v: 1` key set (REQ-TELEM-HARNESSP4-007)
+- [ ] `summarize` and `--lint` read `v: 2` records: a fixture mixing `v: 1` and `v: 2` records is summarised with `skipped: 0`; the shipped `v != SCHEMA_V` skip in `tools/sdd-telemetry.py` is replaced by membership in the admitted set `{1, 2}`; the per-`v` key sets are derived from the domain table's `[p4]` marks, not from a second constant; a record with `v: 3` is still skipped and counted (unknown-`v` tolerance) (REQ-TELEM-HARNESSP2-001, REQ-TELEM-HARNESSP2-009, REQ-TELEM-HARNESSP4-004, REQ-TELEM-HARNESSP4-007; Q-IMPL-HARNESSP4-002)
+- [ ] **If built**: `summarize --plan docs/ws/harness-p3/plan.md --file <fixture>` prints an implement floor of 8 (16 with verifier), flags no shortfall against 8 recorded pipeline records while the implication line still reports 14 missing; `--self-test` covers a plan with a chunk that has no record. **If not built**: queued under `verification.md` §Next Steps (REQ-TELEM-HARNESSP4-008)
+- [ ] Every fixture-based test asserts the fixture's sha256 before and after and writes outputs only under a temporary directory (§Fixture-Based Test Contract)
 
 ## Edge Cases
 
@@ -611,6 +974,12 @@ sentence "`TELEMETRY: WRITE FAILED | OFF | .gitignore updated` are its only gate
 lines" this amendment falsifies — all three must carry the same four members
 after this change. `dispatch.seq` keeps its existing meaning and is
 explicitly **not** the source of `<n>`.
+- [Added 2026-09-18, harness-p4] `commit.token`'s domain `COMPLETE | INCOMPLETE |
+  null` equals the two-member family of `harness-commit-fidelity.md`;
+  `return.warnings` member `RETURN_DRIFT` is the warning of
+  `harness-return-contract.md` §Return-Drift Warning; `FIX_ONLY_REASONS =
+  {red_break}` is the `RED_BREAK` packet reason of `adversarial-verify.md`
+  lower-cased as the existing `dispatch.reason` enum does — consistent.
 
 ## Open Questions
 
@@ -668,7 +1037,31 @@ REQ-TELEM-HARNESSP3-002's "expected" is computed from the records themselves —
 the highest `dispatch.seq` observed per session versus the number of records
 carrying that session id — so the reader needs no side channel from the
 orchestrator and stays a pure post-cycle function of the file.
+[Amended 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-002: "derived from gate
+records" stays true; the **fields** used are now `verdict.chunk_verdict`,
+`dispatch.redo`, `verdict.review_verdict`, `verdict.red_verdict`,
+`gate.decision` and `dispatch.reason` (the cross-field implications of
+§Records-vs-Expected), added to the highest `dispatch.seq`.]
 **Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP4-002: the schema version `v` becomes the admitted set `{1, 2}`
+**Tier**: 2 (spec ambiguity — requirement literal amended)
+**Spec reference**: §Record Schema, §`commit` Group, §Schema Lint
+**Decision**:
+
+REQ-TELEM-HARNESSP2-001 fixes `v` as the integer `1`, and the shipped reader
+skips any record whose `v` differs from its single `SCHEMA_V` constant. This
+cycle adds two record groups (`scope.widened`, `commit`) and writes records
+carrying them with `v: 2` (decided at the specs gate 2026-09-18, kept). The
+literal is amended to the **admitted set `{1, 2}`**: the writer stamps `2`;
+`summarize` and `--lint` accept both members; the key set a record is validated
+against is the domain table filtered by `[p4]` marks (`v: 1` → unmarked rows
+only, `v: 2` → all rows), so there is no second constant to drift; a `v`
+outside the set is skipped and counted exactly as before (REQ-TELEM-HARNESSP2-009's
+unknown-`v` tolerance). The frozen p3 fixture stays `v: 1` and lints clean
+against the `v: 1` key set. Resolves review finding M1 (the bump was prose only
+and `summarize` at DONE would have skipped every live p4 record).
+**Date**: 2026-09-18 (specs stage, review round 1)
 
 ### Q-IMPL-HARNESSP3-018: `summarize` derives a session boundary from a `dispatch.seq` reset
 **Tier**: 2 (spec ambiguity)

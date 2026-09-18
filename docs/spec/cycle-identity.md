@@ -4,6 +4,8 @@ last_updated: 2026-09-18
 requires:
   - REQ-CYCID-HARNESSP3-001
   - REQ-CYCID-HARNESSP3-002
+  - REQ-CYCID-HARNESSP4-001
+  - REQ-CYCID-HARNESSP4-002
 ---
 
 # Cycle Identity in Phase Detection
@@ -47,9 +49,49 @@ marker bump**.
 | `verification.md` | `sdd-verify` Step 6 | the active workstream's `kickoff.md` `research_id:` |
 | `plan.md` | `sdd-plan`, in its plan-writing step | the same |
 
-Both skills' frontmatter templates emit `research_id:` alongside their existing
-`status:` and `last_updated:` fields. The value is copied verbatim; no skill
-derives or invents one.
+Both skills' frontmatter templates emit `research_id:` **on the line
+immediately after `status:`** — before `last_updated:` — as Q-IMPL-HARNESSP3-014
+pins. The value is copied verbatim; no skill derives or invents one.
+
+[Amended 2026-09-18, harness-p4 — REQ-CYCID-HARNESSP4-001; `docs/ws/harness-p3/verification.md`
+§Next Steps R4] Both skills emit the field after `last_updated:` today. The two
+**skills are reconciled to the Q-IMPL**, not the Q-IMPL to the skills: the
+Q-IMPL is the recorded decision, the comparison is order-independent string
+equality (Q-IMPL-HARNESSP3-015) so behaviour is unchanged either way, and one
+position lets a reader of any `verification.md` or `plan.md` find the stamp
+without searching. Contract:
+
+```yaml
+---
+status: pass            # or complete (plan.md)
+research_id: RS-HARNESSP4-001
+last_updated: 2026-09-18
+---
+```
+
+The Q-IMPL text is unchanged; `skills/sdd-verify/SKILL.md` Step 6 and
+`skills/sdd-plan/SKILL.md`'s frontmatter template are the two edits.
+
+### `CLAUDE.md` Completion-Signal Rows Carry the Case-3 Qualifier Inline (REQ-CYCID-HARNESSP4-002)
+
+[Added 2026-09-18, harness-p4 — REQ-CYCID-HARNESSP4-002; `docs/ws/harness-p3/verification.md` §V13]
+
+The two completion-signal rows of `CLAUDE.md` §Phase Detection — the plan
+`status: complete` row and the `verification.md` `status: pass` row — carry the
+case-3 relief **inline**, so the table is independently correct without the
+§Cycle identity paragraph beneath it:
+
+```
+… (`status: complete`, all tasks done, **`research_id` matches the kickoff's — when a kickoff with one exists**) …
+… (status: pass, **`research_id` matches the kickoff's — when a kickoff with one exists**) …
+```
+
+Why: today the qualifier lives only in the paragraph below the table, and a
+reader consulting the table alone concludes a repo with no kickoff can never
+read its own passing report as verified — the opposite of case 3 (§The
+Comparison) and of what `sdd-verify` §Phase Detection implements. The §Cycle
+identity paragraph keeps its three cases unchanged; only the two rows gain the
+qualifier. `CLAUDE.md` was outside the p3 verify write scope, hence carried.
 
 ### The Comparison — Three Exhaustive Cases
 
@@ -167,6 +209,15 @@ on disk alone.
       (REQ-CYCID-HARNESSP3-001, -002)
 - [ ] `references/loop-control.md` §3 is **unmodified** by this change
       (REQ-CYCID-HARNESSP3-002)
+- [ ] The frontmatter templates in `skills/sdd-verify/SKILL.md` and
+      `skills/sdd-plan/SKILL.md` show `status:` then `research_id:` on consecutive
+      lines; this cycle's `docs/ws/harness-p4/plan.md` and `verification.md` have
+      `research_id:` on the line after `status:`; `python3 tools/sdd-skill-lint.py`
+      exits 0; Q-IMPL-HARNESSP3-014's text is unchanged (REQ-CYCID-HARNESSP4-001)
+- [ ] Both completion-signal rows in `CLAUDE.md` §Phase Detection contain the
+      inline qualifier "when a kickoff with one exists"; the §Cycle identity
+      paragraph below still carries the three cases unchanged; `python3
+      tools/sdd-gc.py --report` raises no new finding (REQ-CYCID-HARNESSP4-002)
 - [ ] No existing `verification.md` / `plan.md` is back-filled, and no file under
       `docs/requirements/**` or `docs/spec/**` gains a `research_id`
 - [ ] Markdown frontmatter parses in every touched artifact; `python3

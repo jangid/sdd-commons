@@ -7,6 +7,7 @@ requires:
   - REQ-HARN-016
   - REQ-HARN-017
   - REQ-HARN-HARNESSP3-002
+  - REQ-HARN-HARNESSP4-007
 ---
 
 # Harness Chunk-Close Verifier
@@ -288,6 +289,37 @@ ephemerality, never committing — is unchanged; this is a placement fix, and th
 body here must stay byte-consistent with
 `references/dispatch-templates.md` and `docs/spec/harness-return-contract.md`.
 
+### Terminal Token at Column 0 (REQ-HARN-HARNESSP4-007)
+
+[Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-007; `docs/ws/harness-p3/verification.md` §V9.
+Contract only: the fenced body in §Verifier Dispatch Template is **not** edited
+at this stage — it must stay byte-identical to `references/dispatch-templates.md`
+until both change in one commit with the `[template-drift]` rule active.]
+
+The `CHUNK_VERDICT: PASS | FAIL` line in the CHUNK VERIFIER dispatch body and its
+`RETURN:` block sits at **column 0**, as `VERDICT:` (REVIEW) and `RED_VERDICT:`
+(RED TEAM) already do, and `skills/sdd-orchestrate/SKILL.md` §The gate states
+the parse rule as **`^CHUNK_VERDICT:` on the last non-blank line**, matching the
+anchored wording it uses for the other two tokens. Today the template is the
+outlier: two tokens are `^`-anchored, live leaves already render the third at
+column 0, and an indented template invites a leaf to emit an indented token that
+a future anchored parser would miss.
+
+```
+RETURN:
+  status: …
+  …
+  blocked_writes: []
+CHUNK_VERDICT: PASS | FAIL          # column 0 — the only key of the block not indented
+```
+
+Change discipline: `references/dispatch-templates.md` (source of record) and
+this spec's §Verifier Dispatch Template fence are edited **in the same change**,
+after the `[template-drift]` rule (`skill-lint-v5.md`, REQ-LINT-HARNESSP4-001)
+has landed, so REQ-HARN-HARNESSP3-002's byte-consistency contract is preserved
+mechanically. `docs/spec/adversarial-verify.md` restates no body that changes
+here and is untouched.
+
 ## Verification
 
 ### Automated
@@ -319,6 +351,7 @@ body here must stay byte-consistent with
 - [ ] Four-layer table in `sdd-review` and `CLAUDE.md` unchanged (REQ-HARN-014)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
 - [ ] The chunk-verifier template's fenced body contains the full literal `RETURN:` key list in contract order plus the own-line `CHUNK_VERDICT:` token, and the shape is not reachable only from prose outside the fence (REQ-HARN-HARNESSP3-002)
+- [ ] `grep -n '^  CHUNK_VERDICT:' skills/sdd-orchestrate/references/dispatch-templates.md` returns nothing and `grep -c '^CHUNK_VERDICT:'` on that file is ≥ 2; `SKILL.md` §The gate states `^CHUNK_VERDICT:`; the fenced bodies of `dispatch-templates.md` and this spec are byte-identical after the edit (`python3 tools/sdd-skill-lint.py` exits 0 with `[template-drift]` active) (REQ-HARN-HARNESSP4-007)
 
 ## Edge Cases
 

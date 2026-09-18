@@ -28,27 +28,27 @@ row reads as history — a reader, `sdd-gc.py` and `sdd-verify` consult the
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-ARB-HARNESSP3-001 | | harness-p4 | | | |
-| REQ-ARB-HARNESSP4-001 | | harness-p4 | | | |
-| REQ-ARB-HARNESSP4-002 | | harness-p4 | | | |
-| REQ-ARB-HARNESSP4-003 | | harness-p4 | | | |
-| REQ-CYCID-HARNESSP4-001 | | harness-p4 | | | |
-| REQ-CYCID-HARNESSP4-002 | | harness-p4 | | | |
-| REQ-HARN-HARNESSP4-001 | | harness-p4 | | | |
-| REQ-HARN-HARNESSP4-002 | | harness-p4 | | | |
-| REQ-HARN-HARNESSP4-003 | | harness-p4 | | | |
-| REQ-HARN-HARNESSP4-004 | | harness-p4 | | | |
-| REQ-HARN-HARNESSP4-005 | | harness-p4 | | | |
-| REQ-HARN-HARNESSP4-006 | | harness-p4 | | | |
-| REQ-HARN-HARNESSP4-007 | | harness-p4 | | | |
-| REQ-LINT-HARNESSP4-001 | | harness-p4 | | | |
-| REQ-LINT-HARNESSP4-002 | | harness-p4 | | | |
-| REQ-REDB-HARNESSP4-001 | | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-001 | | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-002 | | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-003 | | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-004 | | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-005 | | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-006 | | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-007 | | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-008 | | harness-p4 | | | |
+| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p4 | | | |
+| REQ-ARB-HARNESSP4-001 | arbitrated-handoff.md | harness-p4 | | | |
+| REQ-ARB-HARNESSP4-002 | arbitrated-handoff.md | harness-p4 | | | |
+| REQ-ARB-HARNESSP4-003 | arbitrated-handoff.md | harness-p4 | | | |
+| REQ-CYCID-HARNESSP4-001 | cycle-identity.md | harness-p4 | | | |
+| REQ-CYCID-HARNESSP4-002 | cycle-identity.md | harness-p4 | | | |
+| REQ-HARN-HARNESSP4-001 | harness-commit-fidelity.md | harness-p4 | | | |
+| REQ-HARN-HARNESSP4-002 | harness-commit-fidelity.md | harness-p4 | | | |
+| REQ-HARN-HARNESSP4-003 | harness-commit-fidelity.md | harness-p4 | | | |
+| REQ-HARN-HARNESSP4-004 | harness-write-scope.md | harness-p4 | | | |
+| REQ-HARN-HARNESSP4-005 | harness-write-scope.md | harness-p4 | | | |
+| REQ-HARN-HARNESSP4-006 | harness-commit-fidelity.md | harness-p4 | | | |
+| REQ-HARN-HARNESSP4-007 | harness-chunk-verifier.md | harness-p4 | | | |
+| REQ-LINT-HARNESSP4-001 | skill-lint-v5.md | harness-p4 | | | |
+| REQ-LINT-HARNESSP4-002 | skill-lint-v5.md | harness-p4 | | | |
+| REQ-REDB-HARNESSP4-001 | adversarial-verify.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-001 | telemetry.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-002 | telemetry.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-003 | telemetry.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-004 | telemetry.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-005 | telemetry.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-006 | telemetry.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-007 | telemetry.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-008 | telemetry.md | harness-p4 | | | |

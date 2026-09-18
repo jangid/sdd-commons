@@ -19,6 +19,7 @@ requires:
   - REQ-REDB-HARNESSP3-003
   - REQ-REDB-HARNESSP3-004
   - REQ-HARN-HARNESSP3-002
+  - REQ-REDB-HARNESSP4-001
 ---
 
 # Adversarial (Red/Blue) Verify
@@ -396,6 +397,20 @@ No code consequence: `tools/sdd-gc.py`'s `trace-empty` sweep flags only empty
 `Spec` cells and Implementation-filled / Test-empty rows, and does not constrain
 the `Verified` cell's vocabulary (verified by reading the sweep).
 
+**gc criterion wording** [Amended 2026-09-18, harness-p4 — REQ-REDB-HARNESSP4-001;
+`docs/ws/harness-p3/verification.md` §V5, R6]. Wherever the inherited criterion
+is stated — this spec's §Acceptance Criteria, `ws-traceability.md` §Legal
+`Verified` Cell Values and `skills/sdd-verify/SKILL.md` Step 3b / Step 6 — it
+reads: *"`python3 tools/sdd-gc.py --report` raises no new finding **on a
+`pending-red` cell**"*. The `[traceability-aggregate]` warning that legitimately
+appears between a per-workstream traceability write and the orchestrator's
+post-gate regeneration (`ws-traceability.md` §Aggregate Regeneration Ownership,
+REQ-WS-HARNESSP3-001) is the **designed handshake**, not a finding against the
+cell, and the criterion names it as expected. In p3 the bare "no new finding"
+made an honest verify record read as a near-failure: gc raised zero findings on
+the 17 live `pending-red` cells but one expected aggregate warning the wording
+did not admit.
+
 ### `## Post-cycle Fixes` in the Active Plan (REQ-REDB-HARNESSP3-004)
 
 [Changed 2026-09-18: observed gap with a constructed remedy — this specifies a
@@ -506,7 +521,8 @@ plan.)
 - [ ] **Constructed-evidence gate**: REQ-REDB-HARNESSP3-002 is exercised on a real verify stage with `red team: on` and a second round before it is treated as validated — a walkthrough alone does not discharge it (REQ-REDB-HARNESSP3-002)
 - [ ] §`status: pending-red` and `skills/sdd-verify/SKILL.md` Step 3b / Step 6 instruct the `pending-red` cell write; `docs/spec/ws-traceability.md` lists the three legal cell values (REQ-REDB-HARNESSP3-003)
 - [ ] A walkthrough where red returns `BROKEN` leaves every would-be-`pass` row reading `pending-red` in both the per-ws file and the regenerated aggregate; the DONE flip turns exactly those cells to `pass` while `fail` rows are untouched (REQ-REDB-HARNESSP3-003)
-- [ ] `python3 tools/sdd-gc.py --report` raises no new finding on a `pending-red` cell (REQ-REDB-HARNESSP3-003)
+- [ ] `python3 tools/sdd-gc.py --report` raises no new finding **on a `pending-red` cell**; a `[traceability-aggregate]` warning between the per-ws write and the orchestrator's regeneration is the designed handshake and is expected, not a finding (REQ-REDB-HARNESSP3-003, wording per REQ-REDB-HARNESSP4-001)
+- [ ] `grep -rn 'pending-red' docs/spec/adversarial-verify.md docs/spec/ws-traceability.md skills/sdd-verify/SKILL.md` shows the qualified wording and the named handshake warning in each place the criterion is stated; this cycle's `verification.md` gc item, run after a per-ws write and before regeneration, records the aggregate warning as expected and passes on the qualified criterion (REQ-REDB-HARNESSP4-001)
 - [ ] `## Post-cycle Fixes` is named here with its one-line-per-fix format and orchestrator ownership; `skills/sdd-plan/SKILL.md`'s template lists it as an optional orchestrator-owned non-task section and a plan rewrite preserves it (REQ-REDB-HARNESSP3-004)
 - [ ] A `RED_BREAK` fix dispatched with no open chunk yields `SCOPE: CLEAN` and one new line under that section (REQ-REDB-HARNESSP3-004)
 

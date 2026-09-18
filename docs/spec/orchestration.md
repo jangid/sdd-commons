@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-ORCH-001
   - REQ-ORCH-002
@@ -608,6 +608,14 @@ stage (1), (2), (4), (5) appear together at the stage gate. The stage-gate
 decision vocabulary stays `proceed │ loop-back-to-fix │ stop`, extended only by
 the scope options `revert path | accept & widen scope`; the per-chunk gate
 offers `proceed │ fix │ stop`. All of it is ephemeral (REQ-ORCH-013).
+
+[Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-001] The paragraph above is
+the v5 summary; the **canonical spec-side statement of the full gate signal
+order**, including the later signals (`RED_VERDICT:`, `REVIEW: CONTRADICTION`,
+`TELEMETRY:`) and the post-decision `COMMIT: COMPLETE | INCOMPLETE` closing
+line (item 8; position 2b at the fan-out per-leaf gate), is
+`harness-loop-control.md` §Gate Signal Order. This spec does not restate it;
+`COMMIT:` itself is owned by `harness-commit-fidelity.md`.
 
 **Per-chunk gate (implement stage, sequential).** After each chunk's implement
 dispatch returns: the orchestrator runs the write-scope check, dispatches the

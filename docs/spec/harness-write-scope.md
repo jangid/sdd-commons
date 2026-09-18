@@ -13,6 +13,8 @@ requires:
   - REQ-HARN-HARNESSP3-004
   - REQ-REDB-HARNESSP3-004
   - REQ-WS-HARNESSP3-001
+  - REQ-HARN-HARNESSP4-004
+  - REQ-HARN-HARNESSP4-005
 ---
 
 # Harness Write Scope
@@ -225,6 +227,15 @@ is not a scope violation (its commit falls inside the observed window and is
 matched by path), but the template no longer invites it, and the orchestrator's
 own commit then becomes a no-op for those paths.
 
+[Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-001] Whether the
+orchestrator's commit (or merge) actually landed every observed path is checked
+**after** the `proceed` decision by the `COMMIT: COMPLETE | INCOMPLETE` closing
+line — owned by `harness-commit-fidelity.md`, positioned by
+`harness-loop-control.md` §Gate Signal Order item 8 (2b at the fan-out per-leaf
+gate). Its `expected` operand is the observed-writes set of §Observation, so
+this spec's strict-set rule (§Observed Writes Are a Strict Set) governs both
+signals; the skill-side defining section is `references/write-scope.md` §7.
+
 ### Snapshot Ordering (REQ-HARN-025)
 
 ```
@@ -353,6 +364,52 @@ line appended under the plan's `## Post-cycle Fixes` section is tagged `IN`, not
 unscoped. The section's format and ownership are defined in
 `docs/spec/adversarial-verify.md`.
 
+### Observed Writes Are a Strict Set (REQ-HARN-HARNESSP4-004)
+
+[Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-004; spec-read defect,
+`docs/ws/harness-p3/verification.md` §V7]
+
+`observed writes := porcelain_delta UNION committed_delta UNION content_delta`
+is a **set**, and the implementation must be one: a path that arrives from more
+than one term is counted **once** in the `N` of `SCOPE: VIOLATION (N paths)`,
+once in each `COMMIT:` operand (`harness-commit-fidelity.md`), and listed once on
+the `Observed writes:` provenance line, which keeps the **richest** label for it:
+
+```
+label precedence:  committed  ≻  content  ≻  porcelain
+                   # a path dirty at snapshot, committed during the dispatch and dirtied again
+                   # is observed by two or three terms and rendered once, labelled "committed <sha>"
+```
+
+Why: the operator reads `N` to size a violation, and a rendered token must not
+make a false statement about a count; the Approved contract already said
+`UNION`, and an append-ordered list (`Observation.paths` in
+`tools/sdd-scope-check-selftest.py` today) diverges from it. Nothing else in the
+finding format, tags or options changes.
+
+### `R`/`C` Records and `-z` Parsing Are Fixture-Exercised (REQ-HARN-HARNESSP4-005)
+
+[Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-005; recorded in
+`docs/ws/harness-p3/verification.md` §V6, fixture not added because `tools/`
+was outside that cycle's verify scope]
+
+The criterion "porcelain parsing uses `-z` and enters **both** paths of an
+`R`/`C` record into the ambiguous set" (§Content-Hash Observation) is
+implemented in `snapshot()` / `ambiguous_set` but no fixture F1–F13 renames,
+copies, or uses a path with a space, quote or newline — the conditions under
+which `-z` parsing is load-bearing. Two fixtures are added to
+`tools/sdd-scope-check-selftest.py --self-test`:
+
+| Fixture | Scenario | Asserts |
+|---|---|---|
+| rename across the scope boundary | `git mv` a scoped path to an out-of-scope path during the dispatch | **both** the old and the new path enter the ambiguous set and the observed set; the new path tags `OUT`; the rename is observed rather than cancelling |
+| path with a space | a written path such as `docs/notes with space.md` | `-z` parsing keeps it **one** record; it is observed and rendered as one path |
+
+Mutation contract: splitting the porcelain output on newline instead of NUL
+makes the space-path fixture fail; dropping the rename's origin path from the
+ambiguous set makes the `R` fixture fail. Fixture ids continue the F-series
+(next free ids).
+
 ## Verification
 
 ### Automated
@@ -400,6 +457,9 @@ unscoped. The section's format and ownership are defined in
 - [ ] The specs row of §2 names `docs/ws/<id>/traceability.md` under marker `4`; a marker-4 specs dispatch writing only `docs/spec/**` plus its per-ws row yields `SCOPE: CLEAN` (REQ-HARN-HARNESSP3-004)
 - [ ] §2 leaf rows omit `docs/requirements/traceability.md` and §7 assigns the regeneration to the orchestrator (REQ-WS-HARNESSP3-001)
 - [ ] The implement / `RED_BREAK` row names the active plan path so a `## Post-cycle Fixes` line is `IN` (REQ-REDB-HARNESSP3-004)
+- [ ] `tools/sdd-scope-check-selftest.py --self-test` gains a fixture in which one path is observed by both the committed and the content delta and asserts the rendered `N` is `1` with provenance label `committed`; the shipped self-test exits 0; `references/write-scope.md` §3 states the de-duplication and label-precedence rule in one sentence (REQ-HARN-HARNESSP4-004)
+- [ ] The `R` (scoped → out-of-scope `git mv`, both paths in the ambiguous set) and space-path (`-z` keeps one record) fixtures exist and pass under `--self-test`; the newline-split mutation fails the space-path fixture and dropping the origin path fails the `R` fixture; the shipped self-test exits 0 (REQ-HARN-HARNESSP4-005)
+- [ ] §Commit Ownership carries the one-sentence pointer to `harness-commit-fidelity.md` for the `COMMIT:` closing line (REQ-HARN-HARNESSP4-001, owned there)
 
 ## Edge Cases
 

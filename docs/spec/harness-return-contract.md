@@ -412,6 +412,32 @@ that purpose ("supplies the `### Chunk N:` vocabulary red uses in
 REQ-HARN-019 / REQ-ORCH-012 keep out of leaves, and it widens red's return shape
 for a mapping the orchestrator can perform from `location` alone.
 
+### Return-Drift Warning — `RETURN.files_written − observed` (REQ-HARN-HARNESSP4-002 cross-reference)
+
+[Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-002, owned by
+`harness-commit-fidelity.md`; this spec owns the warning because it owns
+return-side defects]
+
+The parser's warning set gains a fourth member beside `KEYS MISSING`,
+`MULTIPLE_STATUS` and `FOREIGN_TOKEN`:
+
+```
+return_drift := RETURN.files_written − observed_writes        # paths the leaf claimed but no delta observed
+"RETURN drift: <k> path(s) claimed, not observed: <paths>"      # warning line in the return block of the gate text
+```
+
+- It is a **warning, never a pause**, and never an operand of `COMMIT:`
+  (`harness-commit-fidelity.md` §Sequential `expected` Is Observed Writes Only):
+  a claimed-but-unwritten (or written-and-reverted) path is a defect of the
+  leaf's return, not of the orchestrator's commit.
+- The inverse set (`observed − files_written`) is **not** a warning — a leaf
+  may legitimately omit bookkeeping paths from its list; the write-scope check
+  already governs what was written.
+- Telemetry records it as the enum `RETURN_DRIFT` in `return.warnings`
+  (`telemetry.md` §Record Schema); no path text is recorded.
+- Skill side: `references/return-contract.md` §1 or §3 defines the line next to
+  the other parser warnings.
+
 ## Verification
 
 ### Automated
@@ -450,6 +476,7 @@ for a mapping the orchestrator can perform from `location` alone.
 - [ ] §Parsing lists the `RETURN: MALFORMED (budget_consumed shape)` row; a fixture return whose `budget_consumed` is prose pauses the gate, and a fixture missing only `ledger` renders a `KEYS MISSING` warning and does **not** pause (REQ-HARN-HARNESSP3-003)
 - [ ] §1 carries the `blocked_writes`-stays-a-warning note with its reasoning (REQ-HARN-HARNESSP3-003)
 - [ ] §3 names `{deliverable_contract}` as the destination for out-of-fix-scope review findings and states that no repair-packet field is added (REQ-HARN-HARNESSP3-005)
+- [ ] §Return-Drift Warning defines `RETURN.files_written − observed` as a warning line, not a pause, excluded from `COMMIT:`; `references/return-contract.md` §1 or §3 states it; a fixture return claiming `docs/extra.md` unwritten renders the warning and `COMMIT: COMPLETE` (REQ-HARN-HARNESSP4-002, owned by `harness-commit-fidelity.md`)
 - [ ] §5's red entry lists step 1' ahead of the heading-spec step; a fixture `Rn` whose `failures[].location` names a file owned by one chunk routes `target.chunk: <that chunk>`, and a fixture with no usable `location` still routes `target.chunk: all` (REQ-REDB-HARNESSP3-001)
 
 ## Edge Cases

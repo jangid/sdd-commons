@@ -14,6 +14,9 @@ requires:
   - REQ-SKILL-HARNESSP2-006
   - REQ-LINT-HARNESSP2-001
   - REQ-ARB-HARNESSP3-001
+  - REQ-ARB-HARNESSP4-001
+  - REQ-ARB-HARNESSP4-002
+  - REQ-ARB-HARNESSP4-003
 ---
 
 # Arbitrated Handoff Between Contradicting Review Rounds
@@ -53,7 +56,21 @@ round[N]      = { verdict: APPROVE | APPROVE_WITH_FIXES | REJECT,
                              key: { file: <repo-relative path>, section: <§Name> | "?",
                                     affects: { REQ-… } } } ] }
 fix[N]        = { written: { (file, section) }, hunks: { (file, section): "L40-58, L120" } }
+regen[N]      = { written: { (file, section) }, hunks: { (file, section): "…" }, by: leaf | orchestrator }
+                # every orchestrator-dispatched regeneration of the stage deliverable between round N and N+1
+                # (a pipeline re-dispatch of the same stage — Q-IMPL-HARNESSP3-010), PLUS derived artifacts the
+                # orchestrator itself regenerated in that window, e.g. docs/requirements/traceability.md
+                # (by: orchestrator — Q-IMPL-HARNESSP3-017)
+W_N           = sections(fix[N].written) UNION sections(regen[N].written)
+                # the set §Contradiction Classes tests against; (file, *) only where section resolution is unavailable
 ```
+
+[Amended 2026-09-18, harness-p4 — REQ-ARB-HARNESSP4-003: the schema block above
+gains `regen[N]` and the `W_N` union that §Contradiction Classes, §`W_N`
+Includes Regeneration Writes and `references/loop-control.md` §2a already carry,
+so a reader taking this section as the schema of record builds the amended
+state (`docs/ws/harness-p3/verification.md` §V11). `regen[N]` is a sibling set,
+not a rename of `fix[N]` — Q-IMPL-HARNESSP3-009.]
 
 Key parsing from a review line `- C1: <what> — [file:section] — affects
 [REQ-A-001, REQ-A-004]`:
@@ -234,6 +251,52 @@ approved **and the loop did not touch**; a wholesale-regenerated file *was*
 touched by the loop. Admitting it removes false positives only and cannot mask a
 contradiction about a file the loop left alone.
 
+### Live Exercise of the Union in harness-p4 (REQ-ARB-HARNESSP4-001)
+
+[Added 2026-09-18, harness-p4 — REQ-ARB-HARNESSP4-001; decided at DISCUSS. The
+carried REQ-ARB-HARNESSP3-001 closed `fail` = *not exercised* in p3
+(`docs/ws/harness-p3/verification.md` §V3): no fix loop regenerated its
+deliverable between review rounds, so the union was fixture-evidenced only.]
+
+This cycle exercises §`W_N` Includes Regeneration Writes on a **live** fix loop:
+
+| Step | Contract |
+|---|---|
+| trigger | the **first** `APPROVE_WITH_FIXES` stage review of the cycle |
+| fix dispatch | its `{deliverable_contract}` carries the instruction to **regenerate the deliverable wholesale** (rewrite the artifact, not patch it) |
+| expected gate | the next review round's Material or Critical findings **in the regenerated sections** raise **no** class (b) `REVIEW: CONTRADICTION` pause; the rule stays armed for any file the loop left alone (a finding there still pauses) |
+| `regen[N]` | retained per §Retained Per-Round State, including the orchestrator-regenerated `docs/requirements/traceability.md` where the stage produced one (`by: orchestrator`) |
+| record | `docs/ws/harness-p4/verification.md` §Criteria has an item stating the stage, the round numbers (N, N+1), the regenerated paths, the `regen[N]` entry the gate retained and the observed absence of the pause |
+| traceability | the carried `REQ-ARB-HARNESSP3-001` row in `docs/ws/harness-p4/traceability.md` reads `pass` at DONE **on run evidence**; the regenerated aggregate shows the same |
+
+**Duplicate id in the aggregate.** The aggregate carries **both** rows for
+`REQ-ARB-HARNESSP3-001` — `harness-p3` `fail` (history) and `harness-p4` `pass`
+(authoritative). The authority rule and its consequences for `sdd-gc.py` and
+`sdd-verify` are decided in `ws-traceability.md` Q-IMPL-HARNESSP4-001; this spec
+only requires that the `harness-p4` row is the one a reader, gc and the DONE
+rule consult. **DONE rule of the cycle**: every traced requirement reads `pass`;
+nothing closes as a deliberate `fail`; an item that cannot be exercised live is
+**descoped at replan**, not failed.
+
+### §2a Replay Fixture Demonstrates the Derived-Artifact Case (REQ-ARB-HARNESSP4-002)
+
+[Added 2026-09-18, harness-p4 — REQ-ARB-HARNESSP4-002; `docs/ws/harness-p3/verification.md` §V10]
+
+Skill-side text only: `references/loop-control.md` §2a's replay fixture must
+exercise the Q-IMPL-HARNESSP3-017 clause it sits beneath —
+
+- its `regen[1]` entry lists `docs/requirements/traceability.md §(matrix)`
+  labelled **`by: orchestrator`** (orchestrator regeneration), distinct from the
+  leaf-written `docs/ws/<id>/traceability.md` entry;
+- finding `M3` writes its path **in full** (`docs/requirements/traceability.md`
+  or `docs/ws/<id>/traceability.md`), so a reader can tell which of the two files
+  it is on; no bare `traceability.md` remains in the fixture's finding lines.
+
+Today `regen[1]` names only the per-workstream file and `M3` names
+`traceability.md` bare, so the derived-artifact case is demonstrated only by an
+ambiguity. The fixture's expected outcome (no pause on the regenerated file,
+pause on an untouched one) is unchanged.
+
 ## Verification
 
 ### Automated
@@ -292,6 +355,9 @@ contradiction about a file the loop left alone.
 - [ ] `docs/spec/adversarial-verify.md` §Fix-Loop Interaction carries the cross-reference (REQ-ARB-HARNESSP3-001)
 - [ ] A fixture in which round 1 `APPROVE`s, a pipeline re-dispatch regenerates the deliverable, and round 2 raises Material findings in regenerated sections yields **no** `REVIEW: CONTRADICTION` pause (REQ-ARB-HARNESSP3-001)
 - [ ] The same fixture with the findings in a file the loop never touched still pauses as class (b) (REQ-ARB-HARNESSP3-001)
+- [ ] The first `APPROVE_WITH_FIXES` fix dispatch of the harness-p4 cycle carries the regenerate-wholesale instruction in its `{deliverable_contract}`; the following review round's gate renders `VERDICT:` with no `REVIEW: CONTRADICTION` line although it raised findings in the regenerated file; `docs/ws/harness-p4/verification.md` §Criteria records stage, round numbers, regenerated paths and the retained `regen[N]`; the carried `REQ-ARB-HARNESSP3-001` row in `docs/ws/harness-p4/traceability.md` reads `pass` at DONE and the aggregate shows both rows with the `harness-p4` row authoritative (REQ-ARB-HARNESSP4-001, REQ-ARB-HARNESSP3-001)
+- [ ] `grep -n 'docs/requirements/traceability.md' skills/sdd-orchestrate/references/loop-control.md` hits inside the §2a fixture's `regen[1]` block with an orchestrator-regeneration label; no bare `traceability.md` remains in the fixture's finding lines; `python3 tools/sdd-skill-lint.py` exits 0 (REQ-ARB-HARNESSP4-002)
+- [ ] §Retained Per-Round State's fenced schema shows `round[N]`, `fix[N]` and `regen[N]` with the `W_N` union; its text and `references/loop-control.md` §2a agree on the definition (side-by-side read at specs); `python3 tools/sdd-gc.py --report` raises no new finding on this spec (REQ-ARB-HARNESSP4-003)
 
 ## Edge Cases
 
