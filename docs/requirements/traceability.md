@@ -226,7 +226,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-HARN-HARNESSP3-001 | harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F10 | `tools/sdd-scope-check-selftest.py` (`observe`, `content_hashes`, `ambiguous_set`, `snapshot`), `skills/sdd-orchestrate/references/write-scope.md` §3, §5 |  |
 | REQ-HARN-HARNESSP3-002 | harness-return-contract.md, harness-chunk-verifier.md, adversarial-verify.md | harness-p3 |  |  |  |
 | REQ-HARN-HARNESSP3-003 | harness-return-contract.md | harness-p3 |  |  |  |
-| REQ-HARN-HARNESSP3-004 | harness-write-scope.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-004 | harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F11 | `skills/sdd-orchestrate/references/write-scope.md` §2 (specs row) |  |
 | REQ-HARN-HARNESSP3-005 | harness-return-contract.md | harness-p3 |  |  |  |
 | REQ-LINT-HARNESSP2-001 | adversarial-verify.md, arbitrated-handoff.md | harness-p2 | tools/sdd-skill-lint.py --self-test §7 (32-row mutation loop + d2 lookbehind asserts); live mutation of REVIEW: CONTRADICTION → exit 1 with row fix | tools/sdd-skill-lint.py REQUIRED rows a1/a2/b/c + d2 pattern | pass |
 | REQ-LINT-HARNESSP2-002 | telemetry.md | harness-p2 | tools/sdd-skill-lint.py --self-test §7b (fenced .sdd/ fixture fails; allowlisted paths pass) | tools/sdd-skill-lint.py FORBIDDEN `\.sdd/` row (allow_files) | pass |
@@ -263,4 +263,4 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-TELEM-HARNESSP2-009 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test | tools/sdd-telemetry.py | pass |
 | REQ-TELEM-HARNESSP3-001 | telemetry.md | harness-p3 |  |  |  |
 | REQ-TELEM-HARNESSP3-002 | telemetry.md | harness-p3 |  |  |  |
-| REQ-WS-HARNESSP3-001 | ws-traceability.md, harness-write-scope.md | harness-p3 |  |  |  |
+| REQ-WS-HARNESSP3-001 | ws-traceability.md, harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F12 | `skills/sdd-orchestrate/references/write-scope.md` §2, §7, §9, `skills/sdd-orchestrate/SKILL.md` §The gate, `skills/sdd-orchestrate/references/fan-out.md` §3e, `skills/sdd-{requirements,specs,implement,verify}/SKILL.md` |  |
