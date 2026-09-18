@@ -669,3 +669,18 @@ the highest `dispatch.seq` observed per session versus the number of records
 carrying that session id — so the reader needs no side channel from the
 orchestrator and stays a pure post-cycle function of the file.
 **Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP3-018: `summarize` derives a session boundary from a `dispatch.seq` reset
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Records-vs-Expected in `summarize`
+**Decision**:
+
+No record carries a session id, so the reader derives one: within a
+(`cycle.workstream`, `cycle.research_id`) group ordered by `ts_dispatch`, a new
+session opens at the first record and at every record whose `dispatch.seq` does
+not exceed its predecessor's — `seq` is 1-based per session (§Record Schema), so
+a reset is the only observable session boundary. `expected` is then the highest
+`seq` in the session and `gap = expected - recorded`. Purely reader-side; no
+record key is added and no side channel from the orchestrator is used
+(Q-IMPL-HARNESSP3-006).
+**Date**: 2026-09-18 (implement stage, Chunk 4)

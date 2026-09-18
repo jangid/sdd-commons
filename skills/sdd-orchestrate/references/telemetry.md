@@ -10,8 +10,8 @@ the post-cycle reader. Contract: `docs/spec/telemetry.md`
 REQ-SKILL-HARNESSP2-001). Stub: `../SKILL.md` §LOOP; the KICKOFF opt-out is
 at `../SKILL.md` §KICKOFF; the `TELEMETRY:` line position is named at
 `../SKILL.md` §The gate. Every token below is **defined here and nowhere
-else**: the `TELEMETRY:` line family and the `OUT .sdd/telemetry.jsonl (+k
-records, leaf write — reverted)` finding string.
+else**: the four-member `TELEMETRY:` line family (`rec <n>` included) and the
+`OUT .sdd/telemetry.jsonl (+k records, leaf write — reverted)` finding string.
 
 Everything here is **orchestrator-owned** (`../SKILL.md` §Orchestrator-Only
 Work): the orchestrator writes the file after each gate; no leaf, review,
@@ -164,6 +164,8 @@ ts_return   := date -u          # on return, before snapshot(after)
 … scope check (incl. the third observation, §4) → verifier / red / review → gate …
 ts_gate     := date -u          # when the operator's decision is taken
 append one record                # AFTER the gate decision, so gate.decision is filled
+                                # on success: telemetry.rec += 1, asserted as
+                                # `TELEMETRY: rec <n>` on the NEXT gate
 ```
 
 Timestamps are whole seconds (`date -u +%Y-%m-%dT%H:%M:%SZ`).
@@ -180,14 +182,18 @@ Rules:
   the orchestrator renders `TELEMETRY: WRITE FAILED` as one line of the next
   gate's text and continues with the unchanged `proceed │ loop-back-to-fix │
   stop` options. No retry, no pause.
-- **Default on; KICKOFF opt-out.** Telemetry is on for every orchestrated cycle
-  unless the operator disables it at KICKOFF; when off, no record is written and
-  the first gate shows `TELEMETRY: OFF` once. The choice is session state, not
-  an artifact (it is not written to `kickoff.md`) and holds for the cycle —
-  disabling mid-cycle is not offered.
+- **Default on; KICKOFF opt-out, changeable mid-cycle.** Telemetry is on for
+  every orchestrated cycle unless the operator disables it at KICKOFF; when off,
+  no record is written and the first gate shows `TELEMETRY: OFF` once. The
+  question is **asked once, at KICKOFF**, and the answer is session state, not an
+  artifact (it is never written to `kickoff.md`) — but the operator may change it
+  mid-cycle, and the behaviour of such a change is exactly the `OFF` row of the
+  gate-line family below ("every gate after a mid-cycle opt-out") plus the
+  mid-cycle walkthrough at the end of this section.
 - **Write-only for the orchestrator.** `dispatch.seq` is a session-state
-  counter starting at 1; the orchestrator performs **zero reads** of the file —
-  not for position, not for the counter.
+  counter starting at 1, and `telemetry.rec` (the append counter below) is a
+  second one beside it; the orchestrator performs **zero reads** of the file —
+  not for position, not for either counter.
 - **No leaf ever writes it.** No stage skill, review, verifier, fan-out leaf or
   red dispatch is instructed to write it and no dispatch template names the
   path; `.sdd/**` is never in any default or widened write scope
@@ -201,9 +207,57 @@ gate, immediately after the `iteration`/cap line, before the options —
 
 | Line | When |
 |---|---|
+| `TELEMETRY: rec <n>` | the previous dispatch's append **succeeded**; `<n>` is the count of successful appends this session |
 | `TELEMETRY: WRITE FAILED` | the previous append raised an error |
-| `TELEMETRY: OFF` | first gate of a cycle in which the operator disabled telemetry |
+| `TELEMETRY: OFF` | first gate of a cycle in which the operator disabled telemetry, and every gate after a mid-cycle opt-out |
 | `TELEMETRY: .gitignore updated` | the orchestrator added the `.sdd/` ignore line |
+
+The family is `rec <n> │ WRITE FAILED │ OFF │ .gitignore updated` — four
+members. `rec <n>` is the **positive** member (REQ-TELEM-HARNESSP3-001): without
+it a gate that rendered telemetry as on looked identical whether or not the
+append happened.
+
+**`<n>` — the append counter** (`telemetry.rec`, Q-IMPL-HARNESSP3-005):
+
+- `<n>` counts **successful appends this session**. It is **not** `dispatch.seq`.
+  The two diverge whenever a dispatch produces no append (a `WRITE FAILED`, or a
+  mid-cycle opt-out), and where they diverge **the append count wins** — the line
+  exists to assert that the append happened, so binding `<n>` to the dispatch
+  sequence would have a later gate assert an append count that never occurred.
+- It is a new **session-scoped counter named `telemetry.rec`**, maintained beside
+  `dispatch.seq` in the orchestrator's existing session state: initialised to 0 at
+  KICKOFF, incremented **only** after an append returns successfully, and never
+  decremented (a leaf-write revert, §4, removes lines the orchestrator never
+  counted). It restarts at 0 in a new session. **No new artifact.**
+- Position: the writer appends *after* the gate decision, so the **next** gate is
+  where the previous append is asserted; the line renders at most once per gate,
+  immediately after the `iteration`/cap line and before the options
+  (`../SKILL.md` §The gate).
+- **Absence is the signal**: an operator who sees a gate carrying no `rec` line,
+  no `OFF` line and no `WRITE FAILED` line knows the append did not happen —
+  **except at a session's first gate**, where no append has yet been attempted
+  (the writer appends *after* the gate decision), so a bare first gate is
+  expected and not a signal.
+  `tools/sdd-telemetry.py summarize`'s `records-vs-expected:` line (§7) is the
+  post-cycle backstop for a gate whose absent line went unnoticed.
+
+**The line is never a read of the telemetry file.** `<n>` comes from session
+state, not from counting lines in `.sdd/telemetry.jsonl`: the write-only rule
+above (REQ-TELEM-HARNESSP2-004, "the orchestrator performs **zero reads** of the
+file") is preserved **intact**, and the line is text on the gate, so §5's
+non-interference proof is **untouched** — `.sdd/` still appears in no row of the
+phase-detection input table, and `rm -rf .sdd/` still leaves every detected
+phase, staleness verdict and position table byte-identical (it costs at most the
+accuracy of a text line, never a decision).
+
+Walkthroughs (the discriminating cases):
+
+| Session | Gates render | Why |
+|---|---|---|
+| two gated dispatches, both appends succeed | `rec 1`, then `rec 2` | one increment per successful append |
+| file unwritable | `WRITE FAILED`, and **no** `rec` line | a failed append never advances `telemetry.rec` |
+| three dispatches, the second append fails | `rec 1`, `WRITE FAILED`, `rec 2` — **not** `rec 3` | `<n>` counts appends, not dispatches |
+| mid-cycle opt-out, then opt back in | `OFF` gates render no `rec` and do not advance `<n>`; the next successful append resumes from the retained value | the counter is retained, not reset, while telemetry is off |
 
 ---
 
@@ -318,7 +372,19 @@ tool calls mean/max/budget with an `n/a` column; SCOPE violations; MALFORMED;
 fix iterations; redos per chunk; contradiction pauses; red BROKEN/HELD; wall
 time dispatch and gate mean/max), then a per-chunk block (RS-008 probe 1 as a
 query). Unknown-`v` and non-JSON lines are skipped and counted on a trailing
-`skipped: N …` line. A missing or empty telemetry file is an empty run set:
-`summarize` prints `records: 0` and an empty table and exits 0 (the same
+`skipped: N …` line. A **sibling** of that line,
+`records-vs-expected: N session(s), K with a missing append`, reports per session
+how many appends the records imply versus how many are present, with one indented
+line per gap-bearing session (REQ-TELEM-HARNESSP3-002). "Expected" is derived
+**from the records themselves** — the highest `dispatch.seq` in a session, since
+`seq` is 1-based per session and the writer appends once per gated dispatch — and
+never from a gate or any side channel from the orchestrator
+(Q-IMPL-HARNESSP3-006); a session boundary is a `dispatch.seq` that does not
+exceed its predecessor within one (`cycle.workstream`, `cycle.research_id`) group
+ordered by `ts_dispatch` (Q-IMPL-HARNESSP3-018). It is **strictly post-cycle**:
+it is a backstop for a missed gate line, it never influences control flow, and it
+does not weaken the zero-reads rule — nothing inside the loop runs this tool.
+
+A missing or empty telemetry file is an empty run set: `summarize` prints `records: 0` and an empty table and exits 0 (the same
 `n_before := 0 if absent` rule the writer and `sdd-eval.py` follow), never an
 error. `--help` and `--self-test` are available.

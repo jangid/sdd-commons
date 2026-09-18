@@ -17,7 +17,10 @@ Usage:
   tools/sdd-telemetry.py --help
 
 Records with an unknown ``v`` and lines that are not JSON are skipped and
-counted on a trailing ``skipped: N unknown-schema record(s)`` line.
+counted on a trailing ``skipped: N unknown-schema record(s)`` line. A sibling
+``records-vs-expected:`` line reports, per session, how many appends the records
+imply (highest ``dispatch.seq``) versus how many are present — a post-cycle
+backstop for a missing gate append (REQ-TELEM-HARNESSP3-002).
 
 Exit codes: 0 = ok (a missing/empty file is an empty run set), 1 = self-test failure, 2 = usage error.
 """
@@ -271,6 +274,47 @@ def _table(rows: list[dict], columns: list[tuple[str, str]]) -> list[str]:
     return out
 
 
+def session_rows(records: list[dict]) -> list[dict]:
+    """Split records into sessions and report recorded-vs-expected appends per session.
+
+    ``dispatch.seq`` is 1-based **per orchestrator session** (telemetry.md §2), so a
+    session is a maximal run of records — ordered by ``ts_dispatch`` within one
+    (``cycle.workstream``, ``cycle.research_id``) group — whose ``seq`` strictly
+    increases; a ``seq`` that does not exceed its predecessor opens a new session
+    (Q-IMPL-HARNESSP3-018). Since the writer appends exactly one record per gated
+    dispatch, ``expected`` is the highest ``seq`` seen in the session and ``gap =
+    expected - recorded`` counts appends that never happened (a ``WRITE FAILED``, a
+    mid-cycle opt-out, or a gate that rendered no ``TELEMETRY:`` line at all).
+
+    Strictly post-cycle: this is a reader-side derivation from the file alone
+    (REQ-TELEM-HARNESSP3-002, Q-IMPL-HARNESSP3-006) and never influences control flow.
+    """
+    by_run: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for r in records:
+        key = (str(_get(r, "cycle", "workstream", default="?")), str(_get(r, "cycle", "research_id")))
+        by_run[key].append(r)
+    rows: list[dict] = []
+    for (ws, run) in sorted(by_run):
+        recs = sorted(by_run[(ws, run)],
+                      key=lambda r: (_ts(r.get("ts_dispatch")) or datetime.min.replace(tzinfo=timezone.utc)))
+        sessions: list[list[dict]] = []
+        prev_seq = None
+        for r in recs:
+            seq = _get(r, "dispatch", "seq")
+            seq = seq if isinstance(seq, int) else 0
+            if prev_seq is None or seq <= prev_seq:
+                sessions.append([])          # first record, or seq restarted → new session
+            sessions[-1].append(r)
+            prev_seq = seq
+        for i, sess in enumerate(sessions, start=1):
+            expected = max((_get(r, "dispatch", "seq") or 0) for r in sess)
+            recorded = len(sess)
+            rows.append({"workstream": ws, "run": run, "session": i,
+                         "recorded": recorded, "expected": expected,
+                         "gap": max(expected - recorded, 0)})
+    return rows
+
+
 def summarize(records: list[dict], skipped: int) -> str:
     """Full report text: one stage table + per-chunk block per workstream, then the skipped line."""
     lines: list[str] = []
@@ -293,6 +337,14 @@ def summarize(records: list[dict], skipped: int) -> str:
         lines += _table(chunks, CHUNK_COLUMNS) if chunks else ["  (no per-chunk dispatches)"]
         lines.append("")
     lines.append(f"skipped: {skipped} unknown-schema record(s)")
+    # Records-vs-expected: a sibling of the skipped line, so a cycle that lost an
+    # append is visible post-cycle even if the absent gate line went unnoticed.
+    sessions = session_rows(records)
+    with_gap = [s for s in sessions if s["gap"]]
+    lines.append(f"records-vs-expected: {len(sessions)} session(s), {len(with_gap)} with a missing append")
+    for s in with_gap:
+        lines.append(f"  {s['workstream']}/{s['run']} session {s['session']}: "
+                     f"recorded {s['recorded']}, expected {s['expected']}, gap {s['gap']}")
     return "\n".join(lines)
 
 
@@ -403,6 +455,31 @@ def self_test() -> int:
         for _, header in STAGE_COLUMNS:
             check(header in report, f"column missing: {header}")
 
+        # Records-vs-expected (REQ-TELEM-HARNESSP3-002): the six-record fixture is
+        # one gapless session; a synthetic gap is reported and the exit code is unchanged.
+        sessions = session_rows(records)
+        check(len(sessions) == 1 and sessions[0]["gap"] == 0, f"six-record fixture: one gapless session, got {sessions}")
+        check("records-vs-expected: 1 session(s), 0 with a missing append" in report, "records-vs-expected line")
+
+        gappy = [_record(dispatch={"seq": s, "kind": "pipeline", "stage": "implement"},
+                         ts_dispatch=f"2026-09-17T1{i}:00:00Z")
+                 for i, s in enumerate([1, 2, 5, 1])]
+        grows = session_rows(gappy)
+        check(len(grows) == 2, f"seq reset starts a new session, got {len(grows)}")
+        check(grows[0]["expected"] == 5 and grows[0]["recorded"] == 3 and grows[0]["gap"] == 2,
+              f"gap session counts: {grows[0] if grows else None}")
+        check(grows[1]["gap"] == 0, "second session is gapless")
+        greport = summarize(gappy, 0)
+        check("records-vs-expected: 2 session(s), 1 with a missing append" in greport, "gap summary line")
+        check("recorded 3, expected 5, gap 2" in greport, "per-session gap line")
+        gpath = os.path.join(tmp, "gappy.jsonl")
+        with open(gpath, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(json.dumps(r, separators=(",", ":")) for r in gappy) + "\n")
+        gbuf = io.StringIO()
+        with contextlib.redirect_stdout(gbuf):
+            grc = main(["summarize", "--file", gpath])
+        check(grc == 0 and "gap 2" in gbuf.getvalue(), f"summarize on a gap fixture → exit {grc}, unchanged")
+
         # Filters.
         check(len(filter_records(records, "nope", None)) == 0, "workstream filter")
         check(len(filter_records(records, None, "2026-09-18T00:00:00Z")) == 0, "since filter")
@@ -421,7 +498,8 @@ def self_test() -> int:
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
-    print("SELF-TEST OK: budget grammar, six-record fixture (one row per stage, per-chunk block, skipped: 2), missing file → records: 0")
+    print("SELF-TEST OK: budget grammar, six-record fixture (one row per stage, per-chunk block, skipped: 2), "
+          "records-vs-expected (gapless + a seq gap), missing file → records: 0")
     return 0
 
 

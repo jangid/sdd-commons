@@ -272,7 +272,7 @@ positive retained; gates green.
 healthy one, at the gate and post-cycle.
 **Depends on**: None.
 **Tasks**:
-1. [implement] `references/telemetry.md` §3: extend the gate-line family to
+1. [x] [implement] `references/telemetry.md` §3: extend the gate-line family to
    `rec <n> | WRITE FAILED | OFF | .gitignore updated` and specify
    `TELEMETRY: rec <n>`, rendered on the gate **after** an append. `<n>` counts
    **successful appends this session**, is **not** `dispatch.seq`, and is a new
@@ -280,34 +280,34 @@ healthy one, at the gate and post-cycle.
    maintained beside `dispatch.seq`. Record that an operator who sees no `rec`,
    no `OFF` and no `WRITE FAILED` line knows the append did not happen — traces
    to `telemetry.md` §Positive Gate Line (REQ-TELEM-HARNESSP3-001)
-2. [implement] State explicitly in the same section that the line is never a
+2. [x] [implement] State explicitly in the same section that the line is never a
    read of the telemetry file — the zero-reads rule
    (REQ-TELEM-HARNESSP2-004) and the §5 non-interference proof are preserved
    intact, and the line is text — traces to `telemetry.md` §Positive Gate Line
-3. [implement] `tools/sdd-telemetry.py summarize`: report a
+3. [x] [implement] `tools/sdd-telemetry.py summarize`: report a
    records-vs-expected count per session as a sibling of the existing trailing
    `skipped:` line, with expected derived **from the gate records in the file**,
    not from a gate (Q-IMPL-HARNESSP3-006). Strictly post-cycle: it must not
    influence control flow — traces to `telemetry.md` §Records-vs-Expected in
    `summarize` (REQ-TELEM-HARNESSP3-002) **[may — decided: build, see Open
    Questions Q-A]**
-4. [verify] Run `python3 tools/sdd-telemetry.py summarize` against a synthetic
+4. [x] [verify] Run `python3 tools/sdd-telemetry.py summarize` against a synthetic
    `.sdd/telemetry.jsonl` with a deliberate gap: the gap is reported, the exit
    code is unchanged, and nothing in the orchestrator reads the file during a
    cycle — traces to `telemetry.md` §Verification
-5. [verify] Counter walkthrough — **happy increment**: two dispatches in one
+5. [x] [verify] Counter walkthrough — **happy increment**: two dispatches in one
    session render `TELEMETRY: rec 1` at the first gate and `TELEMETRY: rec 2` at
    the second, with `<n>` tracked by the session-scoped `telemetry.rec` counter
    and **not** by `dispatch.seq` — traces to `telemetry.md` §Positive Gate Line
-6. [verify] Counter walkthrough — **unwritable file**: with
+6. [x] [verify] Counter walkthrough — **unwritable file**: with
    `.sdd/telemetry.jsonl` unwritable, the gate renders `TELEMETRY: WRITE FAILED`
    and **no** `rec` line, and `telemetry.rec` does not advance — traces to
    `telemetry.md` §Acceptance Criteria
-7. [verify] Counter walkthrough — **failure between successes**: three dispatches
+7. [x] [verify] Counter walkthrough — **failure between successes**: three dispatches
    where the second append fails render `rec 1`, then `WRITE FAILED`, then
    `rec 2` — not `rec 3`. This is the discriminating case for "successful appends
    this session" — traces to `telemetry.md` §Acceptance Criteria
-8. [verify] Counter walkthrough — **mid-cycle opt-out**: after the operator turns
+8. [x] [verify] Counter walkthrough — **mid-cycle opt-out**: after the operator turns
    telemetry off mid-cycle, subsequent gates render `TELEMETRY: OFF` and
    `telemetry.rec` does not advance; if telemetry is turned back on, `<n>`
    resumes from its retained value rather than restarting — traces to

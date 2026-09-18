@@ -27,6 +27,6 @@ its siblings — never hand-edited.
 | REQ-REDB-HARNESSP3-003 | adversarial-verify.md, ws-traceability.md | harness-p3 |  |  |  |
 | REQ-REDB-HARNESSP3-004 | adversarial-verify.md, harness-write-scope.md, milestone-plans.md | harness-p3 |  |  |  |
 | REQ-SKILL-HARNESSP3-001 | skill-updates.md | harness-p3 |  |  |  |
-| REQ-TELEM-HARNESSP3-001 | telemetry.md | harness-p3 |  |  |  |
-| REQ-TELEM-HARNESSP3-002 | telemetry.md | harness-p3 |  |  |  |
+| REQ-TELEM-HARNESSP3-001 | telemetry.md | harness-p3 | Chunk 4 tasks 5-8 counter walkthroughs (happy increment, unwritable file, failure between successes, mid-cycle opt-out) — inline; no executable fixture (gate text) | `skills/sdd-orchestrate/references/telemetry.md` §3 (four-member family, `telemetry.rec`, walkthrough table) |  |
+| REQ-TELEM-HARNESSP3-002 | telemetry.md | harness-p3 | `tools/sdd-telemetry.py --self-test` (gapless six-record fixture + `seq`-gap fixture); Chunk 4 task 4 synthetic-gap run | `tools/sdd-telemetry.py` (`session_rows`, `summarize` `records-vs-expected:` line), `skills/sdd-orchestrate/references/telemetry.md` §7 |  |
 | REQ-WS-HARNESSP3-001 | ws-traceability.md, harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F12 | `skills/sdd-orchestrate/references/write-scope.md` §2, §7, §9, `skills/sdd-orchestrate/SKILL.md` §The gate, `skills/sdd-orchestrate/references/fan-out.md` §3e, `skills/sdd-{requirements,specs,implement,verify}/SKILL.md` |  |
