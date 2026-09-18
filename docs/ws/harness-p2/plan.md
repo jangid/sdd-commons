@@ -1,7 +1,7 @@
 ---
 workstream: harness-p2
 last_updated: 2026-09-17
-status: active
+status: complete
 ---
 
 # Implementation Plan: Harness Hardening, Part 2 (workstream `harness-p2`)
@@ -772,7 +772,7 @@ measurements are recorded from real dispatch facts. Traces to `evaluation.md`,
 sections of all six specs.
 **Depends on**: Chunk 6.
 **Tasks**:
-1. [ ] [implement] `CLAUDE.md` §Driver (`sdd-orchestrate`): **one short
+1. [x] [implement] `CLAUDE.md` §Driver (`sdd-orchestrate`): **one short
    paragraph** naming per-dispatch telemetry (`.sdd/telemetry.jsonl` —
    gitignored, orchestrator-only, never read by phase detection), the verify
    red-team opt-in (`RED_VERDICT:`, `pending-red`), the `REVIEW: CONTRADICTION`
@@ -780,7 +780,7 @@ sections of all six specs.
    layers" bullet stays byte-unchanged. — traces to `telemetry.md` §Skill and
    Lint Changes (`CLAUDE.md` row) (REQ-SKILL-HARNESSP2-008);
    `adversarial-verify.md` §Skill and Lint Changes (`CLAUDE.md` row unchanged).
-2. [ ] [implement] `skills/sdd-orchestrate/USAGE.md`: one section per new signal
+2. [x] [implement] `skills/sdd-orchestrate/USAGE.md`: one section per new signal
    — the `TELEMETRY:` lines and the KICKOFF opt-out (plus the post-cycle
    `sdd-telemetry.py summarize` step); the red opt-in, `RED_VERDICT:` gate
    block, `fix | accept (record) | stop` and `pending-red`; `REVIEW:
@@ -794,7 +794,7 @@ sections of all six specs.
    `adversarial-verify.md`, `dispatch-snapshot-base.md` §Skill Changes
    (REQ-ARB-HARNESSP2-006, REQ-GC-HARNESSP2-005, REQ-REDB-HARNESSP2-007,
    REQ-HARN-HARNESSP2-001).
-3. [ ] [implement] (**should** — ship only if the chunk has room; otherwise the
+3. [x] [implement] (**should** — ship only if the chunk has room; otherwise the
    deferral line `- REQ-EVAL-HARNESSP2-002: build tools/sdd-eval.py` goes to
    `verification.md` §Next Steps) Create `tools/sdd-eval.py` (stdlib-only):
    reads `.sdd/telemetry.jsonl` plus a `verification.md` `status` line, groups
@@ -806,7 +806,7 @@ sections of all six specs.
    `tools/sdd-eval-run*` or headless-driver script. — traces to
    `evaluation.md` §Scorer Fields (REQ-EVAL-HARNESSP2-002); `telemetry.md`
    §Scorer Derivation.
-4. [ ] [verify] Evaluation-mode guards per `evaluation.md` §Verification —
+4. [x] [verify] Evaluation-mode guards per `evaluation.md` §Verification —
    Automated: `grep -rn 'decision_by' skills/` matches only
    `sdd-orchestrate/references/telemetry.md`; `sdd-orchestrate/SKILL.md`
    §Rules still contains the never-auto-advance sentence and REQ-ORCH-011 text
@@ -819,7 +819,7 @@ sections of all six specs.
    each have a derivation row naming only record keys and `verification.md
    status`. — traces to `evaluation.md` §Evaluation Mode — Defined, Not
    Built, §Out of Scope (REQ-EVAL-HARNESSP2-001, -002, -004).
-5. [ ] [verify] (**should**, operator-run; default **deferred**) Manual N = 3
+5. [x] [verify] (**should**, operator-run; default **deferred**) Manual N = 3
    pilot per `evaluation.md` §Manual N = 3 Pilot: build the toy repository
    (`tools/sdd-scope-check-selftest.py` `make_repo()` shape + one requirement,
    one spec with two acceptance criteria, a two-chunk plan, `CLAUDE.md` with
@@ -835,7 +835,7 @@ sections of all six specs.
    on the toy` under `verification.md` `## Next Steps` (the section defined by
    Chunk 2 task 4). — traces to `evaluation.md` §Manual N = 3 Pilot
    (REQ-EVAL-HARNESSP2-003).
-6. [ ] [implement] Traceability closure: fill any still-empty Test /
+6. [x] [implement] Traceability closure: fill any still-empty Test /
    Implementation cell in `docs/ws/harness-p2/traceability.md` for the 49
    HARNESSP2 rows + the REQ-HARN-027 amendment row (50 in total: REQ-TELEM-,
    REDB-, ARB-, GC-, EVAL-, HARN-HARNESSP2-, LINT-HARNESSP2-,
@@ -848,7 +848,7 @@ sections of all six specs.
    differs. — traces to `ws-traceability.md` §Aggregation Contract;
    `drift-sweep.md` §`--fix` Whitelist (REQ-GC-HARNESSP2-007); `telemetry.md`
    §XSPEC amendment-row rule.
-7. [ ] [verify] Holistic fixture walkthrough across the six specs' Manual
+7. [x] [verify] Holistic fixture walkthrough across the six specs' Manual
    sections, without a live dispatch: on a throwaway two-chunk fixture repo,
    instantiate the RED TEAM and verify PIPELINE (`Red team: enabled`) templates
    verbatim and confirm no empty slot and nothing outside the slot set; render
@@ -869,7 +869,7 @@ sections of all six specs.
    `arbitrated-handoff.md`, `drift-sweep.md`, `dispatch-snapshot-base.md`
    (REQ-TELEM-HARNESSP2-004, REQ-REDB-HARNESSP2-007, REQ-ARB-HARNESSP2-002,
    REQ-GC-HARNESSP2-003, REQ-HARN-HARNESSP2-001, REQ-HARN-027).
-8. [ ] [verify] Probe report from **real dispatch facts** of this cycle (never
+8. [x] [verify] Probe report from **real dispatch facts** of this cycle (never
    simulated): from the workstream branch's `git log`, the orchestrator's gate
    text and, once Chunk 0 has landed, `.sdd/telemetry.jsonl` (`summarize`
    per-chunk block), tabulate — RS-008 probe 1: implement + verifier + fix +
@@ -886,7 +886,7 @@ sections of all six specs.
    triggers below fired or did not. — traces to `docs/ws/harness-p2/kickoff.md`
    Q6; `evaluation.md` §Scorer Fields (fields 3, 5, 6, 7 as live values);
    `telemetry.md` §Out-of-Loop Reader (REQ-TELEM-HARNESSP2-009).
-9. [ ] [verify] Cross-skill consistency sweep: every token, key and option is
+9. [x] [verify] Cross-skill consistency sweep: every token, key and option is
    spelled as its owning spec spells it across `SKILL.md`, the six
    `references/` files, `sdd-verify`, `sdd-review`, `sdd-replan`,
    `sdd-implement` (+ its two references), `USAGE.md` and `CLAUDE.md` —
@@ -913,6 +913,8 @@ pass with no acceptance criterion failed; plan `status: complete`; ready for
 `sdd-verify`.
 
 ## Replan Triggers
+
+- **Cycle record 2026-09-18**: none fired. One fan-out MERGE_CONFLICT (Chunk 1 vs Chunk 0) → re-derivation redo 1 of 3; one CHUNK_VERDICT: FAIL (Chunk 7, malformed traceability cell) → fix redo 1 of 3; both resolved. Probe 1: 2.25 dispatches/chunk (0.25 extra). Probe 2: 0 OUT, 2 ADVISORY, 1 blocked_write (orchestrator-owned).
 
 - **`SKILL.md` cannot absorb the new gate text within ~470 lines without
   breaking a lint `REQUIRED` row** (e.g. the `research_id` ≥ 3 row, the d2

@@ -204,3 +204,13 @@ that dispatches the orchestrator.
    Steps.
 3. **Headless driver verification** (`index.md` Open Questions): Default:
    not probed this cycle; manual N only.
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP2-080: per-run verification status for the scorer
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Scorer Fields
+**Decision**: the spec names one `verification.md` `status` line, but one telemetry file holds N runs (the toy is reused). `tools/sdd-eval.py` applies `--verification`/`--status` to every run and accepts a repeatable `--run-status RESEARCH_ID=STATUS` override per run; a run with unknown status reports field 1 as `unknown` and is excluded from the aggregate pass rate.
+**Rationale**: keeps the scorer derivable from record keys plus one status line without inventing a per-run artifact.
+**Date**: 2026-09-18 (Chunk 7)
+
