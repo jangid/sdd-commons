@@ -687,6 +687,19 @@ renders.
   §Readers That Must State the Comparison
   [Carried from the Chunk 5 per-chunk gate, 2026-09-18, chunk verifier advisory.]
 
+- **V14** — The orchestrator-side analogue of the Chunk 0 blind spot, found by
+  the implement-stage review: the write-scope check verifies what a *leaf* wrote,
+  and nothing verifies that the *orchestrator* then committed everything it
+  observed. Chunk 7's `CLAUDE.md` edits were reported in `files_written`, tagged
+  `IN`, and rendered `SCOPE: CLEAN` — then omitted from the commit's `git add`,
+  so the chunk read complete and its traceability row named a surface absent from
+  HEAD (fixed at `16e240b`). Proposal: before declaring a chunk done, compare the
+  leaf's `files_written` against the commit's own diff and surface a mismatch at
+  the gate — traces to `harness-write-scope.md` §Content-Hash Observation,
+  §Commit ownership
+  [Carried from the implement-stage review, 2026-09-18, finding C1. Strong
+  candidate to lead a harness-p4 cycle.]
+
 **Exit criteria**: `verification.md` records observed evidence (not a
 walkthrough) for REQ-REDB-HARNESSP3-002, REQ-TELEM-HARNESSP3-001,
 REQ-ARB-HARNESSP3-001 and REQ-REDB-HARNESSP3-003; any obligation that could not be

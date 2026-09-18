@@ -416,7 +416,12 @@ def observe(
                 letters.setdefault(p, letter)
         for p, sha_before in content_before.items():
             if p in seen:
-                continue  # already observed by (a) or (b)
+                # ``seen`` covers term (a) only: the committed delta (b) runs
+                # AFTER this block, so a path it will observe is not in ``seen``
+                # here and can be appended twice (once here, once by (b)).
+                # Whether to collapse observed writes to strict set semantics
+                # is owned by the plan's §Verify-Stage Acceptance Obligations V7.
+                continue
             on_disk = os.path.isfile(os.path.join(repo, p))
             if not on_disk:
                 sha_after = ABSENT
