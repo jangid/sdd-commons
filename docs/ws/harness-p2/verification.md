@@ -200,14 +200,19 @@ dispatch. Aggregate `docs/requirements/traceability.md` regenerated via
 - [ ] Significant rework needed (invoke sdd-replan)
 
 ## Next Steps
-- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy
-- Telemetry not live this cycle: exercise the writer and `python3 tools/sdd-telemetry.py summarize` on the first post-merge orchestrated cycle (driver session predated the Chunk 0 writer; `.sdd/telemetry.jsonl` never created) — closes the live half of REQ-TELEM-HARNESSP2-004/-009 and REQ-REDB-HARNESSP2-001's "no red record" check
+- Telemetry went live in the N = 3 pilot (41 records, `summarize` clean — see §Pilot); the first live cycle **in this repository** is still open (closes REQ-TELEM-HARNESSP2-009's own-repo half)
 - gc qimpl-broken-ref: docs/spec/deviation-protocol.md:108 — add `**Spec reference**: §<section>` naming the section Q-IMPL-002 resolves (pre-existing)
 - gc qimpl-broken-ref: docs/spec/ws-ids.md:209 — rename Q-IMPL-009's `§ID-Sorted Insertion` reference to an existing heading of ws-ids.md (pre-existing)
 - gc qimpl-broken-ref: docs/spec/ws-integration.md:121 — rename Q-IMPL-014's `§3c step 3` reference to an existing heading of ws-integration.md (pre-existing)
 - gc qimpl-broken-ref: docs/spec/ws-orchestration.md:195 — rename Q-IMPL-072's `§Marker-4 Prose Move guard 2` reference to an existing heading of ws-orchestration.md (pre-existing)
 - gc size: skills/sdd-migrate/SKILL.md:1 — 464 lines (> 400); move detail to references/ and leave a stub (advisory, pre-existing)
 - gc size: skills/sdd-orchestrate/SKILL.md:1 — 469 lines (> 400); within the accepted ≤ ~470 budget (advisory; record only)
+- pilot: write-scope observation (a) cannot see a fix re-dispatch re-touching a path the pipeline return already left dirty — `IN` reads 0 for every fix dispatch (runs 1–2, four fixes); add a per-dispatch content hash or `git stash`-free diff-of-diff to `write-scope.md` §3, or record it under §5 limitations
+- pilot: phase detection cannot tell a prior cycle's `verification.md` (`status: pass`, same date) from the new cycle's complete plan by date alone — compare `verification.research_id` to the kickoff's `research_id` before reading "verified, ready to ship" (`ws-orchestration.md` new-cycle rule; surfaced by two implement reviews)
+- pilot: the marker-4 specs write scope must include `docs/ws/<id>/traceability.md` beside the aggregate (`write-scope.md` §2 row says so; the orchestrator derived the marker-3 row in run 1 → one `blocked_writes` entry)
+- pilot: regenerate the aggregate traceability in its own orchestrator commit (run 3) — when folded into the leaf's chunk commit (runs 1–2) two implement reviews flagged the attribution as ambiguous; make the separate commit the documented rule in `fan-out.md` §3e / SKILL.md per-chunk gate
+- pilot: review `RETURN:` blocks drift from the leaf key set (run 1 research review used `files_modified`/`blockers`/`notes`, `budget_consumed` as prose → `KEYS_MISSING`); pin the review template's block verbatim like the verifier's
+- pilot: plan-stage reviews of a plan-entry cycle re-review upstream authored outside the driver and raise new ground each round (run 2: 3 rounds, 2 class-b `REVIEW: CONTRADICTION` pauses, both rooted in the spec) — consider a one-shot upstream review before a non-research entry (`REQ-ORCH-032` validate step)
 - tools/sdd-gc.py `table_cells()` does not honour `\|` escapes — the REQ-EVAL-HARNESSP2-004 Test cell needed a pipe escape (ea8b2b6); make the cell splitter escape-aware (record)
 
 ## Cycle Record — RS-008 probes reproduced by hand (telemetry not live)
@@ -269,3 +274,65 @@ Trigger "recurring `OUT` on legitimate side-writes" → **did NOT fire**.
 | GC live runs | post-Chunk 4 exit 0; post-Chunk 5 exit 1 (1 genuine fail: unbackticked `Q-IMPL-999` cell → fixed → exit 0); post-6 exit 0; post-7 exit 0; post-review-fix exit 0 with 6 warnings (2 size + Q-IMPL-002/-009/-014/-072 broken-ref, all pre-existing); this dispatch exit 0, same 6 warnings |
 | Replan triggers fired | none |
 - adversarial-verify.md §Manual: run the red team once on a toy verify stage (red was OFF this cycle by operator decision) — closes the live half of REQ-REDB-HARNESSP2-001
+
+## Pilot (N = 3) — REQ-EVAL-HARNESSP2-003
+
+Run 2026-09-18 on the throwaway toy (`sdd-eval-toy`, marker `4`, workstream `default`,
+`src/recon/engine.py` + `tests/test_recon.py`, gate `.venv/bin/python -m pytest -q`,
+`sdd-eval-toy: true`), driven by `sdd-orchestrate` under the v5 harness with **every
+gate operator-decided** (41 records, all `decision_by: operator`), red team **off**,
+telemetry **live** in the toy's own `.sdd/telemetry.jsonl` (this repository's file
+gained no record). Scored with `python3 tools/sdd-telemetry.py summarize` on the toy
+(one table per workstream, three runs by `cycle.research_id`, `skipped: 0`).
+Toy features: run 1 `mismatched` key (RS-001), run 2 `tolerance=` (RS-002), run 3
+`summarize()` (RS-003).
+
+| Run | Entry | Pass on first attempt | Fix iterations (per stage) | Dispatches | Tool calls (self-reported) | Wall time |
+|-----|-------|-----------------------|----------------------------|------------|----------------------------|-----------|
+| 1 | research | no | research 0, requirements 1, specs 1, plan 0, implement 0, verify 0 | 19 | 79 / 323 | 4h 47m total; ~3h 30m operator idle at gates (>10 min waits); ~1h 15m active |
+| 2 | plan | no | plan 2, implement 0, verify 0 | 13 | 62 / 206 | 1h 40m total; ~0h 28m idle; ~1h 11m active |
+| 3 | plan | yes | plan 0, implement 0, verify 0 | 9 | 50 / 160 | 0h 49m total; ~0h 23m idle; ~0h 26m active |
+
+All three runs closed `verification.md` `status: pass` with review `VERDICT: APPROVE`.
+"Pass on first attempt" = no `fix` dispatch in the run. Tool calls are the leaves'
+self-reports (REQ-HARN-005 limitation) against the dispatched budgets; no dispatch
+exhausted its budget (max 11 of 25, the run-3 verify). Wall time is kickoff commit →
+last gate; idle is the sum of gate waits longer than 10 minutes (run 1 carried one
+3h 11m absence).
+
+### Per-stage (summarizer output, all runs)
+
+| stage | dispatches | tool calls mean/max | budget mean/max | SCOPE violations | MALFORMED | fix iterations | contradiction pauses | wall dispatch mean/max |
+|---|---|---|---|---|---|---|---|---|
+| research | 2 | 3.5/4 | 20.0/25 | 0 | 0 | 0 | 0 | 1m55s/2m11s |
+| requirements | 4 | 3.8/4 | 15.0/20 | 0 | 0 | 1 | 0 | 1m44s/2m02s |
+| specs | 4 | 4.2/6 | 14.5/20 | 0 | 0 | 1 | 0 | 1m46s/2m05s |
+| plan | 10 | 4.1/6 | 13.6/15 | 0 | 0 | 2 | 2 | 2m11s/2m53s |
+| implement | 15 | 4.9/6 | 18.3/25 | 0 | 0 | 0 | 0 | 1m52s/2m40s |
+| verify | 6 | 6.2/11 | 20.0/25 | 0 | 0 | 0 | 0 | 2m30s/3m20s |
+
+Per-chunk block: chunk 1 and chunk 2 each 3 implement + 3 verifier + 0 fix = 6
+dispatches over three runs, max redo 0. Probe 1 (RS-008 Q2) therefore reads **2.0
+dispatches per chunk** live (vs 2.5 hand-derived in this cycle); every `CHUNK_VERDICT`
+was `PASS` at first attempt. Probe 2 (RS-008 Q5): **0 `OUT`, 0 `VIOLATION`** over 41
+dispatches; 2 `ADVISORY`-eligible paths (spec Q-IMPL) never written.
+
+### Signals observed live
+
+| Signal | Count | Where |
+|---|---|---|
+| `REVIEW: CONTRADICTION` (class b) | 2 | run 2 plan stage, rounds 1→2 and 2→3; resolved `accept round N+1 (fix)` then `accept round N (proceed, note)`; both rooted in upstream spec text authored outside the driver (`inf`/`inf` under the numeric rule; stale Q-REQ-004) |
+| `RETURN:` warnings | 1 `KEYS_MISSING` | run 1 research review (non-standard block keys); recorded, not paused |
+| `blocked_writes` | 1 | run 1 specs (per-ws traceability omitted from the orchestrator's marker-4 scope) |
+| `MALFORMED`, `VIOLATION`, `BUDGET_EXHAUSTED`, `RED_*`, replan triggers | 0 | — |
+| `TELEMETRY: WRITE FAILED` | 0 | 41 appends, one per dispatch after its gate |
+| Entry-kickoff detect → confirm → validate (REQ-ORCH-032/033) | 2 | runs 2 and 3 at plan; `docs/research/index.md` early-exit rows for RS-002/RS-003 |
+| Plan archival on new cycle | 2 | `docs/ws/default/plan-history/2026-09-18-rs-00{1,2}-complete.md`, byte-identical |
+
+### What the pilot found (→ §Next Steps, `pilot:` items)
+
+Write-scope observation (a) is blind to fix re-dispatches on already-dirty paths;
+phase detection cannot distinguish a prior cycle's `verification.md` by date; the
+marker-4 specs scope must name the per-ws traceability file; aggregate regeneration
+belongs in its own orchestrator commit; review `RETURN:` blocks drift without a
+verbatim template; plan-entry cycles re-review out-of-driver upstream each round.
