@@ -20,7 +20,7 @@ its siblings — never hand-edited.
 | REQ-HARN-HARNESSP3-001 | harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F10 | `tools/sdd-scope-check-selftest.py` (`observe`, `content_hashes`, `ambiguous_set`, `snapshot`), `skills/sdd-orchestrate/references/write-scope.md` §3, §5 |  |
 | REQ-HARN-HARNESSP3-002 | harness-return-contract.md, harness-chunk-verifier.md, adversarial-verify.md | harness-p3 |  |  |  |
 | REQ-HARN-HARNESSP3-003 | harness-return-contract.md | harness-p3 |  |  |  |
-| REQ-HARN-HARNESSP3-004 | harness-write-scope.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-004 | harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F11 | `skills/sdd-orchestrate/references/write-scope.md` §2 (specs row) |  |
 | REQ-HARN-HARNESSP3-005 | harness-return-contract.md | harness-p3 |  |  |  |
 | REQ-REDB-HARNESSP3-001 | harness-return-contract.md, adversarial-verify.md | harness-p3 |  |  |  |
 | REQ-REDB-HARNESSP3-002 | adversarial-verify.md | harness-p3 |  |  |  |
@@ -29,4 +29,4 @@ its siblings — never hand-edited.
 | REQ-SKILL-HARNESSP3-001 | skill-updates.md | harness-p3 |  |  |  |
 | REQ-TELEM-HARNESSP3-001 | telemetry.md | harness-p3 |  |  |  |
 | REQ-TELEM-HARNESSP3-002 | telemetry.md | harness-p3 |  |  |  |
-| REQ-WS-HARNESSP3-001 | ws-traceability.md, harness-write-scope.md | harness-p3 |  |  |  |
+| REQ-WS-HARNESSP3-001 | ws-traceability.md, harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F12 | `skills/sdd-orchestrate/references/write-scope.md` §2, §7, §9, `skills/sdd-orchestrate/SKILL.md` §The gate, `skills/sdd-orchestrate/references/fan-out.md` §3e, `skills/sdd-{requirements,specs,implement,verify}/SKILL.md` |  |

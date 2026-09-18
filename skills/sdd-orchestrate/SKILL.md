@@ -291,6 +291,25 @@ per token and per `RETURN.status`: `references/return-contract.md` §6, §7.
 | **loop-back-to-fix** | Re-dispatch the pipeline subagent with a repair packet (findings + paths by construction — `references/return-contract.md` §3; never a re-litigation of the reviewer's reasoning), then re-run the review for this stage. |
 | **stop** | Halt the loop; leave artifacts as-is. |
 
+**Post-gate aggregate regeneration (marker `4` — REQ-WS-HARNESSP3-001).** After
+the decision is collected, on **every** outcome — `proceed`, `loop-back-to-fix`
+and `stop` alike — and before the session ends, regenerate
+`docs/requirements/traceability.md` wholesale from the per-ws
+`docs/ws/<id>/traceability.md` files and commit it in the orchestrator's **own**
+bookkeeping commit, separate from the stage/chunk commit
+(`references/write-scope.md` §7; `references/fan-out.md` §3e is the fan-out path
+of the same step). Trigger: a **session dirty flag**
+(`docs/spec/ws-traceability.md` Q-IMPL-HARNESSP3-011) set whenever a leaf's
+`RETURN.traceability_fills` is non-empty and cleared after a successful
+regeneration commit — so a gate whose flag is clear regenerates nothing, and a
+stopped or looped-back stage never leaves the aggregate stale. The flag is
+session state, not an artifact; on a resumed session it starts set, costing at
+most one redundant regeneration (the operation is wholesale and idempotent) and
+never a missed one. The regeneration runs **after** the snapshot window closes,
+so it is never observed by the write-scope check. Leaves never write this path:
+it is absent from every orchestrated `{write_scope}` by construction
+(`references/write-scope.md` §2), and that absence is the signal the leaf reads.
+
 **How the decision is collected (presentation only).** Render the gate block
 verbatim as text — it is a fixture, and its signal order is the contract — then
 collect the decision through the host's option picker when the session has one,

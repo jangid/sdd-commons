@@ -108,53 +108,53 @@ dispatches, and the shared aggregate traceability is unambiguously the
 orchestrator's to regenerate.
 **Depends on**: Chunk 0.
 **Tasks**:
-1. [implement] `references/write-scope.md` §2 default scope table: the **specs**
+1. [x] [implement] `references/write-scope.md` §2 default scope table: the **specs**
    row names `docs/ws/<id>/traceability.md` (Spec column only) under marker `4`
    explicitly, instead of delegating to the section's marker-4 note — traces to
    `harness-write-scope.md` §Specs Row Names the Per-Workstream Traceability
    Path (REQ-HARN-HARNESSP3-004)
-2. [implement] `references/write-scope.md` §2: drop
+2. [x] [implement] `references/write-scope.md` §2: drop
    `docs/requirements/traceability.md` from **every leaf row** for orchestrated
    dispatches, and record that the slot's omission *is* the discriminator
    (absent path → orchestrator regenerates; present path, or no dispatched scope
    at all → the skill regenerates itself) — traces to `ws-traceability.md`
    §Aggregate Regeneration Ownership (REQ-WS-HARNESSP3-001)
-3. [implement] `references/write-scope.md` §7 commit-ownership table: add the
+3. [x] [implement] `references/write-scope.md` §7 commit-ownership table: add the
    orchestrator's post-gate aggregate-regeneration bookkeeping commit, separate
    from any leaf's commit — traces to `ws-traceability.md` §Aggregate
    Regeneration Ownership item (2)
-4. [implement] `references/fan-out.md` §3e: cross-reference the new
+4. [x] [implement] `references/fan-out.md` §3e: cross-reference the new
    bookkeeping step beside the existing plan marks — traces to
    `ws-traceability.md` §Affected surfaces
-5. [implement] `skills/sdd-orchestrate/SKILL.md`: add the post-gate regeneration
+5. [x] [implement] `skills/sdd-orchestrate/SKILL.md`: add the post-gate regeneration
    step, triggered on **every** gate outcome (`proceed`, `loop-back-to-fix` and
    `stop` alike) and before the session ends, whenever a leaf wrote per-ws
    traceability rows since the last regeneration; track that with the session
    dirty flag of Q-IMPL-HARNESSP3-011 — traces to `ws-traceability.md`
    §Regeneration trigger
-6. [implement] Add the marker-4 unless-clause to the four traceability-writing
+6. [x] [implement] Add the marker-4 unless-clause to the four traceability-writing
    skills — `skills/sdd-requirements/SKILL.md`, `skills/sdd-specs/SKILL.md`,
    `skills/sdd-implement/SKILL.md`, `skills/sdd-verify/SKILL.md`: regenerate the
    aggregate after the per-ws write **unless dispatched with a write scope that
    omits that path** — traces to `ws-traceability.md` §Affected surfaces
-7. [implement] Add self-test fixtures: a marker-4 **specs** dispatch writing
+7. [x] [implement] Add self-test fixtures: a marker-4 **specs** dispatch writing
    `docs/spec/**` plus its per-ws row → both `IN`, `SCOPE: CLEAN`; an
    orchestrated marker-4 verify dispatch that also writes
    `docs/requirements/traceability.md` → `OUT`, `SCOPE: VIOLATION (1 path)`;
    the standalone marker-3 verify dispatch fixture (F3) stays `CLEAN` — traces
    to `harness-write-scope.md` §Automated
-8. [verify] Walk one orchestrated marker-4 specs dispatch and one standalone
+8. [x] [verify] Walk one orchestrated marker-4 specs dispatch and one standalone
    `sdd-specs` run on paper against the amended table: the orchestrated one is
    `SCOPE: CLEAN` and does not regenerate the aggregate; the standalone one
    does. Confirm no false `VIOLATION` remains for a skill doing exactly what its
    own SKILL.md mandates — traces to `harness-write-scope.md` §Acceptance
    Criteria
-9. [verify] Walk a gate resolved **`stop`** with the session dirty flag set: the
+9. [x] [verify] Walk a gate resolved **`stop`** with the session dirty flag set: the
    amended `SKILL.md` step regenerates `docs/requirements/traceability.md` from
    the per-ws files and commits it **before the session ends**, i.e. the
    regeneration is not skipped because the cycle is being abandoned — traces to
    `ws-traceability.md` §Acceptance Criteria
-10. [verify] Walk a gate resolved **`loop-back-to-fix`** with the dirty flag set:
+10. [x] [verify] Walk a gate resolved **`loop-back-to-fix`** with the dirty flag set:
     the aggregate is regenerated and committed at that gate, and the flag is
     cleared so the following fix round does not regenerate a second time with no
     intervening per-ws write — traces to `ws-traceability.md` §Acceptance

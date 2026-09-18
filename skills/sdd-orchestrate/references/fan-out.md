@@ -424,6 +424,13 @@ orchestrator applies the shared-doc updates the leaves were barred from making
    active marker's contract (marker `3`: the single shared
    `docs/requirements/traceability.md`; marker `4`: the workstream's own
    `docs/ws/<ws>/traceability.md`, then regenerate the shared aggregate).
+   Regenerating `docs/requirements/traceability.md` is the **orchestrator's**
+   bookkeeping, in its own commit separate from any leaf's — the same rule the
+   sequential path follows at the gate (`write-scope.md` §2 leaf rows and §7
+   commit ownership; `../SKILL.md` §The gate; owning contract
+   `docs/spec/ws-traceability.md` §Aggregate Regeneration Ownership). The path
+   is therefore absent from every orchestrated leaf's `{write_scope}`, and that
+   absence *is* the signal the leaf reads: it does not regenerate.
 3. Re-run any chunk-close Check 2 that a leaf deferred, now that the columns
    are filled.
 4. **Checkpoint application** for every leaf whose `RETURN.status` is

@@ -285,6 +285,15 @@ After every write to a category file, perform these maintenance steps:
    stable-sorted by requirement id; never appended/hand-merged). See
    `docs/spec/ws-traceability.md`.
 
+**Unless the dispatched write scope omits the aggregate (REQ-WS-HARNESSP3-001).**
+Regenerate the aggregate after the per-ws write **unless this run was dispatched
+with a write scope that omits `docs/requirements/traceability.md`** — under
+`sdd-orchestrate` that path is absent from every leaf scope by construction, and
+its absence *is* the signal that regeneration is the orchestrator's post-gate
+bookkeeping (`sdd-orchestrate/references/write-scope.md` §2, §7). Its presence in
+the dispatched scope, or no dispatched write scope at all (a standalone run),
+means regenerate here. No flag or field beyond the scope slot is involved.
+
 **Merge-safe shared writes (marker `4` only).** `docs/.sdd-version` is the sole
 gate; under marker `3` or earlier this is unchanged. Under marker `4`,
 `requirements/`, `spec/`, `research/`, and the aggregated traceability are a single

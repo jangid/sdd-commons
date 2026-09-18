@@ -43,19 +43,31 @@ the redo's scope is the (possibly widened) scope of the dispatch it repairs.
 
 Marker `3` paths. Under marker `4`, `docs/plan*.md`, `docs/plan-history/**`,
 `docs/verification.md` and the traceability write resolve to their
-`docs/ws/<id>/` equivalents (`docs/ws/<id>/traceability.md` plus the
-regenerated aggregate `docs/requirements/traceability.md`), while
+`docs/ws/<id>/` equivalents (`docs/ws/<id>/traceability.md`), while
 `docs/research/**`, `docs/requirements/**` and `docs/spec/**` stay shared
 (§9).
+
+**Leaf rows omit the shared aggregate (REQ-WS-HARNESSP3-001).** For an
+**orchestrated** dispatch the shared aggregate `docs/requirements/traceability.md`
+is **not** part of any leaf row: regenerating it is the orchestrator's post-gate
+bookkeeping, committed separately (§7). The path appears in a leaf's
+`{write_scope}` only for a **standalone** (non-orchestrated) run, where the
+writing skill regenerates the aggregate itself. The omission *is* the
+discriminator, and no new flag or field is introduced: **absent path → the
+orchestrator regenerates; present path, or no dispatched write scope at all →
+the skill regenerates itself.** A skill therefore never has to know *who*
+invoked it, only what it was scoped to write. The rows below are stated in that
+amended form; the owning contract is `docs/spec/ws-traceability.md` §Aggregate
+Regeneration Ownership.
 
 | Stage / dispatch | Default write scope | Note |
 |---|---|---|
 | research | `docs/research/RS-NNN-*/**`, `docs/research/index.md` | `sdd-research` Steps 5–6 |
-| requirements | `docs/requirements/**` | category files, `index.md`, `traceability.md` rows |
-| specs | `docs/spec/**`, `docs/requirements/traceability.md` | traceability: Spec column only |
+| requirements | `docs/requirements/**`, minus `docs/requirements/traceability.md` when orchestrated | category files, `index.md`; marker `4`: rows go to `docs/ws/<id>/traceability.md` |
+| specs | `docs/spec/**`; marker `3`: `docs/requirements/traceability.md` (Spec column only) — marker `4`: `docs/ws/<id>/traceability.md` (Spec column only), plus the aggregate only for a standalone run | traceability: Spec column only |
 | plan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**` | rewrite archives, never `-replan-` |
-| implement (sequential, per chunk) | the chunk's source/test paths, `docs/plan.md`, `docs/plan-*.md`, `docs/requirements/traceability.md`, `docs/spec/*.md` (**ADVISORY**), `docs/plan-history/*-complete.md`, `docs/research/RS-NNN-*/**` + `docs/research/index.md` | traceability: Test/Implementation columns; spec writes = Q-IMPL entries; `-complete` archives multi-milestone only; research paths spike tasks only |
-| verify | `docs/verification.md`, `docs/requirements/traceability.md` | traceability: Verified column (Step 3b) |
+| implement (sequential, per chunk) | the chunk's source/test paths, `docs/plan.md`, `docs/plan-*.md`, the active traceability file (marker `3` `docs/requirements/traceability.md`, marker `4` `docs/ws/<id>/traceability.md`; the aggregate only for a standalone run), `docs/spec/*.md` (**ADVISORY**), `docs/plan-history/*-complete.md`, `docs/research/RS-NNN-*/**` + `docs/research/index.md` | traceability: Test/Implementation columns; spec writes = Q-IMPL entries; `-complete` archives multi-milestone only; research paths spike tasks only |
+| verify | `docs/verification.md`, the active traceability file (marker `3` `docs/requirements/traceability.md`, marker `4` `docs/ws/<id>/traceability.md`; the aggregate only for a standalone run) | traceability: Verified column (Step 3b) |
 | replan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**`, `docs/spec/*.md` (**ADVISORY**) | `-replan-` archives; spec only for a Level-2 inline change |
 | fan-out leaf | the chunk-group's code and test paths **only** | plan + traceability barred by `fan-out.md` §2; `docs/spec/*.md` barred too — leaves never write Q-IMPL entries directly; a deviation is returned in `RETURN.open_questions` and the orchestrator files the Q-IMPL entry at merge (§3e) |
 | review, chunk verifier | *(empty — read-only)* | any write is `OUT` |
@@ -462,6 +474,19 @@ Staging Path.
 | fan-out leaf (and its redo) | **leaf**, on its own branch with inline identity flags (REQ-ORCH-027); the orchestrator merges on `proceed` at the per-leaf gate | `commits` |
 | review | nobody | — |
 | chunk verifier | nobody | `files_written: []` |
+| aggregate regeneration (marker `4`, post-gate bookkeeping) | **orchestrator**, in its **own** commit, separate from any leaf's | — (not a dispatch; driven by the session dirty flag) |
+
+**Aggregate-regeneration bookkeeping commit (REQ-WS-HARNESSP3-001).** Under
+marker `4` the shared `docs/requirements/traceability.md` is regenerated
+wholesale from the per-ws files by the **orchestrator**, never by a leaf, and
+committed on its own — it is never folded into the chunk/stage commit that
+carries the leaf's `files_written`, and never into a leaf's branch commit under
+fan-out. It runs **after** the snapshot window closes, so it is never observed
+by the write-scope check (§9), and it fires at **every** gate outcome —
+`proceed`, `loop-back-to-fix` and `stop` alike — whenever a leaf wrote per-ws
+traceability rows since the last regeneration (`../SKILL.md` §The gate;
+`fan-out.md` §3e for the fan-out path). Regeneration is wholesale and
+idempotent, so a repeat costs nothing and never compounds.
 
 Each template's return step states its row (`dispatch-templates.md` §PIPELINE
 step 4, §REVIEW, §CHUNK VERIFIER; `fan-out.md` §2 step 3). A pipeline leaf that
@@ -514,11 +539,13 @@ gate, and the gate is re-rendered with the resulting `SCOPE:` line.
 Under `docs/.sdd-version` == `4` the default table's execution-artifact paths
 resolve to `docs/ws/<id>/…` (`docs/ws/<id>/plan.md`, `docs/ws/<id>/plan-*.md`,
 `docs/ws/<id>/plan-history/**`, `docs/ws/<id>/verification.md`,
-`docs/ws/<id>/traceability.md` + the regenerated aggregate
-`docs/requirements/traceability.md`); the shared corpus paths
+`docs/ws/<id>/traceability.md` — the aggregate
+`docs/requirements/traceability.md` is **not** in any orchestrated leaf row, §2);
+the shared corpus paths
 (`docs/research/**`, `docs/requirements/**`, `docs/spec/**`) are unchanged.
 The fan-out `<base>` is the workstream branch point (`fan-out.md` §0), and
 every revert / merge target is the **workstream branch**, never `main`. Under
 marker `3` the flat paths and `main` apply unchanged. The orchestrator's
-marker-4 aggregate regeneration in `fan-out.md` §3e happens after the snapshot
-and is never observed.
+marker-4 aggregate regeneration — `fan-out.md` §3e under fan-out, the post-gate
+step of `../SKILL.md` §The gate in sequential mode — happens after the snapshot
+and is never observed, and lands in its own bookkeeping commit (§7).

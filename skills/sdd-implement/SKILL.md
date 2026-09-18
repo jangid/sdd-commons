@@ -119,37 +119,37 @@ Before marking any task done:
 - [ ] The task's spec acceptance criteria are met
 - [ ] Update `docs/requirements/traceability.md`: fill **Test** column after writing tests, fill **Implementation** column after writing code
 
-**Per-workstream traceability (marker `4` only).** `docs/.sdd-version` is the sole
-gate. Under marker `3` or earlier the single shared `docs/requirements/traceability.md`
-is written **directly** as above — this note does NOT apply, and the shared file keeps
-its historical 5-column `| Requirement | Spec | Test | Implementation | Verified |`
-shape with no per-ws files and no aggregate regeneration. Under marker `4`, traceability
-rows are **per-workstream-owned** (REQ-WS-008): fill the **Test** / **Implementation**
-columns in the active workstream's OWN file `docs/ws/<ws>/traceability.md` — never in
-another workstream's file and never in the shared aggregate in place — then
-**regenerate** the shared aggregate (below). Full contract: `docs/spec/ws-traceability.md`.
+**Per-workstream traceability (marker `4` only).** `docs/.sdd-version` is the sole gate;
+under marker `3` or earlier the shared `docs/requirements/traceability.md` is written
+**directly** as above (historical 5-column shape, no per-ws files, no regeneration) and
+this note does not apply. Under marker `4`, rows are **per-workstream-owned**
+(REQ-WS-008): fill **Test** / **Implementation** in the active workstream's OWN file
+`docs/ws/<ws>/traceability.md` — never another ws's file, never the shared aggregate in
+place — then **regenerate** the aggregate (below). Full contract: `docs/spec/ws-traceability.md`.
 
 - **Per-workstream file shape (REQ-WS-008).** `docs/ws/<ws>/traceability.md` carries
-  frontmatter `workstream: <ws>` / `last_updated:` and the matrix with a
-  **Workstream** column as the **3rd column** — `| Requirement | Spec | Workstream | Test | Implementation | Verified |`.
-  It holds **only** this workstream's rows: both new `REQ-<DOMAIN>-<WS>-NNN` requirements
-  and pre-existing shared REQs this workstream re-uses. A workstream only ever edits its
-  own rows — never another ws's file.
-- **Aggregate is regenerated, never hand-merged (REQ-WS-008).**
-  `docs/requirements/traceability.md` is a **derived** aggregate. After updating the
-  per-ws file, rebuild the aggregate **wholesale**: shipped legacy rows — rows predating the v4 migration, attributed to the blank/default workstream — `+ concat(` every `docs/ws/<id>/traceability.md` `)`, **stable-sorted by
-  requirement id**. Same inputs → byte-identical output. Never append or hand-edit it, so
-  two concurrent workstreams never conflict on it — each writes only its own per-ws file
-  and the aggregate re-derives on merge. The **Workstream** column (the 3rd column) does
-  **not** disturb the REQ-WS-012 unchanged-parser guarantee: traceability/requirements row
-  parsing keys off the first `Requirement` column, so column position is irrelevant — the
-  parser is unaffected regardless of where the `Workstream` column sits.
-- **Recorded join vs. compute-live staleness (REQ-WS-007).** The per-ws traceability
-  files and the aggregate are the load-bearing **recorded** coverage/derivation join
-  ONLY. Staleness is computed **live** from the workstream's plan
-  `task → spec requires: → requirement` chain and MUST NOT read any traceability file; no
-  traceability schema column is added for staleness (the `Workstream` column exists only
-  to attribute aggregated rows, not to feed staleness).
+  frontmatter `workstream: <ws>` / `last_updated:` and the matrix with **Workstream** as
+  the **3rd column** — `| Requirement | Spec | Workstream | Test | Implementation | Verified |` —
+  holding **only** this workstream's rows (new `REQ-<DOMAIN>-<WS>-NNN` plus shared REQs it
+  re-uses); a workstream never edits another ws's file.
+- **Aggregate is regenerated, never hand-merged (REQ-WS-008).** `docs/requirements/traceability.md`
+  is a **derived** aggregate. After updating the per-ws file, rebuild it **wholesale**: shipped
+  legacy rows (predating the v4 migration, attributed to the blank/default workstream)
+  `+ concat(` every `docs/ws/<id>/traceability.md` `)`, **stable-sorted by requirement id**.
+  Same inputs → byte-identical output; never append or hand-edit it, so two concurrent
+  workstreams never conflict — each writes only its own file and the aggregate re-derives on
+  merge. The `Workstream` column does not disturb the REQ-WS-012 unchanged-parser guarantee.
+- **Recorded join vs. compute-live staleness (REQ-WS-007).** The per-ws files and the aggregate
+  are the **recorded** coverage join ONLY; the staleness computation **MUST NOT read any
+  traceability file** — it derives the same scoped set live from the plan's
+  `task → spec requires: → requirement` chain. And **no traceability schema column is added for
+  staleness**: the `Workstream` column exists only to attribute aggregated rows, not to feed staleness.
+
+**Unless the dispatched write scope omits the aggregate (REQ-WS-HARNESSP3-001).**
+Regenerate the aggregate after the per-ws write **unless dispatched with a write scope that
+omits `docs/requirements/traceability.md`** — that absence *is* the orchestrated signal, and
+regeneration is then the orchestrator's post-gate bookkeeping (`sdd-orchestrate/references/write-scope.md` §2, §7);
+presence, or no dispatched scope at all (standalone), means regenerate here.
 
 ### Step 3: Stuck Detection
 

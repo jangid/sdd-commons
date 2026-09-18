@@ -2,11 +2,13 @@
 """Self-test for the sdd-orchestrate write-scope check.
 
 Builds throwaway git repositories under a temporary directory and replays the
-ten write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
+write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
 (plan Chunk 4 task 5) plus ``docs/spec/telemetry.md`` §Third Observation (F7),
 ``docs/spec/arbitrated-handoff.md`` §Section Resolution (F8) and
 ``docs/spec/dispatch-snapshot-base.md`` §Snapshot Base Rule (F9) and
-``docs/spec/harness-write-scope.md`` §Content-Hash Observation (F10) against the
+``docs/spec/harness-write-scope.md`` §Content-Hash Observation (F10),
+§Specs Row Names the Per-Workstream Traceability Path (F11) and
+``docs/spec/ws-traceability.md`` §Aggregate Regeneration Ownership (F12) against the
 observation procedure defined in ``skills/sdd-orchestrate/references/write-scope.md``:
 
   §3  the three commands — porcelain delta, committed delta, ancestry check —
@@ -33,6 +35,10 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
                                                    OUT write -> VIOLATION (1 path)
   F10 already-dirty path re-touched by the leaf -> OUT (content delta) -> VIOLATION
       (1 path); the same fixture untouched         (1 path); untouched -> SCOPE: CLEAN
+  F11 marker-4 specs dispatch: docs/spec/** +   -> both IN, SCOPE: CLEAN
+      docs/ws/<id>/traceability.md row
+  F12 marker-4 verify dispatch also writes      -> OUT the aggregate,
+      docs/requirements/traceability.md            SCOPE: VIOLATION (1 path)
 
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
@@ -113,6 +119,8 @@ def make_repo(root: str, name: str) -> str:
         "docs/spec/recon.md": "# Recon\n\n## Implementation Questions\n",
         "docs/verification.md": "# Verification\n",
         "docs/requirements/traceability.md": "| REQ | Spec |\n",
+        "docs/ws/harness/traceability.md": "| REQ | Spec | Workstream |\n",
+        "docs/ws/harness/verification.md": "# Verification\n",
     }.items():
         write(repo, rel, body)
     git(repo, "add", "-A")
@@ -656,6 +664,13 @@ IMPLEMENT_SCOPE = [
     ScopeGlob("docs/spec/*.md", advisory=True),
 ]
 LEAF_SCOPE = [ScopeGlob("src/recon/**"), ScopeGlob("tests/test_recon.py")]
+# Marker-4 orchestrated scopes: the shared aggregate docs/requirements/traceability.md
+# is absent by construction (write-scope.md §2, REQ-WS-HARNESSP3-001).
+SPECS_WS4_SCOPE = [ScopeGlob("docs/spec/**"), ScopeGlob("docs/ws/harness/traceability.md")]
+VERIFY_WS4_SCOPE = [
+    ScopeGlob("docs/ws/harness/verification.md"),
+    ScopeGlob("docs/ws/harness/traceability.md"),
+]
 
 
 def _begin(repo: str) -> tuple[str, list[str], dict[str, str]]:
@@ -955,6 +970,48 @@ def scenario_f10(repo: str) -> tuple[bool, str, list[str]]:
     return ok, token, f_dirty.lines + f_clean.lines
 
 
+
+def scenario_f11(repo: str) -> tuple[bool, str, list[str]]:
+    """Orchestrated marker-4 specs dispatch: docs/spec/** + its per-ws row, both IN.
+
+    ``harness-write-scope.md`` §Specs Row Names the Per-Workstream Traceability
+    Path (REQ-HARN-HARNESSP3-004): the specs row names
+    ``docs/ws/<id>/traceability.md`` explicitly, so a specs leaf doing exactly
+    what ``sdd-specs`` mandates (fill the Spec column) is ``SCOPE: CLEAN`` — not
+    the false ``VIOLATION`` the unresolved row produced.
+    """
+    head, before, content_before = _begin(repo)
+    write(repo, "docs/spec/recon.md", "# Recon\n\n## Design\n")
+    write(repo, "docs/ws/harness/traceability.md", "| REQ | Spec | Workstream |\n| R1 | recon.md | harness |\n")
+    f = render(SPECS_WS4_SCOPE, observe(repo, head, before, content_before=content_before), "F11")
+    tags = [ln.split()[0] for ln in f.lines if ln.startswith("    ")]
+    ok = f.token == "SCOPE: CLEAN" and tags == ["IN", "IN"] and not f.out_paths
+    return ok, f.token, f.lines
+
+
+def scenario_f12(repo: str) -> tuple[bool, str, list[str]]:
+    """Orchestrated marker-4 verify dispatch that also writes the shared aggregate.
+
+    ``ws-traceability.md`` §Aggregate Regeneration Ownership
+    (REQ-WS-HARNESSP3-001): the aggregate is the orchestrator's post-gate
+    bookkeeping, so it is absent from the leaf scope and a leaf that writes it
+    anyway is ``OUT`` -> ``SCOPE: VIOLATION (1 path)``. The in-scope per-ws
+    writes stay ``IN``.
+    """
+    head, before, content_before = _begin(repo)
+    write(repo, "docs/ws/harness/verification.md", "# Verification\nstatus: pass\n")
+    write(repo, "docs/ws/harness/traceability.md", "| REQ | Spec | Workstream | Verified |\n")
+    write(repo, "docs/requirements/traceability.md", "| REQ | Spec | Verified |\n")
+    f = render(VERIFY_WS4_SCOPE, observe(repo, head, before, content_before=content_before), "F12")
+    ok = (
+        f.token == "SCOPE: VIOLATION (1 path)"
+        and f.out_paths == ["docs/requirements/traceability.md"]
+        and any("OUT" in ln and "docs/requirements/traceability.md" in ln for ln in f.lines)
+        and sum(1 for ln in f.lines if ln.strip().startswith("IN ")) == 2
+    )
+    return ok, f.token, f.lines
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -966,6 +1023,8 @@ SCENARIOS = [
     ("F8", "section resolution: hunks L40-58 under ## A, L120 under ## C", scenario_f8),
     ("F9", "catch-up base: worktree one commit behind, leaf fast-forwards", scenario_f9),
     ("F10", "already-dirty path re-touched by the leaf (content-hash observation)", scenario_f10),
+    ("F11", "orchestrated marker-4 specs dispatch: spec + per-ws row, both IN", scenario_f11),
+    ("F12", "orchestrated marker-4 verify dispatch also writes the shared aggregate", scenario_f12),
 ]
 
 

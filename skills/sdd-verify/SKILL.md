@@ -137,6 +137,15 @@ never the shared aggregate in place — then **regenerate** the shared aggregate
 requirement id; never hand-merged). See `docs/spec/ws-traceability.md` (REQ-WS-007,
 REQ-WS-008).
 
+**Unless the dispatched write scope omits the aggregate (REQ-WS-HARNESSP3-001).**
+Regenerate the aggregate after the per-ws write **unless this run was dispatched
+with a write scope that omits `docs/requirements/traceability.md`** — under
+`sdd-orchestrate` that path is absent from every leaf scope by construction, and
+its absence *is* the signal that regeneration is the orchestrator's post-gate
+bookkeeping (`sdd-orchestrate/references/write-scope.md` §2, §7). Its presence in
+the dispatched scope, or no dispatched write scope at all (a standalone run),
+means regenerate here. No flag or field beyond the scope slot is involved.
+
 ### Step 4: User-Perspective Validation
 
 Go beyond unit tests. Ask:
