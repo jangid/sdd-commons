@@ -63,12 +63,12 @@ telemetry record exists this cycle.
 | TELEM-001 one record per dispatch, counts/enums/shas only; `"C1` absent; schema lists the key set | pass (fixture) | six-record fixture: `any '"C1' substring: False`; longest string value 20 chars (timestamp); `verdict.findings` carries `C`/`M` integers; schema `references/telemetry.md` §2 L37–155 lists every key. Not live: no `.sdd/telemetry.jsonl` to `grep -c` |
 | TELEM-002 budget as enumerated units | pass (cmd) | `parse_budget_line("Budget: ~70 tool calls, no prototypes")` → `{'tool_calls': 70, 'test_runs': None, 'prototypes': False, 'read_only': False}` (exact); fixture: `any 'tool calls' substring: False`; grammar table telemetry.md L120–124 |
 | TELEM-003 no resume-class key; `.sdd/` absent from §Phase Detection / position table | pass (cmd) | fixture key set ∩ {`next_stage`,`resume`,`current_phase`,`pending`,`position`} = ∅; `grep -rn '\.sdd/' skills/*/SKILL.md` → only `sdd-orchestrate/SKILL.md:203–206` (the §LOOP telemetry stub); position table L67 names `pending-red`, not `.sdd/` |
-| TELEM-004 orchestrator-only writer, one append per gate, `TELEMETRY: WRITE FAILED` / `OFF` lines; no `docs/ws/*/telemetry*` | pass (contract; not live) | telemetry.md §3 L156–209 (writer, L204–206 the three gate lines); SKILL.md §LOOP stub L201–208 ("After each gate you append one record"); `ls docs/ws/*/telemetry*` → no matches. N-lines-for-N-gates could not be checked live (0 records this cycle) |
+| TELEM-004 orchestrator-only writer, one append per gate, `TELEMETRY: WRITE FAILED` / `OFF` lines; no `docs/ws/*/telemetry*` | pass (contract) — live half unable | telemetry.md §3 L156–209 (writer, L204–206 the three gate lines); SKILL.md §LOOP stub L201–208 ("After each gate you append one record"); `ls docs/ws/*/telemetry*` → no matches. N-lines-for-N-gates could not be checked live (0 records this cycle) |
 | TELEM-005 leaf write to `.sdd/` surfaces as `OUT`, reverted | pass (fixture) | scope self-test `PASS F7 leaf appends to .sdd/telemetry.jsonl (third observation, reverted) -> SCOPE: VIOLATION (1 path)`; write-scope.md §3 L172–176 |
 | TELEM-006 never a phase-detection input; `rm -rf .sdd/` neutral | pass (cmd + contract) | `.sdd/` in `skills/*/SKILL.md` hits only the orchestrate stub (above); telemetry.md §5 non-interference table L251–283; trivially neutral this cycle (`.sdd/` absent, every phase detection ran against the same repo) |
 | TELEM-007 lint guard on the telemetry path | pass (fixture) | scratch copy + `Read \`.sdd/telemetry.jsonl\`` appended to `sdd-verify/SKILL.md` → `[forbidden] \.sdd/ … fix: remove the reference — skills never read .sdd/ …`, `FAIL: 1 finding(s)`; shipped tree exit 0 |
 | TELEM-008 gitignored, root-level, outside `docs/` | pass (cmd) | `git check-ignore -q .sdd/telemetry.jsonl` exit 0 (`.gitignore` last stanza `.sdd/`); `git status --porcelain \| grep -c '\.sdd'` → 0; `git diff --name-status 1697869 HEAD -- docs/` adds only 6 requirement/spec files, RS-HARNESSP2-001 findings, and `docs/ws/harness-p2/{kickoff,plan,traceability}.md` |
-| TELEM-009 out-of-loop reader | pass (fixture; not live) | `summarize --file <fixture>` → `records: 6`, one row per stage (research/specs/implement/verify) with all 14 columns + per-chunk block + `skipped: 2 unknown-schema record(s)`; missing file → `records: 0`, exit 0; `grep -rn sdd-telemetry skills/` → SKILL.md:207 stub pointer, `references/telemetry.md`, and operator `USAGE.md` (no skill invokes it) |
+| TELEM-009 out-of-loop reader | pass (fixture) — live half unable | `summarize --file <fixture>` → `records: 6`, one row per stage (research/specs/implement/verify) with all 14 columns + per-chunk block + `skipped: 2 unknown-schema record(s)`; missing file → `records: 0`, exit 0; `grep -rn sdd-telemetry skills/` → SKILL.md:207 stub pointer, `references/telemetry.md`, and operator `USAGE.md` (no skill invokes it) |
 | REQ-HARN-027 amendment — no new tracked artifact under `docs/` from the harness | pass (cmd) | `git check-ignore` exit 0; `git ls-files docs/` delta vs base = stage-skill artifacts only (row inherits legacy `pass` per telemetry.md §XSPEC) |
 
 ### adversarial-verify.md (REQ-REDB-HARNESSP2-001..009, REQ-LINT-HARNESSP2-001, REQ-SKILL-HARNESSP2-002/-005)
@@ -142,8 +142,10 @@ telemetry record exists this cycle.
 | SKILL-008 USAGE.md section per signal; CLAUDE.md one paragraph, four-layer bullet unchanged | pass (cmd) | `USAGE.md` §7c L396–536: `TELEMETRY:`, Red team, `REVIEW: CONTRADICTION`, `GC:`, `CATCH-UP`; every `.sdd/` mention (L122, 405, 409–412, 421, 511, 628) carries the gitignored / orchestrator-only / never-read phrase; `git diff --stat c38922d -- CLAUDE.md` = `20 insertions(+)`, 0 deletions |
 | LINT-002 FORBIDDEN `\.sdd/` row; fenced mention fails; allowlist passes; operator docs unscanned | pass (fixture) | fenced `.sdd/telemetry.jsonl` appended to scratch `sdd-plan/SKILL.md` → `[forbidden] \.sdd/ … (REQ-ORCH-014)`, exit 1; shipped tree (3 allowlisted skill files + USAGE.md/CLAUDE.md) exit 0; `--self-test` §7b covers the allowlist |
 
-**Acceptance totals: 50 rows — 50 pass, 0 fail, 0 unable.** (EVAL-003 passes on
-its deferral clause; TELEM-001/-004/-009 pass on fixture + contract, not live.)
+**Acceptance totals: 50 rows — 50 pass, 0 fail, 0 unable** (amended 2026-09-18 at the
+verify-stage review: TELEM-004/-009 and REDB-001 pass on contract/fixture with their
+live half **unable** this cycle — telemetry was never active and red was off — queued
+under Next Steps; EVAL-003 passes on its deferral clause).
 
 ### Traceability check (Step 3b)
 
@@ -266,3 +268,4 @@ Trigger "recurring `OUT` on legitimate side-writes" → **did NOT fire**.
 | `TELEMETRY:` records written / `WRITE FAILED` | 0 / 0 (writer not live — driver session predates Chunk 0) |
 | GC live runs | post-Chunk 4 exit 0; post-Chunk 5 exit 1 (1 genuine fail: unbackticked `Q-IMPL-999` cell → fixed → exit 0); post-6 exit 0; post-7 exit 0; post-review-fix exit 0 with 6 warnings (2 size + Q-IMPL-002/-009/-014/-072 broken-ref, all pre-existing); this dispatch exit 0, same 6 warnings |
 | Replan triggers fired | none |
+- adversarial-verify.md §Manual: run the red team once on a toy verify stage (red was OFF this cycle by operator decision) — closes the live half of REQ-REDB-HARNESSP2-001
