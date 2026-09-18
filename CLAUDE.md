@@ -75,6 +75,11 @@ Standalone scripts or utilities. Use the appropriate language for the task. Each
 - Skill and agent names use kebab-case
 - No orphaned files — every skill directory has a SKILL.md, every agent file has frontmatter
 - Descriptions must be actionable: state when to use AND when not to use
+- Prose describing **another** repository's artifacts (a toy clone, an evidence
+  record, a pilot log) must not quote that repository's `Q-IMPL` id tokens
+  verbatim — paraphrase them or wrap them in a fenced code block, which
+  `tools/sdd-gc.py`'s `qimpl-undefined` sweep already skips (the rule itself is
+  unchanged; there is no allowlist)
 - Run `tools/sdd-skill-lint.py` after editing any skill — it enforces the checks
   above plus cross-skill contract markers and known drift phrases (exit 0 = clean)
 
@@ -136,8 +141,9 @@ blocked-task note.
 **Cycle signals (v5 part 2 — harness-p2).** After every gate the driver appends
 one record — counts, enums, shas, timestamps, never finding text — to
 `.sdd/telemetry.jsonl` (gitignored, orchestrator-only, never read by phase
-detection; default on, opt-out at KICKOFF; `TELEMETRY: WRITE FAILED | OFF |
-.gitignore updated` are its only gate lines; post-cycle reader `python3
+detection; default on, opt-out at KICKOFF; `TELEMETRY: rec <n> | WRITE FAILED | OFF |
+.gitignore updated` are its only gate lines — four members, `rec <n>` the
+positive one; post-cycle reader `python3
 tools/sdd-telemetry.py summarize`). At the verify stage the operator may opt in
 to a **red team** (`red team: off | on`, default off): one read-only leaf attacks
 the weakest acceptance criteria and ends with `RED_VERDICT: BROKEN | HELD`;
@@ -152,6 +158,28 @@ the docs corpus at entry (one informational `GC:` line) and at DONE (findings
 routed `--fix <rule>` │ `record | ignore` │ note; `record` appends to
 `verification.md` `## Next Steps`); gc never runs between stages, never blocks a
 gate and never touches a plan task.
+
+**Harness hardening, part 3 (harness-p3).** The write-scope observation is a
+**content** decision: a path already dirty when the snapshot was taken and
+re-touched by a leaf is observed (`git hash-object` per path in the ambiguous
+set), so paths cancel only when their content hash is unchanged too. Every
+dispatch template pins its leaf's `RETURN:` block verbatim, and a
+`BUDGET_EXHAUSTED` return pauses the gate with `budget_consumed` rather than
+reading as progress. Arbitration counts a **regenerated** artifact as written by
+the fix loop, so a finding in a wholesale-regenerated file is not a class (b)
+`REVIEW: CONTRADICTION`, while a file the loop left alone still pauses. The
+`TELEMETRY:` family gains its positive member — `TELEMETRY: rec <n>`, `<n>`
+counting successful appends this session — so a gate that claims telemetry is on
+now shows that the append happened. A completion signal (`verification.md`
+`status: pass`, or a fully-checked plan) counts for **this** cycle only when its
+frontmatter `research_id:` string-equals the kickoff's; a mismatch or an absent
+field reads as a previous cycle's artifact. At the verify gate a red round
+N >= 2 renders one derived `RED: Rn new-ground | regression` line per `BROKEN`
+`Rn`, from a re-run of the previous round's `reproduce:` command, and the
+`Verified` column reads `pending-red` until the `pending-red → pass` flip at
+DONE. The canonical gate signal order lives in
+`skills/sdd-orchestrate/references/loop-control.md` §5; `SKILL.md` §The gate is
+its non-divergent summary.
 
 ### Phase Detection
 

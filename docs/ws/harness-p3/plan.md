@@ -665,8 +665,10 @@ renders.
   not fixable in-chunk because specs are frozen.]
 
 - **V12** — Three skills now exceed the 400-line `[size]` threshold:
-  `sdd-implement` (422, newly over — Chunk 5's required §Phase Detection block),
-  `sdd-orchestrate` (523) and `sdd-migrate` (464). The gc baseline moves from 6
+  `sdd-implement` (**434** at the end of the implement stage; 422 when this note
+  was first written at the Chunk 5 gate, grown further by Chunks 6 and 7),
+  `sdd-orchestrate` (**535**; 523 at the Chunk 5 gate) and `sdd-migrate` (464,
+  unchanged). The gc baseline moves from 6
   to 7 warnings as a result. Operator decision at the Chunk 5 gate,
   2026-09-18: **accept now**, because the content is spec-required and the leaf
   correctly refused to compress unrelated prose to hide it (the failure mode
