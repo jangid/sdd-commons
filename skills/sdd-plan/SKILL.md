@@ -38,6 +38,28 @@ workstream owns only its `docs/ws/<ws>/` execution artifacts and per-ws
 `traceability.md`; requirements/specs/research and the aggregated traceability
 are shared (ADD, never fork); omitting the argument resolves `default`.
 
+**Cycle identity (REQ-CYCID-HARNESSP3-001, -002).** Before reading a
+**completion signal** as "this cycle is done" — `verification.md` `status: pass`,
+or `plan.md` `status: complete` with every task `[x]` — compare that artifact's
+frontmatter `research_id:` against the kickoff's (`docs/ws/<ws>/kickoff.md` under
+marker `4`, `docs/handoff/kickoff.md` under marker `3`) by **exact string
+equality** on the trimmed value — no normalisation, case folding or prefix
+matching (Q-IMPL-HARNESSP3-015). The three cases are exhaustive:
+
+1. **Mismatch** — the artifact's `research_id` differs from the kickoff's → **a
+   previous cycle's artifact**; this stage has not been reached in this cycle.
+2. **Field absent** — a kickoff with a `research_id` exists but the artifact
+   carries none (legacy; existing files are **never back-filled**) → the same
+   reading as a mismatch. Absence is the safe direction: it costs one re-entry,
+   it never asserts a completion that did not happen.
+3. **No usable discriminator** — no `kickoff.md` for this `(repo, workstream)`,
+   **or** a kickoff that carries no `research_id` (Q-IMPL-HARNESSP3-016) → the
+   comparison is **skipped entirely** and the existing `status:`-only rule
+   applies unchanged. Cycle identity is an orchestrated-cycle discriminator,
+   never a precondition for detection.
+
+See `docs/spec/cycle-identity.md`.
+
 0. **Version check**: If `docs/.sdd-version` is missing, suggest running `sdd-migrate` before proceeding
 1. If no `docs/requirements/index.md` or status is `Draft` → use `sdd-requirements`
 2. If `docs/spec/*.md` are missing or any has `status: Draft` → use `sdd-specs`
@@ -116,7 +138,7 @@ Decide whether to use per-milestone plan files:
 When activating per-milestone structure:
 1. Create `docs/plan.md` as the index (milestone table format — see Step 7)
 2. Create `docs/plan-{milestone-id}.md` for each active milestone
-3. Add `milestone:`, `last_updated:`, and `status: planned` frontmatter to each milestone plan
+3. Add `milestone:`, `last_updated:`, `status: planned`, and `research_id:` (immediately after `status:`) frontmatter to each milestone plan
 
 **Marker `4`**: the same structure lives inside the workstream — `docs/ws/<ws>/plan.md` is the index and `docs/ws/<ws>/plan-{milestone-id}.md` the milestone plans, archiving to `docs/ws/<ws>/plan-history/`. Per-milestone activation is per-workstream; it never creates flat `docs/plan-*.md` files.
 
@@ -174,6 +196,7 @@ marker `4`) or create the index + per-milestone files (multi-milestone).
 ---
 last_updated: YYYY-MM-DD
 status: planned   # planned → active (first task starts) → complete
+research_id: RS-<WS>-NNN   # copied verbatim from the workstream's kickoff.md
 ---
 
 # Implementation Plan: [Project Name]
@@ -214,6 +237,17 @@ One paragraph: what we're implementing and the approach.
 ```
 
 (The `last_updated:` field is what every staleness check compares; bump it on every rewrite/update. `status:` follows the same lifecycle vocabulary as per-milestone plans.)
+
+(The `research_id:` field is the **cycle identity** stamp (REQ-CYCID-HARNESSP3-002):
+copy it **verbatim** from the active workstream's `kickoff.md` (`docs/ws/<ws>/kickoff.md`
+under marker `4`, `docs/handoff/kickoff.md` under marker `3`) — never derive, shorten or
+invent one — and emit it on the line immediately after `status:`
+(Q-IMPL-HARNESSP3-014). It is what lets a reader tell **this** cycle's
+`status: complete` plan from a previous cycle's (§Phase Detection). Omit the field when
+there is no kickoff or the kickoff carries no `research_id` — case 3, the comparison is
+skipped. Existing plans are **not** back-filled, and nothing under
+`docs/requirements/**` or `docs/spec/**` is ever stamped: the shared corpus is cumulative
+and its `status: Approved` is product-wide, not per-cycle. See `docs/spec/cycle-identity.md`.)
 
 **Multi-milestone index format** (`docs/plan.md` when per-milestone files exist):
 

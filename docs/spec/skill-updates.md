@@ -449,3 +449,17 @@ a trailing `(carried from <research_id>)`, so the reader can tell a fresh findin
 from an inherited one without reading git history. A closed Minor is listed once
 with `closed: <one-line reason>` and is not carried again in the next cycle.
 **Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP3-019: Under case 3 the carry marker degrades to `(carried forward)`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §harness-p3: `sdd-verify` Carries Unresolved Minors Forward (REQ-SKILL-HARNESSP3-001)
+**Decision**:
+
+Q-IMPL-HARNESSP3-013 fixes the carry marker as `(carried from <research_id>)`,
+but under `cycle-identity.md`'s case 3 the previous report carries no
+`research_id` to name. Decision (stated default): the marker degrades to a bare
+`(carried forward)` — the carry is still visible to a reader, and no id is
+invented. Rationale: the rule must not be suppressed by the absence of a kickoff
+(the spec says so explicitly), and fabricating or deriving an id would violate
+`cycle-identity.md` §The Stamp ("copied verbatim; no skill derives or invents one").
+**Date**: 2026-09-18 (implement stage, Chunk 5)

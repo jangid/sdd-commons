@@ -165,11 +165,13 @@ Skills then detect the current phase by checking which artifacts exist **and whe
 | `docs/requirements/index.md` (status: Approved) — shared | Requirements done |
 | `docs/spec/*.md` (all status: Approved) — shared | Specs done |
 | `docs/plan.md` → `docs/ws/<id>/plan.md` (exists, tasks incomplete) | Planning done, implementing |
-| `docs/plan.md` → `docs/ws/<id>/plan.md` (all tasks done) | Implementation done |
-| `docs/verification.md` → `docs/ws/<id>/verification.md` (status: pass) | Verified, ready to ship |
+| `docs/plan.md` → `docs/ws/<id>/plan.md` (`status: complete`, all tasks done, **`research_id` matches the kickoff's**) | Implementation done |
+| `docs/verification.md` → `docs/ws/<id>/verification.md` (status: pass, **`research_id` matches the kickoff's**) | Verified, ready to ship |
 | `docs/verification.md` → `docs/ws/<id>/verification.md` (status: fail) | Needs replan |
 
 Under marker `4`, phase is resolved **per workstream** — two workstreams in the same repo can sit at different phases simultaneously. A skill under marker `3` never reads `docs/ws/`; a skill under marker `4` never reads flat `docs/plan.md` / `docs/verification.md`.
+
+**Cycle identity.** The two **completion-signal** rows above carry a second condition: the artifact's frontmatter `research_id:` must equal the kickoff's (`docs/ws/<id>/kickoff.md` under marker `4`, `docs/handoff/kickoff.md` under marker `3`), compared by **exact string equality** on the trimmed value. Three exhaustive cases: (1) **mismatch** → a previous cycle's artifact, the stage has not been reached in this cycle; (2) **field absent** while the kickoff has one (legacy — existing files are never back-filled) → read as a mismatch, the safe direction; (3) **no usable discriminator** (no kickoff, **or** a kickoff carrying no `research_id`) → the comparison is **skipped entirely** and the `status:`-only rule applies unchanged, so a repo that never ran the orchestrator still reads its `status: pass` report as verified. `sdd-plan` and `sdd-verify` write the stamp, copied verbatim from the kickoff; the shared corpus (`docs/requirements/**`, `docs/spec/**`) is never stamped, because `status: Approved` there is product-wide, not per-cycle. See `docs/spec/cycle-identity.md`.
 
 #### Staleness Detection
 

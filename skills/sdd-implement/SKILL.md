@@ -37,6 +37,28 @@ workstream owns only its `docs/ws/<ws>/` execution artifacts and per-ws
 `traceability.md`; requirements/specs/research and the aggregated traceability
 are shared (ADD, never fork); omitting the argument resolves `default`.
 
+**Cycle identity (REQ-CYCID-HARNESSP3-001, -002).** Before reading a
+**completion signal** as "this cycle is done" — `verification.md` `status: pass`,
+or `plan.md` `status: complete` with every task `[x]` — compare that artifact's
+frontmatter `research_id:` against the kickoff's (`docs/ws/<ws>/kickoff.md` under
+marker `4`, `docs/handoff/kickoff.md` under marker `3`) by **exact string
+equality** on the trimmed value — no normalisation, case folding or prefix
+matching (Q-IMPL-HARNESSP3-015). The three cases are exhaustive:
+
+1. **Mismatch** — the artifact's `research_id` differs from the kickoff's → **a
+   previous cycle's artifact**; this stage has not been reached in this cycle.
+2. **Field absent** — a kickoff with a `research_id` exists but the artifact
+   carries none (legacy; existing files are **never back-filled**) → the same
+   reading as a mismatch. Absence is the safe direction: it costs one re-entry,
+   it never asserts a completion that did not happen.
+3. **No usable discriminator** — no `kickoff.md` for this `(repo, workstream)`,
+   **or** a kickoff that carries no `research_id` (Q-IMPL-HARNESSP3-016) → the
+   comparison is **skipped entirely** and the existing `status:`-only rule
+   applies unchanged. Cycle identity is an orchestrated-cycle discriminator,
+   never a precondition for detection.
+
+See `docs/spec/cycle-identity.md`.
+
 0. **Version check**: If `docs/.sdd-version` is missing, suggest running `sdd-migrate` before proceeding
 1. If no `docs/requirements/index.md` or status is `Draft` → use `sdd-requirements`
 2. If `docs/spec/*.md` are missing or have `status: Draft` → use `sdd-specs`

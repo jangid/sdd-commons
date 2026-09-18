@@ -325,15 +325,15 @@ current cycle's completion, and unresolved Minors survive the per-cycle
 overwrite.
 **Depends on**: None.
 **Tasks**:
-1. [implement] `skills/sdd-plan/SKILL.md`: emit `research_id:` in the plan
+1. [x] [implement] `skills/sdd-plan/SKILL.md`: emit `research_id:` in the plan
    frontmatter template, immediately after `status:`
    (Q-IMPL-HARNESSP3-014), copied verbatim from the active workstream's
    `kickoff.md` — never derived or invented — traces to `cycle-identity.md`
    §The Stamp (REQ-CYCID-HARNESSP3-001)
-2. [implement] `skills/sdd-verify/SKILL.md` Step 6: emit the same
+2. [x] [implement] `skills/sdd-verify/SKILL.md` Step 6: emit the same
    `research_id:` stamp in `verification.md`'s frontmatter — traces to
    `cycle-identity.md` §The Stamp
-3. [implement] State the three exhaustive comparison cases (mismatch / field
+3. [x] [implement] State the three exhaustive comparison cases (mismatch / field
    absent / no usable discriminator) in the `§Phase Detection` blocks of
    `skills/sdd-verify`, `skills/sdd-replan`, `skills/sdd-plan`,
    `skills/sdd-implement` and `skills/sdd-orchestrate`, compared by **exact
@@ -342,17 +342,17 @@ overwrite.
    comparison entirely — cycle identity is an orchestrated-cycle discriminator,
    never a precondition for detection — traces to `cycle-identity.md` §Readers
    That Must State the Comparison (REQ-CYCID-HARNESSP3-002)
-4. [implement] `CLAUDE.md` §Phase Detection table: add the same comparison to
+4. [x] [implement] `CLAUDE.md` §Phase Detection table: add the same comparison to
    the completion-signal rows (`verification.md` `status: pass`, `plan.md`
    `status: complete` with every task `[x]`) — traces to `cycle-identity.md`
    §Readers That Must State the Comparison
-5. [implement] Record the three explicit non-changes where they are load-bearing:
+5. [x] [implement] Record the three explicit non-changes where they are load-bearing:
    no back-fill of existing files (they read as case 2), no cycle identity on the
    shared corpus (`docs/requirements/**`, `docs/spec/**`), and no demotion of
    `references/loop-control.md` §3's `git log -S'research_id: <id>'`
    cycle-start-date derivation — its cap arithmetic is unmodified — traces to
    `cycle-identity.md` §What Is Explicitly Not Changed
-6. [implement] `skills/sdd-verify/SKILL.md` Step 6: add the carry-or-close rule
+6. [x] [implement] `skills/sdd-verify/SKILL.md` Step 6: add the carry-or-close rule
    — unresolved **Minor** entries from the previous cycle's report are either
    carried into this cycle's §Issues Found → Minor (keeping their original text
    plus a carry marker, Q-IMPL-HARNESSP3-013) or explicitly marked closed with a
@@ -361,13 +361,13 @@ overwrite.
    is about to replace, identified by its position on disk alone — absence of a
    kickoff must not suppress the rule — traces to `skill-updates.md`
    §harness-p3 (REQ-SKILL-HARNESSP3-001)
-7. [verify] Walk phase detection for three synthetic `(repo, workstream)`
+7. [x] [verify] Walk phase detection for three synthetic `(repo, workstream)`
    states — mismatched `research_id`, absent field, and no kickoff at all — and
    confirm the readings are previous-cycle / previous-cycle / status-only. Walk
    a repo that never ran the orchestrator and confirm its `status: pass` report
    is still read as verified — traces to `cycle-identity.md` §Acceptance
    Criteria
-8. [verify] Walk the carry-or-close rule over a synthetic previous
+8. [x] [verify] Walk the carry-or-close rule over a synthetic previous
    `verification.md` holding **two** unresolved Minor entries: the new report
    contains both under §Issues Found → Minor with their original text plus a
    carry marker, **or** marks each closed with a stated reason — no Minor
@@ -651,6 +651,27 @@ renders.
   `arbitrated-handoff.md` §Acceptance Criteria
   [Carried from the Chunk 3 per-chunk gate, 2026-09-18, chunk verifier advisory A2;
   not fixable in-chunk because specs are frozen.]
+
+- **V12** — Three skills now exceed the 400-line `[size]` threshold:
+  `sdd-implement` (422, newly over — Chunk 5's required §Phase Detection block),
+  `sdd-orchestrate` (523) and `sdd-migrate` (464). The gc baseline moves from 6
+  to 7 warnings as a result. Operator decision at the Chunk 5 gate,
+  2026-09-18: **accept now**, because the content is spec-required and the leaf
+  correctly refused to compress unrelated prose to hide it (the failure mode
+  that produced Chunk 1's verifier FAIL). Decide at verify whether to split the
+  three files, raise the threshold to something the corpus can actually hold, or
+  record the new baseline as intentional — traces to `skill-updates.md`
+  §harness-p3, `drift-sweep.md` §Sweeps
+  [Carried from the Chunk 5 per-chunk gate, 2026-09-18.]
+
+- **V13** — Readability, not a defect: `CLAUDE.md`'s two completion-signal table
+  rows state the `research_id` match unconditionally, and the case-3 relief lives
+  only in the paragraph below them, so a reader scanning the table alone could
+  infer that a repo with no kickoff fails those rows. Confining the edit to
+  rows-plus-one-paragraph was the Chunk 5 task constraint. Decide whether the
+  rows should carry the qualifier inline — traces to `cycle-identity.md`
+  §Readers That Must State the Comparison
+  [Carried from the Chunk 5 per-chunk gate, 2026-09-18, chunk verifier advisory.]
 
 **Exit criteria**: `verification.md` records observed evidence (not a
 walkthrough) for REQ-REDB-HARNESSP3-002, REQ-TELEM-HARNESSP3-001,

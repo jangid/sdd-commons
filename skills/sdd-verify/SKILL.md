@@ -44,6 +44,28 @@ workstream owns only its `docs/ws/<ws>/` execution artifacts and per-ws
 `traceability.md`; requirements/specs/research and the aggregated traceability
 are shared (ADD, never fork); omitting the argument resolves `default`.
 
+**Cycle identity (REQ-CYCID-HARNESSP3-001, -002).** Before reading a
+**completion signal** as "this cycle is done" — `verification.md` `status: pass`,
+or `plan.md` `status: complete` with every task `[x]` — compare that artifact's
+frontmatter `research_id:` against the kickoff's (`docs/ws/<ws>/kickoff.md` under
+marker `4`, `docs/handoff/kickoff.md` under marker `3`) by **exact string
+equality** on the trimmed value — no normalisation, case folding or prefix
+matching (Q-IMPL-HARNESSP3-015). The three cases are exhaustive:
+
+1. **Mismatch** — the artifact's `research_id` differs from the kickoff's → **a
+   previous cycle's artifact**; this stage has not been reached in this cycle.
+2. **Field absent** — a kickoff with a `research_id` exists but the artifact
+   carries none (legacy; existing files are **never back-filled**) → the same
+   reading as a mismatch. Absence is the safe direction: it costs one re-entry,
+   it never asserts a completion that did not happen.
+3. **No usable discriminator** — no `kickoff.md` for this `(repo, workstream)`,
+   **or** a kickoff that carries no `research_id` (Q-IMPL-HARNESSP3-016) → the
+   comparison is **skipped entirely** and the existing `status:`-only rule
+   applies unchanged. Cycle identity is an orchestrated-cycle discriminator,
+   never a precondition for detection.
+
+See `docs/spec/cycle-identity.md`.
+
 0. **Version check**: If `docs/.sdd-version` is missing, suggest running `sdd-migrate` before proceeding
 1. If no `docs/plan.md` → use `sdd-plan`
 2. **Staleness check**: compare `last_updated` in `docs/requirements/index.md` and specs against `docs/plan.md`'s `last_updated` frontmatter (legacy plans without frontmatter: file modification date as fallback). If upstream artifacts are newer than the plan, the plan is stale → use `sdd-plan` to update before verifying
@@ -180,6 +202,7 @@ Save to `docs/verification.md` (or `docs/ws/<ws>/verification.md` under marker `
 ---
 last_updated: YYYY-MM-DD
 status: pass | fail
+research_id: RS-<WS>-NNN   # copied verbatim from the workstream's kickoff.md
 plan_ref: docs/plan.md   # marker 4: docs/ws/<ws>/plan.md
 ---
 
@@ -239,6 +262,37 @@ plan_ref: docs/plan.md   # marker 4: docs/ws/<ws>/plan.md
 ```
 
 (`last_updated:` matches every other SDD artifact's staleness field; older reports may carry `date:` instead — treat the two as equivalent when reading.)
+
+**The `research_id:` stamp (REQ-CYCID-HARNESSP3-001).** Emit it on the line
+immediately after `status:` (Q-IMPL-HARNESSP3-014), copied **verbatim** from the
+active workstream's `kickoff.md` (`docs/ws/<ws>/kickoff.md` under marker `4`,
+`docs/handoff/kickoff.md` under marker `3`) — never derived or invented. It is
+what lets a later reader tell **this** cycle's `status: pass` report from a
+previous cycle's (§Phase Detection). Omit the field when there is no kickoff or
+the kickoff carries no `research_id` (case 3). Existing reports are **not**
+back-filled, and no file under `docs/requirements/**` or `docs/spec/**` is ever
+stamped. See `docs/spec/cycle-identity.md`.
+
+**Carry-or-close for unresolved Minors (REQ-SKILL-HARNESSP3-001).**
+`verification.md` is **overwritten** per cycle, so a Minor that is neither
+carried nor closed is lost to git history. Before writing the new report, read
+the report this write is about to replace — **the previous cycle's report**,
+identified via the `research_id` comparison of §Phase Detection — and for every
+unresolved entry under its `### Minor (can ship, fix later)` do exactly one of:
+
+- **carry** it into this cycle's §Issues Found → Minor, reproducing its
+  **original wording** plus a trailing `(carried from <research_id>)` marker, so
+  a reader tells an inherited finding from a fresh one without reading git
+  history (Q-IMPL-HARNESSP3-013) — under case 3 the previous report has no
+  `research_id` to name, so the marker degrades to `(carried forward)`
+  (Q-IMPL-HARNESSP3-019); or
+- **close** it, listing it once as `closed: <one-line reason>`; a closed Minor is
+  not carried again in the next cycle.
+
+No Minor silently disappears across the overwrite. The rule applies **including
+under case 3** (no kickoff, or a kickoff without `research_id`): with no
+discriminator the previous report is whatever sits at the report's path on disk,
+and **absence of a kickoff must not suppress the rule**.
 
 **Section slots.** `## Next Steps` (after `## Recommendation`) is the **single
 definition** of the report's follow-up slot: `- gc <rule>: <file:line> — <fix>`
