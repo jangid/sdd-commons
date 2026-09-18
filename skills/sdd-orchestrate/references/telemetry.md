@@ -55,7 +55,7 @@ set is fixed; null fields are written as `null`, never omitted.
 | `dispatch` | `seq` | int, **1-based per session** — restarts at 1 in every new orchestrator session; cycle/run identity comes from `cycle.research_id`, never from `seq` | orchestrator session counter (never read back from the file) |
 | | `kind` | `pipeline` \| `fix` \| `fanout_leaf` \| `verifier` \| `review` \| `red` | template used |
 | | `stage` | `research` \| `requirements` \| `specs` \| `plan` \| `implement` \| `verify` \| `replan` | the stage **that was dispatched** (historical fact) |
-| | `chunk` | int or null | `### Chunk N:` number for per-chunk dispatches |
+| | `chunk` | int or null — the **integer N parsed** from the `### Chunk N:` header, **never** the header string (`"Chunk 3"`, `"### Chunk 3: …"`) and never a quoted digit; `null` for every non-chunk dispatch | `### Chunk N:` number for per-chunk dispatches |
 | | `iteration` | int or null | fix-loop iteration this dispatch belongs to |
 | | `redo` | int or null | per-chunk redo count at dispatch |
 | | `reason` | repair-packet `reason` enum or null | `harness-return-contract.md` §Repair Packet (plus `RED_BREAK`, `adversarial-verify.md`) |
@@ -90,6 +90,18 @@ on re-entry. A cycle (run) is identified by `cycle.research_id` — stamped on
 every record — and a cycle boundary is a change of that id; readers order
 records by `ts_dispatch` within a run and never rely on `dispatch.seq` being
 monotonic across sessions.
+
+**`dispatch.chunk` is a number, not a heading** — the orchestrator is the only
+writer of this file, so this field's domain is enforced nowhere but here. Write
+the **integer N** parsed out of the plan's `### Chunk N:` header
+(`### Chunk 3: Telemetry` → `"chunk": 3`), and `null` for every dispatch that is
+not per-chunk. Never write the header text, the header's `Chunk N` fragment, or
+N as a string: `"chunk": "Chunk 3"` and `"chunk": "3"` are both out of domain.
+A record that violates it still parses, so it is not dropped by the reader's
+`skipped:` tally — it is excluded from `summarize`'s per-chunk block and counted
+on the `out-of-domain dispatch.chunk: N record(s)` line instead. Live history is
+never rewritten to repair it (§3 Append-only), so a writer-side slip stays visible for the
+rest of the cycle.
 
 **`gate.decision` normalisation** — every gate option rendered anywhere in the
 harness maps to exactly one enum value; an option not in this table is `other`

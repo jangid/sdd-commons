@@ -194,8 +194,12 @@ def stage_rows(records: list[dict]) -> list[dict]:
         for r in recs:
             rc = _get(r, "gate", "redo_count")
             if isinstance(rc, int):
-                ch = _get(r, "dispatch", "chunk")
-                redo_by_chunk[ch] = max(redo_by_chunk[ch], rc)
+                # Key by the rendered label, not the raw value: an out-of-domain
+                # ``dispatch.chunk`` (telemetry.md §Record Schema: int or null) would
+                # otherwise be interpolated verbatim into the ``c{c}:{n}`` cell and
+                # render a doubled prefix such as ``cChunk 0:0``.
+                label = _chunk_label(_get(r, "dispatch", "chunk"))
+                redo_by_chunk[label] = max(redo_by_chunk[label], rc)
         wall_dispatch, wall_gate = [], []
         for r in recs:
             td, tr, tg = _ts(r.get("ts_dispatch")), _ts(r.get("ts_return")), _ts(r.get("ts_gate"))
@@ -213,7 +217,7 @@ def stage_rows(records: list[dict]) -> list[dict]:
             "scope_violations": sum(1 for r in recs if _get(r, "scope", "token") == "VIOLATION"),
             "malformed": sum(1 for r in recs if _get(r, "verdict", "malformed") is True),
             "fix_iterations": max((_get(r, "gate", "fix_iteration") or 0) for r in recs),
-            "redos_per_chunk": " ".join(f"c{c}:{n}" for c, n in sorted(redo_by_chunk.items(), key=lambda kv: str(kv[0]))) or "-",
+            "redos_per_chunk": " ".join(f"{c}:{n}" for c, n in sorted(redo_by_chunk.items(), key=lambda kv: str(kv[0]))) or "-",
             "contradiction_pauses": sum(1 for r in recs if _get(r, "verdict", "contradiction_class") is not None),
             "red_broken": red.count("BROKEN"),
             "red_held": red.count("HELD"),
@@ -221,6 +225,43 @@ def stage_rows(records: list[dict]) -> list[dict]:
             "wall_gate": _fmt_secs(wall_gate),
         })
     return rows
+
+
+def _chunk_label(chunk) -> str:
+    """Render ``dispatch.chunk`` for the ``redos per chunk`` cell.
+
+    The schema (``telemetry.md`` §Record Schema) fixes the field to ``int or null``.
+    An int renders ``cN``, null renders ``c-``, and anything else — a writer that
+    stored the ``### Chunk N:`` header string instead of the parsed integer — is
+    folded into a single ``c?`` bucket rather than interpolated verbatim. The
+    records behind ``c?`` are counted by :func:`out_of_domain_chunks` and reported
+    on their own line, so the violation is visible instead of silent.
+    """
+    if isinstance(chunk, bool):  # bool is an int subclass; not a chunk number
+        return "c?"
+    if isinstance(chunk, int):
+        return f"c{chunk}"
+    if chunk is None:
+        return "c-"
+    return "c?"
+
+
+def out_of_domain_chunks(records: list[dict]) -> int:
+    """Count records whose ``dispatch.chunk`` violates the ``int or null`` domain.
+
+    These records are dropped from the per-chunk block (:func:`chunk_rows` needs an
+    int key) and are *not* counted by ``load``'s ``skipped`` tally, which only sees
+    torn lines and unknown ``v``. Without this counter the violation would be
+    invisible — the block would simply print ``(no per-chunk dispatches)``.
+    """
+    n = 0
+    for r in records:
+        ch = _get(r, "dispatch", "chunk")
+        if ch is None:
+            continue
+        if isinstance(ch, bool) or not isinstance(ch, int):
+            n += 1
+    return n
 
 
 PER_CHUNK_KINDS = ("pipeline", "fanout_leaf", "verifier", "fix")
@@ -231,8 +272,8 @@ def chunk_rows(records: list[dict]) -> list[dict]:
     by_chunk: dict[int, dict] = {}
     for r in records:
         ch = _get(r, "dispatch", "chunk")
-        if not isinstance(ch, int):
-            continue
+        if isinstance(ch, bool) or not isinstance(ch, int):
+            continue  # null, or an out-of-domain value counted by out_of_domain_chunks()
         kind = _get(r, "dispatch", "kind")
         row = by_chunk.setdefault(ch, {"chunk": ch, "implement": 0, "verifier": 0, "fix": 0, "other": 0, "redo": 0, "total": 0})
         if kind in ("pipeline", "fanout_leaf"):
@@ -334,9 +375,25 @@ def summarize(records: list[dict], skipped: int) -> str:
         lines.append("")
         lines.append(f"per-chunk block (workstream {ws}) — implement + verifier + fix dispatches, max redo:")
         chunks = chunk_rows(recs)
-        lines += _table(chunks, CHUNK_COLUMNS) if chunks else ["  (no per-chunk dispatches)"]
+        ws_bad = out_of_domain_chunks(recs)
+        if chunks:
+            lines += _table(chunks, CHUNK_COLUMNS)
+            if ws_bad:
+                lines.append(f"  ({ws_bad} record(s) excluded: dispatch.chunk out of domain — see the counter below)")
+        elif ws_bad:
+            # Never print a bare "no dispatches" when records exist but carry a chunk
+            # value the schema does not allow: say why the block is empty.
+            lines.append(f"  (per-chunk block empty: {ws_bad} record(s) excluded — dispatch.chunk out of domain; see the counter below)")
+        else:
+            lines.append("  (no per-chunk dispatches)")
         lines.append("")
     lines.append(f"skipped: {skipped} unknown-schema record(s)")
+    # Sibling of the skipped line: records that parsed as v1 but carry a
+    # ``dispatch.chunk`` outside the schema's ``int or null`` domain. They are not
+    # in ``skipped`` (they are well-formed JSON with a known ``v``), so without
+    # this line a writer-side schema violation would leave no trace in the report.
+    lines.append(f"out-of-domain dispatch.chunk: {out_of_domain_chunks(records)} record(s) "
+                 f"(schema: int or null — telemetry.md §Record Schema)")
     # Records-vs-expected: a sibling of the skipped line, so a cycle that lost an
     # append is visible post-cycle even if the absent gate line went unnoticed.
     sessions = session_rows(records)
@@ -480,6 +537,24 @@ def self_test() -> int:
             grc = main(["summarize", "--file", gpath])
         check(grc == 0 and "gap 2" in gbuf.getvalue(), f"summarize on a gap fixture → exit {grc}, unchanged")
 
+        # Out-of-domain dispatch.chunk (the 2026-09-18 live break): a record whose
+        # chunk is the "### Chunk N:" header STRING rather than the parsed int must
+        # be visible, not silently dropped, and must not render a doubled prefix.
+        bad = [_record(dispatch={"seq": 1, "kind": "pipeline", "stage": "implement", "chunk": "Chunk 0"},
+                       gate={"redo_count": 0}),
+               _record(dispatch={"seq": 2, "kind": "fix", "stage": "implement", "chunk": "Chunk 1"},
+                       gate={"redo_count": 1})]
+        check(out_of_domain_chunks(bad) == 2, f"out-of-domain count, got {out_of_domain_chunks(bad)}")
+        check(out_of_domain_chunks(records) == 0, "clean fixture has no out-of-domain chunk")
+        breport = summarize(bad, 0)
+        check("out-of-domain dispatch.chunk: 2 record(s)" in breport, "out-of-domain counter line")
+        check("cChunk" not in breport, "doubled 'c' prefix must not render")
+        check("c?:1" in breport, f"out-of-domain chunks fold into c? , got:\n{breport}")
+        check("per-chunk block empty: 2 record(s) excluded" in breport, "empty block states the exclusion")
+        check("(no per-chunk dispatches)" not in breport, "no bare no-dispatches line when records were excluded")
+        check(chunk_rows(bad) == [], "out-of-domain chunks stay out of the per-chunk block")
+        check("out-of-domain dispatch.chunk: 0 record(s)" in report, "counter line present on a clean report")
+
         # Filters.
         check(len(filter_records(records, "nope", None)) == 0, "workstream filter")
         check(len(filter_records(records, None, "2026-09-18T00:00:00Z")) == 0, "since filter")
@@ -499,7 +574,8 @@ def self_test() -> int:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
     print("SELF-TEST OK: budget grammar, six-record fixture (one row per stage, per-chunk block, skipped: 2), "
-          "records-vs-expected (gapless + a seq gap), missing file → records: 0")
+          "records-vs-expected (gapless + a seq gap), out-of-domain dispatch.chunk counted and folded to c?, "
+          "missing file → records: 0")
     return 0
 
 
