@@ -511,8 +511,16 @@ has not been reached in this cycle. This works identically under both markers
   indistinguishable between cycles; the harness-p2 plan reads exactly that
   today. `sdd-orchestrate` already carries a workaround for it (the
   `git log -S` date derivation in `loop-control.md`). Recommend the same stamp:
-  `sdd-plan` writes `research_id:` from the kickoff, after which the git
-  derivation becomes a fallback rather than the primary signal.
+  `sdd-plan` writes `research_id:` from the kickoff, giving plan completion its
+  own cycle-identity signal. *(Correction, 2026-09-18: an earlier draft of this
+  bullet said the git derivation "becomes a fallback rather than the primary
+  signal". That misdescribes it. `loop-control.md` §3's
+  `git log -S'research_id: <id>'` runs against the **kickoff**, is already a
+  legacy fallback behind the kickoff's `date:` field, and derives a
+  **cycle-start date** for the replan re-entry cap — not a cycle identity for
+  plan completion. A `research_id` stamp on `plan.md` supplies identity, not a
+  date, so it neither replaces nor demotes §3; §3 is unchanged by this
+  recommendation.)*
 - **Requirements / specs status — no, and it should stay that way.** They are
   the *shared* corpus and are deliberately cumulative; `status: Approved` is a
   product-wide flag (`ws-layout.md` §Approval: "shared `requirements/*` /
@@ -528,8 +536,8 @@ red-derived — so it stays inside the kickoff's out-of-scope fence.
 **Files touched**: `skills/sdd-verify/SKILL.md` (frontmatter template + Step 6),
 `skills/sdd-plan/SKILL.md` (same), the §Phase Detection blocks of `sdd-verify`,
 `sdd-replan`, `sdd-plan`, `sdd-implement` and `sdd-orchestrate`, the detection
-table in `CLAUDE.md`, and `loop-control.md` (demote the git derivation to a
-fallback). Cost: ~7–8 files, all text, but spread across skills.
+table in `CLAUDE.md`. `loop-control.md` is **not** touched (see the correction
+above). Cost: ~6–7 files, all text, but spread across skills.
 
 **Classification**: design-decision-for-requirements (a new phase-detection
 input).

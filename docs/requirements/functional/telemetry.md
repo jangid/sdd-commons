@@ -1,8 +1,8 @@
 ---
 domain: TELEM
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-HARNESSP2-001, RS-008]
+research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001]
 workstream: harness-p2
 ---
 
@@ -223,3 +223,66 @@ records prints one row per stage with the columns above; `--self-test` exits 0;
 `grep -rn sdd-telemetry skills/` hits only the `sdd-orchestrate` telemetry stub
 as a pointer to a post-cycle step.
 [Priority: should]
+
+### REQ-TELEM-HARNESSP3-001: A positive `TELEMETRY: rec <n>` gate line asserts the append happened
+`references/telemetry.md` §3 must add a **positive member to the `TELEMETRY:`
+gate-line family** — today the family is `WRITE FAILED | OFF | .gitignore
+updated`, with no line for "on, and the append happened":
+
+```
+TELEMETRY: rec <n>     # rendered on the gate AFTER an append; <n> counts SUCCESSFUL appends this session
+```
+
+`<n>` **counts successful appends in this session** — it is not `dispatch.seq`.
+The two diverge whenever a dispatch produces no append (a `WRITE FAILED`, or a
+mid-cycle opt-out), and where they diverge the **append count wins**: the line
+exists to assert that the append happened, so binding `<n>` to the dispatch
+sequence would have a later gate assert an append count that never occurred —
+weakening exactly the assurance the requirement provides. Concretely, `<n>` is a
+new session-scoped counter incremented **only** on a successful append,
+maintained beside `dispatch.seq` in the orchestrator's existing session state
+(§3) — no new artifact, and still **never a read of the telemetry file**, so the
+write-only rule
+(REQ-TELEM-HARNESSP2-004 — "the orchestrator performs zero reads of the file")
+is preserved intact, and the line is text, so the non-interference proof of §5
+is untouched. The writer sequence already appends *after* the gate decision, so
+the next gate is the natural place to assert the previous append. An operator
+who sees a gate carrying no `rec` line, no `OFF` line and no `WRITE FAILED` line
+knows the append did not happen. (see RS-HARNESSP3-001 Q4 — spec-read, with a
+direct negative observation: on 2026-09-18 the gate rendered telemetry as on,
+nothing was ever appended, and the text actually rendered — `TELEMETRY: on
+(record written after your decision)` — was not a member of the family §3
+defines. What no spec read establishes is whether an operator actually notices
+an absent line)
+**Acceptance**: `references/telemetry.md` §3's gate-line table lists `rec <n>`
+and its writer sequence names the gate that renders it; `docs/spec/telemetry.md`
+carries the same family, and `skills/sdd-orchestrate/SKILL.md` §The gate states
+it in one line; a walkthrough of two gated dispatches with telemetry on renders
+`TELEMETRY: rec 1` then `TELEMETRY: rec 2`, and a walkthrough with telemetry on
+but the file unwritable renders `TELEMETRY: WRITE FAILED` and no `rec` line;
+a **resumption** walkthrough of three gated dispatches whose second append fails
+renders `TELEMETRY: rec 1`, then `TELEMETRY: WRITE FAILED`, then
+`TELEMETRY: rec 2` — not `rec 3` — and the same holds after a mid-cycle opt-out
+(the `OFF` gates append nothing and do not advance `<n>`);
+`grep` for a telemetry-file read in the orchestrator's gate path returns
+nothing.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP3-002: `summarize` reports records-vs-expected per session as a post-cycle backstop
+`tools/sdd-telemetry.py summarize` may report a records-vs-expected count per
+session, so a missing-append gap is visible post-cycle even if the operator
+missed the absent gate line. The reporting slot already exists — `summarize`
+skips and counts unparsable lines on a trailing `skipped:` line. This is an
+optional backstop to REQ-TELEM-HARNESSP3-001, not a substitute for it, and it
+is a post-cycle reader: it must not influence control flow and the orchestrator
+must still perform zero reads of the file during a cycle
+(REQ-TELEM-HARNESSP2-004). If the plan has no room it is queued in
+`verification.md` §Next Steps rather than dropped. (see RS-HARNESSP3-001 Q4 —
+counted inside the Q4 item as an optional sub-part, not as a separate item)
+**Acceptance** (conditioned on the `may` — if the backstop is **not** built this
+cycle, acceptance is that it is queued under `verification.md` §Next Steps and
+nothing else changed): **if built**, `python3 tools/sdd-telemetry.py summarize`
+on a fixture whose session records fewer appends than gates prints a
+records-vs-expected line for that session and `--self-test` exits 0. Either way,
+no orchestrator reference instructs a read of the telemetry file during a cycle.
+[Priority: may]

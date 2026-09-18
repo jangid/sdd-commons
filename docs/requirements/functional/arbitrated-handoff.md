@@ -1,8 +1,8 @@
 ---
 domain: ARB
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-HARNESSP2-001, RS-008]
+research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001]
 workstream: harness-p2
 ---
 
@@ -166,3 +166,42 @@ evidence)
 **Acceptance**: `skills/sdd-review/SKILL.md`'s Material template line contains
 `affects`; the linter's `REQUIRED` row fires when it is removed.
 [Priority: should]
+
+### REQ-ARB-HARNESSP3-001: `W_N` includes regeneration writes — a regenerated deliverable is not new ground
+`references/loop-control.md` §2a must redefine the retained per-round write set
+as the union of the fix dispatch's written pairs **and** the written pairs of
+every orchestrator-dispatched **regeneration of the stage deliverable** between
+review round N and round N+1:
+
+```
+W_N := sections(fix[N] writes) UNION sections(regeneration writes since round N)
+       # falling back to (file, *) only where section resolution is unavailable,
+       # which is the existing rule and already labels the pause "(file-level)"
+```
+
+State it as a general **regenerated-not-patched** rule at the §2a level, not
+inside the red section, because it applies to any stage whose pipeline leaf
+rewrites its artifact wholesale between rounds (specs, plan, verification).
+`fix[N]` generalises from "the fix dispatch" to "the loop dispatches between
+round N and round N+1"; whether that is a rename or a sibling `regen[N]` whose
+pairs union in is an implementation choice — the **union** is the contract.
+Section resolution (REQ-ARB-HARNESSP2-005) is a function of a diff and applies
+to a regeneration diff exactly as it applies to a fix's, so granularity is
+**not** lost. The arbitration guarantee is not weakened: the pause exists to
+catch a reviewer raising new Critical/Material on ground the previous round
+approved **and the loop did not touch**, and a wholesale-regenerated file *was*
+touched by the loop — so admitting it removes false positives only and cannot
+mask a contradiction about a file the loop left alone. (see RS-HARNESSP3-001 Q3
+— defect spec-read and run-corroborated (§B8: class (b) fires by construction on
+every finding in a regenerated deliverable); remedy **constructed**, reusing the
+already-specified section-resolution mechanism but not yet exercised by any run)
+**Acceptance**: `references/loop-control.md` §2a's state schema and `W_N`
+definition contain the union and the regenerated-not-patched rule;
+`docs/spec/arbitrated-handoff.md` §Retained Per-Round State and §Contradiction
+Classes match, and `docs/spec/adversarial-verify.md` §Fix-Loop Interaction
+carries the cross-reference; a fixture in which round 1 `APPROVE`s, a pipeline
+re-dispatch regenerates the deliverable, and round 2 raises Material findings in
+regenerated sections yields **no** `REVIEW: CONTRADICTION` pause, while the same
+fixture with the findings in a file the loop never touched still pauses as class
+(b).
+[Priority: must]

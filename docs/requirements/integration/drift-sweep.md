@@ -1,8 +1,8 @@
 ---
 domain: GC
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-HARNESSP2-001, RS-008]
+research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001]
 workstream: harness-p2
 ---
 
@@ -159,4 +159,22 @@ edits `docs/ws/<other-id>/` when `--workstream <id>` is given. (see
 RS-HARNESSP2-001 Q4 routing — mechanical class)
 **Acceptance**: running `--fix traceability-aggregate` twice yields an empty
 second diff; `--fix staleness` exits 2 with "not a fixable rule".
+[Priority: should]
+
+### REQ-GC-HARNESSP3-001: Prose about another repository's artifacts must not quote its `Q-IMPL` id tokens
+A documentation **convention** — not a code change — must state that prose in
+this repository describing another repository's artifacts (a toy clone, an
+evidence record, a pilot log) must not quote that repository's `Q-IMPL-NNN` id
+tokens verbatim; paraphrase or fence them instead. `tools/sdd-gc.py`'s
+`qimpl-undefined` rule behaved **correctly** when it flagged such a mention on
+2026-09-18: the ids genuinely are undefined in this corpus. Scoping the rule to
+"ids that look local" is **declined** — that is not decidable from text and
+would weaken a `fail`-class rule. One sentence in `CLAUDE.md` and in
+`skills/sdd-orchestrate/references/drift-sweep.md` is the whole change. (see
+RS-HARNESSP3-001 Q8-IN row 2, §B12 — spec-read: the disposition rests on reading
+the gc sweep that produced the finding)
+**Acceptance**: `references/drift-sweep.md` states the convention and records
+that the `qimpl-undefined` rule is unchanged; `python3 tools/sdd-gc.py --report`
+raises no new `qimpl-undefined` finding on the amended prose, and the rule still
+fires on a genuinely undefined local id.
 [Priority: should]

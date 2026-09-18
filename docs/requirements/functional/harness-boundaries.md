@@ -1,8 +1,8 @@
 ---
 domain: HARN
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-008, RS-005, RS-006]
+research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001]
 ---
 
 # Requirements: Harness Hardening — Boundaries
@@ -218,3 +218,59 @@ the four points above and cites it as the expected path; a research or fix
 leaf that uses it reports `blocked_writes: []` and the file lands in the
 observed window as an ordinary `IN` path.
 [Priority: should]
+
+### REQ-HARN-HARNESSP3-001: Write-scope observation is a content decision, bounded to the already-dirty set
+The write-scope check must add a **content-hash observation** to
+`references/write-scope.md` §3 beside the existing observation commands (named
+"content-hash observation", never "the fourth observation" — §3 already calls
+the named-base observation a four-part one). It computes `(path, sha)` pairs
+over **only the ambiguous set** — the paths `snapshot(before)` already lists as
+dirty or untracked — before the dispatch, and over the intersection of that set
+with `snapshot(after)` afterwards; the content delta is the pairs whose sha
+changed plus paths present in `sha.before` and now absent. `observed writes` is
+the union of the porcelain delta, the committed delta and the content delta.
+§3's rule "Paths present in both snapshots ... cancel — only the *delta* is a
+write" must become "cancel **only when their content hash is also unchanged**".
+The `SCOPE:` token, the `IN`/`ADVISORY`/`OUT` tags, the `N` count, the finding
+block, the operator options and the `HISTORY_REWRITE` rule (which rests on the
+untouched ancestry check) are all unchanged — this changes *what counts as an
+observed write*, not how one is matched or rendered. Implementation must parse
+porcelain with `-z`, enter **both** paths of a rename/copy (`R`, `C`) record
+into the set, and record a path deleted during the dispatch as a sentinel
+"absent" pair (itself a content change). The accepted §5 limitation that a file
+modified and reverted within one dispatch stays invisible is unchanged. Bounding
+to the dirty set keeps the cost O(dirty files), not O(repo). (see
+RS-HARNESSP3-001 Q1 — probe-evidenced: probe 1 reproduced the blindness and the
+remedy; probe 2 measured 134 files = 0.064 s, an 8-path set = 0.017 s against a
+0.008 s porcelain baseline, and rejected `git stash create` (7 loose objects
+written per snapshot — the orchestrator would mutate the repo it observes) and a
+temp-index `read-tree HEAD` + `diff --stat` (diffs against HEAD, identical
+blindness))
+**Acceptance**: `references/write-scope.md` §3 contains the content-hash
+observation block and the amended cancel bullet, §5's limitation wording
+matches, and `docs/spec/harness-write-scope.md` carries the same contract; a new
+`tools/sdd-scope-check-selftest.py` fixture **F10** (the next free id — F8 and
+F9 are taken) in which a path is already dirty at snapshot time and the leaf
+re-touches it yields a non-empty observed-write set naming that path, while the
+same fixture with the leaf leaving it untouched yields `SCOPE: CLEAN`.
+[Priority: must]
+
+### REQ-HARN-HARNESSP3-004: The marker-4 specs write-scope row names the per-workstream traceability path
+The **specs** row of the default write-scope table in
+`references/write-scope.md` §2 must name `docs/ws/<id>/traceability.md` under
+marker `4`, not leave it to the section's marker-4 note. §2's note and §9
+already resolve the traceability write to its `docs/ws/<id>/` equivalent, but
+the row itself reads `docs/spec/**, docs/requirements/traceability.md`, and the
+table is what fills `{write_scope}` at dispatch time. Because
+`docs/spec/ws-traceability.md` Q-IMPL-011 makes `sdd-specs` fill the **Spec**
+column of `docs/ws/<id>/traceability.md` under marker `4`, a specs leaf doing
+exactly what its skill mandates is tagged `OUT` — a false `VIOLATION` of the
+same class the 2026-09-17 re-walk note in §2 was written to prevent for
+`sdd-verify`'s Verified-column write. (see RS-HARNESSP3-001 Q7(a) — spec-read;
+the false `VIOLATION` follows from the two committed texts as they stand)
+**Acceptance**: the specs row of `references/write-scope.md` §2 names
+`docs/ws/<id>/traceability.md` for marker `4`, and
+`docs/spec/harness-write-scope.md` carries the same row wherever it repeats the
+table; a marker-4 specs dispatch that writes only `docs/spec/**` plus its
+per-ws traceability row yields `SCOPE: CLEAN`.
+[Priority: must]

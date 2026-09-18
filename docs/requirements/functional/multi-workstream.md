@@ -1,8 +1,8 @@
 ---
 domain: WS
-last_updated: 2026-07-21
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-007]
+research_refs: [RS-007, RS-HARNESSP3-001]
 ---
 
 # Requirements: Multi-Workstream SDD
@@ -504,13 +504,74 @@ version surfaces a migrate offer that routes to `sdd-migrate` on accept and proc
 unchanged on decline; entering a repo already at the latest version surfaces no
 offer.
 
+### REQ-WS-HARNESSP3-001: The orchestrator owns aggregate-traceability regeneration for orchestrated dispatches
+Regeneration of the shared `docs/requirements/traceability.md` must belong to
+the **orchestrator**, in its own post-gate bookkeeping commit, for every
+orchestrated dispatch — resolving the standing inconsistency between
+`docs/spec/ws-traceability.md` Q-IMPL-011 (every writing skill regenerates the
+aggregate immediately after its per-ws write: `sdd-requirements`, `sdd-specs`,
+`sdd-implement` including chunk-close Check 2, and `sdd-verify`) and
+`references/fan-out.md` §3e (the orchestrator regenerates at merge). Adopting it
+means (i) dropping `docs/requirements/traceability.md` from the leaf default
+write scopes for orchestrated dispatches, (ii) adding a post-gate orchestrator
+bookkeeping step and a separate commit beside fan-out §3e's, and (iii) **keeping
+Q-IMPL-011's behaviour for standalone, non-orchestrated skill runs**, so the
+aggregate does not go stale when someone invokes a single `sdd-*` skill outside
+the harness.
+
+**Regeneration trigger — every gate outcome, before the session ends.** Moving
+the regeneration behind the gate must not let a non-`proceed` outcome leave the
+shared aggregate stale: today the leaf regenerates inline, so a stopped or
+looped-back stage still leaves the aggregate consistent. The orchestrator must
+therefore run the regeneration **on every gate outcome — `proceed`,
+`loop-back-to-fix` and `stop` alike — and before the session ends**, not only on
+`proceed`. Concretely: after any gate at which a leaf wrote per-ws traceability
+rows since the last regeneration, the orchestrator regenerates and commits, so
+the aggregate is consistent with the per-ws files at every point an operator
+could walk away. Within a fix loop this means one regeneration per gate, each
+superseding the last (regeneration is wholesale and idempotent, so repeating it
+costs nothing and never compounds).
+
+**Discriminator — decided, not left open.** The dispatched `{write_scope}` slot
+**is** the signal; no new flag, field or schema is added. A writing skill
+regenerates the aggregate after its per-ws write **unless it was dispatched with
+a write scope that omits that path**, in which case the regeneration is the
+orchestrator's. Under item (i) the orchestrated leaf scopes omit the path by
+construction, so its absence from `{write_scope}` *is* the orchestrated signal
+and its presence — or the absence of any dispatched scope at all — *is* the
+standalone signal. A skill therefore never has to know **who** invoked it, only
+what it was scoped to write. The alternative considered and **not** adopted is an
+explicit instruction line in the PIPELINE template body: more legible, but it
+adds text to every dispatch, and the slot-based signal already exists. (see
+RS-HARNESSP3-001 Q7(b) — the inconsistency is spec-read from two committed texts
+that disagree and needs no run; which side wins and the discriminator are
+**constructed** judgements ratified here. The spike flagged this as larger than
+the pilot expected — ~7 files, not a one-line table edit — and required
+requirements to close the discriminator one way or the other, because adopting
+the split without naming a signal leaves the two regeneration rules silently
+contradictory)
+**Acceptance**: `docs/spec/ws-traceability.md` Q-IMPL-011 carries the
+orchestrated/standalone split stated against `{write_scope}`;
+`references/write-scope.md` §2 leaf rows omit `docs/requirements/traceability.md`
+and §7's commit-ownership table assigns the regeneration to the orchestrator;
+`references/fan-out.md` §3e cross-references the same rule; the marker-4
+traceability notes in `sdd-requirements`, `sdd-specs`, `sdd-implement` and
+`sdd-verify` state the unless-clause. A walkthrough of an orchestrated dispatch
+shows the aggregate regenerated in a separate orchestrator commit and the leaf's
+`files_written` containing no aggregate path; a standalone run of the same skill
+regenerates the aggregate itself. A walkthrough of a gate resolved `stop`, and of
+one resolved `loop-back-to-fix`, each shows the aggregate regenerated and
+committed before the session ends — the aggregate is never left inconsistent
+with the per-ws files by a non-`proceed` outcome.
+[Priority: must]
+
 ## Open Questions / Assumptions
 
-- **Requirements status is `Draft` (operator approval pending).** This stage was
-  authored by a non-interactive pipeline subagent with no operator present, so the
-  requirements are set to `Draft`. Operator approval to `Approved` is pending at
-  the orchestration gate. (Skill Step 7 sets `Approved` only on explicit operator
-  sign-off, which is unavailable here.)
+- **Requirements status is `Approved`.** This domain was originally authored by a
+  non-interactive pipeline subagent and left at `Draft` pending operator
+  sign-off; the operator approved it at the orchestration gate, and both this
+  file's frontmatter and `index.md` now read `Approved`. Recorded here so the
+  earlier "approval pending" note is not mistaken for the current state.
 
 - **Traceability structure choice (RS-007 Q1/Q2, Assumption).** REQ-WS-008 permits
   either per-workstream files (preferred) or delimited per-workstream sections;
