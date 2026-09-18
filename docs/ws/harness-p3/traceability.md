@@ -13,7 +13,7 @@ its siblings — never hand-edited.
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p3 |  |  |  |
+| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p3 | loop-control.md §2a replay fixture (REQ-ARB-HARNESSP3-001) | skills/sdd-orchestrate/references/loop-control.md §2a, §6 |  |
 | REQ-CYCID-HARNESSP3-001 | cycle-identity.md | harness-p3 |  |  |  |
 | REQ-CYCID-HARNESSP3-002 | cycle-identity.md | harness-p3 |  |  |  |
 | REQ-GC-HARNESSP3-001 | drift-sweep.md | harness-p3 |  |  |  |

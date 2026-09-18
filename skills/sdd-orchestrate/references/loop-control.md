@@ -114,7 +114,20 @@ round[N]      = { verdict: APPROVE | APPROVE_WITH_FIXES | REJECT,
                              key: { file: <repo-relative path>, section: <§Name> | "?",
                                     affects: { REQ-… } } } ] }
 fix[N]        = { written: { (file, section) }, hunks: { (file, section): "L40-58, L120" } }
+regen[N]      = { written: { (file, section) }, hunks: { (file, section): "L1-240" } }
 ```
+
+`regen[N]` is a **sibling** set beside `fix[N]`, not a rename of it
+(Q-IMPL-HARNESSP3-009): `fix[N]` keeps meaning the fix dispatch's writes, and
+`regen[N]` holds the writes of every **regeneration of the stage deliverable**
+between round N and round N+1 — defined as a pipeline re-dispatch of the **same**
+stage (Q-IMPL-HARNESSP3-010), never another stage's leaf and never an operator's
+manual edit, which stays outside the loop's write set. The orchestrator's own
+post-gate regeneration of an artifact **derived** from that leaf's output — the
+shared aggregate `docs/requirements/traceability.md` — counts with it
+(Q-IMPL-HARNESSP3-017). The two sets have
+different provenance in the telemetry record and in the ledger, so they are kept
+separable; only their union is contractual (§`W_N`, below).
 
 Key parsing from a review line `- C1: <what> — [file:section] — affects
 [REQ-A-001, REQ-A-004]` (finding ids `C1`/`M1` are not stable across rounds,
@@ -134,9 +147,27 @@ path it falls back to `(file, *)` — every section of the file — from the
 path-level delta (REQ-HARN-021). A fix dispatch fanned into several
 chunk-grouped dispatches contributes the **union** of their written pairs.
 
+**`W_N` — regenerated is not new ground (REQ-ARB-HARNESSP3-001).** The retained
+per-round write set is the **union** of the fix dispatch's written pairs and the
+regeneration writes since round N:
+
+```
+W_N := sections(fix[N].written) UNION sections(regen[N].written)
+       # falling back to (file, *) only where section resolution is unavailable,
+       # which is the existing rule and already labels the pause "(file-level)"
+```
+
+This is a **regenerated-not-patched** rule at the §2a level, not a red-round
+special case: it applies to **any** stage whose pipeline leaf rewrites its
+deliverable wholesale between review rounds — specs, plan, verification alike.
+Granularity is not lost: section resolution (`write-scope.md` §3) is a function
+of a diff and applies to a regeneration diff exactly as it applies to a fix's;
+the existing `(file, *)` fallback and its `(file-level)` pause label are
+unchanged.
+
 **Contradiction classes (REQ-ARB-HARNESSP2-002, -003, -004).** Let `K_N` =
-set of `(file, section)` keys of round N's C/M lines, `W_N` = `fix[N].written`,
-`F(K)` = the files of a key set. With `∈` at section level unless degraded:
+set of `(file, section)` keys of round N's C/M lines, `W_N` as defined just
+above, `F(K)` = the files of a key set. With `∈` at section level unless degraded:
 
 | Class | Rule | Detected? |
 |---|---|---|
@@ -154,6 +185,29 @@ that guessed "opposite" from text would be a semantic judgement inside the
 orchestrator, which REQ-HARN-019 and REQ-ORCH-012 keep out; the cap remains
 the backstop for reversals. Red findings (`adversarial-verify.md`) are not
 review lines and never enter `K_N` — arbitration compares review rounds only.
+
+**Replay fixture (REQ-ARB-HARNESSP3-001).** The observed verify-stage sequence —
+round 1 `APPROVE`, then a pipeline re-dispatch of `sdd-verify` that regenerated
+the deliverable, then round 2 `APPROVE_WITH_FIXES` with three Material findings
+(`RS-HARNESSP3-001` evidence appendix §B8) — resolves as follows under the
+amended `W_N`:
+
+```
+round 1 (APPROVE):             K_1 = ∅
+regen[1] (verify re-dispatch): docs/ws/<id>/verification.md §Criteria, §Issues Found, …
+                               docs/ws/<id>/traceability.md  §(matrix)
+round 2 (APPROVE_WITH_FIXES):  M1 — verification.md:§Criteria       -> in W_1, no pause
+                               M2 — verification.md:§Issues Found   -> in W_1, no pause
+                               M3 — traceability.md:§(matrix)       -> in W_1, no pause
+               synthetic M4 — docs/spec/telemetry.md:§Record Shape  -> k ∉ K_1, k ∉ W_1
+                                                                    -> REVIEW: CONTRADICTION (class b)
+```
+
+All three observed findings named sections of files the loop itself had just
+regenerated, so the class (b) false positive is gone; the synthetic finding on a
+file no loop dispatch touched still pauses, so the true positive is retained.
+Pre-amendment, `W_1 = fix[1].written = ∅` (there was no fix between the rounds)
+and all four fired.
 
 **`REVIEW: CONTRADICTION` pause (REQ-ARB-HARNESSP2-006).** On (b) or (c) at a
 **stage gate** (never the per-chunk gate, which shows no review verdict —
@@ -434,7 +488,13 @@ per-signal detail:
   iteration; only `accept round N+1 (fix)` increments the counter; at most one
   third opinion per contradiction. Fourth member of the pause family, beside
   `REVIEW: MALFORMED`, `RETURN: MALFORMED` and reject-with-no-actionable-
-  findings above (§2a; `docs/spec/arbitrated-handoff.md`).
+  findings above (§2a; `docs/spec/arbitrated-handoff.md`). The arbitration
+  guarantee is **unchanged** by `W_N`'s regeneration union (§2a): the pause still
+  catches a reviewer raising new Critical/Material findings on ground the
+  previous round approved **and the loop did not touch** — a
+  wholesale-regenerated file *was* touched by the loop. Admitting regeneration
+  writes removes false positives only; it cannot mask a contradiction about a
+  file the loop left alone.
 
 ## 7. Mid-pipeline entry: detect → confirm → validate (REQ-ORCH-031..033) — from §Entry Points
 

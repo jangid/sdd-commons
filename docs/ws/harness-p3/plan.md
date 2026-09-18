@@ -236,7 +236,7 @@ green.
 no longer trips `REVIEW: CONTRADICTION` class (b) by construction.
 **Depends on**: None.
 **Tasks**:
-1. [implement] `references/loop-control.md` §2a: redefine the retained per-round
+1. [x] [implement] `references/loop-control.md` §2a: redefine the retained per-round
    write set as
    `W_N := sections(fix[N] writes) UNION sections(regeneration writes since round N)`,
    with the existing `(file, *)` fallback and its `(file-level)` pause label
@@ -245,17 +245,17 @@ no longer trips `REVIEW: CONTRADICTION` class (b) by construction.
    wholesale (specs, plan, verification), not only to red — traces to
    `arbitrated-handoff.md` §`W_N` Includes Regeneration Writes
    (REQ-ARB-HARNESSP3-001)
-2. [implement] Record the retained state as a sibling set `regen[N]` beside
+2. [x] [implement] Record the retained state as a sibling set `regen[N]` beside
    `fix[N]` rather than renaming `fix[N]` (Q-IMPL-HARNESSP3-009), and define
    "regeneration of the stage deliverable" as a **pipeline re-dispatch of the
    same stage** (Q-IMPL-HARNESSP3-010) — traces to `arbitrated-handoff.md`
    §Implementation Questions
-3. [implement] `references/loop-control.md` §6: state that the arbitration
+3. [x] [implement] `references/loop-control.md` §6: state that the arbitration
    guarantee is unchanged — the pause still catches a reviewer raising new
    Critical/Material findings on ground the previous round approved *and the
    loop did not touch*; admitting regeneration writes removes false positives
    only — traces to `arbitrated-handoff.md` §`W_N` Includes Regeneration Writes
-4. [verify] Replay the observed `APPROVE → APPROVE_WITH_FIXES` red-round
+4. [x] [verify] Replay the observed `APPROVE → APPROVE_WITH_FIXES` red-round
    sequence (three material findings, all having paused as class (b)) against
    the amended `W_N`: none of the three pauses now, and a synthetic finding
    about a file the loop left alone **still** pauses — traces to
@@ -634,6 +634,23 @@ renders.
   the asymmetry deliberately — traces to `harness-chunk-verifier.md` §Return
   contract, `harness-return-contract.md` §1
   [Carried from the Chunk 2 per-chunk gate, 2026-09-18, chunk verifier advisory (a1).]
+
+- **V10** — The `loop-control.md` §2a replay fixture exercises
+  Q-IMPL-HARNESSP3-017's motivating case only implicitly: `regen[1]` lists the
+  per-workstream traceability file but not the orchestrator-regenerated shared
+  aggregate, while M3 names the matrix bare. Add the aggregate to `regen[1]` (or
+  disambiguate M3's path) so the fixture demonstrates the case the Q-IMPL was
+  written for — traces to `arbitrated-handoff.md` §`W_N` Includes Regeneration
+  Writes
+  [Carried from the Chunk 3 per-chunk gate, 2026-09-18, chunk verifier advisory A1.]
+- **V11** — `arbitrated-handoff.md`'s acceptance criterion says both §Retained
+  Per-Round State and §Contradiction Classes carry the union and the
+  regenerated-not-patched rule; §Contradiction Classes carries a pointer,
+  §Retained Per-Round State carries none (its schema block still shows only
+  `round[N]` and `fix[N]`). Close the spec-side gap or record it — traces to
+  `arbitrated-handoff.md` §Acceptance Criteria
+  [Carried from the Chunk 3 per-chunk gate, 2026-09-18, chunk verifier advisory A2;
+  not fixable in-chunk because specs are frozen.]
 
 **Exit criteria**: `verification.md` records observed evidence (not a
 walkthrough) for REQ-REDB-HARNESSP3-002, REQ-TELEM-HARNESSP3-001,
