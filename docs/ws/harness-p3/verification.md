@@ -811,6 +811,146 @@ R6); none of them invalidates a plan assumption.
 - `tools/sdd-telemetry.py summarize` rendering: narrow the stage table (14
   columns, ~190 chars). The per-chunk/stage-table disagreement is closed by R1.
 
+## Post-DONE Findings (recorded 2026-09-18, after the verify gate closed)
+
+Recorded under the post-cycle `record` route, not re-opening the cycle. All three
+came from tracing the root cause of the 8 mis-typed telemetry records (Minor,
+red round 2 R1). They are **harness-p4 scope**.
+
+### P1 — root cause of the mis-typed `dispatch.chunk`: the only worked example showed the null case
+
+The 8 affected records are exactly the 8 implement-stage **pipeline** dispatches
+(seq 6–13, `Chunk 0`…`Chunk 7`). The cause is documentary, not a coding slip:
+
+1. Both `docs/spec/telemetry.md` and
+   `skills/sdd-orchestrate/references/telemetry.md` carried **exactly one**
+   worked example record at `b0b69be`, and its value is `"chunk":null` —
+   `grep -o '"chunk":[^,]*' | sort | uniq -c` returns `1 "chunk":null` in each.
+   **There was no positive example of a chunk-bearing record anywhere.**
+2. The schema row said *"`### Chunk N:` number for per-chunk dispatches"* — but
+   the only artifact the writing orchestrator had in hand at append time was the
+   rendered dispatch line `Chunk: Chunk 0`, produced from the PIPELINE template's
+   `Chunk {N}` slot (`references/dispatch-templates.md:29`).
+3. So the writer copied **the rendered label** rather than parsing the integer
+   out of it. The string `"Chunk 0"` is verbatim what its own dispatch prompt
+   said.
+
+The type was underdetermined by example in exactly the place it took a
+non-trivial value. **Lesson for p4: a worked example that only shows the `null`
+case does not specify the non-null case.** Audit every schema in the corpus for
+fields whose sole example is null/empty.
+
+### P2 — the bigger defect: ~11 dispatches were never recorded at all, and the backstop cannot see it
+
+Kind counts across all 20 records: `pipeline 15, review 2, red 2, gate 1`.
+**Zero `verifier` and zero `fix` records exist in the entire corpus**, although
+the implement stage demonstrably ran 8 chunk verifiers and 3 redos. So the
+telemetry is not merely mis-typed, it is **incomplete** — and the incompleteness
+is larger than the mis-typing.
+
+`records-vs-expected` reports `0 with a missing append` regardless, because
+`expected` is computed as the **highest `dispatch.seq`** (`tools/sdd-telemetry.py`
+§`session_rows`). When the writer never appends *and* never increments, `recorded
+== expected` and no gap is reported. The backstop detects "seq incremented but
+record lost"; it is **structurally incapable** of detecting "record never
+written", which is the failure that actually occurred.
+
+This qualifies V2's "verified" result: the counter is honest about what was
+written and silent about what was never written. The `TELEMETRY: rec <n>` gate
+line has the same blind spot — it counts appends the orchestrator chose to make.
+**p4 remedy: derive `expected` from an independent source (dispatches the gate
+actually rendered), not from the record set's own seq.**
+
+### P3 — the same class of error recurred in this very session
+
+Record seq 20 was written by the orchestrator with `dispatch.kind: "gate"`.
+`docs/spec/telemetry.md:90` fixes the domain to
+`pipeline | fix | fanout_leaf | verifier | review | red` — **`gate` is not a legal
+value.** The fix dispatch at seq 18 was likewise recorded as `kind: "pipeline"`
+with `reason: "red_break"` where `kind: "fix"` was available.
+
+The record was left as written, consistent with the stance taken at the verify
+gate (`.sdd/telemetry.jsonl` is the evidence under audit). It is reported rather
+than repaired, and it is the strongest available argument for P2's remedy: the R1
+fix added a domain check for `chunk` **only**, so a `kind` violation still passes
+silently — a validator covering one field of one schema teaches the reader that
+records are checked, when they are checked in one place. **p4 remedy: validate
+every field against its declared domain, not the field that happened to break.**
+
+### Can the 8 records be repaired in p4?
+
+**Yes, but repairing them is the smaller half and carries a trap.** `"Chunk N" →
+N` is a total, unambiguous parse, cross-checkable against the plan's 8 chunks.
+However, a migration that fixes only the typing yields a per-chunk block showing
+8 implement dispatches, **0 verifiers, 0 fixes, 0 redos** — which *looks*
+complete and is wrong. That is the same failure this cycle was opened to prevent:
+an artifact asserting more than the evidence supports.
+
+Recommended p4 ordering: (1) record `verifier` and `fix` dispatches at all;
+(2) re-base `expected` on an independent source (P2); (3) validate every field
+against its domain (P3); (4) **only then** migrate the 8 records, and stamp the
+migrated block as partial so it cannot be read as a full per-chunk history.
+
+## Session Learnings (verify session, 2026-09-18) — harness-p4 input
+
+Process observations from running this stage, distinct from the defects above.
+Recorded because each one is actionable in p4.
+
+### L1 — the adversarial layers found everything; the blue path found nothing new
+
+Every defect fixed at this stage came from a layer whose job was to disagree:
+red round 1 found R1 (a live code defect), the review found C1 and C2, red round 2
+found that the R1 fix repaired nothing. The blue verify pipeline, which ran all
+seven gate commands and walked all 17 requirements, surfaced **no** new defect —
+it confirmed. That is not a criticism of blue: it is evidence that **confirmation
+and refutation are different jobs** and the harness is right to pay for both.
+p4 should resist any pressure to economise by merging them.
+
+### L2 — the convergence signal is worth making explicit
+
+Three layers independently hit the same structural gap from three directions
+(blue: Chunk 7's dropped `git add`; review C1: unexercised requirements about to
+flip to `pass`; red R4: nothing mechanically blocks DONE on aggregate drift).
+Nothing in the harness *noticed* the convergence — the orchestrator did, by hand.
+**p4 candidate: when two or more layers in one cycle produce findings that share
+a root cause, surface that as its own gate signal.** A defect found three ways is
+categorically stronger evidence than three separate findings, and currently that
+strength is invisible.
+
+### L3 — "fixed" and "repaired" came apart, and only a second round caught it
+
+The R1 fix passed its self-test, passed lint, and made round 1's `reproduce:`
+command go green — by every mechanical signal it was done. Round 2 showed the
+underlying damage was untouched. **A green `reproduce:` proves the specific
+command no longer reproduces, not that the defect is repaired.** This is precisely
+what the `new-ground` label is for, and it earned its keep on first live use.
+
+### L4 — the isolation guarantee held under a real test
+
+The round-2 leaf reported "this dispatch is round 1" — correct from inside its
+own context, since round number is orchestrator state. The leaf being *wrong about
+the round* is positive evidence the isolation is real. Worth stating in the spec
+so a future reader does not file it as a defect.
+
+### L5 — anticipatory artifact text needs an owner
+
+The verify leaf wrote `§Recommendation` describing what the flip *would* do, and
+the placeholder for a round that had not run. Both had to be rewritten by the
+orchestrator after the fact. This worked because M2 forced an explicit fallback
+reading onto the placeholder — without it, an unfilled `_(pending)_` would have
+shipped as if passed. **p4: any leaf-written text that anticipates a later step
+must carry its own "if this was never filled, read it as X" clause.**
+
+### L6 — an operator widening is cheap to state and easy to lose
+
+Fixing R1 required widening the verify write scope to `tools/` and `skills/`. It
+was stated at the gate and in the dispatch, and the scope check then read those
+paths as `IN` — correctly, but only because the widening was remembered. Nothing
+durable records that the widening happened; `SCOPE: CLEAN` looks identical either
+way. **p4 candidate: record the widening in the telemetry record's
+`write_scope_n` sibling so a post-cycle reader can tell a clean stage from a
+widened one.**
+
 ## Assumptions
 
 - **Regression base.** This workstream has no branch of its own — HEAD is `main`
