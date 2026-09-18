@@ -291,6 +291,14 @@ per token and per `RETURN.status`: `references/return-contract.md` §6, §7.
 | **loop-back-to-fix** | Re-dispatch the pipeline subagent with a repair packet (findings + paths by construction — `references/return-contract.md` §3; never a re-litigation of the reviewer's reasoning), then re-run the review for this stage. |
 | **stop** | Halt the loop; leave artifacts as-is. |
 
+**How the decision is collected (presentation only).** Render the gate block
+verbatim as text — it is a fixture, and its signal order is the contract — then
+collect the decision through the host's option picker when the session has one,
+listing the gate's options as the choices, and fall back to plain text when it
+does not. The picker never replaces, summarizes or reorders the block above it,
+and never adds an option the gate does not offer. This binds nothing about the
+loop: the options, their meaning and the caps are unchanged.
+
 **Approve-with-fixes shortcut.** For `APPROVE_WITH_FIXES` (`sdd-review`: "fix
 the named findings, then proceed without re-review") **loop-back-to-fix** offers
 re-dispatch then re-review (default) or skip the re-review; *Reject* never skips it.
