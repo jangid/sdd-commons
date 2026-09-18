@@ -2,7 +2,7 @@
 domain: HARN
 last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001]
+research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001]
 ---
 
 # Requirements: Harness Hardening — Decoupled Verification
@@ -293,4 +293,29 @@ costs one edit)
 `{deliverable_contract}` slot as the destination for out-of-fix-scope review
 findings and states that no repair-packet field is added;
 `docs/spec/harness-return-contract.md` carries the same sentence.
+[Priority: should]
+
+### REQ-HARN-HARNESSP4-007: the three leaf terminal tokens sit at column 0 in every template and restating spec
+The `CHUNK_VERDICT: PASS | FAIL` token in `references/dispatch-templates.md`'s
+CHUNK VERIFIER dispatch body and `RETURN:` block must sit at **column 0**, as
+`VERDICT:` (REVIEW) and `RED_VERDICT:` (RED TEAM) already do, and
+`skills/sdd-orchestrate/SKILL.md` must state the verifier token's parse rule as
+`^CHUNK_VERDICT:` on the last non-blank line, matching the anchored wording it
+already uses for the other two. The Approved specs that restate the fenced
+bodies byte-for-byte — `docs/spec/harness-chunk-verifier.md` (and
+`docs/spec/adversarial-verify.md` where a body it restates changes) — are
+amended in the same change so REQ-HARN-HARNESSP3-002's byte-consistency
+contract is preserved, and the `[template-drift]` rule of REQ-LINT-HARNESSP4-001
+is the mechanical check that they were. The template is the outlier today: two
+tokens are `^`-anchored, live leaves already render the third at column 0, and
+an indented template invites a leaf to emit an indented token a future anchored
+parser would miss. (workstream `harness-p4`; see `docs/ws/harness-p3/verification.md`
+§V9 — recorded with a recommendation; needs a cycle that can amend the two
+Approved specs)
+**Acceptance**: `grep -n '^  CHUNK_VERDICT:' skills/sdd-orchestrate/references/dispatch-templates.md`
+returns nothing and `grep -c '^CHUNK_VERDICT:'` on the same file is ≥ 2;
+`SKILL.md` §The gate states `^CHUNK_VERDICT:`; the fenced bodies of
+`dispatch-templates.md` and `harness-chunk-verifier.md` are byte-identical after
+the edit (`python3 tools/sdd-skill-lint.py` exits 0 with the `[template-drift]`
+rule active).
 [Priority: should]

@@ -2,7 +2,7 @@
 domain: CYCID
 last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-HARNESSP3-001]
+research_refs: [RS-HARNESSP3-001, RS-HARNESSP4-001]
 workstream: harness-p3
 ---
 
@@ -108,6 +108,41 @@ no `research_id` behaves the same; a repo/workstream with no `kickoff.md` reads
 a `status: complete` plan as complete; and `references/loop-control.md` §3 is
 **unmodified** by this requirement.
 [Priority: must]
+
+### REQ-CYCID-HARNESSP4-001: `sdd-verify` and `sdd-plan` emit `research_id:` where Q-IMPL-HARNESSP3-014 pins it
+`skills/sdd-verify/SKILL.md` Step 6 and `skills/sdd-plan/SKILL.md`'s frontmatter
+template must emit `research_id:` **immediately after `status:`**, as
+Q-IMPL-HARNESSP3-014 pins, rather than after `last_updated:` as both skills do
+today. The two skills are reconciled to the Q-IMPL, not the Q-IMPL to the
+skills: the Q-IMPL is the recorded decision, the comparison of
+REQ-CYCID-HARNESSP3-001 is order-independent string equality so behaviour is
+unchanged either way, and one position for the stamp lets a reader of any
+`verification.md` or `plan.md` find it without searching. Cosmetic; carried
+because it needs a cycle that can edit both skills. (workstream `harness-p4`; see
+`docs/ws/harness-p3/verification.md` §Next Steps R4 — accepted at the verify
+gate as a harness-p4 candidate)
+**Acceptance**: the frontmatter templates in both skills show `status:` then
+`research_id:` on consecutive lines; this cycle's `docs/ws/harness-p4/plan.md`
+and `verification.md` frontmatter have `research_id:` on the line after
+`status:`; `python3 tools/sdd-skill-lint.py` exits 0; the Q-IMPL text is
+unchanged.
+[Priority: should]
+
+### REQ-CYCID-HARNESSP4-002: `CLAUDE.md`'s completion-signal rows carry the no-kickoff qualifier inline
+The two completion-signal rows of `CLAUDE.md` §Phase Detection — the plan
+`status: complete` row and the `verification.md` `status: pass` row — must carry
+the case-3 relief inline, e.g. "**`research_id` matches the kickoff's**, when a
+kickoff with one exists", so the table is independently correct. Today the
+qualifier lives only in the §Cycle identity paragraph beneath the table, and a
+reader consulting the table alone concludes a repo with no kickoff can never
+read its own passing report as verified — the opposite of REQ-CYCID-HARNESSP3-001
+case 3 and of what `sdd-verify` §Phase Detection implements. (workstream
+`harness-p4`; see `docs/ws/harness-p3/verification.md` §V13 — recorded: yes,
+qualify inline; `CLAUDE.md` was outside the verify write scope)
+**Acceptance**: both rows in `CLAUDE.md` §Phase Detection contain the
+qualifier; the §Cycle identity paragraph below still carries the three cases
+unchanged; `python3 tools/sdd-gc.py --report` raises no new finding.
+[Priority: should]
 
 ## Out of Scope
 

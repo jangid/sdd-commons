@@ -2,7 +2,7 @@
 domain: REDB
 last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001]
+research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001]
 workstream: harness-p2
 ---
 
@@ -281,6 +281,10 @@ DONE flip turns exactly those cells to `pass` while `fail` rows are untouched;
 `python3 tools/sdd-gc.py --report` raises no new finding on a `pending-red`
 cell.
 [Priority: must]
+> **Amended by REQ-REDB-HARNESSP4-001** (2026-09-18, workstream `harness-p4`):
+> the gc criterion reads "no new finding **on a `pending-red` cell**"; the
+> `[traceability-aggregate]` warning between a per-ws write and the
+> orchestrator's regeneration is the designed handshake, not a finding.
 
 ### REQ-REDB-HARNESSP3-004: A post-cycle fix with no open chunk is recorded in the plan's `## Post-cycle Fixes` section
 When a verify-stage `RED_BREAK` fix belongs to no open chunk, it must be
@@ -304,4 +308,26 @@ path so the write is `IN`; `skills/sdd-plan/SKILL.md`'s plan template lists
 `## Post-cycle Fixes` as an optional orchestrator-owned non-task section and a
 plan rewrite preserves it; a `RED_BREAK` fix dispatched with no open chunk
 yields `SCOPE: CLEAN` and one new line under that section.
+[Priority: should]
+
+### REQ-REDB-HARNESSP4-001: the gc criterion for `pending-red` cells names the aggregate handshake as expected
+The acceptance criterion inherited from REQ-REDB-HARNESSP3-003 — that
+`tools/sdd-gc.py --report` raises no new finding when `Verified` cells hold
+`pending-red` — must read "no new finding **on a `pending-red` cell**" wherever
+it is stated (`docs/spec/adversarial-verify.md`, `docs/spec/ws-traceability.md`
+§Legal `Verified` Cell Values and `skills/sdd-verify/SKILL.md` Step 3b/6), and
+must name the `[traceability-aggregate]` warning that legitimately appears
+between a per-workstream traceability write and the orchestrator's post-gate
+regeneration (REQ-WS-HARNESSP3-001) as the **designed handshake**, not a
+finding. In p3 the criterion's bare "no new finding" made an honest verify
+record read as a near-failure: gc raised zero findings on the 17 live
+`pending-red` cells but one expected aggregate warning, which the criterion's
+wording did not admit. Needs a spec-amending cycle. (workstream `harness-p4`; see
+`docs/ws/harness-p3/verification.md` §V5 and §Next Steps R6 — accepted at the
+verify gate)
+**Acceptance**: `grep -rn 'pending-red' docs/spec/adversarial-verify.md docs/spec/ws-traceability.md skills/sdd-verify/SKILL.md`
+shows the qualified wording and the named handshake warning in each place the
+criterion is stated; this cycle's `verification.md` gc item, run after a per-ws
+write and before regeneration, records the aggregate warning as expected and
+`pass`es on the qualified criterion.
 [Priority: should]

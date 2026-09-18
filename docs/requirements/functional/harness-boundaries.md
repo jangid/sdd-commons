@@ -2,7 +2,7 @@
 domain: HARN
 last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001]
+research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001]
 ---
 
 # Requirements: Harness Hardening — Boundaries
@@ -274,3 +274,179 @@ the false `VIOLATION` follows from the two committed texts as they stand)
 table; a marker-4 specs dispatch that writes only `docs/spec/**` plus its
 per-ws traceability row yields `SCOPE: CLEAN`.
 [Priority: must]
+
+### REQ-HARN-HARNESSP4-001: `COMMIT: COMPLETE | INCOMPLETE` — the orchestrator's commit is checked against what it observed
+Whenever the orchestrator commits on `proceed` in sequential mode (per-chunk
+gate and stage gate alike), it must compare the **observed-writes set** of the
+dispatch it is committing against the set of paths that actually **landed** on
+the integration line, and render the result as its own gate signal:
+
+```
+landed   := git diff --name-only <HEAD_gate> <HEAD_landed>   # two-sha range, captured BEFORE any bookkeeping commit
+expected := observed writes                                  # REQ-HARN-HARNESSP4-002 fixes this term
+COMMIT: COMPLETE (N paths)
+COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <paths>])
+```
+
+`HEAD_gate` is the integration-line HEAD when the gate decision is taken and
+`HEAD_landed` its HEAD immediately after the orchestrator's own commit, before
+the aggregate-regeneration commit of REQ-WS-HARNESSP3-001 or any other
+bookkeeping commit. The comparand is a **two-sha `git diff --name-only`**, never
+`git show --name-only --format= HEAD`: the latter names only the last commit,
+which is the regeneration commit at every marker-4 implement chunk and is empty
+on a merge commit. The signal has exactly **two members** — `INCOMPLETE` carries
+both directions of the set difference (observed-not-landed and
+landed-not-observed) as clauses of one line, so the inverse error (the
+orchestrator committing a path no leaf wrote) needs no third token. Because the
+commit is the *consequence* of the `proceed` decision, the line renders as a
+**post-decision closing line of the same gate** (`references/loop-control.md`
+§5 item 8) — not between `SCOPE:` and `CHUNK_VERDICT:`, where it would assert a
+commit that has not happened, and not deferred to the next gate the way
+`TELEMETRY: rec <n>` is, because `COMMIT:` is load-bearing where telemetry is by
+contract never load-bearing. On `INCOMPLETE` the gate pauses with
+`amend (add the missing paths to the commit) | accept (note) | stop`; the
+`accept (note)` note is **recorded in the gate text** and, if the path is never
+landed in a later commit of the cycle, in the plan's existing blocked-task note
+— the only durable traces REQ-HARN-027 / REQ-ORCH-014 allow; no new artifact is
+created. No next dispatch — including the implement-stage review after the last chunk — is
+issued until the pause is resolved: the review must see the landed tree, not a
+partial one. `amend` does not re-run the write-scope check: every amended path
+came from the observed set and was already classified there. (workstream
+`harness-p4`; see RS-HARNESSP4-001 §Q1 — comparand probe-evidenced in five
+scratch-repo cases, placement constructed; evidence `docs/ws/harness-p3/verification.md`
+§V14: Chunk 7's `CLAUDE.md` edits were `IN`, the gate rendered `SCOPE: CLEAN`,
+and the path was omitted from the commit, repaired only at `16e240b` after a
+human read; review C1 and red R4 share the root cause)
+**Acceptance**: `references/write-scope.md` §7 defines the check, the comparand
+table (sequential / fan-out per-leaf / fan-out merge step), the two-member token
+and the `amend | accept | stop` options; `references/loop-control.md` §5 lists
+item 8 "post-decision: `COMMIT:`" and `skills/sdd-orchestrate/SKILL.md` §The
+gate, `USAGE.md` §7b, `CLAUDE.md` §Gate vocabulary and `docs/spec/harness-write-scope.md`
+state it in one sentence each; a walkthrough of a sequential chunk whose leaf
+wrote `a.txt`, `b.txt`, `docs/plan.md` and whose orchestrator staged only two
+renders `COMMIT: INCOMPLETE (1 observed, not landed: docs/plan.md)` and pauses
+before the next dispatch, while the same chunk fully staged renders
+`COMMIT: COMPLETE (3 paths)`; a walkthrough in which the orchestrator also
+commits `stray.txt` renders the `landed, not observed: stray.txt` clause on the
+same line; a walkthrough where the regeneration commit follows the feature
+commit still renders `COMPLETE` (the range is captured before it); this cycle's
+`verification.md` records at least one live gate rendering the line.
+[Priority: must]
+
+### REQ-HARN-HARNESSP4-002: sequential `expected` is observed writes only — `RETURN.files_written` is never a `COMMIT:` term
+In sequential mode the `expected` term of `COMMIT:` must be exactly the
+observed-writes set (porcelain ∪ committed ∪ content deltas of
+`references/write-scope.md` §3) and must **not** union in the leaf's
+`RETURN.files_written`. A path the leaf claims but never wrote — or wrote and
+reverted, so no delta observes it — cannot land, and a comparand that unioned
+the claim would render `COMMIT: INCOMPLETE (observed, not landed)` for a defect
+of the leaf's *return*, not of the orchestrator's commit: a false pause. The
+difference `RETURN.files_written − observed` is instead surfaced as a
+**return-drift warning** owned by `references/return-contract.md` (which already
+owns return-side defects) and excluded from `COMMIT:`. This is the sequential
+analogue of the fan-out clause `RETURN.commits ⊆ git rev-list <base>..<tip>`
+(REQ-HARN-HARNESSP4-003): both keep a leaf's return error out of the
+landed-vs-observed comparison. This ratifies the research's
+design-decision-for-requirements and departs from V14's proposed
+"`files_written` plus the observed set". (workstream `harness-p4`; see
+RS-HARNESSP4-001 §Q1 "Why `RETURN.files_written` is not a term of `expected`" —
+constructed; the V14 proposal is in `docs/ws/harness-p3/verification.md` §V14)
+**Acceptance**: `references/write-scope.md` §7's comparand table names
+observed writes as the sole sequential `expected` term and cross-references the
+return-drift warning; `references/return-contract.md` §1 or §3 defines
+`RETURN.files_written − observed` as a warning, not a pause; a walkthrough of a
+leaf that lists `docs/extra.md` in `files_written` without writing it renders
+`COMMIT: COMPLETE` plus a return-drift warning naming `docs/extra.md`, and
+never `COMMIT: INCOMPLETE`.
+[Priority: must]
+
+### REQ-HARN-HARNESSP4-003: `COMMIT:` under fan-out — per-leaf and merge-step comparands, no third member
+Under implement-stage fan-out the same two-member `COMMIT:` signal must be
+computed at two points with mode-specific comparands. At the **per-leaf gate**
+`expected` is the leaf's observed writes in its worktree and `landed` is its
+committed delta `git diff --name-only <base> <tip>` (the write-scope check's own
+term (b)), so the comparison reduces to the leaf's uncommitted writes — exactly
+what worktree teardown (`references/fan-out.md` §3d) would discard; because the
+data exists before the decision, the line renders in position **2b** of the §5
+order, after `SCOPE:` and before `CHUNK_VERDICT:`. A second per-leaf clause
+checks `RETURN.commits ⊆ git rev-list <base>..<tip>` and reports a claimed sha
+not on the branch in the same line. At the **merge step** (`fan-out.md` §3b),
+per branch, `expected` is that leaf's committed delta `base..tip` and `landed`
+is `git diff --name-only PRE_MERGE HEAD` on the integration branch, rendered as
+a post-`proceed` closing line. No third token member is added for a merge that
+drops a path: a clean `git merge` — fast-forward or true merge commit — cannot
+lose one (`diff PRE HEAD` equalled the leaf delta in both probe cases), and the
+conflict → abort → redo path re-derives from a **new** dispatch whose own sets
+are compared, so the first attempt's set is discarded by design; preserving the
+aborted attempt's path list, if ever wanted, is a repair-packet concern, not a
+gate token. (workstream `harness-p4`; see RS-HARNESSP4-001 §Q1 cases 3–5 —
+probe-evidenced for the merge behaviour, spec-read for the redo semantics)
+**Acceptance**: `references/fan-out.md` §3a.v carries the per-leaf clause and
+its 2b placement and §3b the merge-step comparand `PRE_MERGE..HEAD`;
+`references/loop-control.md` §5 names position 2b for the per-leaf gate; a
+walkthrough of a leaf that made two commits (`a.txt`, then `b.txt`) merged by
+fast-forward renders `COMMIT: COMPLETE (2 paths)` — not the false `INCOMPLETE`
+that `git show HEAD` would produce; a walkthrough of a true merge commit after an
+integration-branch bookkeeping commit renders `COMPLETE` with the leaf's full
+delta; a leaf whose `RETURN.commits` names a sha absent from `rev-list` is
+reported in the per-leaf `COMMIT:` line; the token family in every file remains
+exactly `COMPLETE | INCOMPLETE`.
+[Priority: must]
+
+### REQ-HARN-HARNESSP4-004: observed writes are a strict set — `N` counts distinct paths
+The observed-writes union of `references/write-scope.md` §3
+(`porcelain_delta ∪ committed_delta ∪ content_delta`) must be implemented with
+**set** semantics: a path that arrives from more than one term is counted once
+in the `N` of `SCOPE: VIOLATION (N paths)` and once in `COMMIT:`'s sets, and the
+`Observed writes:` provenance line keeps the **richest** label for it
+(committed ≻ content ≻ porcelain). Today `Observation.paths` in
+`tools/sdd-scope-check-selftest.py` is an append-ordered list, so a path dirty
+at snapshot, committed during the dispatch and dirtied again is appended by two
+terms and counted twice — the rendered token then makes a false statement about
+a path count the operator reads to size a violation, and the implementation
+diverges from an Approved contract that already says `UNION`. (workstream
+`harness-p4`; see `docs/ws/harness-p3/verification.md` §V7 — confirmed by
+reading, no fixture reaches it)
+**Acceptance**: `tools/sdd-scope-check-selftest.py --self-test` gains a fixture
+in which one path is observed by both the committed and the content delta and
+asserts the rendered `N` is `1` with provenance label `committed`; the shipped
+self-test exits 0; `references/write-scope.md` §3 states the de-duplication and
+label-precedence rule in one sentence.
+[Priority: must]
+
+### REQ-HARN-HARNESSP4-005: `R`/`C` records and `-z` parsing are exercised by self-test fixtures
+`tools/sdd-scope-check-selftest.py` must gain fixtures exercising the
+`docs/spec/harness-write-scope.md` criterion "porcelain parsing uses `-z` and
+enters **both** paths of an `R`/`C` record into the ambiguous set": one scenario
+that `git mv`s a scoped path to an out-of-scope path and asserts both the old and
+the new path enter the ambiguous set (so the rename is observed rather than
+cancelling), and one whose path contains a space, asserting `-z` parsing keeps it
+one record. The behaviour is implemented in `snapshot()` / `ambiguous_set` but
+none of F1–F13 renames, copies, or uses a path with a space, quote or newline —
+the two conditions that make `-z` parsing load-bearing. (workstream `harness-p4`;
+see `docs/ws/harness-p3/verification.md` §V6 — recorded, fixture not added
+because `tools/` was outside the verify write scope)
+**Acceptance**: the two fixtures exist and pass under `--self-test`; mutating
+the parser to split on newline instead of NUL makes the space-path fixture fail;
+dropping the rename's origin path from the ambiguous set makes the `R` fixture
+fail; the shipped self-test exits 0.
+[Priority: should]
+
+### REQ-HARN-HARNESSP4-006: `COMMIT:` has a self-test helper covering the five probe cases
+`tools/sdd-scope-check-selftest.py` must gain a pure `commit_check(expected,
+landed)` helper that renders the `COMMIT:` line of REQ-HARN-HARNESSP4-001 from
+two path sets, plus one fixture per case the research probed: sequential
+omission (observed-not-landed), sequential inverse (landed-not-observed), fan-out
+fast-forward over a two-commit leaf, fan-out true merge commit after an
+integration-branch bookkeeping commit, and conflict → abort → redo with a
+narrower second leaf (asserting the redo's own sets are compared and no third
+member is rendered). The fixtures build throwaway repositories under a temporary
+directory exactly as the existing F-series does; nothing touches this
+repository's working tree. (workstream `harness-p4`; see RS-HARNESSP4-001 §Q1
+cost table — code; the probe transcript is `evidence-appendix.md` §A)
+**Acceptance**: `python3 tools/sdd-scope-check-selftest.py --self-test` exits 0
+with the five fixtures listed in its output; replacing the two-sha range in the
+fast-forward fixture with `git show --name-only --format= HEAD` makes that
+fixture fail with a false `INCOMPLETE`, demonstrating why the comparand is the
+range.
+[Priority: should]
