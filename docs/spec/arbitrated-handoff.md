@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-ARB-HARNESSP2-001
   - REQ-ARB-HARNESSP2-002
@@ -13,6 +13,7 @@ requires:
   - REQ-SKILL-HARNESSP2-003
   - REQ-SKILL-HARNESSP2-006
   - REQ-LINT-HARNESSP2-001
+  - REQ-ARB-HARNESSP3-001
 ---
 
 # Arbitrated Handoff Between Contradicting Review Rounds
@@ -72,7 +73,10 @@ path-level delta (REQ-HARN-021).
 ### Contradiction Classes (REQ-ARB-HARNESSP2-002, -003, -004)
 
 Let `K_N` = set of `(file, section)` keys of round N's C/M lines, `W_N` =
-`fix[N].written`, `F(K)` = the files of a key set. With `∈` at section
+`sections(fix[N].written)` **UNION** `sections(regeneration writes since round
+N)` [Amended 2026-09-18, REQ-ARB-HARNESSP3-001 — `W_N` was `fix[N].written`
+alone; see §`W_N` Includes Regeneration Writes], `F(K)` = the files of a key
+set. With `∈` at section
 level unless degraded:
 
 | Class | Rule | Detected? |
@@ -195,6 +199,41 @@ reviewer is not told about arbitration, which keeps rounds independent.
 | `tools/sdd-skill-lint.py` `REQUIRED` | (b) `references/loop-control.md` ∋ `REVIEW: CONTRADICTION` min 1 — consumer-only (the orchestrator raises and handles it), with `SKILL.md` §The gate carrying the pointer; (c) `skills/sdd-review/SKILL.md` ∋ a Material template line matching `M1:.*affects` min 1; both with `reason` and `fix`; `--self-test` §7 covers them; total REQUIRED rows ≥ 32 with `adversarial-verify.md`'s two |
 | `skills/sdd-orchestrate/USAGE.md` | section: the pause, its four options, what "note" means (`telemetry.md` §Skill and Lint Changes lists all USAGE sections) |
 
+### `W_N` Includes Regeneration Writes — Regenerated Is Not New Ground (REQ-ARB-HARNESSP3-001)
+
+[Changed 2026-09-18. The defect is spec-read and run-corroborated (§B8: class (b)
+fires by construction on every finding in a regenerated deliverable); the remedy
+is **constructed** — it reuses the already-specified section-resolution
+mechanism but has not yet been exercised by any run.]
+
+The retained per-round write set is redefined as the union of the fix dispatch's
+written pairs **and** the written pairs of every orchestrator-dispatched
+**regeneration of the stage deliverable** between review round N and round N+1:
+
+```
+W_N := sections(fix[N] writes) UNION sections(regeneration writes since round N)
+       # falling back to (file, *) only where section resolution is unavailable,
+       # which is the existing rule and already labels the pause "(file-level)"
+```
+
+This is stated as a general **regenerated-not-patched** rule at the §2a level,
+**not** inside the red section, because it applies to any stage whose pipeline
+leaf rewrites its artifact wholesale between rounds — specs, plan, verification.
+
+`fix[N]` generalises from "the fix dispatch" to "the loop dispatches between
+round N and round N+1". Whether that is a rename or a sibling `regen[N]` whose
+pairs union in is an **implementation choice**; the **union** is the contract.
+
+Granularity is **not** lost: section resolution (REQ-ARB-HARNESSP2-005) is a
+function of a diff, and it applies to a regeneration diff exactly as it applies
+to a fix's.
+
+The arbitration guarantee is **not** weakened. The pause exists to catch a
+reviewer raising new Critical/Material findings on ground the previous round
+approved **and the loop did not touch**; a wholesale-regenerated file *was*
+touched by the loop. Admitting it removes false positives only and cannot mask a
+contradiction about a file the loop left alone.
+
 ## Verification
 
 ### Automated
@@ -249,6 +288,10 @@ reviewer is not told about arbitration, which keeps rounds independent.
 - [ ] Material template line carries `affects` / `affects —`; nothing else in the report format changes (REQ-ARB-HARNESSP2-008)
 - [ ] Skill changes tabled; lint rows (b), (c) with `--self-test` coverage (REQ-SKILL-HARNESSP2-003, -006; REQ-LINT-HARNESSP2-001)
 - [ ] `python3 tools/sdd-skill-lint.py` exits 0
+- [ ] §Retained Per-Round State and §Contradiction Classes carry the union and the regenerated-not-patched rule, and `references/loop-control.md` §2a's state schema and `W_N` definition match (REQ-ARB-HARNESSP3-001)
+- [ ] `docs/spec/adversarial-verify.md` §Fix-Loop Interaction carries the cross-reference (REQ-ARB-HARNESSP3-001)
+- [ ] A fixture in which round 1 `APPROVE`s, a pipeline re-dispatch regenerates the deliverable, and round 2 raises Material findings in regenerated sections yields **no** `REVIEW: CONTRADICTION` pause (REQ-ARB-HARNESSP3-001)
+- [ ] The same fixture with the findings in a file the loop never touched still pauses as class (b) (REQ-ARB-HARNESSP3-001)
 
 ## Edge Cases
 
@@ -295,6 +338,14 @@ reviewer is not told about arbitration, which keeps rounds independent.
 - `skill-lint-v5.md`: rows (b), (c) follow the `REQUIRED` row shape.
 - **No unresolved contradictions.**
 
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+arbitrated-handoff.md — `W_N` is a set-valued definition in pseudocode, not a
+language type, so the extraction step reports no definitions explicitly.
+`sections(...)` is the section-resolution function of REQ-ARB-HARNESSP2-005,
+defined in this spec and unchanged; `REVIEW: CONTRADICTION`, class `(b)` and
+`(file-level)` keep their existing meanings and render identically in
+`docs/spec/adversarial-verify.md` §Fix-Loop Interaction.
+
 ## Open Questions
 
 1. **Class (b) false-positive rate** (`index.md` Open Questions): a
@@ -306,3 +357,30 @@ reviewer is not told about arbitration, which keeps rounds independent.
    stays, the operator verifies.
 3. **Heading normalisation across `§Name` variants** (`§3. Foo` vs `§Foo`):
    Default: strip a leading ordinal `\d+[.)]?\s*` before comparing.
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP3-009: `regen[N]` is a sibling set, not a rename of `fix[N]`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`W_N` Includes Regeneration Writes
+**Decision**:
+
+REQ-ARB-HARNESSP3-001 leaves the shape as an implementation choice. Decision:
+keep `fix[N]` meaning the fix dispatch's writes and add a sibling `regen[N]` for
+regeneration writes, with `W_N := sections(fix[N]) UNION sections(regen[N])`.
+Rationale: the two sets have different provenance in the telemetry record and in
+the ledger, and keeping them separable costs nothing while a rename would make
+the distinction unrecoverable.
+**Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP3-010: "Regeneration of the stage deliverable" means a pipeline re-dispatch of the same stage
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`W_N` Includes Regeneration Writes
+**Decision**:
+
+The regeneration writes admitted into `W_N` are those of an
+orchestrator-dispatched leaf **for the same stage** between rounds N and N+1 —
+not writes from a different stage's leaf, and not an operator's manual edit,
+which remains outside the loop's write set and therefore still able to raise a
+class (b) pause.
+**Date**: 2026-09-18 (specs stage)

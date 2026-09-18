@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-HARN-020
   - REQ-HARN-021
@@ -9,6 +9,10 @@ requires:
   - REQ-HARN-024
   - REQ-HARN-025
   - REQ-HARN-026
+  - REQ-HARN-HARNESSP3-001
+  - REQ-HARN-HARNESSP3-004
+  - REQ-REDB-HARNESSP3-004
+  - REQ-WS-HARNESSP3-001
 ---
 
 # Harness Write Scope
@@ -49,18 +53,25 @@ following dispatches of the same stage in this session).
 
 Marker `3` paths. Under marker `4`, `docs/plan*.md`, `docs/plan-history/**`,
 `docs/verification.md` and the traceability write resolve to their
-`docs/ws/<id>/` equivalents (`docs/ws/<id>/traceability.md` plus the
-regenerated aggregate `docs/requirements/traceability.md`), while
+`docs/ws/<id>/` equivalents (`docs/ws/<id>/traceability.md`), while
 `docs/research/**`, `docs/requirements/**` and `docs/spec/**` stay shared.
+
+[Amended 2026-09-18, REQ-WS-HARNESSP3-001] For an **orchestrated** dispatch the
+shared aggregate `docs/requirements/traceability.md` is **not** part of any leaf
+row: regenerating it is the orchestrator's post-gate bookkeeping (§7 commit
+ownership). It appears in a leaf's `{write_scope}` only for a **standalone**
+(non-orchestrated) run, where the writing skill regenerates it itself. The rows
+below are stated in that amended form; §Leaf Rows Omit the Shared Aggregate
+carries the rationale.
 
 | Stage / dispatch | Default write scope | Note |
 |---|---|---|
 | research | `docs/research/RS-NNN-*/**`, `docs/research/index.md` | `sdd-research` Steps 5–6 |
-| requirements | `docs/requirements/**` | category files, `index.md`, `traceability.md` rows |
-| specs | `docs/spec/**`, `docs/requirements/traceability.md` | traceability: Spec column only |
+| requirements | `docs/requirements/**`, minus `docs/requirements/traceability.md` when orchestrated | category files, `index.md`; marker `4`: rows are written to `docs/ws/<id>/traceability.md` |
+| specs | `docs/spec/**`; marker `3`: `docs/requirements/traceability.md` — marker `4`: `docs/ws/<id>/traceability.md`; the shared aggregate is omitted when orchestrated | traceability: Spec column only |
 | plan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**` | rewrite archives, never `-replan-` |
-| implement (sequential, per chunk) | the chunk's source/test paths, `docs/plan.md`, `docs/plan-*.md`, `docs/requirements/traceability.md`, `docs/spec/*.md` (**ADVISORY**), `docs/plan-history/*-complete.md`, `docs/research/RS-NNN-*/**` + `docs/research/index.md` | traceability: Test/Implementation columns; spec writes = Q-IMPL entries; `-complete` archives multi-milestone only; research paths spike tasks only |
-| verify | `docs/verification.md`, `docs/requirements/traceability.md` | traceability: Verified column (Step 3b) |
+| implement (sequential, per chunk) | the chunk's source/test paths, `docs/plan.md`, `docs/plan-*.md`, the active traceability file (marker `3` `docs/requirements/traceability.md`, marker `4` `docs/ws/<id>/traceability.md`; the shared aggregate is omitted when orchestrated), `docs/spec/*.md` (**ADVISORY**), `docs/plan-history/*-complete.md`, `docs/research/RS-NNN-*/**` + `docs/research/index.md` | traceability: Test/Implementation columns; spec writes = Q-IMPL entries; `-complete` archives multi-milestone only; research paths spike tasks only |
+| verify | `docs/verification.md`, the active traceability file (marker `3` `docs/requirements/traceability.md`, marker `4` `docs/ws/<id>/traceability.md`; the shared aggregate is omitted when orchestrated) | traceability: Verified column (Step 3b) |
 | replan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**`, `docs/spec/*.md` (**ADVISORY**) | `-replan-` archives; spec only for a Level-2 inline change |
 | fan-out leaf | the chunk-group's code and test paths **only** | plan + traceability barred by `fan-out.md` §2; `docs/spec/*.md` barred too — leaves never write Q-IMPL entries directly; a deviation is returned in `RETURN.open_questions` and the orchestrator files the Q-IMPL entry at merge (§3e) |
 | review, chunk verifier | *(empty — read-only)* | any write is `OUT` |
@@ -255,6 +266,93 @@ resolve to `docs/ws/<id>/…`, the fan-out `<base>` is the workstream branch
 point, and every revert/merge target is the workstream branch. Under marker `3`
 the flat paths and `main` apply unchanged.
 
+### Content-Hash Observation (REQ-HARN-HARNESSP3-001)
+
+[Changed 2026-09-18: a fourth term is added to `observed writes`. Probe-evidenced
+— RS-HARNESSP3-001 Q1 probe 1 reproduced the blindness and the remedy; probe 2
+measured 134 files at 0.064 s and an 8-path set at 0.017 s against a 0.008 s
+porcelain baseline.]
+
+The observation of REQ-HARN-021 is blind to a path that is **already dirty or
+untracked at snapshot time** and is written again during the dispatch: its
+porcelain status letter is unchanged, so the delta cancels it, and an
+uncommitted write leaves no committed delta. The remedy is a **content-hash
+observation** — the name to use in prose; never "the fourth observation", since
+§3 already calls the named-base observation a four-part one.
+
+Contract:
+
+```
+ambiguous_set := paths listed as dirty or untracked by snapshot(before)
+sha.before    := {(path, content_hash) for path in ambiguous_set}          # pre-dispatch
+sha.after     := {(path, content_hash) for path in ambiguous_set INTERSECT snapshot(after)}
+content_delta := {p | sha.before[p] != sha.after[p]}
+                 UNION {p in sha.before and absent from the worktree on return}
+observed writes := porcelain_delta UNION committed_delta UNION content_delta
+```
+
+- The cancel rule of §3 is amended: paths present in both snapshots cancel
+  **only when their content hash is also unchanged**.
+- A path deleted during the dispatch is recorded as a sentinel "absent" pair,
+  which is itself a content change.
+- Porcelain must be parsed with `-z`; **both** paths of a rename or copy
+  (`R`, `C`) record enter the ambiguous set.
+- The `SCOPE:` token, the `IN` / `ADVISORY` / `OUT` tags, the `N` count, the
+  finding block, the operator options and the `HISTORY_REWRITE` rule are
+  **unchanged** — this changes *what counts as an observed write*, not how one
+  is matched or rendered. `HISTORY_REWRITE` still rests on the untouched
+  ancestry check.
+- Cost is bounded to O(dirty files), not O(repo), because the set is fixed
+  before the dispatch.
+
+**Rejected alternatives** (both measured in RS-HARNESSP3-001 Q1 probe 2):
+`git stash create` writes seven loose objects per snapshot, so the orchestrator
+would mutate the repository it is observing; a temp-index `read-tree HEAD` plus
+`diff --stat` diffs against HEAD and reproduces the identical blindness.
+
+The §5 limitation that a file modified and then reverted to its original content
+within one dispatch stays invisible is **unchanged** — a content hash cannot see
+a round trip either.
+
+### Specs Row Names the Per-Workstream Traceability Path (REQ-HARN-HARNESSP3-004)
+
+[Changed 2026-09-18: spec-read defect — the marker-4 note resolved the path but
+the row did not, and the row is what fills `{write_scope}` at dispatch time.]
+
+The **specs** row of the default scope table must name the per-workstream path
+explicitly rather than delegating it to the section's marker-4 note:
+
+| Stage / dispatch | Default write scope |
+|------------------|---------------------|
+| specs | `docs/spec/**`; marker `3`: `docs/requirements/traceability.md` (Spec column only) — marker `4`: `docs/ws/<id>/traceability.md` (Spec column only), plus the aggregate only for a standalone run (see below) |
+
+Rationale: `docs/spec/ws-traceability.md` Q-IMPL-011 makes `sdd-specs` fill the
+**Spec** column of `docs/ws/<id>/traceability.md` under marker `4`. With the row
+as it stood, a specs leaf doing exactly what its skill mandates was tagged `OUT`
+— the same false-`VIOLATION` class the 2026-09-17 re-walk note was written to
+prevent for `sdd-verify`'s Verified-column write.
+
+### Leaf Rows Omit the Shared Aggregate (REQ-WS-HARNESSP3-001)
+
+[Changed 2026-09-18: constructed — ratifies one side of two committed texts that
+disagreed; see `docs/spec/ws-traceability.md` for the owning contract.]
+
+For **orchestrated** dispatches, every leaf row of the default scope table omits
+`docs/requirements/traceability.md`: regeneration of the shared aggregate is the
+orchestrator's post-gate bookkeeping, committed separately (§7 commit
+ownership). The omission is not incidental — the dispatched `{write_scope}` slot
+**is** the discriminator a writing skill reads: absent path → the orchestrator
+regenerates; present path, or no dispatched scope at all → the skill regenerates
+itself (standalone runs). No new flag or field is introduced.
+
+### `## Post-cycle Fixes` Is Inside the Implement / `RED_BREAK` Scope (REQ-REDB-HARNESSP3-004)
+
+The implement and `RED_BREAK` rows name the active plan path — marker `3`
+`docs/plan.md`, marker `4` `docs/ws/<id>/plan.md` — so an orchestrator-owned
+line appended under the plan's `## Post-cycle Fixes` section is tagged `IN`, not
+unscoped. The section's format and ownership are defined in
+`docs/spec/adversarial-verify.md`.
+
 ## Verification
 
 ### Automated
@@ -265,8 +363,13 @@ the flat paths and `main` apply unchanged.
   `src/**` → one `OUT docs/plan.md uncommitted`, `SCOPE: VIOLATION (1 path)`.
 - Fixture: porcelain clean after, committed delta `M docs/plan.md`, scope
   `docs/spec/**` → `OUT docs/plan.md committed`, `VIOLATION (1 path)`.
-- Fixture: verify dispatch writes `docs/verification.md` +
+- Fixture: standalone marker-`3` verify dispatch writes `docs/verification.md` +
   `docs/requirements/traceability.md` → both `IN`, `SCOPE: CLEAN`.
+- Fixture: orchestrated marker-`4` verify dispatch writes `docs/verification.md`
+  + `docs/ws/<id>/traceability.md` → both `IN`, `SCOPE: CLEAN`.
+- Fixture: orchestrated marker-`4` verify dispatch also writes
+  `docs/requirements/traceability.md` → `OUT docs/requirements/traceability.md`,
+  `SCOPE: VIOLATION (1 path)` (the aggregate is the orchestrator's to regenerate).
 - Fixture: implement dispatch writes `docs/spec/recon.md` → `ADVISORY`,
   `SCOPE: CLEAN`.
 - Fixture: `blocked_writes: [{path: docs/plan.md, …}]` from a fan-out leaf →
@@ -291,6 +394,12 @@ the flat paths and `main` apply unchanged.
 - [ ] Snapshot ordering excludes the orchestrator's commit: snapshot(after) on return, before verifier, per-chunk gate and commit / merge; stated beside the three commands (REQ-HARN-025)
 - [ ] Both v1 limitations are recorded beside the finding format; spec-file writes under implement/replan show `ADVISORY` (REQ-HARN-026)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
+- [ ] `references/write-scope.md` §3 carries the content-hash observation block and the amended cancel bullet; §5's limitation wording matches (REQ-HARN-HARNESSP3-001)
+- [ ] `tools/sdd-scope-check-selftest.py` fixture **F10** (next free id — F8 and F9 are taken): a path already dirty at snapshot time and re-touched by the leaf yields a non-empty observed-write set naming that path; the same fixture with the leaf leaving it untouched yields `SCOPE: CLEAN` (REQ-HARN-HARNESSP3-001)
+- [ ] Porcelain parsing uses `-z` and enters both paths of an `R`/`C` record into the ambiguous set (REQ-HARN-HARNESSP3-001)
+- [ ] The specs row of §2 names `docs/ws/<id>/traceability.md` under marker `4`; a marker-4 specs dispatch writing only `docs/spec/**` plus its per-ws row yields `SCOPE: CLEAN` (REQ-HARN-HARNESSP3-004)
+- [ ] §2 leaf rows omit `docs/requirements/traceability.md` and §7 assigns the regeneration to the orchestrator (REQ-WS-HARNESSP3-001)
+- [ ] The implement / `RED_BREAK` row names the active plan path so a `## Post-cycle Fixes` line is `IN` (REQ-REDB-HARNESSP3-004)
 
 ## Edge Cases
 
@@ -332,6 +441,19 @@ the flat paths and `main` apply unchanged.
   `harness-return-contract.md`.
 - **No unresolved contradictions.**
 
+**harness-p3 pass (2026-09-18).** No type definitions are introduced by this
+amendment — the specs in this corpus are prose/table contracts, so the
+type-extraction step reports "no extractable type definitions in
+harness-write-scope.md" as an explicit result rather than a silent pass. Shared
+tokens were checked instead:
+
+- `SCOPE:`, `IN` / `ADVISORY` / `OUT`, `HISTORY_REWRITE`, `CATCH-UP` — unchanged
+  here and consistent with `docs/spec/harness-return-contract.md`.
+- The specs write-scope row is repeated in `docs/spec/ws-traceability.md`
+  (Q-IMPL-011) and both now read `docs/ws/<id>/traceability.md` for marker `4`.
+- `## Post-cycle Fixes` is defined once, in `docs/spec/adversarial-verify.md`,
+  and referenced (not redefined) here.
+
 ## Open Questions
 
 1. **Scope for a research-stage spike inside implement** that needs a new
@@ -355,3 +477,31 @@ the flat paths and `main` apply unchanged.
 **Decision**: Superseded/extended as follows (REQ-HARN-026 and REQ-HARN-HARNESSP2-001/-002 amendments 2026-09-17): (1) `dispatch-snapshot-base.md` §Snapshot Base Rule — `snapshot(before)` is taken at the branch tip the leaf is instructed to reach, the committed delta is based on the named base, and a `CATCH-UP <from>..<base> (N commits, excluded — base <sha>)` line names excluded catch-up commits; limitation (c) is recorded with both remedies; (2) `dispatch-snapshot-base.md` §Blocked-Write Staging Path — the scratchpad-staged-then-copied path is the expected fallback, points (i)–(iv); (3) `telemetry.md` §Third Observation — limitation (b) gains the `.sdd/` exception and a third, telemetry-specific observation whose finding string is defined there once; (4) `arbitrated-handoff.md` §Section Resolution — limitation (a) is partially closed for Markdown paths by hunk-to-heading resolution. The three commands, tags and `SCOPE:` token are unchanged.
 **Rationale**: New behaviour lands in new spec files under marker 4; this entry is the pointer readers of this spec need.
 **Date**: 2026-09-17 (harness-p2 specs stage)
+
+### Q-IMPL-HARNESSP3-001: The contract is the `(path, sha)` pair set; `git hash-object` is the recommended hash
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Content-Hash Observation
+**Decision**:
+
+`REQ-HARN-HARNESSP3-001` specifies `(path, sha)` pairs without naming the hash.
+Decision (the normative half): the contract is the **`(path, sha)` pair set
+taken over working-tree content** — any hash function is conforming so long as
+the same function is used for the before and after snapshot of a dispatch.
+Working tree, not index, because the blindness being closed is an uncommitted
+working-tree rewrite.
+
+Recommendation (non-normative): `git hash-object --stdin-paths` over the
+ambiguous set, so the value matches git's own blob identity and needs no second
+hashing dependency. A plain `sha256` is an equally conforming substitute if a
+probe shows the plumbing call is the slower path.
+**Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP3-002: Deleted-path sentinel is a reserved non-hash token
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Content-Hash Observation
+**Decision**:
+
+The "absent" pair of REQ-HARN-HARNESSP3-001 is recorded as the literal string
+`ABSENT` in the sha slot, which cannot collide with a hex digest, so the
+comparison stays a plain inequality and needs no separate presence set.
+**Date**: 2026-09-18 (specs stage)

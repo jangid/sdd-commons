@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-TELEM-HARNESSP2-001
   - REQ-TELEM-HARNESSP2-002
@@ -15,6 +15,8 @@ requires:
   - REQ-SKILL-HARNESSP2-001
   - REQ-SKILL-HARNESSP2-008
   - REQ-LINT-HARNESSP2-002
+  - REQ-TELEM-HARNESSP3-001
+  - REQ-TELEM-HARNESSP3-002
 ---
 
 # Per-Dispatch Telemetry
@@ -245,9 +247,16 @@ gate, immediately after the `iteration`/cap line, before the options):
 
 | Line | When |
 |---|---|
+| `TELEMETRY: rec <n>` | the previous append succeeded; `<n>` counts successful appends this session [Amended 2026-09-18, REQ-TELEM-HARNESSP3-001 — see §Positive Gate Line] |
 | `TELEMETRY: WRITE FAILED` | the previous append raised an error |
 | `TELEMETRY: OFF` | first gate of a cycle in which the operator disabled telemetry |
 | `TELEMETRY: .gitignore updated` | the orchestrator added the `.sdd/` ignore line |
+
+[Amended 2026-09-18, REQ-TELEM-HARNESSP3-001] The family has **four** members;
+every restatement of it — `skills/sdd-orchestrate/SKILL.md` §The gate and
+`CLAUDE.md` §Driver ("`TELEMETRY: WRITE FAILED | OFF | .gitignore updated` are
+its only gate lines", a sentence this amendment makes false) — must carry the
+same four.
 
 ### Third Observation and Leaf-Write Revert (REQ-TELEM-HARNESSP2-005)
 
@@ -413,6 +422,58 @@ derived this way, the schema — not the scorer — is defective.
 | `skills/sdd-orchestrate/USAGE.md` | one section per new signal across this cycle: `TELEMETRY:` lines and the KICKOFF choice (this spec); red opt-in / `RED_VERDICT:` / `pending-red` (`adversarial-verify.md`); `REVIEW: CONTRADICTION` and its four options (`arbitrated-handoff.md`); `GC:` summary at entry and DONE (`drift-sweep.md`) |
 | `CLAUDE.md` §SDD | **one short paragraph** naming telemetry (gitignored, orchestrator-only, never read by phase detection), the red opt-in, the contradiction pause and the gc sweep; the four-verification-layer bullet is unchanged |
 
+### Positive Gate Line `TELEMETRY: rec <n>` (REQ-TELEM-HARNESSP3-001)
+
+[Changed 2026-09-18: the `TELEMETRY:` gate-line family had no member for "on,
+and the append happened". Spec-read, with a direct negative observation — on
+2026-09-18 the gate rendered telemetry as on, nothing was ever appended, and the
+text actually rendered (`TELEMETRY: on (record written after your decision)`)
+was not a member of the family §3 defines.]
+
+The family becomes `rec <n> | WRITE FAILED | OFF | .gitignore updated`:
+
+```
+TELEMETRY: rec <n>     # rendered on the gate AFTER an append; <n> counts SUCCESSFUL appends this session
+```
+
+Contract:
+
+- `<n>` **counts successful appends in this session**. It is **not**
+  `dispatch.seq`. The two diverge whenever a dispatch produces no append (a
+  `WRITE FAILED`, or a mid-cycle opt-out), and where they diverge the **append
+  count wins** — the line exists to assert that the append happened, so binding
+  `<n>` to the dispatch sequence would have a later gate assert an append count
+  that never occurred, weakening exactly the assurance the line provides.
+- `<n>` is a new **session-scoped counter**, incremented **only** on a
+  successful append, maintained beside `dispatch.seq` in the orchestrator's
+  existing session state (§3). No new artifact.
+- It is still **never a read of the telemetry file**: the write-only rule
+  (REQ-TELEM-HARNESSP2-004, "the orchestrator performs zero reads of the file")
+  is preserved intact, and the line is text, so §5's non-interference proof is
+  untouched.
+- Position: the writer sequence already appends *after* the gate decision, so
+  the **next** gate is where the previous append is asserted.
+- An operator who sees a gate carrying no `rec` line, no `OFF` line and no
+  `WRITE FAILED` line knows the append did not happen.
+
+Known residual: no spec read establishes whether an operator actually notices an
+absent line — which is what REQ-TELEM-HARNESSP3-002 backstops.
+
+### Records-vs-Expected in `summarize` (REQ-TELEM-HARNESSP3-002) [may]
+
+`tools/sdd-telemetry.py summarize` **may** report a records-vs-expected count
+per session, so a missing-append gap is visible post-cycle even when the
+operator missed the absent gate line. The reporting slot already exists —
+`summarize` skips and counts unparsable lines on a trailing `skipped:` line, and
+this is a sibling of it.
+
+This is an **optional backstop**, not a substitute for the gate line, and it is
+a strictly post-cycle reader: it must not influence control flow, and the
+orchestrator still performs zero reads of the file during a cycle
+(REQ-TELEM-HARNESSP2-004). If the plan has no room, it is queued under
+`verification.md` §Next Steps rather than dropped — the `may` acceptance is
+conditioned accordingly.
+
 ## Verification
 
 ### Automated
@@ -458,7 +519,7 @@ derived this way, the schema — not the scorer — is defective.
 
 - [ ] Record key set, value domains and counts-not-text rule as in §Record Schema; `dispatch.seq` 1-based per session with zero orchestrator reads of the file; run identity = `cycle.research_id`; `gate.decision` normalisation table incl. `other`; no resume-class key (REQ-TELEM-HARNESSP2-001, -003)
 - [ ] `dispatch.budget` and `return.budget_consumed` are enumerated units; `self_reported: true`; unparsable → `{"unparsed": true}` (REQ-TELEM-HARNESSP2-002)
-- [ ] Orchestrator-only, one append after each gate, never truncated except the leaf-write revert; `TELEMETRY: WRITE FAILED | OFF | .gitignore updated` lines; default on with KICKOFF opt-out; one file per repository (REQ-TELEM-HARNESSP2-004)
+- [ ] Orchestrator-only, one append after each gate, never truncated except the leaf-write revert; `TELEMETRY: rec <n> | WRITE FAILED | OFF | .gitignore updated` lines; default on with KICKOFF opt-out; one file per repository (REQ-TELEM-HARNESSP2-004)
 - [ ] Third observation (line count + entry list) and the `OUT .sdd/telemetry.jsonl (+k records, leaf write — reverted)` string defined once; revert to before-count; scope self-test scenario F7 (REQ-TELEM-HARNESSP2-005)
 - [ ] Phase-detection input table as in §Non-Interference Proof; `rm -rf .sdd/` is behaviour-neutral (REQ-TELEM-HARNESSP2-006)
 - [ ] `FORBIDDEN` row `\.sdd/` with the three-file `allow_files` allowlist, raw-text scan, stated reason and fix (REQ-TELEM-HARNESSP2-007, REQ-LINT-HARNESSP2-002)
@@ -468,6 +529,13 @@ derived this way, the schema — not the scorer — is defective.
 - [ ] `USAGE.md` has a section per new signal; `CLAUDE.md` diff is one paragraph and the four-layer bullet is unchanged (REQ-SKILL-HARNESSP2-008)
 - [ ] Scorer derivation table present and complete against `evaluation.md` §Scorer Fields
 - [ ] `python3 tools/sdd-skill-lint.py` exits 0; `--self-test` exits 0
+- [ ] §3's gate-line table lists `rec <n>` and the writer sequence names the gate that renders it; `skills/sdd-orchestrate/SKILL.md` §The gate states it in one line (REQ-TELEM-HARNESSP3-001)
+- [ ] A walkthrough of two gated dispatches with telemetry on renders `TELEMETRY: rec 1` then `TELEMETRY: rec 2` (REQ-TELEM-HARNESSP3-001)
+- [ ] Every restatement of the `TELEMETRY:` family — `skills/sdd-orchestrate/SKILL.md` §The gate and `CLAUDE.md` §Driver — lists all four members, `rec <n>` included (REQ-TELEM-HARNESSP3-001)
+- [ ] A walkthrough with telemetry on but the file unwritable renders `TELEMETRY: WRITE FAILED` and **no** `rec` line (REQ-TELEM-HARNESSP3-001)
+- [ ] A resumption walkthrough of three gated dispatches whose second append fails renders `rec 1`, `WRITE FAILED`, `rec 2` — **not** `rec 3`; the same holds after a mid-cycle opt-out, whose `OFF` gates append nothing and do not advance `<n>` (REQ-TELEM-HARNESSP3-001)
+- [ ] `grep` for a telemetry-file read in the orchestrator's gate path returns nothing (REQ-TELEM-HARNESSP3-001, REQ-TELEM-HARNESSP2-004)
+- [ ] **If built**: `python3 tools/sdd-telemetry.py summarize` on a fixture whose session records fewer appends than gates prints a records-vs-expected line for that session, and `--self-test` exits 0. **If not built**: it is queued under `verification.md` §Next Steps and nothing else changed (REQ-TELEM-HARNESSP3-002)
 
 ## Edge Cases
 
@@ -535,6 +603,15 @@ derived this way, the schema — not the scorer — is defective.
   aggregate keeps both rows (`ws-traceability.md` regeneration is row-preserving).
 - **No unresolved contradictions.**
 
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+telemetry.md beyond the JSON record schema, which is unchanged by this
+amendment. Token checks: the `TELEMETRY:` family is defined here and restated in
+`skills/sdd-orchestrate/SKILL.md` §The gate **and** `CLAUDE.md` §Driver, whose
+sentence "`TELEMETRY: WRITE FAILED | OFF | .gitignore updated` are its only gate
+lines" this amendment falsifies — all three must carry the same four members
+after this change. `dispatch.seq` keeps its existing meaning and is
+explicitly **not** the source of `<n>`.
+
 ## Open Questions
 
 1. **File locking for concurrent sessions.** Default: none; torn lines are
@@ -568,3 +645,27 @@ derived this way, the schema — not the scorer — is defective.
 **Rationale**: the row scans raw text incl. fences and negative mentions; rewording is cheaper and spec-conformant.
 **Date**: 2026-09-18 (Chunk 6)
 
+
+### Q-IMPL-HARNESSP3-005: The append counter is session state named `telemetry.rec`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Positive Gate Line
+**Decision**:
+
+`<n>` lives beside `dispatch.seq` in the orchestrator's session state under the
+key `telemetry.rec`, initialised to 0 at KICKOFF and incremented only after a
+successful append returns. On resumption in a new session it restarts at 0 —
+consistent with "counts successful appends **this session**" — so a resumed
+cycle's first `rec` line reads `rec 1` and is not a claim about earlier
+sessions.
+**Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP3-006: `summarize`'s expected count is derived from gate records, not from the gate
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Records-vs-Expected in `summarize`
+**Decision**:
+
+REQ-TELEM-HARNESSP3-002's "expected" is computed from the records themselves —
+the highest `dispatch.seq` observed per session versus the number of records
+carrying that session id — so the reader needs no side channel from the
+orchestrator and stays a pure post-cycle function of the file.
+**Date**: 2026-09-18 (specs stage)

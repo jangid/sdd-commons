@@ -1,11 +1,12 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-HARN-014
   - REQ-HARN-015
   - REQ-HARN-016
   - REQ-HARN-017
+  - REQ-HARN-HARNESSP3-002
 ---
 
 # Harness Chunk-Close Verifier
@@ -130,10 +131,13 @@ RETURN:
 The verifier carries the **full** leaf key set (`harness-return-contract.md`
 §RETURN Block — every key present, empties allowed) plus `CHUNK_VERDICT`, which
 is the one verifier-only key; `check2` / `check4` read `deferred` because the
-verifier does not run them. `CHUNK_VERDICT:` is the last line of the block (or
-the line immediately after it); the orchestrator accepts either placement and
-treats a missing or unrecognized token as a malformed return
-(`harness-return-contract.md` §Malformed Returns). `files_written` must be `[]`;
+verifier does not run them. `CHUNK_VERDICT:` is the **last line of the block**, on its own line
+[Amended 2026-09-18, REQ-HARN-HARNESSP3-002: the earlier text also accepted the
+line immediately after the block; that latitude is withdrawn, matching the
+sibling red rule where `RED_VERDICT:` off the last line is
+`RETURN: MALFORMED`]. A token that is missing, unrecognized, or not on the last
+line of the block is a malformed return (`harness-return-contract.md`
+§Malformed Returns). `files_written` must be `[]`;
 the scope check on a verifier return must observe zero writes
 (`harness-write-scope.md`).
 
@@ -251,6 +255,23 @@ all chunks (`orchestration.md` §v5). Nothing the verifier produces is written
 to `docs/` by it or on its behalf; the durable effects are the redo's code
 changes and, on exhaustion, the checkpoint under the task.
 
+### Return Block Pinned Inside the Fenced Body (REQ-HARN-HARNESSP3-002)
+
+[Changed 2026-09-18: the verifier template stated only "then the `RETURN:`
+block, whose last line is `CHUNK_VERDICT:`", with the shape in a later prose
+subsection. Spec-read defect.]
+
+The verifier dispatch template's **fenced prompt body** must carry the literal
+`RETURN:` key block in contract order — `status`, `budget_consumed`,
+`files_written`, `commits`, `tasks_completed`, `traceability_fills`,
+`chunk_close`, `failures`, `ledger`, `verified_do_not_touch`, `open_questions`,
+`blocked_writes` — with `CHUNK_VERDICT: PASS | FAIL` as the last line, on its
+own line, **inside** the block. A prose pointer outside the fence is no longer
+sufficient. Everything else about the verifier — read-only write scope, budget,
+ephemerality, never committing — is unchanged; this is a placement fix, and the
+body here must stay byte-consistent with
+`references/dispatch-templates.md` and `docs/spec/harness-return-contract.md`.
+
 ## Verification
 
 ### Automated
@@ -281,6 +302,7 @@ changes and, on exhaustion, the checkpoint under the task.
 - [ ] The verifier template carries only the listed slots including `Budget:`, an empty `Write scope:` and the `RETURN:` block with `CHUNK_VERDICT:`; it never commits; nothing is written to `docs/` for it (REQ-HARN-017)
 - [ ] Four-layer table in `sdd-review` and `CLAUDE.md` unchanged (REQ-HARN-014)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
+- [ ] The chunk-verifier template's fenced body contains the full literal `RETURN:` key list in contract order plus the own-line `CHUNK_VERDICT:` token, and the shape is not reachable only from prose outside the fence (REQ-HARN-HARNESSP3-002)
 
 ## Edge Cases
 
@@ -327,6 +349,12 @@ changes and, on exhaustion, the checkpoint under the task.
 - `ws-integration.md`: merge target under marker `4` is the workstream branch —
   restated identically.
 - **No unresolved contradictions.**
+
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+harness-chunk-verifier.md. The verifier's fenced `RETURN:` key list is checked
+identical to the one in `docs/spec/harness-return-contract.md` §RETURN Block;
+`CHUNK_VERDICT:` is defined here and consumed by the per-chunk gate described
+there.
 
 ## Open Questions
 

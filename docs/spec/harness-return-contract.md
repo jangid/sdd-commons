@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-HARN-009
   - REQ-HARN-010
@@ -9,6 +9,10 @@ requires:
   - REQ-HARN-013
   - REQ-HARN-018
   - REQ-HARN-019
+  - REQ-HARN-HARNESSP3-002
+  - REQ-HARN-HARNESSP3-003
+  - REQ-HARN-HARNESSP3-005
+  - REQ-REDB-HARNESSP3-001
 ---
 
 # Harness Return Contract
@@ -101,8 +105,11 @@ first, own-line status, one-line failures, no tracebacks — survive.
 The orchestrator parses the block; it never infers success from prose. A return
 is **malformed** when: the `RETURN:` line is absent; `status:` is not the first
 key or not one of the four values; `status: BUDGET_EXHAUSTED` lacks
-`budget_consumed`; a `failures[]` entry lacks `test` or `message`; or any value
-spans multiple lines (traceback smuggling). A malformed return is a **gate
+`budget_consumed`; `budget_consumed` is present but is not a map of unit →
+integer (`RETURN: MALFORMED (budget_consumed shape)`) [Amended 2026-09-18,
+REQ-HARN-HARNESSP3-003 — see §Malformed `budget_consumed` Is a Pause; the other
+nine keys stay a `RETURN: KEYS MISSING` warning]; a `failures[]` entry lacks
+`test` or `message`; or any value spans multiple lines (traceback smuggling). A malformed return is a **gate
 pause** (REQ-ORCH-018 analogue): the gate shows `RETURN: MALFORMED (<reason>)`,
 the raw tail of the return, and `re-dispatch | accept manually | stop`. It is
 never treated as `COMPLETE`.
@@ -171,6 +178,13 @@ Rules:
 - `reason` names why the packet exists; `MERGE_CONFLICT` packets add
   `conflict_paths` and `base` (see Edge Cases).
 
+[Amended 2026-09-18, REQ-HARN-HARNESSP3-005] The packet carries **only**
+findings against artifacts the fix leaf is scoped to touch. A review finding
+raised against an out-of-scope artifact is **not** put in the packet (no
+`carry_to_next_dispatch:` field is added): it is carried into the **next
+pipeline dispatch's** `{deliverable_contract}` slot. See §Out-of-Fix-Scope
+Review Findings Route to the Next Deliverable Contract.
+
 ### Finding → Chunk Mapping (implement-stage loop-back-to-fix)
 
 The implement-stage review runs once after all chunks, so its findings must be
@@ -178,6 +192,11 @@ routed back to chunks before a fix dispatch can carry a chunk-sized `target`,
 `write_scope` and `budget`. The orchestrator groups the Critical/Material
 findings mechanically — no judgement, no paraphrase:
 
+1'. **Location first (red-routed findings)** [Amended 2026-09-18,
+   REQ-REDB-HARNESSP3-001]: if the routed finding's `failures[].location` names
+   a file or chunk, resolve it to the chunk whose tasks' implementation modules
+   include that file, and continue at step 2. Otherwise fall through to step 1.
+   See §Red Break → Chunk Mapping Narrows on `failures[].location`.
 1. **REQ → spec**: each finding's `affects` REQ IDs → the spec file(s) whose
    `requires:` frontmatter lists them (or the finding's `ref` path when it
    names a spec directly).
@@ -301,6 +320,98 @@ composition) and `references/write-scope.md` (`SCOPE:` branching). Templates
 tell a subagent what to *produce* (block, token, findings) — never what to
 *decide next*.
 
+### Every Leaf Template Pins Its Return Block Inside the Fence (REQ-HARN-HARNESSP3-002)
+
+[Changed 2026-09-18: spec-read — the template table maps the observed drift
+exactly onto inside-the-fence vs outside-the-fence; the run corroboration behind
+it is n = 3 and uncontrolled, so this is a structural fix, not a measured one.]
+
+The literal `RETURN:` key block — every key, in contract order — must live
+**inside the fenced prompt body** of every leaf dispatch template, never in
+adjacent or later prose. Current state and required change:
+
+| Template | Today | Required |
+|----------|-------|----------|
+| PIPELINE (`references/dispatch-templates.md` §PIPELINE) | literal key block inside the fence | unchanged |
+| fan-out leaf (`references/fan-out.md` §2) | literal key block inside the fence | unchanged |
+| fix re-dispatch | PIPELINE + `{on_fix_only}` | unchanged — no separate change needed |
+| chunk verifier | prose pointer only ("then the `RETURN:` block, whose last line is `CHUNK_VERDICT:`"), shape in a later subsection | move the literal key block inside the fence, `CHUNK_VERDICT:` on its own line |
+| red team | "Return in the shape below", shape in an adjacent subsection | move the literal key block inside the fence; the `Rn` line shape stays above the block and `RED_VERDICT:` is the own-line last line |
+| review | no `RETURN:` block **by contract** (§6 — a review emits `VERDICT:` only) | pin the own-line `VERDICT: APPROVE │ APPROVE_WITH_FIXES │ REJECT` token inside the fenced body, on the same principle |
+
+Invariant: no template's `RETURN:` shape is reachable only from prose outside
+its fence. The same bodies are carried by
+`docs/spec/harness-chunk-verifier.md` and `docs/spec/adversarial-verify.md`
+§Red Dispatch Template.
+
+### Malformed `budget_consumed` Is a Pause (REQ-HARN-HARNESSP3-003)
+
+[Changed 2026-09-18: constructed boundary, ratified here rather than inherited —
+the "elevate exactly these two" judgement has no run evidence either way.]
+
+§Parsing gains exactly one condition:
+
+```
+RETURN: MALFORMED (budget_consumed shape)   # present but not a map of unit -> integer
+```
+
+Rationale: `status` and `budget_consumed` are the only two keys the **gate
+arithmetic** consumes — `budget_consumed` is rendered at every gate against the
+dispatched `Budget:` and sizes the next repair packet's `budget` — and `status`
+already has a malformed condition, so this closes the pair.
+
+The other nine keys stay a `RETURN: KEYS MISSING` **warning**:
+`files_written` is independently cross-checked by the write-scope observation,
+so an omitted list cannot hide a write; `tasks_completed`,
+`traceability_fills`, `chunk_close`, `failures`, `ledger`,
+`verified_do_not_touch`, `open_questions` and `commits` feed bookkeeping that
+degrades to "nothing to do" or that the orchestrator can observe for itself.
+
+`blocked_writes` is the **deliberate borderline case**, and §1 must record the
+reasoning beside the warning so the boundary reads as a decision rather than an
+omission: an omitted list silently loses content, but only when the leaf also
+failed to write, which surfaces independently as the deliverable being absent
+from the observed window.
+
+### Out-of-Fix-Scope Review Findings Route to the Next Deliverable Contract (REQ-HARN-HARNESSP3-005)
+
+[Changed 2026-09-18: observed gap, constructed remedy — specifies what the
+operator did by hand on 2026-09-18 when a repair packet had no place for such a
+finding.]
+
+§3 states: a review finding raised against an artifact the fix leaf is **not**
+scoped to touch is carried into the **next pipeline dispatch's**
+`{deliverable_contract}` slot, not into the repair packet. No schema change — a
+`carry_to_next_dispatch:` field was considered and is **not** worth the cost,
+and the destination slot already exists.
+
+### Red Break → Chunk Mapping Narrows on `failures[].location` (REQ-REDB-HARNESSP3-001)
+
+[Changed 2026-09-18: the defect is spec-read (§5 step 4 produces `all` whenever
+a spec is traced by more than one chunk; §B4 observed both breaks landing as
+`target.chunk: all`); the narrowing step itself is **constructed and
+unexercised** — but it cannot regress anything, because it inserts a more
+specific resolution ahead of an unchanged fallback.]
+
+§5's red entry gains a **step 1'**, ahead of the heading-spec step:
+
+```
+1'. If the routed Rn's failures[].location names a file or chunk, resolve it to
+    the chunk whose tasks' implementation modules include that file.
+    Otherwise fall back to the spec named in the
+    "## Red team — <spec.md>" heading and continue at step 2 as today.
+```
+
+The whole-plan fallback stays the rule; this only narrows the input, using
+evidence red already returns — the red template is given the plan for exactly
+that purpose ("supplies the `### Chunk N:` vocabulary red uses in
+`failures[].location`").
+
+**Declined**: asking red to name the narrowest owning symbol as a new field on
+`Rn`. That would make the read-only adversarial leaf judge code ownership, which
+REQ-HARN-019 / REQ-ORCH-012 keep out of leaves, and it widens red's return shape
+for a mapping the orchestrator can perform from `location` alone.
+
 ## Verification
 
 ### Automated
@@ -334,6 +445,12 @@ tell a subagent what to *produce* (block, token, findings) — never what to
 - [ ] A second fix prompt for one stage holds one packet, latest paths only, no fenced report; slot-set overflow warns (REQ-HARN-018)
 - [ ] §Orchestrator-Only Work states the routing principle with pointers to both references files; no template delegates a routing decision (REQ-HARN-019)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
+- [ ] The fenced bodies of the chunk-verifier and red-team templates each contain the full literal `RETURN:` key list in contract order; the review body contains the literal own-line `VERDICT:` token line (REQ-HARN-HARNESSP3-002)
+- [ ] No template's `RETURN:` shape is reachable only from prose outside its fence (REQ-HARN-HARNESSP3-002)
+- [ ] §Parsing lists the `RETURN: MALFORMED (budget_consumed shape)` row; a fixture return whose `budget_consumed` is prose pauses the gate, and a fixture missing only `ledger` renders a `KEYS MISSING` warning and does **not** pause (REQ-HARN-HARNESSP3-003)
+- [ ] §1 carries the `blocked_writes`-stays-a-warning note with its reasoning (REQ-HARN-HARNESSP3-003)
+- [ ] §3 names `{deliverable_contract}` as the destination for out-of-fix-scope review findings and states that no repair-packet field is added (REQ-HARN-HARNESSP3-005)
+- [ ] §5's red entry lists step 1' ahead of the heading-spec step; a fixture `Rn` whose `failures[].location` names a file owned by one chunk routes `target.chunk: <that chunk>`, and a fixture with no usable `location` still routes `target.chunk: all` (REQ-REDB-HARNESSP3-001)
 
 ## Edge Cases
 
@@ -386,6 +503,19 @@ tell a subagent what to *produce* (block, token, findings) — never what to
   metadata.
 - **No unresolved contradictions.**
 
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+harness-return-contract.md (prose/table contracts only) — reported explicitly
+rather than passing silently. Token-level checks:
+
+- `RETURN:`, `status:`, `budget_consumed`, `blocked_writes`, `VERDICT:`,
+  `CHUNK_VERDICT:`, `RED_VERDICT:`, `RED_BREAK` — the key list here is
+  byte-consistent with `docs/spec/harness-chunk-verifier.md` and
+  `docs/spec/adversarial-verify.md` after this amendment.
+- `target.chunk` is defined in this spec's `RED_BREAK` packet and referenced by
+  `docs/spec/adversarial-verify.md` §Fix-Loop Interaction; both carry step 1'.
+- `{deliverable_contract}` is a `references/dispatch-templates.md` slot name,
+  used here and not redefined.
+
 ## Open Questions
 
 1. **`PARTIAL` vs `COMPLETE` for a per-chunk implement dispatch that
@@ -410,3 +540,26 @@ tell a subagent what to *produce* (block, token, findings) — never what to
 **Decision**: Extended by `adversarial-verify.md` (REQ-REDB-HARNESSP2-005/-009 amendment 2026-09-17): the malformed table gains the `RED_VERDICT:` rows; the repair-packet `reason` enum gains `RED_BREAK`; the finding → chunk mapping is reused with the spec taken from red's `## Red team — <spec.md>` heading in place of `affects`; the review-consumer lint regex becomes `(?<!CHUNK_)(?<!RED_)VERDICT:`. `arbitrated-handoff.md` annotates third-opinion review records with `dispatch.reason: THIRD_OPINION` in telemetry only — not a packet reason.
 **Rationale**: Tokens are defined once, in the spec that introduces them; this spec keeps the parser rules it already owns and points at the extensions.
 **Date**: 2026-09-17 (harness-p2 specs stage)
+
+### Q-IMPL-HARNESSP3-003: Step 1' resolves a file to a chunk via the plan's task-to-module mapping
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Red Break
+**Decision**:
+
+`failures[].location` is a `path:line` or a chunk name. Decision: match the path
+against the implementation modules named by each `### Chunk N` task in the active
+plan; a path owned by exactly one chunk resolves to that chunk, a path owned by
+more than one, or by none, falls through to the unchanged heading-spec step
+rather than guessing. A `location` that already names a chunk is used verbatim.
+**Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP3-004: "map of unit -> integer" is checked structurally, not by unit vocabulary
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Malformed `budget_consumed` Is a Pause
+**Decision**:
+
+The `budget_consumed` malformed condition tests that the value parses as a
+mapping whose every value is an integer. The **unit names** are not
+constrained — `tool_calls`, `test_runs` and any stage-specific unit are all
+legal — so the check never pauses a gate over vocabulary drift, only over shape.
+**Date**: 2026-09-18 (specs stage)

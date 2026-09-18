@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-SKILL-001
   - REQ-SKILL-002
@@ -28,6 +28,7 @@ requires:
   - REQ-SKILL-022
   - REQ-SKILL-023
   - REQ-SKILL-024
+  - REQ-SKILL-HARNESSP3-001
 ---
 
 # Skill Updates
@@ -348,6 +349,34 @@ designs in `harness-loop-control.md`, `harness-return-contract.md`,
   `CLAUDE.md` gains one short paragraph on the gate vocabulary while its
   four-layer bullet stays unchanged.
 
+### harness-p3: `sdd-verify` Carries Unresolved Minors Forward (REQ-SKILL-HARNESSP3-001)
+
+[Added 2026-09-18: observed gap with a constructed remedy — on 2026-09-18 the
+RS-001 `KeyError('id')` minor was lost this way.]
+
+`skills/sdd-verify/SKILL.md` Step 6 must state one rule: unresolved **Minor**
+entries from the **previous cycle's** report are either carried into this
+cycle's §Issues Found → Minor, or explicitly marked closed with a reason.
+`verification.md` is overwritten per cycle, so a minor that is neither carried
+nor closed is lost to git history.
+
+"The previous cycle's report" is identified via the `research_id` stamp of
+REQ-CYCID-HARNESSP3-001 (`docs/spec/cycle-identity.md`), so this **depends on**
+that contract — **including its third case** (no usable discriminator: no
+`kickoff.md` for the `(repo, workstream)`, **or** a kickoff carrying no
+`research_id` — `cycle-identity.md` §The Comparison, amended 2026-09-18):
+there is no cycle discriminator, so the
+carry-or-close rule applies to whatever report the overwrite is about to
+replace, identified by its position on disk alone. **Absence of a kickoff must
+not suppress the rule.**
+
+Other harness-p3 skill edits are owned by their feature specs and are not
+restated here: `sdd-plan`'s `research_id` stamp and `## Post-cycle Fixes`
+template entry (`docs/spec/cycle-identity.md`,
+`docs/spec/adversarial-verify.md`), `sdd-verify`'s `research_id` stamp and
+`pending-red` cell write (same two), and the marker-4 unless-clause in the four
+traceability-writing skills (`docs/spec/ws-traceability.md`).
+
 ## Verification
 
 ### Automated
@@ -389,6 +418,17 @@ designs in `harness-loop-control.md`, `harness-return-contract.md`,
 - [ ] `sdd-requirements` detects research-to-requirements staleness (REQ-STALE-002)
 - [ ] `sdd-migrate` implements v2→v3 migration steps (REQ-SKILL-017)
 - [ ] `sdd-review` skill exists with session isolation, phase checklists, report format (REQ-SKILL-018)
+- [ ] `sdd-verify` Step 6 contains the carry-or-close rule, names the `research_id` comparison as how the previous report is identified, and states that a missing kickoff does not suppress the rule (REQ-SKILL-HARNESSP3-001)
+- [ ] A walkthrough over a previous report holding two unresolved Minor entries yields a new report in which both appear under §Issues Found → Minor or are marked closed with a reason (REQ-SKILL-HARNESSP3-001)
+
+## Cross-Spec Consistency (XSPEC)
+
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+skill-updates.md. `research_id` is defined in `docs/spec/cycle-identity.md` and
+only referenced here; §Issues Found → Minor is `sdd-verify`'s existing report
+section and is not redefined; the three-case rule for a missing kickoff is
+quoted from cycle-identity.md rather than restated independently, so the two
+cannot drift.
 
 ## Implementation Questions
 
@@ -398,3 +438,14 @@ designs in `harness-loop-control.md`, `harness-return-contract.md`,
 **Decision**: REQ-SKILL-HARNESSP2-001..008 are carried by the new harness-p2 specs, each in a "Skill and Lint Changes" / "Skill Changes" section: `telemetry.md` (-001 orchestrate telemetry, -008 operator docs and CLAUDE.md), `adversarial-verify.md` (-002 red dispatch, -005 sdd-verify pending-red / accepted breaks / gc slot), `arbitrated-handoff.md` (-003 arbitration, -006 sdd-review Material `affects`), `drift-sweep.md` (-004 gc cadence), `dispatch-snapshot-base.md` (-004 snapshot base, -007 sdd-implement references split closing Q-IMPL-083). This spec's tables are unchanged.
 **Rationale**: Marker-4 rule: new work adds new spec files; the per-skill table for a workstream stays with the designs it serves.
 **Date**: 2026-09-17 (harness-p2 specs stage)
+
+### Q-IMPL-HARNESSP3-013: A carried-forward Minor keeps its original text and gains a carry marker
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §harness-p3: `sdd-verify` Carries Unresolved Minors Forward
+**Decision**:
+
+A Minor carried into the new report is reproduced with its original wording plus
+a trailing `(carried from <research_id>)`, so the reader can tell a fresh finding
+from an inherited one without reading git history. A closed Minor is listed once
+with `closed: <one-line reason>` and is not carried again in the next cycle.
+**Date**: 2026-09-18 (specs stage)
