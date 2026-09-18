@@ -173,27 +173,27 @@ its fence, and the two keys the gate arithmetic consumes both have a malformed
 condition.
 **Depends on**: None.
 **Tasks**:
-1. [implement] `references/dispatch-templates.md` — **chunk verifier** template:
+1. [x] [implement] `references/dispatch-templates.md` — **chunk verifier** template:
    move the literal `RETURN:` key block (all twelve keys in contract order)
    inside the fenced prompt body, with `CHUNK_VERDICT: PASS | FAIL` as the
    own-line last line inside the block; delete the prose pointer as the sole
    source — traces to `harness-chunk-verifier.md` §Return Block Pinned Inside
    the Fenced Body (REQ-HARN-HARNESSP3-002)
-2. [implement] `references/dispatch-templates.md` — **red team** template: move
+2. [x] [implement] `references/dispatch-templates.md` — **red team** template: move
    the literal key block inside the fence, `Rn` line shape above the block,
    `RED_VERDICT: BROKEN | HELD` as the own-line last line — traces to
    `adversarial-verify.md` §Red Dispatch Template — Key Block Inside the Fence
-3. [implement] `references/dispatch-templates.md` — **review** template: pin the
+3. [x] [implement] `references/dispatch-templates.md` — **review** template: pin the
    own-line `VERDICT: APPROVE │ APPROVE_WITH_FIXES │ REJECT` token inside the
    fenced body (a review still emits no `RETURN:` block by contract) — traces to
    `harness-return-contract.md` §Every Leaf Template Pins Its Return Block
-4. [verify] Confirm PIPELINE, fan-out leaf and the fix re-dispatch
+4. [x] [verify] Confirm PIPELINE, fan-out leaf and the fix re-dispatch
    (PIPELINE + `{on_fix_only}`) are already conformant and need **no** change;
    confirm the verifier and red bodies are byte-consistent across
    `references/dispatch-templates.md`, `references/return-contract.md` and the
    `SKILL.md` stubs — traces to `harness-return-contract.md` §Every Leaf
    Template Pins Its Return Block (template table)
-5. [implement] `references/return-contract.md` §Parsing: add exactly one
+5. [x] [implement] `references/return-contract.md` §Parsing: add exactly one
    condition, `RETURN: MALFORMED (budget_consumed shape)` — present but not a
    map of unit → integer, checked **structurally**, not by unit vocabulary
    (Q-IMPL-HARNESSP3-004). Record beside it that the other nine keys stay a
@@ -201,20 +201,20 @@ condition.
    reasoning written out so the boundary reads as a decision — traces to
    `harness-return-contract.md` §Malformed `budget_consumed` Is a Pause
    (REQ-HARN-HARNESSP3-003)
-6. [implement] `references/return-contract.md` §3: a review finding raised
+6. [x] [implement] `references/return-contract.md` §3: a review finding raised
    against an artifact the fix leaf is **not** scoped to touch is carried into
    the **next pipeline dispatch's** `{deliverable_contract}` slot, not into the
    repair packet. No schema change, no `carry_to_next_dispatch:` field — traces
    to `harness-return-contract.md` §Out-of-Fix-Scope Review Findings Route to
    the Next Deliverable Contract (REQ-HARN-HARNESSP3-005)
-7. [implement] `references/return-contract.md` §5: insert **step 1'** ahead of
+7. [x] [implement] `references/return-contract.md` §5: insert **step 1'** ahead of
    the heading-spec step — if the routed `Rn`'s `failures[].location` names a
    file or chunk, resolve it to the chunk whose tasks' implementation modules
    include that file (Q-IMPL-HARNESSP3-003); otherwise fall back to the
    heading spec and continue at step 2 unchanged — traces to
    `harness-return-contract.md` §Red Break → Chunk Mapping Narrows on
    `failures[].location` (REQ-REDB-HARNESSP3-001)
-8. [verify] Replay the two drifting returns of 2026-09-18 against the amended
+8. [x] [verify] Replay the two drifting returns of 2026-09-18 against the amended
    parsing rules: a prose `budget_consumed` now pauses; the return that was
    **missing only `ledger`** still only warns (`RETURN: KEYS MISSING`), i.e. the
    new pause condition did not widen to the other nine keys. Replay both observed
@@ -614,6 +614,26 @@ renders.
   strict set semantics or record the divergence — traces to
   `harness-write-scope.md` §Content-Hash Observation
   [Carried from the Chunk 0 per-chunk gate, 2026-09-18, Check 1 minor note 1.]
+
+- **V8** — The byte-consistency contract between
+  `references/dispatch-templates.md` and the two specs that restate its fenced
+  bodies (`harness-chunk-verifier.md`, `adversarial-verify.md`) has **no
+  automated enforcement**: it was satisfied by hand this cycle and can silently
+  drift after the next edit to either side. Decide whether it becomes a
+  `tools/sdd-skill-lint.py` rule or is recorded as an accepted manual contract —
+  traces to `harness-chunk-verifier.md` §Verifier Dispatch Template,
+  `adversarial-verify.md` §Red Dispatch Template
+  [Carried from the Chunk 2 per-chunk gate, 2026-09-18, chunk verifier Check 3
+  advisory.]
+- **V9** — Terminal-token indentation is not uniform across the three leaf
+  templates: `RED_VERDICT:` and `VERDICT:` sit at column 0 while
+  `CHUNK_VERDICT:` is indented inside the key block. The verifier's "accepts
+  either placement" clause permits it, but `SKILL.md`'s parse anchors red's
+  token with `^`, and live dispatches already render `CHUNK_VERDICT:` at column
+  0 — i.e. practice and template disagree. Decide: unify at column 0, or state
+  the asymmetry deliberately — traces to `harness-chunk-verifier.md` §Return
+  contract, `harness-return-contract.md` §1
+  [Carried from the Chunk 2 per-chunk gate, 2026-09-18, chunk verifier advisory (a1).]
 
 **Exit criteria**: `verification.md` records observed evidence (not a
 walkthrough) for REQ-REDB-HARNESSP3-002, REQ-TELEM-HARNESSP3-001,
