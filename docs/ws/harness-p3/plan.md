@@ -1,6 +1,6 @@
 ---
 workstream: harness-p3
-status: active
+status: complete
 last_updated: 2026-09-18
 research_id: RS-HARNESSP3-001
 ---
@@ -467,25 +467,32 @@ contract records `## Post-cycle Fixes`; gates green.
 stated order, the repo's own conventions are updated, and every gate is green.
 **Depends on**: Chunk 0, Chunk 1, Chunk 2, Chunk 3, Chunk 4, Chunk 5, Chunk 6.
 **Tasks**:
-1. [implement] Update the **canonical** signal order where it lives:
+1. [x] [implement] Update the **canonical** signal order where it lives:
    `skills/sdd-orchestrate/references/loop-control.md` §5 "Gate signal order
    (REQ-ORCH-034)". That section is the per-signal detail and states so outright
    ("SKILL.md §The gate keeps the one-line summary; this is the per-signal
    detail"), so it — not `SKILL.md` — is the target for the full order. Extend
    its five-signal enumeration to the full order `RETURN.status`, `SCOPE:`,
-   `CHUNK_VERDICT:`, `VERDICT:`, `RED_VERDICT:` with its `RED:` lines,
-   `REVIEW: CONTRADICTION`, `TELEMETRY: rec <n>`, adding the three new signals
+   `CHUNK_VERDICT:`, `RED_VERDICT:` with its `RED:` lines, the review
+   `VERDICT:`, the loop counters, `REVIEW: CONTRADICTION`,
+   `TELEMETRY: rec <n>`, adding the three new signals
    (`RED:`, `TELEMETRY: rec <n>`, and `REVIEW: CONTRADICTION`'s position) with
    their per-signal detail, reconciling the lines added by Chunks 2, 3, 4 and 6
    so no two sections disagree about position — traces to
    `adversarial-verify.md` §Gate position and `telemetry.md` §Positive Gate Line
-2. [implement] Keep `skills/sdd-orchestrate/SKILL.md` §The gate as the **one-line
+   [Task text corrected 2026-09-18: this enumeration originally read
+   `... VERDICT:, RED_VERDICT: ...`, contradicting Approved
+   `docs/spec/adversarial-verify.md` §199/§204/§497, which puts `RED_VERDICT:`
+   and its `RED:` lines **before** the review `VERDICT:`. The implementation
+   followed the spec; only the stale task text was wrong, and no shipped
+   surface was affected.]
+2. [x] [implement] Keep `skills/sdd-orchestrate/SKILL.md` §The gate as the **one-line
    summary**, preserving the existing layering: name the three new signals and
    their positions in that summary and point at `references/loop-control.md` §5
    for the per-signal detail. `SKILL.md` must not restate the full order in a
    form that can diverge from §5 — traces to `adversarial-verify.md` §Gate
    position
-3. [implement] Add one sentence to `CLAUDE.md` and one to
+3. [x] [implement] Add one sentence to `CLAUDE.md` and one to
    `skills/sdd-orchestrate/references/drift-sweep.md`: prose describing
    **another** repository's artifacts (a toy clone, an evidence record, a pilot
    log) must not quote that repository's `Q-IMPL-NNN` id tokens verbatim —
@@ -494,7 +501,7 @@ stated order, the repo's own conventions are updated, and every gate is green.
    fenced span, not an allowlist (Q-IMPL-HARNESSP3-012) — traces to
    `drift-sweep.md` §Convention: Do Not Quote Another Repository's `Q-IMPL` Ids
    (REQ-GC-HARNESSP3-001)
-4. [implement] Update `CLAUDE.md` §Spec-Driven Development and
+4. [x] [implement] Update `CLAUDE.md` §Spec-Driven Development and
    `skills/sdd-orchestrate/USAGE.md` (there is no repo-root `USAGE.md`) to
    describe this cycle's harness behaviour in the same register as the existing
    v5 paragraphs — the content-hash observation, the pinned return blocks and
@@ -506,11 +513,11 @@ stated order, the repo's own conventions are updated, and every gate is green.
    `skills/sdd-orchestrate/SKILL.md` §The gate — traces to `skill-updates.md`
    §harness-p3 and `telemetry.md` §Acceptance Criteria
    (REQ-TELEM-HARNESSP3-001)
-5. [verify] `python3 tools/sdd-skill-lint.py` exits 0, and
+5. [x] [verify] `python3 tools/sdd-skill-lint.py` exits 0, and
    `python3 tools/sdd-skill-lint.py --self-test` exits 0 — traces to
    `harness-write-scope.md` §Acceptance Criteria and `telemetry.md` §Acceptance
    Criteria
-6. [verify] `python3 tools/sdd-gc.py --report` is no worse than the recorded
+6. [x] [verify] `python3 tools/sdd-gc.py --report` is no worse than the recorded
    baseline (9 sweeps clean / 6 warnings / 40 info); any new finding is either
    fixed or recorded with a reason. Include the **positive control** for the
    convention added in task 3: the `qimpl-undefined` rule still fires on a
@@ -518,19 +525,24 @@ stated order, the repo's own conventions are updated, and every gate is green.
    silenced the rule itself. Also run `python3 tools/sdd-gc.py --self-test`
    (exits 0) — traces to `drift-sweep.md` §Verification and §Acceptance Criteria
    (REQ-GC-HARNESSP3-001)
-7. [verify] `python3 tools/sdd-telemetry.py --self-test` exits 0 after the
+7. [x] [verify] `python3 tools/sdd-telemetry.py --self-test` exits 0 after the
    `summarize` change of Chunk 4 task 3 — traces to `telemetry.md` §Acceptance
    Criteria (REQ-TELEM-HARNESSP3-002)
-8. [verify] `python3 tools/sdd-scope-check-selftest.py` passes, F1–F10 plus the
+8. [x] [verify] `python3 tools/sdd-scope-check-selftest.py` passes, F1–F10 plus the
    fixtures added in Chunks 1 and 6 — traces to `harness-write-scope.md`
    §Automated
-9. [verify] Cross-spec consistency pass: the return-block bodies are
+9. [x] [verify] Cross-spec consistency pass: the return-block bodies are
    byte-consistent across `references/dispatch-templates.md`,
    `references/return-contract.md` and the `SKILL.md` stubs; the
    aggregate-regeneration rule reads the same in `write-scope.md` §2/§7,
-   `fan-out.md` §3e and the four writing skills; no `docs/spec/*.md` file was
-   edited by this cycle — traces to the XSPEC sections of
-   `harness-return-contract.md` and `ws-traceability.md`
+   `fan-out.md` §3e and the four writing skills; **no spec prose changed beyond
+   the operator-approved template-body sync of commit 7994c2b, and every other
+   spec touch this cycle is an append-only `Q-IMPL` entry** — traces to the
+   XSPEC sections of `harness-return-contract.md` and `ws-traceability.md`
+   [Task text corrected 2026-09-18: this criterion originally read "no
+   `docs/spec/*.md` file was edited by this cycle", which is inaccurate —
+   7994c2b (operator-approved) and three append-only `Q-IMPL` commits touched
+   spec files. The restated form is the invariant the cycle actually holds.]
 
 **Entry criteria**: Chunks 0–6 complete.
 **Exit criteria**: all quality gates green, including the three `--self-test`

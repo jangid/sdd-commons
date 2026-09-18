@@ -177,10 +177,13 @@ place — then **regenerate** the aggregate (below). Full contract: `docs/spec/w
   staleness**: the `Workstream` column exists only to attribute aggregated rows, not to feed staleness.
 
 **Unless the dispatched write scope omits the aggregate (REQ-WS-HARNESSP3-001).**
-Regenerate the aggregate after the per-ws write **unless dispatched with a write scope that
-omits `docs/requirements/traceability.md`** — that absence *is* the orchestrated signal, and
-regeneration is then the orchestrator's post-gate bookkeeping (`sdd-orchestrate/references/write-scope.md` §2, §7);
-presence, or no dispatched scope at all (standalone), means regenerate here.
+Regenerate the aggregate after the per-ws write **unless this run was dispatched
+with a write scope that omits `docs/requirements/traceability.md`** — under
+`sdd-orchestrate` that path is absent from every leaf scope by construction, and
+its absence *is* the signal that regeneration is the orchestrator's post-gate
+bookkeeping (`sdd-orchestrate/references/write-scope.md` §2, §7). Its presence in
+the dispatched scope, or no dispatched write scope at all (a standalone run),
+means regenerate here. No flag or field beyond the scope slot is involved.
 
 ### Step 3: Stuck Detection
 

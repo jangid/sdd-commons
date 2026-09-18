@@ -145,7 +145,9 @@ Read `docs/requirements/traceability.md` and verify:
 2. **Every implemented requirement has tests** — Test column is non-empty for requirements with Implementation filled
 3. **Flag gaps** — list any requirements missing spec, test, or implementation coverage
 
-After verification, update the **Verified** column with pass/fail for each requirement.
+After verification, update the **Verified** column for each requirement with one
+of its three legal values — `pass`, `fail` or `pending-red` (the block below
+says which applies).
 
 **`pending-red` cells (REQ-REDB-HARNESSP3-003).** The `Verified` column tracks
 the **report's** status, so whenever Step 6 writes `status: pending-red` write

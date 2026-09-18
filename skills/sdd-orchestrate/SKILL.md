@@ -349,19 +349,19 @@ loop: the options, their meaning and the caps are unchanged.
 the named findings, then proceed without re-review") **loop-back-to-fix** offers
 re-dispatch then re-review (default) or skip the re-review; *Reject* never skips it.
 
-**Gate signals — REQ-ORCH-034 order (pointers only).** In production order,
-all ephemeral (REQ-ORCH-013): (1) `RETURN.status` + `budget_consumed` vs the
-dispatched `Budget:` (`references/return-contract.md` §1, §7); (2) the
-own-line `SCOPE:` token (`references/write-scope.md` §5; `HISTORY_REWRITE`
-offers only `stop`); (3) per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` —
-1–3 render at the **per-chunk gate**; (3b) verify stage only, `RED_VERDICT:`
-with its `Rn` lines verbatim, then — on a red round N >= 2 — one derived
-`RED: Rn new-ground | regression` line per `BROKEN` `Rn`, in `Rn` order,
-**after** those `Rn` lines and before the exit rule is applied (below);
-(4) the review `VERDICT:`; (5) the loop
-counters — `iteration N of MAX` for the fix-loop cap and the replan re-entry
-count — 3b–5 render at the **stage gate**. Detail:
-[`references/loop-control.md`](references/loop-control.md) §5.
+**Gate signals — REQ-ORCH-034 order (pointers only).** The **canonical** order
+and every per-signal rule live in
+[`references/loop-control.md`](references/loop-control.md) §5; this is the
+one-line summary and never restates the order in a form that can diverge from
+it. In production order, all ephemeral (REQ-ORCH-013): (1) `RETURN.status` +
+`budget_consumed` vs the dispatched `Budget:`; (2) the own-line `SCOPE:` token;
+(3) per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` — 1–3 render at the
+**per-chunk gate**; (3b) verify stage only, `RED_VERDICT:` with its `Rn` lines
+verbatim, then — on a red round N >= 2 — the derived `RED: Rn new-ground |
+regression` lines after them, before the exit rule and before (4); (4) the
+review `VERDICT:`; (5) the loop counters; (6) the `REVIEW: CONTRADICTION` pause
+block when it fires, after the counters; (7) the `TELEMETRY:` line, last, before
+the options — 3b–7 render at the **stage gate**.
 
 **Red team (verify stage only, opt-in — REQ-REDB-HARNESSP2-001, -007, -008).**
 Ask `red team: off | on` (default `off`; optional `red input: +verification.md`)
@@ -388,7 +388,7 @@ regenerates the shared aggregate in the same post-gate bookkeeping step above
 (REQ-REDB-HARNESSP3-003). Rounds, the `accept` line format and
 the gate fixture: [`references/loop-control.md`](references/loop-control.md) §2a "Red round".
 
-**`TELEMETRY:` lines** (`WRITE FAILED` │ `OFF` │ `.gitignore updated`) render at most once each, immediately after the `iteration`/cap line and before the options — [`references/telemetry.md`](references/telemetry.md) §3.
+**`TELEMETRY:` lines** — the four-member family `rec <n>` │ `WRITE FAILED` │ `OFF` │ `.gitignore updated` (`rec <n>` is the positive member, `<n>` = successful appends this session) — render at most once each, immediately after the `iteration`/cap line (or after the `REVIEW: CONTRADICTION` token line when that pause fired) and before the options — [`references/telemetry.md`](references/telemetry.md) §3, signal (7) of [`references/loop-control.md`](references/loop-control.md) §5.
 
 **Fix-loop cap (REQ-HARN-001).** `FIX_LOOP_MAX` (default **3**) is per stage,
 session-only, incremented once per fix re-dispatch (never on `proceed`, `stop`

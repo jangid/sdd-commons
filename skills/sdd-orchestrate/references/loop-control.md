@@ -471,8 +471,13 @@ termination. A merge-abort redo counts toward that group's chunks'
 ## 5. Gate signal order (REQ-ORCH-034) — from §The gate
 
 Signals surface in the order they are produced; everything is ephemeral
-(REQ-ORCH-013). `SKILL.md` §The gate keeps the one-line summary; this is the
-per-signal detail:
+(REQ-ORCH-013). `SKILL.md` §The gate keeps the one-line summary; **this section
+is the one canonical statement of the full order** and the per-signal detail —
+every other surface (the `SKILL.md` summary, `USAGE.md` §7b, the fixtures in §1
+and §2a) points here and must not restate the order in a form that can diverge
+from it. The full order is `RETURN.status` → `SCOPE:` → `CHUNK_VERDICT:` →
+`RED_VERDICT:` (with its derived `RED:` lines) → review `VERDICT:` → the loop
+counters → `REVIEW: CONTRADICTION` → the `TELEMETRY:` line, then the options:
 
 1. the leaf's `RETURN.status` and `budget_consumed` against the dispatched
    `Budget:` (`references/return-contract.md` §1, §7);
@@ -487,11 +492,35 @@ per-signal detail:
    the verifier's `RETURN:` block, last line; missing or unrecognized →
    `RETURN: MALFORMED`) with `Redo: N of 3` against `REDO_MAX` — signals 1–3
    render at the **per-chunk gate** (§1);
+3b. verify stage only, and only when the operator opted in to a red round: the
+   own-line `RED_VERDICT: BROKEN | HELD` token with red's own `Rn` lines
+   rendered verbatim beneath it, then — on a red round **N >= 2** only — one
+   derived `RED: Rn new-ground | regression` line per `BROKEN` `Rn`, in `Rn`
+   order, **after** those `Rn` lines and **before** the exit rule is applied
+   (§2a "Red round"; `docs/spec/adversarial-verify.md` §Gate position). The
+   token renders **after** `SCOPE:` and **before** the review `VERDICT:`, because
+   the red leaf is dispatched on the blue return and the review follows it;
 4. the parsed review `VERDICT:`;
 5. when a loop is active, the loop counters — `iteration N of MAX` for the
    fix-loop cap (§2) and the derived count against the replan re-entry cap
-   (§3) — signals 4–5 (and, for a non-implement stage, 1–2 with them) render
-   at the **stage gate**.
+   (§3) — signals 3b–5 (and, for a non-implement stage, 1–2 with them) render
+   at the **stage gate**;
+6. when the arbitration rule fires at a stage gate (iteration ≥ 2), the
+   `REVIEW: CONTRADICTION (round N vs round N+1, class b|c[, file-level])`
+   pause block with both rounds' verbatim lines and `fix #N wrote:` (§2a; §6
+   below) — it renders **after** the counters, because it is derived from the
+   round pair the counters name, and it restates `iteration N of MAX` on its own
+   token line, so signal 7 is still immediately after the last counter-bearing
+   line;
+7. the `TELEMETRY:` line — the four-member family `rec <n> │ WRITE FAILED │ OFF
+   │ .gitignore updated`, at most once each, rendered **last**, immediately
+   after the `iteration`/cap line (or, when the pause of signal 6 fired, after
+   its token line) and **before the options**
+   (`references/telemetry.md` §3). `TELEMETRY: rec <n>` is the positive member
+   (REQ-TELEM-HARNESSP3-001): `<n>` is the count of **successful appends this
+   session**, not `dispatch.seq`, so a gate whose append failed shows
+   `WRITE FAILED` and no `rec` line. No `TELEMETRY:` line ever pauses the gate
+   or changes an option.
 
 ## 6. Edge cases routed through the gate — from §The gate
 
