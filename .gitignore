@@ -34,3 +34,6 @@ venv/
 .superpowers/
 # SDD telemetry (orchestrator-written, never read by phase detection)
 .sdd/
+
+# local N=3 pilot evidence (toy repo bundle + telemetry); never committed
+.pilot-toy/
