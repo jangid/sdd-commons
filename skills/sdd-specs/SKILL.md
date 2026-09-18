@@ -155,6 +155,9 @@ After writing or updating each spec, update traceability:
 
 1. For each requirement ID listed in the spec's `requires` frontmatter, fill in the **Spec** column with the spec filename
 2. This keeps a single source of truth for requirement-to-artifact mapping
+3. Leave the **Verified** column to `sdd-verify` — its three legal values are
+   `pass`, `fail` and `pending-red` (`docs/spec/ws-traceability.md` §Legal
+   `Verified` Cell Values); never write it here
 
 **Per-workstream traceability (marker `4` only).** `docs/.sdd-version` is the sole gate.
 Under marker `3` or earlier, write the **Spec** column into the single shared

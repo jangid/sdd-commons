@@ -393,7 +393,7 @@ chunk edits `references/loop-control.md` — also edited by Chunk 3 — and
 Chunk 5. Serialising them keeps the implement-stage fan-out off concurrent edits
 to the same file.)*
 **Tasks**:
-1. [implement] In `references/loop-control.md`'s red section (mechanism) and
+1. [x] [implement] In `references/loop-control.md`'s red section (mechanism) and
    `skills/sdd-orchestrate/SKILL.md` §The gate (position, see Open Questions
    Q-C): on a red round N >= 2, for each
    `BROKEN` `Rn` the orchestrator re-runs the **previous round's** routed
@@ -404,29 +404,29 @@ to the same file.)*
    inside the `RED_VERDICT:` block **after** red's own `Rn` lines and **before**
    the exit rule is applied — traces to `adversarial-verify.md` §New-Ground vs
    Regression on Red Round N >= 2 (REQ-REDB-HARNESSP3-002)
-2. [implement] Record the declined alternative beside it: no `supersedes:` or
+2. [x] [implement] Record the declined alternative beside it: no `supersedes:` or
    `new-ground:` marker is added to red's return shape, because that would
    require handing red the previous round's findings and contradict the
    withholding default (REQ-REDB-HARNESSP2-004), and re-attacking the same
    criterion is what found the second bug — traces to `adversarial-verify.md`
    §New-Ground vs Regression
-3. [implement] `skills/sdd-verify/SKILL.md`: when writing `status: pending-red`,
+3. [x] [implement] `skills/sdd-verify/SKILL.md`: when writing `status: pending-red`,
    write `pending-red` into the `Verified` cell of **every row it would
    otherwise have marked `pass`**; a `fail` row stays `fail` — traces to
    `adversarial-verify.md` §`Verified` Reads `pending-red`
    (REQ-REDB-HARNESSP3-003)
-4. [implement] `skills/sdd-orchestrate/SKILL.md`: the existing
+4. [x] [implement] `skills/sdd-orchestrate/SKILL.md`: the existing
    `pending-red → pass` flip at DONE flips exactly those cells and regenerates
    the aggregate in the same bookkeeping step (the step added in Chunk 1) —
    traces to `adversarial-verify.md` §`Verified` Reads `pending-red`
-5. [implement] Name `pending-red` as a legal `Verified` value beside `pass` and
+5. [x] [implement] Name `pending-red` as a legal `Verified` value beside `pass` and
    `fail` wherever the harness states the column's vocabulary (the per-ws
    traceability guidance in the four writing skills and
    `references/v4-workstreams.md`). Confirm by reading
    `tools/sdd-gc.py`'s `trace-empty` sweep that **no code change follows** — it
    flags only empty `Spec` cells and Implementation-filled / Test-empty rows —
    traces to `ws-traceability.md` §Legal `Verified` Cell Values
-6. [implement] Add `## Post-cycle Fixes` to the plan-structure contract as
+6. [x] [implement] Add `## Post-cycle Fixes` to the plan-structure contract as
    **optional, orchestrator-owned, outside the task list**, in
    `skills/sdd-plan/SKILL.md`'s plan template and in
    `skills/sdd-replan/SKILL.md` (carry it across a rewrite, never strip it);
@@ -436,7 +436,7 @@ to the same file.)*
    `- R3 — <what was broken, what was changed, path> (<sha>)` — traces to
    `adversarial-verify.md` §`## Post-cycle Fixes` in the Active Plan and
    `milestone-plans.md` §Milestone Plan File Format (REQ-REDB-HARNESSP3-004)
-7. [verify] Confirm the `## Post-cycle Fixes` write is tagged `IN` by the
+7. [x] [verify] Confirm the `## Post-cycle Fixes` write is tagged `IN` by the
    implement / `RED_BREAK` default scope row (which names the active plan path,
    marker 3 `docs/plan.md` / marker 4 `docs/ws/<id>/plan.md`) — add or extend a
    self-test fixture if the existing rows do not already cover it. Add the
@@ -448,7 +448,7 @@ to the same file.)*
    `harness-write-scope.md` §`## Post-cycle Fixes` Is Inside the Implement /
    `RED_BREAK` Scope and `adversarial-verify.md` §Acceptance Criteria
    (REQ-REDB-HARNESSP3-004)
-8. [verify] Replay the 2026-09-18 second-break sequence on paper: round 2's
+8. [x] [verify] Replay the 2026-09-18 second-break sequence on paper: round 2's
    `BROKEN` on the same criterion by a different mechanism renders
    `RED: … new-ground`, and a genuinely failed fix renders
    `RED: … regression` — traces to `adversarial-verify.md` §Acceptance Criteria.

@@ -147,6 +147,16 @@ Read `docs/requirements/traceability.md` and verify:
 
 After verification, update the **Verified** column with pass/fail for each requirement.
 
+**`pending-red` cells (REQ-REDB-HARNESSP3-003).** The `Verified` column tracks
+the **report's** status, so whenever Step 6 writes `status: pending-red` write
+`pending-red` — not `pass` — into the `Verified` cell of **every row you would
+otherwise have marked `pass`**; a `fail` row stays `fail`. `pending-red`,
+`pass` and `fail` are the three legal cell values
+(`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values). The
+orchestrator's existing `pending-red → pass` flip at DONE turns exactly those
+cells back to `pass` and regenerates the aggregate in the same bookkeeping step
+— this skill never performs that flip.
+
 **Per-workstream traceability (marker `4` only).** `docs/.sdd-version` is the sole gate.
 Under marker `3` or earlier, read and write the single shared
 `docs/requirements/traceability.md` directly, as above (unchanged). Under marker `4`,
@@ -317,7 +327,10 @@ With the slot absent the output is byte-identical to v5. `pending-red` means
 "blue passed, red verdict pending": the **orchestrator** dispatches the red
 team, gates, and flips `pending-red → pass` in the frontmatter immediately
 before its own commit — this skill **never** writes `pass` while red is
-pending and never performs the flip. Every reader maps `pending-red` to
+pending and never performs the flip. Writing `pending-red` here also means
+writing `pending-red` into every would-be-`pass` `Verified` cell (Step 3b,
+REQ-REDB-HARNESSP3-003) — the durable matrix never asserts `pass` while a red
+round is outstanding. Every reader maps `pending-red` to
 "verification incomplete — re-enter the verify stage" (Phase Detection item 5;
 `sdd-replan` routes it back here; `sdd-orchestrate` resumes before the red
 dispatch).

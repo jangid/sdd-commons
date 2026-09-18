@@ -8,7 +8,9 @@ write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
 ``docs/spec/dispatch-snapshot-base.md`` §Snapshot Base Rule (F9) and
 ``docs/spec/harness-write-scope.md`` §Content-Hash Observation (F10),
 §Specs Row Names the Per-Workstream Traceability Path (F11) and
-``docs/spec/ws-traceability.md`` §Aggregate Regeneration Ownership (F12) against the
+``docs/spec/ws-traceability.md`` §Aggregate Regeneration Ownership (F12),
+``docs/spec/harness-write-scope.md`` §`## Post-cycle Fixes` Is Inside the
+Implement / ``RED_BREAK`` Scope (F13) against the
 observation procedure defined in ``skills/sdd-orchestrate/references/write-scope.md``:
 
   §3  the three commands — porcelain delta, committed delta, ancestry check —
@@ -39,6 +41,9 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
       docs/ws/<id>/traceability.md row
   F12 marker-4 verify dispatch also writes      -> OUT the aggregate,
       docs/requirements/traceability.md            SCOPE: VIOLATION (1 path)
+  F13 RED_BREAK fix with NO open chunk: the     -> IN, SCOPE: CLEAN, exactly one
+      only write is the plan's ## Post-cycle       new line under the section
+      Fixes append
 
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
@@ -671,6 +676,11 @@ VERIFY_WS4_SCOPE = [
     ScopeGlob("docs/ws/harness/verification.md"),
     ScopeGlob("docs/ws/harness/traceability.md"),
 ]
+# RED_BREAK fix with NO open chunk: target.chunk resolves to nothing, so the
+# chunk's source/test globs are absent and the row degenerates to the active
+# plan path alone (marker 4: docs/ws/<id>/plan.md) — harness-write-scope.md
+# §`## Post-cycle Fixes` Is Inside the Implement / `RED_BREAK` Scope.
+RED_BREAK_NO_CHUNK_SCOPE = [ScopeGlob("docs/ws/harness/plan.md")]
 
 
 def _begin(repo: str) -> tuple[str, list[str], dict[str, str]]:
@@ -1012,6 +1022,44 @@ def scenario_f12(repo: str) -> tuple[bool, str, list[str]]:
     return ok, f.token, f.lines
 
 
+def scenario_f13(repo: str) -> tuple[bool, str, list[str]]:
+    """`RED_BREAK` fix with NO open chunk: the only write is the plan's
+    ``## Post-cycle Fixes`` append.
+
+    ``harness-write-scope.md`` §`## Post-cycle Fixes` Is Inside the Implement /
+    `RED_BREAK` Scope (REQ-REDB-HARNESSP3-004): the implement / `RED_BREAK` row
+    names the active plan path, so when ``target.chunk`` resolves to nothing the
+    scope degenerates to that path alone and the orchestrator-owned append is
+    tagged ``IN`` -> ``SCOPE: CLEAN``. This is the case the spec's Open Question
+    answers by default assumption, so it is exercised rather than assumed.
+    """
+    plan = (
+        "# Implementation Plan\n\n## Chunks\n\n### Chunk 0: done\n"
+        "**Tasks**:\n1. [implement] x — traces to recon.md\n\n## Post-cycle Fixes\n"
+    )
+    write(repo, "docs/ws/harness/plan.md", plan)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "plan with an empty Post-cycle Fixes section")
+
+    head, before, content_before = _begin(repo)
+    # The RED_BREAK fix: exactly one line appended under the section.
+    write(repo, "docs/ws/harness/plan.md", plan + "- R3 — window guard ignored 0, clamped in engine.run (abc1234)\n")
+    f = render(RED_BREAK_NO_CHUNK_SCOPE, observe(repo, head, before, content_before=content_before), "F13")
+
+    after = open(os.path.join(repo, "docs/ws/harness/plan.md"), encoding="utf-8").read().splitlines()
+    idx = after.index("## Post-cycle Fixes")
+    section = [ln for ln in after[idx + 1:] if ln.strip()]
+
+    ok = (
+        f.token == "SCOPE: CLEAN"
+        and not f.out_paths
+        and any(ln.strip().startswith("IN ") and "docs/ws/harness/plan.md" in ln for ln in f.lines)
+        and len(section) == 1
+        and section[0].startswith("- R3 — ")
+    )
+    return ok, f.token, f.lines
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -1025,6 +1073,7 @@ SCENARIOS = [
     ("F10", "already-dirty path re-touched by the leaf (content-hash observation)", scenario_f10),
     ("F11", "orchestrated marker-4 specs dispatch: spec + per-ws row, both IN", scenario_f11),
     ("F12", "orchestrated marker-4 verify dispatch also writes the shared aggregate", scenario_f12),
+    ("F13", "RED_BREAK fix with no open chunk: ## Post-cycle Fixes append only", scenario_f13),
 ]
 
 

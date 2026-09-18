@@ -355,7 +355,10 @@ dispatched `Budget:` (`references/return-contract.md` §1, §7); (2) the
 own-line `SCOPE:` token (`references/write-scope.md` §5; `HISTORY_REWRITE`
 offers only `stop`); (3) per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` —
 1–3 render at the **per-chunk gate**; (3b) verify stage only, `RED_VERDICT:`
-with its `Rn` lines verbatim (below); (4) the review `VERDICT:`; (5) the loop
+with its `Rn` lines verbatim, then — on a red round N >= 2 — one derived
+`RED: Rn new-ground | regression` line per `BROKEN` `Rn`, in `Rn` order,
+**after** those `Rn` lines and before the exit rule is applied (below);
+(4) the review `VERDICT:`; (5) the loop
 counters — `iteration N of MAX` for the fix-loop cap and the replan re-entry
 count — 3b–5 render at the **stage gate**. Detail:
 [`references/loop-control.md`](references/loop-control.md) §5.
@@ -372,8 +375,17 @@ follows each `COMPLETE` blue return, before the review; parse
 fixed/accepted); per `BROKEN` line `fix (RED_BREAK packet) | accept (record) |
 stop` (`accept` records the `Rn` under `verification.md` §Issues Found → Minor).
 Blue `status: fail` or a non-`COMPLETE` return → `Red team: not run`, no red
-dispatch. On `proceed` flip `pending-red → pass` immediately before the
-orchestrator's commit (its only writer). Rounds, the `accept` line format and
+dispatch. On a red round **N >= 2**, before applying the exit rule, re-run the
+**previous round's** routed `reproduce:` command for each `BROKEN` `Rn` (held
+verbatim) and render the derived `RED:` lines at the position given in the
+signal order above — `new-ground` when that command now passes, `regression`
+when it still fails (REQ-REDB-HARNESSP3-002); red's return shape is unchanged.
+On `proceed` flip `pending-red → pass` immediately before the
+orchestrator's commit (its only writer). **The same flip turns every
+`Verified` cell reading `pending-red` to `pass`** — in the workstream's own
+`docs/ws/<id>/traceability.md`, leaving `fail` cells untouched — and
+regenerates the shared aggregate in the same post-gate bookkeeping step above
+(REQ-REDB-HARNESSP3-003). Rounds, the `accept` line format and
 the gate fixture: [`references/loop-control.md`](references/loop-control.md) §2a "Red round".
 
 **`TELEMETRY:` lines** (`WRITE FAILED` │ `OFF` │ `.gitignore updated`) render at most once each, immediately after the `iteration`/cap line and before the options — [`references/telemetry.md`](references/telemetry.md) §3.

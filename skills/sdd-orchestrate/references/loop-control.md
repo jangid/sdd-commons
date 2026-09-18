@@ -317,6 +317,38 @@ after a verify-pipeline return, its gate, and — when the operator routes a
   non-token line `Red team: not run (blue status fail)` and proceeds to the
   normal fix/replan routing.
 
+**New-ground vs regression on red round N >= 2 (REQ-REDB-HARNESSP3-002).** A
+second `BROKEN` on the same acceptance criterion may be a *failed fix* or a
+*different mechanism behind the first break*; the gate must distinguish them.
+On a red round **N >= 2**, for each `BROKEN` `Rn` of the new round the
+orchestrator re-runs the **previous round's** routed `reproduce:` command — it
+holds those `Rn` lines verbatim from the earlier gate — and renders one derived
+line per prior break, in `Rn` order (Q-IMPL-HARNESSP3-007):
+
+```
+RED: R1 new-ground (prior R6 reproduce now passes)
+RED: R1 regression  (prior R6 reproduce still fails)
+```
+
+- `new-ground` — the prior round's `reproduce:` command now **passes**: the
+  earlier break was really fixed and this is a fresh break behind it.
+- `regression` — the prior round's `reproduce:` command **still fails**: the
+  fix did not hold.
+- The lines render **inside the `RED_VERDICT:` block, after red's own `Rn`
+  lines** and **before the exit rule is applied** (the gate fixture below and
+  `../SKILL.md` §The gate carry that position). On round 1 no `RED:` line is
+  rendered.
+- The lines are **derived in the orchestrator from evidence** — one command per
+  prior break. Red's return shape is unchanged between rounds.
+
+**Declined alternative**, recorded here with its reasons: no `supersedes:` or
+`new-ground:` marker is added to red's return shape. Such a marker would
+require handing red the previous round's findings, contradicting the
+withholding default (REQ-REDB-HARNESSP2-004) — and re-attacking the same
+criterion is exactly what found the second bug, so red must not be steered away
+from it. The derived line costs one command per prior break and changes neither
+red's return shape nor its isolation.
+
 Sequence per red round:
 
 ```
@@ -328,7 +360,8 @@ fix dispatch (implement chunk) → scope check → chunk verifier → per-chunk 
 
 Gate fixture — pasted verbatim from `docs/spec/adversarial-verify.md`
 §Verify-Stage Gate and Exit Rule (signal order `RETURN.status` → `SCOPE:` →
-`RED_VERDICT:` → `VERDICT:` → counters; `proceed` withheld until every
+`RED_VERDICT:` — its `Rn` lines verbatim, then the derived `RED:` lines on
+round N >= 2 — → `VERDICT:` → counters; `proceed` withheld until every
 `BROKEN` `Rn` is fixed or accepted):
 
 ```
@@ -338,6 +371,7 @@ Verify stage gate — pipeline #9 (sdd-verify), red #10, review #11
   RED_VERDICT: BROKEN
     - R1: <criterion> — attack: … — observed: … — reproduce: `python -m app --window 0` — BROKEN
     - R2: <criterion> — attack: … — observed: held — reproduce: `pytest -q tests/test_recon.py::test_window` — HELD
+  RED: R1 new-ground (prior R6 reproduce now passes)          # round N >= 2 only
   VERDICT: APPROVE
   iteration 0 of 3
   Options per BROKEN finding: R1 → fix (RED_BREAK packet) | accept (record) | stop

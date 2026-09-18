@@ -88,6 +88,12 @@ Tell the user which phase you detected. If resuming, identify the next incomplet
 0. **Read `CLAUDE.md` first (if present).** Project conventions in `CLAUDE.md` take precedence over generic patterns when choosing libraries, coding patterns, or project structure. The file may not exist — that's normal — but when it does, its conventions override defaults you might otherwise apply.
 1. Read `docs/plan.md` — identify the current chunk and next task
 2. If the plan's frontmatter `status:` is `planned`, set it to `active` now (applies to single-milestone plans and the active milestone plan alike)
+2a. **`## Post-cycle Fixes` is not a task list (REQ-REDB-HARNESSP3-004).** If the
+   plan carries an optional `## Post-cycle Fixes` section at its end, it is
+   **orchestrator-owned and outside the task list** — one line per verify-stage
+   `RED_BREAK` fix that belonged to no open chunk. Never read its lines as
+   tasks, never mark them done, never edit the section
+   (`docs/spec/adversarial-verify.md` §`## Post-cycle Fixes` in the Active Plan)
 3. Read the relevant spec sections for the current task
 4. Read `docs/requirements/{category}/*.md` for requirement context when needed
 5. Identify which chunk you're starting from (ask if unclear)
@@ -153,7 +159,10 @@ place — then **regenerate** the aggregate (below). Full contract: `docs/spec/w
   frontmatter `workstream: <ws>` / `last_updated:` and the matrix with **Workstream** as
   the **3rd column** — `| Requirement | Spec | Workstream | Test | Implementation | Verified |` —
   holding **only** this workstream's rows (new `REQ-<DOMAIN>-<WS>-NNN` plus shared REQs it
-  re-uses); a workstream never edits another ws's file.
+  re-uses); a workstream never edits another ws's file. The **Verified** cell is
+  `sdd-verify`'s to write and has three legal values — `pass`, `fail` and
+  `pending-red` (`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values);
+  never fill it here.
 - **Aggregate is regenerated, never hand-merged (REQ-WS-008).** `docs/requirements/traceability.md`
   is a **derived** aggregate. After updating the per-ws file, rebuild it **wholesale**: shipped
   legacy rows (predating the v4 migration, attributed to the blank/default workstream)

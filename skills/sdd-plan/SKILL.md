@@ -234,7 +234,21 @@ One paragraph: what we're implementing and the approach.
 
 ## Risks
 - [Risk]: [Impact and mitigation]
+
+## Post-cycle Fixes
+<!-- OPTIONAL, orchestrator-owned, outside the task list. Omit until written. -->
+- R3 — [what was broken, what was changed, path] ([sha])
 ```
+
+(`## Post-cycle Fixes` is **optional, orchestrator-owned and outside the task
+list** (REQ-REDB-HARNESSP3-004, `docs/spec/adversarial-verify.md` §`## Post-cycle
+Fixes` in the Active Plan; the plan-structure contract is
+`docs/spec/milestone-plans.md` §Milestone Plan File Format). It holds one line
+per verify-stage `RED_BREAK` fix that belonged to **no open chunk**, appended at
+the **end** of the plan (Q-IMPL-HARNESSP3-008). Never create it yourself, never
+strip it on a rewrite — carry it across verbatim — and never turn its lines into
+tasks: `sdd-implement` does not read them as tasks and they do not re-open the
+task list.)
 
 (The `last_updated:` field is what every staleness check compares; bump it on every rewrite/update. `status:` follows the same lifecycle vocabulary as per-milestone plans.)
 

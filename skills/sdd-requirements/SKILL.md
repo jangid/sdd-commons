@@ -245,7 +245,10 @@ last_updated: YYYY-MM-DD
 When adding new requirements, add rows with the Spec/Test/Implementation/Verified columns blank. Other SDD skills fill those columns later:
 - `sdd-specs` fills the Spec column
 - `sdd-implement` fills Test and Implementation columns
-- `sdd-verify` fills the Verified column
+- `sdd-verify` fills the Verified column — its three legal values are `pass`,
+  `fail` and `pending-red` (written while a red round is outstanding, flipped to
+  `pass` by the orchestrator at DONE; `docs/spec/ws-traceability.md` §Legal
+  `Verified` Cell Values)
 
 ### Requirement Rules
 

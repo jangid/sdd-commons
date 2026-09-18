@@ -175,6 +175,13 @@ When revising `docs/plan.md`:
 4. **Remove invalidated tasks** — move them to the archive file (for significant replans). Do NOT write `[removed: reason]` in the active plan
 5. **Reorder** remaining tasks based on new dependencies
 6. **Update replan triggers** — the old ones may no longer apply
+7. **Carry `## Post-cycle Fixes` across verbatim** — the optional,
+   orchestrator-owned section at the end of the plan (REQ-REDB-HARNESSP3-004,
+   `docs/spec/adversarial-verify.md` §`## Post-cycle Fixes` in the Active Plan;
+   contract in `docs/spec/milestone-plans.md` §Milestone Plan File Format). Its
+   lines are **not tasks**: never strip it on a rewrite, never archive-and-drop
+   it, never convert its lines into tasks or mark them done. `sdd-plan` does not
+   create it and `sdd-implement` does not read it as tasks
 
 **Archive file format** (for significant replans — written to `docs/plan-history/{date}-replan-{reason}.md`):
 
