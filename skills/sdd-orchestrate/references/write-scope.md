@@ -156,7 +156,9 @@ the verifier and the stage gate in place of the per-chunk gate.
 **Rules.**
 - `--untracked-files=all` expands untracked directories to file paths.
 - Paths present in both snapshots (pre-existing untracked noise such as
-  `.claude/worktrees/`) cancel — only the *delta* is a write.
+  `.claude/worktrees/`) cancel **only when their content hash is also
+  unchanged** (content-hash observation below) — otherwise only the *delta*
+  is a write.
 - Deletions (`D`) and renames (`R`, both old and new path) count as writes; a
   rename across the scope boundary (`R src/a.py -> docs/a.py`) tags the new
   path `OUT` and the old path `IN` — one finding.
@@ -168,6 +170,51 @@ the verifier and the stage gate in place of the per-chunk gate.
   above the path list and counted as a violation. The option offered is
   `stop` plus a manual recovery hint (`git reflog` in the affected tree) —
   **never an automatic reset** (`../SKILL.md` §Isolation Discipline).
+
+**Content-hash observation (REQ-HARN-HARNESSP3-001).** The porcelain pair is
+blind to a path that is **already dirty or untracked at snapshot time** and is
+written again during the dispatch: its status letter is unchanged, so the delta
+cancels it, and an uncommitted write leaves no committed delta either. A fourth
+term closes that gap — call it the **content-hash observation** in prose, never
+"the fourth observation" (the named-base observation above is already a
+four-part one).
+
+```
+ambiguous_set := paths listed as dirty or untracked by snapshot(before)
+sha.before    := {(path, content_hash) for path in ambiguous_set}          # pre-dispatch
+sha.after     := {(path, content_hash) for path in ambiguous_set INTERSECT snapshot(after)}
+content_delta := {p | sha.before[p] != sha.after[p]}
+                 UNION {p in sha.before and absent from the worktree on return}
+
+observed writes := porcelain_delta UNION committed_delta UNION content_delta
+```
+
+- The hash is taken over **working-tree** content — the blindness being closed
+  is an uncommitted working-tree rewrite. The contract is the `(path, sha)`
+  pair set, so any hash function conforms as long as the same one is used for
+  the before and the after snapshot of a dispatch; `git hash-object
+  --stdin-paths` over the ambiguous set is the recommendation, since the value
+  is git's own blob identity and needs no second hashing dependency
+  (`harness-write-scope.md` Q-IMPL-HARNESSP3-001).
+- A path **deleted** during the dispatch records the reserved non-hash sentinel
+  `ABSENT` in the sha slot — it cannot collide with a hex digest, so the
+  comparison stays a plain inequality and needs no separate presence set
+  (Q-IMPL-HARNESSP3-002). The sentinel pair is itself a content change.
+- Porcelain is parsed with **`-z`** (NUL-separated fields, no shell quoting or
+  mangling of paths containing spaces or newlines), and **both** paths of a
+  rename or copy (`R`, `C`) record enter the ambiguous set.
+- The `SCOPE:` token, the `IN` / `ADVISORY` / `OUT` tags, the `N` count, the
+  finding block, the operator options and the `HISTORY_REWRITE` rule are
+  **unchanged**: this changes *what counts as an observed write*, not how one
+  is matched or rendered, and `HISTORY_REWRITE` still rests on the untouched
+  ancestry check (c).
+- Cost is bounded to **O(dirty files)**, never O(repo), because the ambiguous
+  set is fixed before the dispatch (probe: 134 files in 0.064 s, an 8-path set
+  in 0.017 s, against a 0.008 s porcelain baseline — RS-HARNESSP3-001 Q1).
+  `git stash create` and a temp-index `read-tree HEAD` were both measured and
+  rejected: the first mutates the repository being observed, the second diffs
+  against HEAD and reproduces the identical blindness.
+- Fixture: scenario F10 of `tools/sdd-scope-check-selftest.py` (both halves).
 
 **Third observation (telemetry) — REQ-TELEM-HARNESSP2-005.** Because `.sdd/`
 is gitignored (limitation (b), §5), the porcelain pair cannot see a leaf write
@@ -341,6 +388,14 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
   take `HEAD_before` at that named base, exclude `HEAD_prov..base` from the
   window and render the `CATCH-UP` line. Contract:
   `docs/spec/dispatch-snapshot-base.md`.
+- **(d) Round trip within one dispatch.** A file modified and then reverted to
+  its original content inside the dispatch — or created and then deleted —
+  stays invisible: **unchanged**, because a content hash cannot see a round
+  trip either.
+- **Closed, not a limitation:** a path **already dirty or untracked at snapshot
+  time** and written again during the dispatch is now observed by the
+  content-hash observation of §3 (REQ-HARN-HARNESSP3-001); it is no longer
+  recorded here.
 - Writes outside the repository (scratchpad, `$TMPDIR`) are the sandbox's
   concern, not this check's. The shared stash stack is out of scope (skills
   never stash).

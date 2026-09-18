@@ -65,7 +65,7 @@ which lives outside the implement fan-out.
 was already dirty at snapshot time and re-touched during a dispatch is observed.
 **Depends on**: None.
 **Tasks**:
-1. [implement] Add the content-hash observation block to
+1. [x] [implement] Add the content-hash observation block to
    `skills/sdd-orchestrate/references/write-scope.md` §3: the
    `ambiguous_set` / `sha.before` / `sha.after` / `content_delta` contract, the
    fourth term in `observed writes`, the amended cancel bullet ("paths present
@@ -75,23 +75,23 @@ was already dirty at snapshot time and re-touched during a dispatch is observed.
    Use the name "content-hash observation" in prose — never "the fourth
    observation" — traces to `harness-write-scope.md` §Content-Hash Observation
    (REQ-HARN-HARNESSP3-001)
-2. [implement] Reconcile the recorded v1 limitations in `write-scope.md` §5
+2. [x] [implement] Reconcile the recorded v1 limitations in `write-scope.md` §5
    (titled "Finding format and `SCOPE:` token"): the modify-then-revert
    round-trip limitation is **unchanged**; the already-dirty blindness is
    removed from the limitation list — traces to `harness-write-scope.md`
    §Content-Hash Observation
-3. [implement] Implement the content-hash term in
+3. [x] [implement] Implement the content-hash term in
    `tools/sdd-scope-check-selftest.py`'s `observe()` and `_porcelain_paths()`
    (`git hash-object` per Q-IMPL-HARNESSP3-001; reserved non-hash token for a
    deleted path per Q-IMPL-HARNESSP3-002) without changing `render()`, the
    `IN`/`ADVISORY`/`OUT` tags, the `N` count or the `HISTORY_REWRITE` rule —
    traces to `harness-write-scope.md` §Content-Hash Observation
-4. [implement] Add self-test fixture **F10** (next free id — F8 and F9 are
+4. [x] [implement] Add self-test fixture **F10** (next free id — F8 and F9 are
    taken), both halves: a path already dirty at snapshot time and re-touched by
    the leaf yields a non-empty observed-write set naming that path; the same
    fixture with the leaf leaving it untouched yields `SCOPE: CLEAN` — traces to
    `harness-write-scope.md` §Acceptance Criteria (REQ-HARN-HARNESSP3-001)
-5. [verify] Run `python3 tools/sdd-scope-check-selftest.py`: F1–F10 all pass,
+5. [x] [verify] Run `python3 tools/sdd-scope-check-selftest.py`: F1–F10 all pass,
    and F1–F9 are unchanged in output (the change alters *what counts as a
    write*, not how one is matched or rendered) — traces to
    `harness-write-scope.md` §Verification
@@ -597,6 +597,23 @@ renders.
   confirm gc raises **no new finding** on a `pending-red` `Verified` cell — traces
   to `adversarial-verify.md` §Acceptance Criteria and `drift-sweep.md`
   §Verification
+
+- **V6** — Close the `R`/`C` acceptance gap left open by Chunk 0: the criterion
+  "porcelain parsing uses `-z` and enters **both** paths of an `R`/`C` record
+  into the ambiguous set" is implemented but exercised by no fixture (no
+  scenario renames a path, and none uses a path containing a space, quote or
+  newline). Add the fixture or record it under §Next Steps with the reason —
+  traces to `harness-write-scope.md` §Acceptance Criteria
+  [Carried from the Chunk 0 per-chunk gate, 2026-09-18, on the chunk verifier's
+  Check 3 finding; operator decision `proceed, carry both notes`.]
+- **V7** — Resolve the observed-writes union edge the Chunk 0 verifier found by
+  reading (no fixture reaches it): a path that is dirty at `snapshot(before)`,
+  committed during the dispatch, and then dirtied again is appended twice — once
+  by the content delta, once by the committed delta — so it counts twice in `N`,
+  while the spec defines `observed writes` as a set union. Either collapse to
+  strict set semantics or record the divergence — traces to
+  `harness-write-scope.md` §Content-Hash Observation
+  [Carried from the Chunk 0 per-chunk gate, 2026-09-18, Check 1 minor note 1.]
 
 **Exit criteria**: `verification.md` records observed evidence (not a
 walkthrough) for REQ-REDB-HARNESSP3-002, REQ-TELEM-HARNESSP3-001,

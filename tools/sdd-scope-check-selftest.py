@@ -2,14 +2,16 @@
 """Self-test for the sdd-orchestrate write-scope check.
 
 Builds throwaway git repositories under a temporary directory and replays the
-nine write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
+ten write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
 (plan Chunk 4 task 5) plus ``docs/spec/telemetry.md`` §Third Observation (F7),
 ``docs/spec/arbitrated-handoff.md`` §Section Resolution (F8) and
-``docs/spec/dispatch-snapshot-base.md`` §Snapshot Base Rule (F9) against the
+``docs/spec/dispatch-snapshot-base.md`` §Snapshot Base Rule (F9) and
+``docs/spec/harness-write-scope.md`` §Content-Hash Observation (F10) against the
 observation procedure defined in ``skills/sdd-orchestrate/references/write-scope.md``:
 
   §3  the three commands — porcelain delta, committed delta, ancestry check —
-      plus the named-base catch-up (d) and its ``CATCH-UP`` line (remedy (ii))
+      plus the content-hash observation (already-dirty paths), the named-base
+      catch-up (d) and its ``CATCH-UP`` line (remedy (ii))
       and the section resolution of fix hunks (hunk -> enclosing ``§Name``)
   §4  matching and tags — IN / ADVISORY / OUT
   §5  finding format and the own-line ``SCOPE:`` token
@@ -29,6 +31,8 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
       L120 under ## C of docs/spec/x.md)           .py -> (path, ?)
   F9  catch-up base (worktree 1 commit behind)  -> CLEAN + CATCH-UP line; plus one
                                                    OUT write -> VIOLATION (1 path)
+  F10 already-dirty path re-touched by the leaf -> OUT (content delta) -> VIOLATION
+      (1 path); the same fixture untouched         (1 path); untouched -> SCOPE: CLEAN
 
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
@@ -65,13 +69,18 @@ GIT_BASE = [
 ]
 
 
-def git(repo: str, *args: str, check: bool = True) -> subprocess.CompletedProcess:
-    """Run a git command inside ``repo`` and return the completed process."""
+def git(repo: str, *args: str, check: bool = True, stdin: str | None = None) -> subprocess.CompletedProcess:
+    """Run a git command inside ``repo`` and return the completed process.
+
+    ``stdin`` feeds the command's standard input (used by ``hash-object
+    --stdin-paths`` for the content-hash observation).
+    """
     env = dict(os.environ, GIT_CONFIG_NOSYSTEM="1")
     return subprocess.run(
         GIT_BASE + list(args),
         cwd=repo,
         env=env,
+        input=stdin,
         text=True,
         capture_output=True,
         check=check,
@@ -119,9 +128,31 @@ def make_repo(root: str, name: str) -> str:
 
 
 def snapshot(repo: str) -> list[str]:
-    """``git status --porcelain=v1 --untracked-files=all`` as a list of lines."""
-    out = git(repo, "status", "--porcelain=v1", "--untracked-files=all").stdout
-    return [ln for ln in out.splitlines() if ln]
+    """``git status --porcelain=v1 -z --untracked-files=all`` as a list of records.
+
+    ``-z`` (§3 content-hash observation) so a path containing a space, a quote
+    or a newline is never mangled or shell-quoted: fields are NUL-separated and
+    a rename/copy record is followed by a second field carrying its original
+    path. Such a record is rejoined here as ``XY new\0orig`` so that one record
+    stays one comparable string for the cancel rule, while ``_porcelain_paths``
+    still yields **both** of its paths.
+    """
+    out = git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all").stdout
+    fields = out.split("\0")
+    records: list[str] = []
+    i = 0
+    while i < len(fields):
+        entry = fields[i]
+        i += 1
+        if not entry:
+            continue
+        xy = entry[:2]
+        if ("R" in xy or "C" in xy) and i < len(fields):
+            records.append(entry + "\0" + fields[i])  # XY new\0orig
+            i += 1
+        else:
+            records.append(entry)
+    return records
 
 
 @dataclass
@@ -216,14 +247,63 @@ def revert_telemetry(repo: str, before: TelemetrySnapshot, obs: "Observation") -
 def _porcelain_paths(line: str) -> tuple[str, list[str]]:
     """Split a porcelain v1 line into its status letter and path(s).
 
-    ``XY path`` or ``XY old -> new`` for renames; both rename sides count (§3).
+    ``XY path``; a ``-z`` rename/copy record is ``XY new\0orig`` and the legacy
+    non-``-z`` form is ``XY old -> new``. Both sides of a rename or copy are
+    returned, so both enter the observed set and the ambiguous set (§3).
     """
     letter = (line[:2].strip() or "?")[0]
     rest = line[3:]
+    if "\0" in rest:
+        new, orig = rest.split("\0", 1)
+        return letter, [orig, new]
     if " -> " in rest:
         old, new = rest.split(" -> ", 1)
         return letter, [old, new]
     return letter, [rest]
+
+
+# ---------------------------------------------------------------------------
+# write-scope.md §3 — content-hash observation (already-dirty paths)
+# ---------------------------------------------------------------------------
+
+# Reserved non-hash sentinel for a path absent from the worktree
+# (Q-IMPL-HARNESSP3-002): it cannot collide with a hex digest, so the
+# comparison stays a plain inequality and needs no separate presence set.
+ABSENT = "ABSENT"
+
+
+def ambiguous_set(records: Iterable[str]) -> list[str]:
+    """Paths listed as dirty or untracked by ``snapshot(before)`` — both sides of an R/C record.
+
+    The set is fixed *before* the dispatch, which is what bounds the cost of the
+    content-hash observation to O(dirty files) rather than O(repo).
+    """
+    paths: list[str] = []
+    for record in records:
+        _letter, record_paths = _porcelain_paths(record)
+        for p in record_paths:
+            if p not in paths:
+                paths.append(p)
+    return paths
+
+
+def content_hashes(repo: str, paths: Iterable[str]) -> dict[str, str]:
+    """``{path: content_hash}`` over **working-tree** content (Q-IMPL-HARNESSP3-001).
+
+    ``git hash-object --stdin-paths`` so the value is git's own blob identity and
+    no second hashing dependency is needed; the contract is the ``(path, sha)``
+    pair set, so any hash is conforming as long as the same one is used for the
+    before and after snapshot of a dispatch. A path that is not a file in the
+    worktree records the ``ABSENT`` sentinel.
+    """
+    paths = list(paths)
+    hashes = {p: ABSENT for p in paths}
+    present = [p for p in paths if os.path.isfile(os.path.join(repo, p))]
+    if present:
+        out = git(repo, "hash-object", "--stdin-paths", stdin="\n".join(present) + "\n").stdout.split()
+        for p, sha in zip(present, out):
+            hashes[p] = sha
+    return hashes
 
 
 def _add_name_status(obs: Observation, text: str, sha: str) -> None:
@@ -245,6 +325,7 @@ def observe(
     telemetry_before: TelemetrySnapshot | None = None,
     *,
     base: str | None = None,
+    content_before: dict[str, str] | None = None,
 ) -> Observation:
     """Run the AFTER half of §3 and return the union of the two deltas.
 
@@ -252,6 +333,10 @@ def observe(
     (b) committed delta: ``git diff --name-status HEAD_before HEAD_after``; under a
         named base, the paths of every commit in ``git rev-list HEAD_after ^base ^HEAD_prov``
     (c) ancestry: ``git merge-base --is-ancestor HEAD_before HEAD_after``
+    content delta: with ``content_before`` (the ``(path, sha)`` pairs of the ambiguous
+        set, taken pre-dispatch), every ambiguous path whose working-tree hash changed
+        — the term that sees a path already dirty at snapshot time and written again,
+        which the porcelain cancel rule would otherwise drop
     (d) catch-up: ``N = git rev-list --count HEAD_prov..base``; ``N > 0`` renders the
         ``CATCH-UP <from>..<base> (N commits, excluded — base <sha>)`` note
     Third observation (telemetry.md §4), when ``telemetry_before`` is given:
@@ -303,6 +388,31 @@ def observe(
         letter, paths = _porcelain_paths(line)
         for p in paths:
             obs.writes.append(Observed(p, letter, "uncommitted"))
+
+    # Content delta — the cancel rule above is amended: a path present in both
+    # snapshots cancels only when its content hash is also unchanged. sha.after
+    # is taken over ambiguous_set INTERSECT snapshot(after), plus the ABSENT
+    # sentinel for a path deleted during the dispatch (itself a content change).
+    if content_before:
+        after_paths = set(ambiguous_set(after))
+        seen = {w.path for w in obs.writes}
+        letters = {}
+        for line in after:
+            letter, paths = _porcelain_paths(line)
+            for p in paths:
+                letters.setdefault(p, letter)
+        for p, sha_before in content_before.items():
+            if p in seen:
+                continue  # already observed by (a) or (b)
+            on_disk = os.path.isfile(os.path.join(repo, p))
+            if not on_disk:
+                sha_after = ABSENT
+            elif p in after_paths:
+                sha_after = content_hashes(repo, [p])[p]
+            else:
+                continue  # no longer dirty: the reverted/committed round trip of §5
+            if sha_after != sha_before:
+                obs.writes.append(Observed(p, "D" if sha_after == ABSENT else letters.get(p, "M"), "uncommitted"))
 
     # (b) committed delta — catches writes that vanished from porcelain.
     if head_after != head_before:
@@ -548,16 +658,25 @@ IMPLEMENT_SCOPE = [
 LEAF_SCOPE = [ScopeGlob("src/recon/**"), ScopeGlob("tests/test_recon.py")]
 
 
-def _begin(repo: str) -> tuple[str, list[str]]:
-    """The BEFORE half of §3: HEAD and porcelain snapshot immediately pre-dispatch."""
-    return git(repo, "rev-parse", "HEAD").stdout.strip(), snapshot(repo)
+def _begin(repo: str) -> tuple[str, list[str], dict[str, str]]:
+    """The BEFORE half of §3, immediately pre-dispatch.
+
+    HEAD, the porcelain snapshot and the ``(path, sha)`` pairs of the ambiguous
+    set (the content-hash observation's ``sha.before``).
+    """
+    before = snapshot(repo)
+    return (
+        git(repo, "rev-parse", "HEAD").stdout.strip(),
+        before,
+        content_hashes(repo, ambiguous_set(before)),
+    )
 
 
 def scenario_f1(repo: str) -> tuple[bool, str, list[str]]:
     """Porcelain-only OUT: uncommitted docs/plan.md edit against scope src/**."""
-    head, before = _begin(repo)
+    head, before, content_before = _begin(repo)
     write(repo, "docs/plan.md", "# Plan\nleaf edit\n")
-    f = render(SEQ_SCOPE_SRC, observe(repo, head, before), "F1")
+    f = render(SEQ_SCOPE_SRC, observe(repo, head, before, content_before=content_before), "F1")
     ok = (
         f.token == "SCOPE: VIOLATION (1 path)"
         and f.out_paths == ["docs/plan.md"]
@@ -569,10 +688,10 @@ def scenario_f1(repo: str) -> tuple[bool, str, list[str]]:
 
 def scenario_f2(repo: str) -> tuple[bool, str, list[str]]:
     """Committed OUT with clean porcelain: docs/plan.md committed, scope docs/spec/**."""
-    head, before = _begin(repo)
+    head, before, content_before = _begin(repo)
     write(repo, "docs/plan.md", "# Plan\nleaf edit, committed\n")
     git(repo, "commit", "-q", "-am", "leaf: plan edit")
-    obs = observe(repo, head, before)
+    obs = observe(repo, head, before, content_before=content_before)
     porcelain_clean = not any(w.where == "uncommitted" for w in obs.writes)
     f = render(SPEC_SCOPE, obs, "F2")
     ok = (
@@ -586,10 +705,10 @@ def scenario_f2(repo: str) -> tuple[bool, str, list[str]]:
 
 def scenario_f3(repo: str) -> tuple[bool, str, list[str]]:
     """Verify dispatch writes verification.md + traceability.md: both IN, CLEAN."""
-    head, before = _begin(repo)
+    head, before, content_before = _begin(repo)
     write(repo, "docs/verification.md", "# Verification\nstatus: pass\n")
     write(repo, "docs/requirements/traceability.md", "| REQ | Spec | Verified |\n")
-    f = render(VERIFY_SCOPE, observe(repo, head, before), "F3")
+    f = render(VERIFY_SCOPE, observe(repo, head, before, content_before=content_before), "F3")
     tags = [ln.split()[0] for ln in f.lines if ln.startswith("    ")]
     ok = f.token == "SCOPE: CLEAN" and tags == ["IN", "IN"]
     return ok, f.token, f.lines
@@ -597,9 +716,9 @@ def scenario_f3(repo: str) -> tuple[bool, str, list[str]]:
 
 def scenario_f4(repo: str) -> tuple[bool, str, list[str]]:
     """Implement dispatch writes docs/spec/recon.md: ADVISORY, CLEAN."""
-    head, before = _begin(repo)
+    head, before, content_before = _begin(repo)
     write(repo, "docs/spec/recon.md", "# Recon\n\n## Implementation Questions\n### Q-IMPL-001: x\n")
-    f = render(IMPLEMENT_SCOPE, observe(repo, head, before), "F4")
+    f = render(IMPLEMENT_SCOPE, observe(repo, head, before, content_before=content_before), "F4")
     tags = [ln.split()[0] for ln in f.lines if ln.startswith("    ")]
     ok = f.token == "SCOPE: CLEAN" and tags == ["ADVISORY"]
     return ok, f.token, f.lines
@@ -619,9 +738,9 @@ def scenario_f5(repo: str) -> tuple[bool, str, list[str]]:
 
 def scenario_f6(repo: str) -> tuple[bool, str, list[str]]:
     """Amended HEAD: HEAD_after does not descend from HEAD_before -> HISTORY_REWRITE."""
-    head, before = _begin(repo)
+    head, before, content_before = _begin(repo)
     git(repo, "commit", "-q", "--amend", "--allow-empty", "-m", "base (amended by leaf)")
-    obs = observe(repo, head, before)
+    obs = observe(repo, head, before, content_before=content_before)
     f = render(SEQ_SCOPE_SRC, obs, "F6")
     ok = (
         obs.history_rewrite is not None
@@ -645,12 +764,12 @@ def scenario_f7(repo: str) -> tuple[bool, str, list[str]]:
     n_before = 3
     write(repo, ".sdd/telemetry.jsonl", "".join(f'{{"v":1,"seq":{i}}}\n' for i in range(1, n_before + 1)))
     ignored = git(repo, "check-ignore", "-q", ".sdd/telemetry.jsonl", check=False).returncode == 0
-    head, before = _begin(repo)
+    head, before, content_before = _begin(repo)
     tele_before = telemetry_snapshot(repo)
     # the leaf appends one record
     with open(os.path.join(repo, ".sdd/telemetry.jsonl"), "a", encoding="utf-8") as fh:
         fh.write('{"v":1,"seq":99,"leaf":true}\n')
-    obs = observe(repo, head, before, tele_before)
+    obs = observe(repo, head, before, tele_before, content_before=content_before)
     revert_telemetry(repo, tele_before, obs)  # before the gate, like the verifier revert
     f = render(SEQ_SCOPE_SRC, obs, "F7")
     with open(os.path.join(repo, ".sdd/telemetry.jsonl"), encoding="utf-8") as fh:
@@ -716,10 +835,10 @@ def scenario_f9(repo: str) -> tuple[bool, str, list[str]]:
     # Assertion 3: N == 0 — replay the F1 shape with and without a named base
     # equal to HEAD_prov; the two renderings must be byte-identical.
     git(wt, "checkout", "-q", "--", "docs/verification.md")
-    head0, before0 = _begin(wt)
+    head0, before0, content_before0 = _begin(wt)
     write(wt, "docs/plan.md", "# Plan\nleaf edit\n")
-    plain = render(SEQ_SCOPE_SRC, observe(wt, head0, before0), "F1")
-    named = render(SEQ_SCOPE_SRC, observe(wt, head0, before0, base=head0), "F1")
+    plain = render(SEQ_SCOPE_SRC, observe(wt, head0, before0, content_before=content_before0), "F1")
+    named = render(SEQ_SCOPE_SRC, observe(wt, head0, before0, base=head0, content_before=content_before0), "F1")
     ok3 = (
         plain.lines == named.lines
         and plain.token == "SCOPE: VIOLATION (1 path)"
@@ -793,6 +912,49 @@ def scenario_f8(repo: str) -> tuple[bool, str, list[str]]:
     return ok, token, rendered + [f"docs/spec/new.md {s}" for _, s in sections_new] + [f"src/a.py {s}" for _, s in sections_py]
 
 
+def scenario_f10(repo: str) -> tuple[bool, str, list[str]]:
+    """Already-dirty path re-touched by the leaf (content-hash observation).
+
+    ``harness-write-scope.md`` §Content-Hash Observation: ``docs/plan.md`` is
+    already dirty *before* the dispatch, so its porcelain line is byte-identical
+    in both snapshots and the §3 cancel rule drops it; the write is uncommitted,
+    so the committed delta is empty too. Both halves of the fixture:
+
+      1. the leaf writes the already-dirty path again -> its content hash
+         differs, the path is observed and tagged OUT against a src-only scope
+         -> ``SCOPE: VIOLATION (1 path)``;
+      2. the same fixture with the leaf leaving that path untouched (it writes
+         an in-scope path instead) -> no content delta, no false positive
+         -> ``SCOPE: CLEAN``.
+    """
+    # Half 1 — dirty before the dispatch, re-touched during it.
+    write(repo, "docs/plan.md", "# Plan\ndirty before the dispatch\n")
+    head, before, content_before = _begin(repo)
+    write(repo, "docs/plan.md", "# Plan\ndirty before the dispatch\nleaf re-touch\n")
+    porcelain_cancels = snapshot(repo) == before  # the porcelain delta is empty
+    f_dirty = render(SEQ_SCOPE_SRC, observe(repo, head, before, content_before=content_before), "F10")
+    ok1 = (
+        porcelain_cancels
+        and f_dirty.token == "SCOPE: VIOLATION (1 path)"
+        and f_dirty.out_paths == ["docs/plan.md"]
+        and any("OUT" in ln and "docs/plan.md" in ln for ln in f_dirty.lines)
+    )
+
+    # Half 2 — same fixture, the leaf leaves the already-dirty path untouched.
+    head2, before2, content_before2 = _begin(repo)
+    write(repo, "src/recon/engine.py", "def run():\n    return 2\n")
+    f_clean = render(SEQ_SCOPE_SRC, observe(repo, head2, before2, content_before=content_before2), "F10")
+    ok2 = (
+        f_clean.token == "SCOPE: CLEAN"
+        and not any("docs/plan.md" in ln for ln in f_clean.lines)
+        and any("IN" in ln and "src/recon/engine.py" in ln for ln in f_clean.lines)
+    )
+
+    ok = ok1 and ok2
+    token = f"{f_dirty.token} + {f_clean.token}"
+    return ok, token, f_dirty.lines + f_clean.lines
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -803,6 +965,7 @@ SCENARIOS = [
     ("F7", "leaf appends to .sdd/telemetry.jsonl (third observation, reverted)", scenario_f7),
     ("F8", "section resolution: hunks L40-58 under ## A, L120 under ## C", scenario_f8),
     ("F9", "catch-up base: worktree one commit behind, leaf fast-forwards", scenario_f9),
+    ("F10", "already-dirty path re-touched by the leaf (content-hash observation)", scenario_f10),
 ]
 
 
