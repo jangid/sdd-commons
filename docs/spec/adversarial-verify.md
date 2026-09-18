@@ -86,8 +86,31 @@ Write scope: (empty — read-only)
 Commit ownership: you never commit
 Rules: pick the weakest criteria; construct inputs/commands that violate them; a break counts ONLY
        with a reproducible `reproduce:` command or test id — otherwise report it as HELD with your
-       suspicion under `observed:`. Return in the shape below; end with RED_VERDICT: on its own last line.
+       suspicion under `observed:`.
+Return, in this order — one `## Red team — <spec.md>` heading per spec examined, one Rn line per
+attempted criterion, then this RETURN: block (every key present, empties allowed, `status` first),
+then the token on its own last line:
+
+## Red team — <spec.md> acceptance criteria
+- R1: <criterion text> — attack: <what was tried> — observed: <one line> — reproduce: `<command or test id>` — BROKEN | HELD
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED
+  budget_consumed: {tool_calls: N, test_runs: N}
+  files_written: []                    # must be empty — read-only dispatch
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {}
+  failures:                            # exactly one entry per BROKEN line; [] when none
+    - {test: "<reproduce command or test id>", kind: assertion|error|lint|type|build, message: "<one line>", location: <path:line>}
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
+RED_VERDICT: BROKEN | HELD
 ```
+
+[Amended 2026-09-18: template body synchronised with references/dispatch-templates.md per the spec's own byte-consistency clause]
 
 Input contract (checked by the orchestrator's pre-dispatch self-check):
 

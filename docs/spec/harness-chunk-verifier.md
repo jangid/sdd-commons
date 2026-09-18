@@ -80,10 +80,26 @@ run Check 2 or Check 4; do not invoke sdd-review or sdd-implement; do not fix
 anything.
 
 Return: findings in the chunk-close report shape (Check 1, Check 3, Gates),
-then the RETURN: block, whose last line is
+then this RETURN: block — every key present (empties allowed), `status` first,
+`CHUNK_VERDICT:` on its own line, last:
+
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED
+  budget_consumed: {tool_calls: N, test_runs: N}
+  files_written: []                    # must be empty — read-only dispatch
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {chunk: N, check1: pass|fail, check2: deferred, check3: pass|advisory, check4: deferred, overrides: []}
+  failures: []                         # one line each: test / kind / message / location
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
   CHUNK_VERDICT: PASS | FAIL
-on its own.
 ```
+
+[Amended 2026-09-18: template body synchronised with references/dispatch-templates.md per the spec's own byte-consistency clause]
 
 Slot contract: `{repo_root_or_worktree_path}` (sequential: repo root; fan-out:
 the leaf's worktree), `{plan_path}` + `{N}`, `{spec_paths}` (resolved by the
