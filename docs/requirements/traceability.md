@@ -261,6 +261,6 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-TELEM-HARNESSP2-007 | telemetry.md | harness-p2 | --self-test §7b; live grep -rln .sdd/ skills/ = exactly the three allowlisted files | tools/sdd-skill-lint.py FORBIDDEN `\.sdd/` row; references/drift-sweep.md reworded | pass |
 | REQ-TELEM-HARNESSP2-008 | telemetry.md | harness-p2 | git check-ignore -q .sdd/telemetry.jsonl exit 0; no docs/ws/*/telemetry*; git ls-files docs/ unchanged | .gitignore; references/telemetry.md §1 | pass |
 | REQ-TELEM-HARNESSP2-009 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test | tools/sdd-telemetry.py | pass |
-| REQ-TELEM-HARNESSP3-001 | telemetry.md | harness-p3 |  |  |  |
-| REQ-TELEM-HARNESSP3-002 | telemetry.md | harness-p3 |  |  |  |
+| REQ-TELEM-HARNESSP3-001 | telemetry.md | harness-p3 | Chunk 4 tasks 5-8 counter walkthroughs (happy increment, unwritable file, failure between successes, mid-cycle opt-out) — inline; no executable fixture (gate text) | `skills/sdd-orchestrate/references/telemetry.md` §3 (four-member family, `telemetry.rec`, walkthrough table) |  |
+| REQ-TELEM-HARNESSP3-002 | telemetry.md | harness-p3 | `tools/sdd-telemetry.py --self-test` (gapless six-record fixture + `seq`-gap fixture); Chunk 4 task 4 synthetic-gap run | `tools/sdd-telemetry.py` (`session_rows`, `summarize` `records-vs-expected:` line), `skills/sdd-orchestrate/references/telemetry.md` §7 |  |
 | REQ-WS-HARNESSP3-001 | ws-traceability.md, harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F12 | `skills/sdd-orchestrate/references/write-scope.md` §2, §7, §9, `skills/sdd-orchestrate/SKILL.md` §The gate, `skills/sdd-orchestrate/references/fan-out.md` §3e, `skills/sdd-{requirements,specs,implement,verify}/SKILL.md` |  |
