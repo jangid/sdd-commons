@@ -224,10 +224,10 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-HARN-HARNESSP2-001 | dispatch-snapshot-base.md | harness-p2 | tools/sdd-scope-check-selftest.py F9 (3 assertions); replays test_catch_up_by_merge / test_ancestry_still_enforced / test_provision_at_branch_tip | write-scope.md §3 snapshot base rule + named-base observation, §5 (c); selftest observe()/render() | pass |
 | REQ-HARN-HARNESSP2-002 | dispatch-snapshot-base.md | harness-p2 | write-scope.md §6 grep (i)–(iv) + expected; staged-write walkthrough = plain IN, blocked_writes [] | write-scope.md §6 scratchpad staging path | pass |
 | REQ-HARN-HARNESSP3-001 | harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F10 | `tools/sdd-scope-check-selftest.py` (`observe`, `content_hashes`, `ambiguous_set`, `snapshot`), `skills/sdd-orchestrate/references/write-scope.md` §3, §5 |  |
-| REQ-HARN-HARNESSP3-002 | harness-return-contract.md, harness-chunk-verifier.md, adversarial-verify.md | harness-p3 |  |  |  |
-| REQ-HARN-HARNESSP3-003 | harness-return-contract.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-002 | harness-return-contract.md, harness-chunk-verifier.md, adversarial-verify.md | harness-p3 | Chunk 2 task 4 template-conformance walkthrough (inline; no executable fixture — skill text) | `skills/sdd-orchestrate/references/dispatch-templates.md` §CHUNK VERIFIER, §RED TEAM, §REVIEW (fenced bodies) |  |
+| REQ-HARN-HARNESSP3-003 | harness-return-contract.md | harness-p3 | Chunk 2 task 8 replay: prose `budget_consumed` fixtures pause; missing-only-`ledger` fixture warns | `skills/sdd-orchestrate/references/return-contract.md` §1 Parsing and malformed returns |  |
 | REQ-HARN-HARNESSP3-004 | harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F11 | `skills/sdd-orchestrate/references/write-scope.md` §2 (specs row) |  |
-| REQ-HARN-HARNESSP3-005 | harness-return-contract.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-005 | harness-return-contract.md | harness-p3 | Chunk 2 task 6 contract read (no executable fixture — packet-shape rule) | `skills/sdd-orchestrate/references/return-contract.md` §3 (Rules, out-of-fix-scope bullet) |  |
 | REQ-LINT-HARNESSP2-001 | adversarial-verify.md, arbitrated-handoff.md | harness-p2 | tools/sdd-skill-lint.py --self-test §7 (32-row mutation loop + d2 lookbehind asserts); live mutation of REVIEW: CONTRADICTION → exit 1 with row fix | tools/sdd-skill-lint.py REQUIRED rows a1/a2/b/c + d2 pattern | pass |
 | REQ-LINT-HARNESSP2-002 | telemetry.md | harness-p2 | tools/sdd-skill-lint.py --self-test §7b (fenced .sdd/ fixture fails; allowlisted paths pass) | tools/sdd-skill-lint.py FORBIDDEN `\.sdd/` row (allow_files) | pass |
 | REQ-REDB-HARNESSP2-001 | adversarial-verify.md | harness-p2 | lint exit 0; fixture walkthrough test_opt_in_default_off / test_one_red_per_verify_return | sdd-orchestrate/SKILL.md §The gate (Red team); dispatch-templates.md §RED TEAM | pass |
@@ -239,7 +239,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-REDB-HARNESSP2-007 | adversarial-verify.md | harness-p2 | fixture walkthrough test_gate_blocks_proceed_until_resolved | SKILL.md §The gate (signal 3b, Red team); loop-control.md §2a Red round | pass |
 | REQ-REDB-HARNESSP2-008 | adversarial-verify.md | harness-p2 | Step 6 block md5 minus Next Steps == c38922d; pending-red grep in sdd-verify/sdd-replan/sdd-orchestrate | sdd-verify/SKILL.md Step 6 pending-red table; sdd-replan Phase Detection; SKILL.md position table; dispatch-templates.md {verify_red_only} | pass |
 | REQ-REDB-HARNESSP2-009 | adversarial-verify.md | harness-p2 | fixture walkthrough test_red_break_packet | return-contract.md §3 RED_BREAK, §5; loop-control.md §2a Red round | pass |
-| REQ-REDB-HARNESSP3-001 | harness-return-contract.md, adversarial-verify.md | harness-p3 |  |  |  |
+| REQ-REDB-HARNESSP3-001 | harness-return-contract.md, adversarial-verify.md | harness-p3 | Chunk 2 task 8 replay: both observed red breaks narrow past `all`; negative control still routes `all` | `skills/sdd-orchestrate/references/return-contract.md` §5 (step 1'), §3 (`RED_BREAK` table row) |  |
 | REQ-REDB-HARNESSP3-002 | adversarial-verify.md | harness-p3 |  |  |  |
 | REQ-REDB-HARNESSP3-003 | adversarial-verify.md, ws-traceability.md | harness-p3 |  |  |  |
 | REQ-REDB-HARNESSP3-004 | adversarial-verify.md, harness-write-scope.md, milestone-plans.md | harness-p3 |  |  |  |
