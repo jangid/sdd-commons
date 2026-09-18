@@ -205,7 +205,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-ARB-HARNESSP2-006 | arbitrated-handoff.md | harness-p2 | pause fixture byte-identical to spec; consumes no iteration; stage-gate only, iteration ≥ 2 | loop-control.md §2a REVIEW: CONTRADICTION pause, §6 | pass |
 | REQ-ARB-HARNESSP2-007 | arbitrated-handoff.md | harness-p2 | by-hand fixture test_third_opinion_two_of_three | loop-control.md §2a Third opinion | pass |
 | REQ-ARB-HARNESSP2-008 | arbitrated-handoff.md | harness-p2 | git diff c38922d -- sdd-review/SKILL.md: one line (Material template) | sdd-review/SKILL.md §Step 5 Material line | pass |
-| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p3 |  |  |  |
+| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p3 | loop-control.md §2a replay fixture (REQ-ARB-HARNESSP3-001) | skills/sdd-orchestrate/references/loop-control.md §2a, §6 |  |
 | REQ-CYCID-HARNESSP3-001 | cycle-identity.md | harness-p3 |  |  |  |
 | REQ-CYCID-HARNESSP3-002 | cycle-identity.md | harness-p3 |  |  |  |
 | REQ-EVAL-HARNESSP2-001 | evaluation.md | harness-p2 | Chunk 7 task 4 guards: grep -rn decision_by skills/ = references/telemetry.md only; never-auto-advance sentence at sdd-orchestrate/SKILL.md §The gate + §Rules; REQ-ORCH-011 text unamended; no decision_by: policy record | docs/spec/evaluation.md §Evaluation Mode — Defined, Not Built (definition only; no skill implements the policy) | pass |
