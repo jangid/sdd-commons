@@ -205,9 +205,9 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-ARB-HARNESSP2-006 | arbitrated-handoff.md | harness-p2 | pause fixture byte-identical to spec; consumes no iteration; stage-gate only, iteration ≥ 2 | loop-control.md §2a REVIEW: CONTRADICTION pause, §6 | pass |
 | REQ-ARB-HARNESSP2-007 | arbitrated-handoff.md | harness-p2 | by-hand fixture test_third_opinion_two_of_three | loop-control.md §2a Third opinion | pass |
 | REQ-ARB-HARNESSP2-008 | arbitrated-handoff.md | harness-p2 | git diff c38922d -- sdd-review/SKILL.md: one line (Material template) | sdd-review/SKILL.md §Step 5 Material line | pass |
-| REQ-ARB-HARNESSP3-001 |  | harness-p3 |  |  |  |
-| REQ-CYCID-HARNESSP3-001 |  | harness-p3 |  |  |  |
-| REQ-CYCID-HARNESSP3-002 |  | harness-p3 |  |  |  |
+| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p3 |  |  |  |
+| REQ-CYCID-HARNESSP3-001 | cycle-identity.md | harness-p3 |  |  |  |
+| REQ-CYCID-HARNESSP3-002 | cycle-identity.md | harness-p3 |  |  |  |
 | REQ-EVAL-HARNESSP2-001 | evaluation.md | harness-p2 | Chunk 7 task 4 guards: grep -rn decision_by skills/ = references/telemetry.md only; never-auto-advance sentence at sdd-orchestrate/SKILL.md §The gate + §Rules; REQ-ORCH-011 text unamended; no decision_by: policy record | docs/spec/evaluation.md §Evaluation Mode — Defined, Not Built (definition only; no skill implements the policy) | pass |
 | REQ-EVAL-HARNESSP2-002 | evaluation.md | harness-p2 | python3 tools/sdd-eval.py --self-test (six-record fixture yields fields 1–9 + aggregate; empty/missing file → N = 0); --help; derivation table = 9 rows | tools/sdd-eval.py (load, score_run, aggregate, evaluate, render); skills/sdd-orchestrate/references/telemetry.md §6 | pass |
 | REQ-EVAL-HARNESSP2-003 | evaluation.md | harness-p2 | deferred to §Next Steps — `- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy` (operator-run; not executable by a dispatched leaf) | docs/spec/evaluation.md §Manual N = 3 Pilot (verify task Chunk 7 task 5, deferred) | pass |
@@ -219,15 +219,15 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-GC-HARNESSP2-005 | drift-sweep.md | harness-p2 | entry-line replay on a one-dead-link fixture copy → GC: 1 fail, 0 warn, picker opens; no scheduler cadence in SKILL.md; lint exit 0 | SKILL.md §Phase Detection entry stub, §Transition; references/drift-sweep.md §1, §4 | pass |
 | REQ-GC-HARNESSP2-006 | drift-sweep.md | harness-p2 | test_record_routing replay on fixture verification.md (2 gc lines under ## Next Steps, plan.md byte-identical, git ls-files docs/ unchanged); --fix stale-chain exit 2 | references/drift-sweep.md §2 routing table, §3 record format; SKILL.md §Transition | pass |
 | REQ-GC-HARNESSP2-007 | drift-sweep.md | harness-p2 | tools/sdd-gc.py --self-test §8 (four fixes idempotent, dates untouched, other-ws bytes unchanged); live --fix all four → no changes | tools/sdd-gc.py (FIXABLE, Gc.fix, fix_xlink_dead, fix_index_requirements, fix_traceability_aggregate, fix_plan_history_name) | pass |
-| REQ-GC-HARNESSP3-001 |  | harness-p3 |  |  |  |
+| REQ-GC-HARNESSP3-001 | drift-sweep.md | harness-p3 |  |  |  |
 | REQ-HARN-027 | telemetry.md | harness-p2 | git check-ignore exit 0 + git ls-files docs/ unchanged (amendment row; Verified inherits legacy pass) | .gitignore + SKILL.md §LOOP stub | pass |
 | REQ-HARN-HARNESSP2-001 | dispatch-snapshot-base.md | harness-p2 | tools/sdd-scope-check-selftest.py F9 (3 assertions); replays test_catch_up_by_merge / test_ancestry_still_enforced / test_provision_at_branch_tip | write-scope.md §3 snapshot base rule + named-base observation, §5 (c); selftest observe()/render() | pass |
 | REQ-HARN-HARNESSP2-002 | dispatch-snapshot-base.md | harness-p2 | write-scope.md §6 grep (i)–(iv) + expected; staged-write walkthrough = plain IN, blocked_writes [] | write-scope.md §6 scratchpad staging path | pass |
-| REQ-HARN-HARNESSP3-001 |  | harness-p3 |  |  |  |
-| REQ-HARN-HARNESSP3-002 |  | harness-p3 |  |  |  |
-| REQ-HARN-HARNESSP3-003 |  | harness-p3 |  |  |  |
-| REQ-HARN-HARNESSP3-004 |  | harness-p3 |  |  |  |
-| REQ-HARN-HARNESSP3-005 |  | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-001 | harness-write-scope.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-002 | harness-return-contract.md, harness-chunk-verifier.md, adversarial-verify.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-003 | harness-return-contract.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-004 | harness-write-scope.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-005 | harness-return-contract.md | harness-p3 |  |  |  |
 | REQ-LINT-HARNESSP2-001 | adversarial-verify.md, arbitrated-handoff.md | harness-p2 | tools/sdd-skill-lint.py --self-test §7 (32-row mutation loop + d2 lookbehind asserts); live mutation of REVIEW: CONTRADICTION → exit 1 with row fix | tools/sdd-skill-lint.py REQUIRED rows a1/a2/b/c + d2 pattern | pass |
 | REQ-LINT-HARNESSP2-002 | telemetry.md | harness-p2 | tools/sdd-skill-lint.py --self-test §7b (fenced .sdd/ fixture fails; allowlisted paths pass) | tools/sdd-skill-lint.py FORBIDDEN `\.sdd/` row (allow_files) | pass |
 | REQ-REDB-HARNESSP2-001 | adversarial-verify.md | harness-p2 | lint exit 0; fixture walkthrough test_opt_in_default_off / test_one_red_per_verify_return | sdd-orchestrate/SKILL.md §The gate (Red team); dispatch-templates.md §RED TEAM | pass |
@@ -239,10 +239,10 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-REDB-HARNESSP2-007 | adversarial-verify.md | harness-p2 | fixture walkthrough test_gate_blocks_proceed_until_resolved | SKILL.md §The gate (signal 3b, Red team); loop-control.md §2a Red round | pass |
 | REQ-REDB-HARNESSP2-008 | adversarial-verify.md | harness-p2 | Step 6 block md5 minus Next Steps == c38922d; pending-red grep in sdd-verify/sdd-replan/sdd-orchestrate | sdd-verify/SKILL.md Step 6 pending-red table; sdd-replan Phase Detection; SKILL.md position table; dispatch-templates.md {verify_red_only} | pass |
 | REQ-REDB-HARNESSP2-009 | adversarial-verify.md | harness-p2 | fixture walkthrough test_red_break_packet | return-contract.md §3 RED_BREAK, §5; loop-control.md §2a Red round | pass |
-| REQ-REDB-HARNESSP3-001 |  | harness-p3 |  |  |  |
-| REQ-REDB-HARNESSP3-002 |  | harness-p3 |  |  |  |
-| REQ-REDB-HARNESSP3-003 |  | harness-p3 |  |  |  |
-| REQ-REDB-HARNESSP3-004 |  | harness-p3 |  |  |  |
+| REQ-REDB-HARNESSP3-001 | harness-return-contract.md, adversarial-verify.md | harness-p3 |  |  |  |
+| REQ-REDB-HARNESSP3-002 | adversarial-verify.md | harness-p3 |  |  |  |
+| REQ-REDB-HARNESSP3-003 | adversarial-verify.md, ws-traceability.md | harness-p3 |  |  |  |
+| REQ-REDB-HARNESSP3-004 | adversarial-verify.md, harness-write-scope.md, milestone-plans.md | harness-p3 |  |  |  |
 | REQ-SKILL-HARNESSP2-001 | telemetry.md | harness-p2 | lint exit 0 (stub link); §LOOP stub = 10 lines; .sdd/ only in SKILL.md/telemetry.md/write-scope.md; integration half: lint exit 0 on integrated tree, SKILL.md 469 lines | SKILL.md §LOOP stub; references/telemetry.md; integration half: SKILL.md single signal order / pause family / stubs once | pass |
 | REQ-SKILL-HARNESSP2-002 | adversarial-verify.md | harness-p2 | lint exit 0; --self-test exit 0; integration half: lint exit 0 on integrated tree, SKILL.md 469 lines | SKILL.md; dispatch-templates.md; return-contract.md; loop-control.md; sdd-replan/SKILL.md; integration half: SKILL.md single signal order / pause family / stubs once | pass |
 | REQ-SKILL-HARNESSP2-003 | arbitrated-handoff.md | harness-p2 | lint exit 0; grep REVIEW: CONTRADICTION in loop-control.md = 5; integration half: lint exit 0 on integrated tree, SKILL.md 469 lines | SKILL.md §The gate pointer; loop-control.md §2a, §6; integration half: SKILL.md single signal order / pause family / stubs once | pass |
@@ -251,7 +251,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-SKILL-HARNESSP2-006 | arbitrated-handoff.md | harness-p2 | grep -E M1:.*affects sdd-review/SKILL.md; one-line diff | sdd-review/SKILL.md Material line | pass |
 | REQ-SKILL-HARNESSP2-007 | dispatch-snapshot-base.md | harness-p2 | lint exit 0 (warn set sdd-orchestrate, sdd-migrate; 20 files); --self-test §7; wc -l SKILL.md = 400; diff vs c38922d clean outside moved regions | sdd-implement/SKILL.md stubs; references/stuck-detection.md; references/leaf-return.md; Q-IMPL-083/-084 resolved notes | pass |
 | REQ-SKILL-HARNESSP2-008 | telemetry.md | harness-p2 | python3 tools/sdd-skill-lint.py exit 0; Chunk 7 task 9 token sweep; four-layer bullet byte-identical to c38922d; every USAGE.md .sdd/ mention carries the gitignored/orchestrator-only/never-read phrase | CLAUDE.md §Driver «Cycle signals (v5 part 2)» paragraph; skills/sdd-orchestrate/USAGE.md §3 exchange, §7b, §7c, §9 | pass |
-| REQ-SKILL-HARNESSP3-001 |  | harness-p3 |  |  |  |
+| REQ-SKILL-HARNESSP3-001 | skill-updates.md | harness-p3 |  |  |  |
 | REQ-TELEM-HARNESSP2-001 | telemetry.md | harness-p2 | verify walkthrough test_record_key_set_matches_schema | references/telemetry.md §2 | pass |
 | REQ-TELEM-HARNESSP2-002 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test (budget grammar) | references/telemetry.md §2; tools/sdd-telemetry.py parse_budget_line | pass |
 | REQ-TELEM-HARNESSP2-003 | telemetry.md | harness-p2 | no resume-class key in example record; zero .sdd/ hits in §Phase Detection blocks | references/telemetry.md §2 forbidden keys, §5 | pass |
@@ -261,6 +261,6 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-TELEM-HARNESSP2-007 | telemetry.md | harness-p2 | --self-test §7b; live grep -rln .sdd/ skills/ = exactly the three allowlisted files | tools/sdd-skill-lint.py FORBIDDEN `\.sdd/` row; references/drift-sweep.md reworded | pass |
 | REQ-TELEM-HARNESSP2-008 | telemetry.md | harness-p2 | git check-ignore -q .sdd/telemetry.jsonl exit 0; no docs/ws/*/telemetry*; git ls-files docs/ unchanged | .gitignore; references/telemetry.md §1 | pass |
 | REQ-TELEM-HARNESSP2-009 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test | tools/sdd-telemetry.py | pass |
-| REQ-TELEM-HARNESSP3-001 |  | harness-p3 |  |  |  |
-| REQ-TELEM-HARNESSP3-002 |  | harness-p3 |  |  |  |
-| REQ-WS-HARNESSP3-001 |  | harness-p3 |  |  |  |
+| REQ-TELEM-HARNESSP3-001 | telemetry.md | harness-p3 |  |  |  |
+| REQ-TELEM-HARNESSP3-002 | telemetry.md | harness-p3 |  |  |  |
+| REQ-WS-HARNESSP3-001 | ws-traceability.md, harness-write-scope.md | harness-p3 |  |  |  |
