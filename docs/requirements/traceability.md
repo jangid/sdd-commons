@@ -223,7 +223,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-HARN-027 | telemetry.md | harness-p2 | git check-ignore exit 0 + git ls-files docs/ unchanged (amendment row; Verified inherits legacy pass) | .gitignore + SKILL.md §LOOP stub | pass |
 | REQ-HARN-HARNESSP2-001 | dispatch-snapshot-base.md | harness-p2 | tools/sdd-scope-check-selftest.py F9 (3 assertions); replays test_catch_up_by_merge / test_ancestry_still_enforced / test_provision_at_branch_tip | write-scope.md §3 snapshot base rule + named-base observation, §5 (c); selftest observe()/render() | pass |
 | REQ-HARN-HARNESSP2-002 | dispatch-snapshot-base.md | harness-p2 | write-scope.md §6 grep (i)–(iv) + expected; staged-write walkthrough = plain IN, blocked_writes [] | write-scope.md §6 scratchpad staging path | pass |
-| REQ-HARN-HARNESSP3-001 | harness-write-scope.md | harness-p3 |  |  |  |
+| REQ-HARN-HARNESSP3-001 | harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F10 | `tools/sdd-scope-check-selftest.py` (`observe`, `content_hashes`, `ambiguous_set`, `snapshot`), `skills/sdd-orchestrate/references/write-scope.md` §3, §5 |  |
 | REQ-HARN-HARNESSP3-002 | harness-return-contract.md, harness-chunk-verifier.md, adversarial-verify.md | harness-p3 |  |  |  |
 | REQ-HARN-HARNESSP3-003 | harness-return-contract.md | harness-p3 |  |  |  |
 | REQ-HARN-HARNESSP3-004 | harness-write-scope.md | harness-p3 |  |  |  |
