@@ -318,4 +318,7 @@ tool calls mean/max/budget with an `n/a` column; SCOPE violations; MALFORMED;
 fix iterations; redos per chunk; contradiction pauses; red BROKEN/HELD; wall
 time dispatch and gate mean/max), then a per-chunk block (RS-008 probe 1 as a
 query). Unknown-`v` and non-JSON lines are skipped and counted on a trailing
-`skipped: N …` line. `--help` and `--self-test` are available.
+`skipped: N …` line. A missing or empty telemetry file is an empty run set:
+`summarize` prints `records: 0` and an empty table and exits 0 (the same
+`n_before := 0 if absent` rule the writer and `sdd-eval.py` follow), never an
+error. `--help` and `--self-test` are available.

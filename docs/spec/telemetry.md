@@ -553,6 +553,7 @@ derived this way, the schema — not the scorer — is defective.
 **Decision**: the shipped renderer pluralises (`1 path`, `2 paths`) as `write-scope.md` §5 and scenarios F1/F2/F6 already do; F7 asserts `SCOPE: VIOLATION (1 path)`. The `OUT .sdd/telemetry.jsonl (+1 records, leaf write — reverted)` string is byte-exact. The spec's `(N paths)` is read as a template.
 **Rationale**: consistency with the v5 renderer; no contract value depends on the plural form.
 **Date**: 2026-09-17 (Chunk 0)
+
 ### Q-IMPL-HARNESSP2-070: `skill_files()` lints USAGE.md, so it is allowlisted for the `\.sdd/` row
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Lint Guard ("USAGE.md is outside `skill_files()`")

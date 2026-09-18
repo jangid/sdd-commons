@@ -19,12 +19,14 @@ Usage:
 Records with an unknown ``v`` and lines that are not JSON are skipped and
 counted on a trailing ``skipped: N unknown-schema record(s)`` line.
 
-Exit codes: 0 = ok, 1 = self-test failure, 2 = usage error / unreadable file.
+Exit codes: 0 = ok (a missing/empty file is an empty run set), 1 = self-test failure, 2 = usage error.
 """
 
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -85,9 +87,16 @@ def parse_budget_line(text: str) -> dict:
 
 
 def load(path: str) -> tuple[list[dict], int]:
-    """Return ``(records, skipped)``: parsed ``v == 1`` objects and the skipped count."""
+    """Return ``(records, skipped)``: parsed ``v == 1`` objects and the skipped count.
+
+    A missing file is an empty run set (``([], 0)``) — the same
+    ``n_before := 0 if absent`` rule the writer follows — so ``summarize``
+    never errors on a repo that has not run a cycle yet.
+    """
     records: list[dict] = []
     skipped = 0
+    if not os.path.isfile(path):
+        return records, skipped
     with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             line = line.strip()
@@ -269,7 +278,10 @@ def summarize(records: list[dict], skipped: int) -> str:
     for r in records:
         by_ws[str(_get(r, "cycle", "workstream", default="?"))].append(r)
     if not by_ws:
-        lines.append("no records")
+        # Missing/empty file or a filter that matches nothing: an empty table, not an error.
+        lines.append("records: 0")
+        lines += _table([], STAGE_COLUMNS)
+        lines.append("")
     for ws in sorted(by_ws):
         recs = by_ws[ws]
         runs = sorted({str(_get(r, "cycle", "research_id")) for r in recs})
@@ -395,10 +407,21 @@ def self_test() -> int:
         check(len(filter_records(records, "nope", None)) == 0, "workstream filter")
         check(len(filter_records(records, None, "2026-09-18T00:00:00Z")) == 0, "since filter")
 
+        # Missing file → empty run set: ([], 0), ``records: 0`` + empty table, exit 0.
+        absent = os.path.join(tmp, "absent.jsonl")
+        check(load(absent) == ([], 0), "missing file → ([], 0)")
+        empty_report = summarize([], 0)
+        check("records: 0" in empty_report, "missing file → records: 0")
+        check(all(h in empty_report for _, h in STAGE_COLUMNS), "missing file → empty table header")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = main(["summarize", "--file", absent])
+        check(rc == 0 and "records: 0" in buf.getvalue(), f"summarize on missing file → exit {rc}")
+
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
-    print("SELF-TEST OK: budget grammar, six-record fixture (one row per stage, per-chunk block, skipped: 2)")
+    print("SELF-TEST OK: budget grammar, six-record fixture (one row per stage, per-chunk block, skipped: 2), missing file → records: 0")
     return 0
 
 
@@ -426,9 +449,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command != "summarize":
         ap.print_help()
         return 2
-    if not os.path.isfile(args.file):
-        print(f"error: {args.file} not found (telemetry is written by sdd-orchestrate after each gate)", file=sys.stderr)
-        return 2
+    # A missing file is an empty run set: load() returns ([], 0) and summarize()
+    # prints an empty table with ``records: 0`` (exit 0), matching sdd-eval.py.
     records, skipped = load(args.file)
     try:
         records = filter_records(records, args.workstream, args.since)

@@ -1016,10 +1016,12 @@ pass with no acceptance criterion failed; plan `status: complete`; ready for
   §Next Steps by design (`evaluation.md` Open Question 2); the plan stays
   complete either way because the deferral line is the alternative
   deliverable, defined once in Chunk 2 task 4's `## Next Steps` section.
-- **Spec writes in the shared corpus.** The two `[resolved by …]` appends
-  (Chunk 1 task 4) are the only spec writes this cycle makes; they are
-  append-only per `deviation-protocol.md` and `ADVISORY` under the default
-  scope table — expected gate text, not a violation.
+- **Spec writes in the shared corpus.** This cycle's spec writes are the two
+  `[resolved by …]` appends (Chunk 1 task 4) plus the append-only Q-IMPL
+  entries the implement stage records under `## Implementation Questions`
+  (creating that section where a spec lacks one); all are append-only per
+  `deviation-protocol.md` and `ADVISORY` under the default scope table —
+  expected gate text, not a violation.
 
 ## Open Questions / Assumptions
 

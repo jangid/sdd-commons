@@ -368,6 +368,7 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 **Decision**: Bare REQ/RS mentions in prose are template examples and are not checked; `(see …)` `.md` targets resolve against the file dir, `docs/spec/`, `docs/`, then repo root; REQ ids count as defined from `### REQ-…` headings or first-column table rows under `docs/requirements/*/*.md`.
 **Rationale**: Keeps the sweep free of traceability-file reads and prose false positives.
 **Date**: 2026-09-18 (Chunk 4)
+
 ### Q-IMPL-HARNESSP2-060: `kickoff-fields` is gc's own sweep under marker 4
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Sweep Table row 5
@@ -384,8 +385,8 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 
 ### Q-IMPL-HARNESSP2-062: `trace-empty` scans per-workstream files only and never reads Verified
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §Sweep Table row 11; telemetry.md §XSPEC amendment-row rule
-**Decision**: Under marker 4 the aggregate is derived, so only `docs/ws/*/traceability.md` rows are scanned; amendment rows (Spec differs from the legacy row for the same id) are skipped entirely; the Verified column is sdd-verify Step 3b's and is never checked.
+**Spec reference**: §Sweep Table row 11
+**Decision**: Under marker 4 the aggregate is derived, so only `docs/ws/*/traceability.md` rows are scanned; amendment rows (Spec differs from the legacy row for the same id — see `telemetry.md` §XSPEC amendment-row rule) are skipped entirely; the Verified column is sdd-verify Step 3b's and is never checked.
 **Rationale**: Prevents double-reporting and respects the amendment-row rule.
 **Date**: 2026-09-18 (Chunk 5)
 
@@ -405,8 +406,8 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 
 ### Q-IMPL-HARNESSP2-065: Aggregate regeneration keeps the preamble verbatim
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §Sweep Table row 12; ws-traceability.md §Aggregation Contract
-**Decision**: `regenerate_aggregate` rewrites only the header and rows; the aggregate's frontmatter (incl. `last_updated`) and prose are kept byte-for-byte; 5-column legacy rows gain a blank Workstream cell.
+**Spec reference**: §Sweep Table row 12
+**Decision**: Per `ws-traceability.md` §Aggregation Contract, `regenerate_aggregate` rewrites only the header and rows; the aggregate's frontmatter (incl. `last_updated`) and prose are kept byte-for-byte; 5-column legacy rows gain a blank Workstream cell.
 **Rationale**: Consistent with REQ-GC-HARNESSP2-007 (never touches `last_updated`) and the row-level regeneration contract.
 **Date**: 2026-09-18 (Chunk 5)
 
