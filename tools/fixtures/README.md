@@ -11,6 +11,37 @@ the fixture, not by editing it.
 
 ---
 
+## `telemetry-harness-p4-2026-09-19.jsonl`
+
+**Provenance.** A byte-identical copy of `.sdd/telemetry.jsonl` as it stood at
+the close of the `harness-p4` cycle — `head -67` of the live file, cut
+2026-09-20 by the orchestrator during the `harness-p5` cycle (operator task O1;
+leaves never read `.sdd/`). 67 records: `harness-p3` migrated at lines 1–20,
+`harness-p4` at lines 21–67 (session 1 is 20 records at `v: 1`; session 2 is 27
+records at `v: 2`, starting `seq` 8). The last record is `seq` 34,
+`kind: review`, `stage: verify` — p4's final verify review, which is the DONE
+boundary. `harness-p5` begins at line 68 of the live file and is excluded.
+
+    sha256  ff5cf2864abc74c2c05449b86e5117f5c4ed8851b6b5f96617859b8b061ef370
+
+**Correction (2026-09-20).** The `harness-p5` plan and
+`docs/requirements/functional/telemetry.md` originally specified this cut as
+**61 lines** with the composition "p4 session 1 seq 1–13, p4 session 2 seq
+1–28". Both were wrong; the measured boundary is 67. The correction is
+consequence-free: `python3 tools/sdd-telemetry.py --lint` produces
+byte-identical output on a 61-line and a 67-line cut — 65 findings, 4 warnings,
+the same three `[cross-field]` records at `seq` 21, 24 and 27 — so no acceptance
+number moved. The six extra records (`seq` 29–34: p4's verify stage, two red
+rounds, two reviews) add no lint finding, and the 67-line cut is the more
+faithful one because the 61-line cut silently truncated the verify stage.
+
+**Why it is here.** It is the evidence behind the six telemetry writer/reader
+findings in scope for `harness-p5` (see
+`docs/requirements/functional/telemetry.md` REQ-TELEM-HARNESSP5-001…008).
+Findings 1, 2, 3 and 5 are reproduced on it; 4 and 6 are synthetic self-test
+cases. It is a **snapshot**: the live file keeps growing, this one does not, and
+it is never edited to satisfy a code change.
+
 ## `telemetry-harness-p3-2026-09-18.jsonl`
 
 **Provenance.** A byte-identical copy of `.sdd/telemetry.jsonl` as it stood at
