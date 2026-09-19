@@ -400,7 +400,7 @@ runs against the live file.
 **Delivers**: REQ-TELEM-HARNESSP4-005 (code half; the run is
 [§Operator Tasks](#operator-tasks) O2).
 **Tasks**:
-1. [ ] [implement] `tools/sdd-telemetry.py migrate --file <path> [--out
+1. [x] [implement] `tools/sdd-telemetry.py migrate --file <path> [--out
    <path>]`: rewrite every `dispatch.chunk` header string `"Chunk N"` to int
    `N` and add `"migration": {"from": "chunk-string", "at": "<date>"}` to each
    rewritten record; in place = sibling temp file → line-count check → rename;
@@ -410,12 +410,12 @@ runs against the live file.
    by the domain table as OPTIONAL — traces to `telemetry.md` §In-Place
    Migration of the 8 p3 Records, Stamped Partial (REQ-TELEM-HARNESSP4-005).
    Files: `tools/sdd-telemetry.py`
-2. [ ] [implement] `summarize` per-chunk block: for any chunk whose records carry
+2. [x] [implement] `summarize` per-chunk block: for any chunk whose records carry
    the marker render the `partial — migrated from "Chunk N"; verifier, fix and
    redo records were never written and cannot be reconstructed` stamp —
    traces to `telemetry.md` §In-Place Migration, "Stamped-partial block shape"
    (REQ-TELEM-HARNESSP4-005). Files: `tools/sdd-telemetry.py`
-3. [ ] [implement] `--help` and `references/telemetry.md` §7: state the
+3. [x] [implement] `--help` and `references/telemetry.md` §7: state the
    operator-invoked-between-sessions rule (second exception to append-only;
    never a leaf, never during a session), the fixture guard and the ordering
    (after -001..-004 land and `--lint` reports the migrated records clean on
@@ -423,13 +423,13 @@ runs against the live file.
    `telemetry.md` §In-Place Migration; §Out-of-Loop Reader
    (REQ-TELEM-HARNESSP4-005). Files: `tools/sdd-telemetry.py`,
    `skills/sdd-orchestrate/references/telemetry.md`
-4. [ ] [implement] `--self-test`: `migrate --file <copy> --out <tmp>` yields a
+4. [x] [implement] `--self-test`: `migrate --file <copy> --out <tmp>` yields a
    file on which `summarize` renders `partial` for chunks 0–7 naming the
    unreconstructable kinds and on which `--lint` reports no `type` finding for
    `dispatch.chunk`; a second run changes nothing; `migrate --file <fixture>`
    exits 2, no write, sha unchanged — traces to `telemetry.md` §Fixture-Based
    Test Contract (REQ-TELEM-HARNESSP4-005). Files: `tools/sdd-telemetry.py`
-5. [ ] [verify] Confirm `grep -rn 'migrate' skills/sdd-orchestrate/references/dispatch-templates.md`
+5. [x] [verify] Confirm `grep -rn 'migrate' skills/sdd-orchestrate/references/dispatch-templates.md`
    is empty, `sha256sum tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
    equals the value in `tools/fixtures/README.md`, and `git diff --stat main --
    tools/fixtures/` is empty — traces to `telemetry.md` §Acceptance Criteria

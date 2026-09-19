@@ -1121,3 +1121,10 @@ a reset is the only observable session boundary. `expected` is then the highest
 record key is added and no side channel from the orchestrator is used
 (Q-IMPL-HARNESSP3-006).
 **Date**: 2026-09-18 (implement stage, Chunk 4)
+
+### Q-IMPL-HARNESSP4-006: the OPTIONAL `migration` marker is admitted by `--lint` on every `v`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §In-Place Migration of the 8 p3 Records, Stamped Partial — "admitted by the domain table as OPTIONAL, present only on migrated records"; §Schema Lint — the per-`v` key set is derived from the `[p4]` marks (Q-IMPL-HARNESSP4-002)
+**Decision**: `--lint` treats a key in `OPTIONAL_KEYS` (today only `migration`) as declared for **every** admitted `v` — never `key-undeclared`, never `key-missing` — while still validating its value against the row's declared `{from: chunk-string, at: date}` shape (a malformed marker is a `[type]` finding). The row keeps its `[p4]` mark in both renderings; the mark still drives the required key set for the non-optional rows exactly as Q-IMPL-HARNESSP4-002 fixes it.
+**Rationale**: the only records `migrate` ever rewrites are the p3 `v: 1` records (`seq` 6–13 of the frozen fixture); reading the `[p4]` mark strictly would make every migrated record a `key-undeclared` finding, so the migration could never leave the records lint-clean as §In-Place Migration ("Ordered") requires. `v` is not bumped by the migration because a `v: 2` record must carry the `commit` group and `scope.widened`, which were never observed for those dispatches and cannot be reconstructed — the same reason the block is stamped `partial`. The other fixture findings (`kind: gate` on `seq` 20, the sha and `git.commit_n` findings) are untouched by the migration and still exit 1.
+**Date**: 2026-09-19 (implement stage, Chunk 4)

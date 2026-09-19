@@ -16,6 +16,7 @@ never a phase-detection or staleness input.
 Usage:
   tools/sdd-telemetry.py summarize [--file .sdd/telemetry.jsonl] [--workstream ID] [--since ISO] [--plan docs/ws/<id>/plan.md]
   tools/sdd-telemetry.py --lint [--file .sdd/telemetry.jsonl]   # every field against the domain table; exit 1 on a finding
+  tools/sdd-telemetry.py migrate --file PATH [--out PATH]        # OPERATOR-RUN, between sessions: "Chunk N" chunk strings → int N
   tools/sdd-telemetry.py --self-test      # synthetic fixtures in a temp dir + the frozen p3 fixture (read-only)
   tools/sdd-telemetry.py --help
 
@@ -40,7 +41,22 @@ decision or a fix-only ``reason`` implies a ``fix`` record. An implied fix that
 exists as a record of another kind is *mis-typed* (a ``--lint`` finding once
 that subcommand lands), never a missing append.
 
-Exit codes: 0 = ok (a missing/empty file is an empty run set), 1 = self-test failure, 2 = usage error.
+``migrate`` (REQ-TELEM-HARNESSP4-005, ``docs/spec/telemetry.md`` §In-Place
+Migration) rewrites every ``dispatch.chunk`` header string ``"Chunk N"`` to the
+int ``N`` and stamps the record ``"migration": {"from": "chunk-string", "at":
+<date>}``; ``summarize`` then renders those chunks **partial**, naming the
+verifier / fix / redo records that were never written and cannot be
+reconstructed. It is the **second exception** to the writer's append-only rule
+(the first is the leaf-write revert): the operator runs it with **no
+orchestrator session open** — never a leaf, never during a session, never from
+a dispatch template — and only after ``--lint`` reports the records clean on
+their typed fields. Without ``--out`` it rewrites in place via a sibling temp
+file, a line-count check and a rename; it is idempotent; and any ``--file`` or
+``--out`` under ``tools/fixtures/`` is refused with exit 2 and no write (the
+frozen fixture is read-only evidence — ``tools/fixtures/README.md``).
+
+Exit codes: 0 = ok (a missing/empty file is an empty run set), 1 = self-test failure or a
+failed in-place rewrite (original left intact), 2 = usage error / fixture guard.
 """
 
 from __future__ import annotations
@@ -52,6 +68,7 @@ import io
 import json
 import os
 import re
+import shutil
 import statistics
 import sys
 import tempfile
@@ -176,6 +193,13 @@ NON_COMMITTING_KINDS = {"review", "verifier", "red"}
 SHA_RE = re.compile(r"^[0-9a-f]{7,12}$")
 _BACKTICK_RE = re.compile(r"`([^`]+)`")
 _P4_MARK = "`[p4]`"
+
+# `migrate` (telemetry.md §In-Place Migration, REQ-TELEM-HARNESSP4-005): the
+# marker's only `from` member, the header-string shape it rewrites, and the
+# read-only fixture directory the guard refuses to read from or write to.
+MIGRATION_FROM = "chunk-string"
+_CHUNK_STRING_RE = re.compile(r"^Chunk (\d+)$")
+FIXTURES_DIR = os.path.join(_HERE, "fixtures")
 
 
 def parse_domain(cell: str) -> tuple[str, object]:
@@ -562,6 +586,14 @@ def out_of_domain_chunks(records: list[dict]) -> int:
 PER_CHUNK_KINDS = ("pipeline", "fanout_leaf", "verifier", "fix")
 
 
+def partial_stamp(chunk: int) -> str:
+    """The `partial` stamp of a migrated chunk, verbatim from telemetry.md
+    §In-Place Migration "Stamped-partial block shape": the block cannot be read as
+    a full per-chunk history because the kinds it names were never appended."""
+    return (f'partial — migrated from "Chunk {chunk}"; verifier, fix and redo records '
+            "were never written and cannot be reconstructed")
+
+
 def chunk_rows(records: list[dict]) -> list[dict]:
     """Per-chunk block: implement + verifier + fix dispatches and the max redo per chunk."""
     by_chunk: dict[int, dict] = {}
@@ -570,7 +602,9 @@ def chunk_rows(records: list[dict]) -> list[dict]:
         if isinstance(ch, bool) or not isinstance(ch, int):
             continue  # null, or an out-of-domain value counted by out_of_domain_chunks()
         kind = _get(r, "dispatch", "kind")
-        row = by_chunk.setdefault(ch, {"chunk": ch, "implement": 0, "verifier": 0, "fix": 0, "other": 0, "redo": 0, "total": 0})
+        row = by_chunk.setdefault(ch, {"chunk": ch, "implement": 0, "verifier": 0, "fix": 0, "other": 0, "redo": 0, "total": 0, "note": ""})
+        if isinstance(r.get("migration"), dict):
+            row["note"] = partial_stamp(ch)  # any migrated record makes the whole chunk partial
         if kind in ("pipeline", "fanout_leaf"):
             row["implement"] += 1
         elif kind == "verifier":
@@ -595,7 +629,7 @@ STAGE_COLUMNS = [
 ]
 CHUNK_COLUMNS = [
     ("chunk", "chunk"), ("implement", "implement"), ("verifier", "verifier"), ("fix", "fix"),
-    ("other", "other"), ("total", "dispatches"), ("redo", "max redo"),
+    ("other", "other"), ("total", "dispatches"), ("redo", "max redo"), ("note", "note"),
 ]
 
 
@@ -975,7 +1009,9 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
                 for sub in val:
                     if (k, sub) not in declared:
                         add(seq, "key-undeclared", f"{k}.{sub}", f"not a declared key of a v: {v} record")
-            elif (None, k) not in declared:
+            elif (None, k) not in declared and (None, k) not in OPTIONAL_KEYS:
+                # an OPTIONAL key (the `migration` marker) is admitted on every v —
+                # it only ever appears on the migrated v: 1 records (Q-IMPL-HARNESSP4-006)
                 add(seq, "key-undeclared", k, f"not a declared key of a v: {v} record"
                     + (" (a schema constant, not a record key)" if k in schema_constants() else ""))
         for (g, k) in sorted(declared, key=str):
@@ -987,7 +1023,7 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
         # per-field domains
         for row in DOMAIN_TABLE:
             g, k = row["group"], row["key"]
-            if g == "const" or (g, k) not in declared:
+            if g == "const" or ((g, k) not in declared and (g, k) not in OPTIONAL_KEYS):
                 continue
             holder = rec if g is None else rec.get(g)
             if not isinstance(holder, dict) or k not in holder:
@@ -1074,6 +1110,93 @@ def plan_floor_line(floor: dict) -> str:
     return (f"implement floor: {floor['chunks']} pipeline ({2 * floor['chunks']} with verifier); "
             f"recorded implement records: {floor['recorded']}; shortfall: {floor['shortfall']}"
             + ("" if floor["verifier_on"] else "   (no chunk_verdict recorded — verifier off or unrecorded)"))
+
+
+# ---------------------------------------------------------------------------
+# migrate (telemetry.md §In-Place Migration of the 8 p3 Records, Stamped Partial,
+# REQ-TELEM-HARNESSP4-005). Operator-run between sessions; never invoked by a
+# skill, a leaf or a dispatch template.
+# ---------------------------------------------------------------------------
+
+
+def under_fixtures(path: str) -> bool:
+    """True when ``path`` resolves inside ``tools/fixtures/`` — the guard's test."""
+    root = os.path.realpath(FIXTURES_DIR)
+    p = os.path.realpath(os.path.abspath(path))
+    return p == root or p.startswith(root + os.sep)
+
+
+def migrate_line(line: str, at: str) -> tuple[str, bool]:
+    """Rewrite one JSONL line: ``(new_line, changed)``. Only a record whose
+    ``dispatch.chunk`` is a ``"Chunk N"`` header string **and** that carries no
+    ``migration`` marker yet is rewritten; every other line — an int chunk, an
+    already-migrated record, a non-JSON or blank line — is returned byte-identical
+    (idempotency)."""
+    body = line.rstrip("\r\n")
+    if not body.strip():
+        return line, False
+    try:
+        rec = json.loads(body)
+    except ValueError:
+        return line, False
+    if not isinstance(rec, dict) or "migration" in rec:
+        return line, False
+    ch = _get(rec, "dispatch", "chunk")
+    m = _CHUNK_STRING_RE.fullmatch(ch.strip()) if isinstance(ch, str) else None
+    if m is None:
+        return line, False
+    rec["dispatch"]["chunk"] = int(m.group(1))
+    rec["migration"] = {"from": MIGRATION_FROM, "at": at}
+    # keep the file's own separator style (compact vs spaced) so rewritten lines match their neighbours
+    seps = (", ", ": ") if '": ' in body else (",", ":")
+    return json.dumps(rec, ensure_ascii=False, separators=seps) + line[len(body):], True
+
+
+def migrate(path: str, out: str | None = None, at: str | None = None) -> tuple[int, str]:
+    """Run the migration: ``(exit code, message)``.
+
+    - fixture guard first: a ``path`` or ``out`` under ``tools/fixtures/`` → exit 2, no write;
+    - ``out`` given → write there, input untouched;
+    - in place → sibling temp file, line-count check, ``os.replace`` over the original
+      (a failed check leaves the original intact and exits 1); nothing to rewrite → no write.
+    """
+    for p in (path, out):
+        if p and under_fixtures(p):
+            return 2, f"refused: {p} is under tools/fixtures/ — read-only evidence, no write performed"
+    if not os.path.isfile(path):
+        return 2, f"error: --file not found: {path}"
+    at = at or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with open(path, encoding="utf-8") as fh:
+        lines = fh.read().splitlines(keepends=True)
+    new_lines: list[str] = []
+    n_changed = 0
+    for line in lines:
+        new, changed = migrate_line(line, at)
+        new_lines.append(new)
+        n_changed += changed
+    summary = f"migrated {n_changed} record(s) of {len(lines)} line(s)"
+    if out:
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.writelines(new_lines)
+        return 0, f"{summary} → {out} ({path} untouched)"
+    if n_changed == 0:
+        return 0, f"{summary} — {path} unchanged, nothing written"
+    directory = os.path.dirname(os.path.abspath(path))
+    fd, tmp_path = tempfile.mkstemp(prefix=os.path.basename(path) + ".", suffix=".migrate", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.writelines(new_lines)
+        with open(tmp_path, encoding="utf-8") as fh:
+            written = fh.read().splitlines(keepends=True)
+        if len(written) != len(lines):
+            os.unlink(tmp_path)
+            return 1, f"error: line count changed ({len(lines)} → {len(written)}); {path} left intact"
+        os.replace(tmp_path, path)
+    except OSError as exc:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        return 1, f"error: in-place rewrite failed ({exc}); {path} left intact"
+    return 0, f"{summary} — {path} rewritten in place (marker at: {at})"
 
 
 # ---------------------------------------------------------------------------
@@ -1490,6 +1613,69 @@ def self_test() -> int:
             for s in (3, 4, 5):
                 check(f"WARN seq {s}: [reason-review] dispatch.reason" in lout, f"fixture: [reason-review] on seq {s}")
             check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after lint")
+        # migrate (REQ-TELEM-HARNESSP4-005 — telemetry.md §In-Place Migration, §Fixture-Based
+        # Test Contract): the frozen fixture is copied to the temp dir first; the fixture
+        # itself is only ever the *refused* input of the guard test.
+        if os.path.exists(FIXTURE_PATH):
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 before migrate")
+            copy = os.path.join(tmp, "p3-copy.jsonl")
+            shutil.copyfile(FIXTURE_PATH, copy)
+            mig = os.path.join(tmp, "p3-migrated.jsonl")
+            obuf = io.StringIO()
+            with contextlib.redirect_stdout(obuf), contextlib.redirect_stderr(obuf):
+                mrc = main(["migrate", "--file", copy, "--out", mig])
+            check(mrc == 0 and "migrated 8 record(s)" in obuf.getvalue(), f"migrate --out: rc {mrc}: {obuf.getvalue()!r}")
+            check(_sha256(copy) == FIXTURE_SHA256, "migrate --out leaves the input untouched")
+            g_recs, g_skipped = load(mig)
+            check(len(g_recs) == 20 and g_skipped == 0, f"migrated file: {len(g_recs)} records, {g_skipped} skipped")
+            check(out_of_domain_chunks(g_recs) == 0, "migrated file has no out-of-domain chunk")
+            marked = [r for r in g_recs if "migration" in r]
+            check(len(marked) == 8 and all(r["migration"]["from"] == MIGRATION_FROM
+                                           and re.fullmatch(r"\d{4}-\d{2}-\d{2}", r["migration"]["at"]) for r in marked),
+                  f"migration marker on exactly the 8 rewritten records, got {len(marked)}")
+            check(sorted(_get(r, "dispatch", "chunk") for r in marked) == list(range(8)), "chunks 0-7 are ints after migrate")
+            check(all("migration" not in r for r in g_recs if _get(r, "dispatch", "chunk") is None), "unrewritten records carry no marker")
+            greport = summarize(g_recs, g_skipped)
+            for c in range(8):
+                check(partial_stamp(c) in greport, f"migrated per-chunk block lacks the partial stamp for chunk {c}")
+            check(partial_stamp(0) == 'partial — migrated from "Chunk 0"; verifier, fix and redo records were never written and cannot be reconstructed',
+                  "stamp text as §In-Place Migration renders it")
+            check("out-of-domain dispatch.chunk: 0 record(s)" in greport, "migrated report counts 0 out-of-domain chunks")
+            lrc2, llines = lint(mig)
+            lout2 = "\n".join(llines)
+            check("[type] dispatch.chunk:" not in lout2, "migrated records: no type finding for dispatch.chunk")
+            check("migration" not in lout2, f"the optional migration marker is admitted on the migrated v: 1 records:\n{lout2}")
+            check(lrc2 == 1 and "seq 20: [enum] dispatch.kind:" in lout2, "the fixture's other findings survive migration")
+            # idempotent: a second run over the migrated output changes nothing
+            mig2 = os.path.join(tmp, "p3-migrated-2.jsonl")
+            with contextlib.redirect_stdout(io.StringIO()):
+                mrc2 = main(["migrate", "--file", mig, "--out", mig2])
+            check(mrc2 == 0 and _sha256(mig2) == _sha256(mig), "second migrate run is a no-op")
+            # in place: sibling temp file → line-count check → rename; bytes equal the --out output
+            with contextlib.redirect_stdout(io.StringIO()):
+                mrc3 = main(["migrate", "--file", copy])
+            check(mrc3 == 0 and _sha256(copy) == _sha256(mig), "in-place migrate yields the --out bytes")
+            check(not [f for f in os.listdir(tmp) if f.endswith(".migrate")], "no sibling temp file left behind")
+            with contextlib.redirect_stdout(io.StringIO()):
+                mrc4 = main(["migrate", "--file", copy])
+            check(mrc4 == 0 and _sha256(copy) == _sha256(mig), "in-place second run changes nothing")
+            # fixture guard: --file or --out under tools/fixtures/ → exit 2, no write
+            gbuf = io.StringIO()
+            with contextlib.redirect_stdout(gbuf), contextlib.redirect_stderr(gbuf):
+                grc = main(["migrate", "--file", FIXTURE_PATH])
+            check(grc == 2 and "tools/fixtures/" in gbuf.getvalue(), f"fixture guard on --file: rc {grc}")
+            never = os.path.join(FIXTURES_DIR, "never-written.jsonl")
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                grc2 = main(["migrate", "--file", copy, "--out", never])
+            check(grc2 == 2 and not os.path.exists(never), "fixture guard on --out: exit 2, no write")
+            check(under_fixtures(os.path.join(_REPO, "tools", "fixtures", "..", "fixtures", "x.jsonl"))
+                  and not under_fixtures(os.path.join(_REPO, "tools", "fixtures-not", "x.jsonl")), "under_fixtures normalises the path")
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after migrate")
+        # lint: the optional marker is admitted on every v in its declared shape only (Q-IMPL-HARNESSP4-006)
+        check(not classes([{**_record(dispatch={"chunk": 3}), "migration": {"from": MIGRATION_FROM, "at": "2026-09-19"}}]),
+              "migration marker on a v: 1 record lints clean")
+        check(classes([{**_record(dispatch={"chunk": 3}), "migration": {"from": MIGRATION_FROM}}]).get("type") == ["migration"],
+              "migration marker missing `at` is a type finding")
         # --plan floor (REQ-TELEM-HARNESSP4-008): a plan with a chunk that has no record.
         plan_path = os.path.join(tmp, "plan.md")
         with open(plan_path, "w", encoding="utf-8") as fh:
@@ -1516,7 +1702,8 @@ def self_test() -> int:
           "fixture 2/1/0, frozen p3 fixture expected 39 with sha256 unchanged), out-of-domain dispatch.chunk "
           "counted and folded to c?, missing file → records: 0, schema table agrees with both renderings, "
           "v ∈ {1, 2} admitted (v: 3 skipped), --lint one mutation per class + frozen fixture findings + gapless "
-          "v2 fixture clean, scope.widened / commit group, --plan floor")
+          "v2 fixture clean, scope.widened / commit group, --plan floor, migrate (--out, in place, idempotent, "
+          "partial stamp, fixture guard, fixture sha256 unchanged)")
     return 0
 
 
@@ -1542,6 +1729,21 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--since", default=None, help="only records with ts_dispatch >= this ISO-8601 timestamp")
     sp.add_argument("--plan", default=None, metavar="PATH",
                     help="also print the implement-stage floor derived from this plan's `### Chunk N:` headers")
+    mp = sub.add_parser(
+        "migrate",
+        help='OPERATOR-RUN, between sessions: rewrite "Chunk N" dispatch.chunk strings to int N and stamp a migration marker',
+        description=(
+            'Rewrite every dispatch.chunk header string "Chunk N" to the int N and add '
+            '"migration": {"from": "chunk-string", "at": <today>} to each rewritten record '
+            "(REQ-TELEM-HARNESSP4-005). This is the SECOND exception to the writer's append-only rule "
+            "(the first is the leaf-write revert): run it as the OPERATOR with NO orchestrator session open — "
+            "never from a leaf, never while a session is appending, never from a dispatch template — and only "
+            "after --lint reports the records clean on their typed fields. Without --out it rewrites in place "
+            "(sibling temp file → line-count check → rename); it is idempotent. FIXTURE GUARD: a --file or --out "
+            "under tools/fixtures/ exits 2 with no write — the frozen fixture is read-only evidence."),
+    )
+    mp.add_argument("--file", required=True, help="telemetry file to migrate (never the frozen fixture)")
+    mp.add_argument("--out", default=None, help="write the migrated file here and leave --file untouched")
     args = ap.parse_args(argv)
 
     if args.self_test:
@@ -1549,6 +1751,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.lint:
         rc, lines = lint(args.file)
         print("\n".join(lines))
+        return rc
+    if args.command == "migrate":
+        rc, msg = migrate(args.file, args.out)
+        print(msg, file=sys.stderr if rc else sys.stdout)
         return rc
     if args.command != "summarize":
         ap.print_help()

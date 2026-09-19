@@ -566,6 +566,41 @@ never commits). One line per finding, `seq <n>: [<class>] <group.key>:
 the exit code. Exit 1 on any finding, 0 when clean. Like `summarize`, it is
 post-cycle and out-of-loop: nothing in the orchestrator runs it.
 
+**Migration of the 8 p3 records** (REQ-TELEM-HARNESSP4-005,
+`docs/spec/telemetry.md` §In-Place Migration of the 8 p3 Records, Stamped
+Partial):
+
+```
+python3 tools/sdd-telemetry.py migrate --file <path> [--out <path>]
+```
+
+rewrites every `dispatch.chunk` header string `"Chunk N"` to the int `N` and
+adds `"migration": {"from": "chunk-string", "at": "<date>"}` to each rewritten
+record (the OPTIONAL marker of §2, admitted on every `v` in that shape only —
+the writer never sets it). `summarize` then renders each such chunk **partial**:
+`partial — migrated from "Chunk N"; verifier, fix and redo records were never
+written and cannot be reconstructed` — the block is no longer readable as a
+full per-chunk history. Three rules bind the command:
+
+- **Operator-invoked, between sessions.** This is the **second exception** to
+  §3's append-only rule (the first is the leaf-write revert, §4). The operator
+  runs it with **no orchestrator session open** — never a leaf (that would
+  breach the orchestrator-only-writer rule) and never while a session is
+  appending (a race with the orchestrator's appends). No dispatch template
+  mentions it; only this section and `--help` state the rule.
+- **Fixture guard.** A `--file` or `--out` under `tools/fixtures/` is refused
+  with exit 2 and **no write**: the frozen fixture is read-only evidence
+  (`tools/fixtures/README.md`, sha256 asserted before and after by every test).
+  Tests copy it to a temporary directory and migrate the copy.
+- **Ordered.** Run it only after REQ-TELEM-HARNESSP4-001..-004 have landed and
+  `--lint` reports the records clean on their **typed** fields; otherwise the
+  migrated block asserts more than the evidence supports.
+
+Without `--out` it rewrites in place — sibling temp file → line-count check →
+rename over the original; a failed check leaves the original intact. With
+`--out` the input is untouched. It is idempotent: an already-int `chunk` or an
+already-present marker is left alone and a second run changes nothing.
+
 A missing or empty telemetry file is an empty run set: `summarize` prints `records: 0` and an empty table and exits 0 (the same
 `n_before := 0 if absent` rule the writer and `sdd-eval.py` follow), never an
 error. `--help` and `--self-test` are available.
