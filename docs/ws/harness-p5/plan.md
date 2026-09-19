@@ -246,26 +246,26 @@ aggregate regeneration can no longer drop a traceability row silently. This is
 the cycle's **tool-code** chunk — Chunk 7 stays text-only.
 **Depends on**: Chunk 3.
 **Tasks**:
-1. [implement] `expected_rows()` sums `implied.pipeline` over implement groups
+1. [x] [implement] `expected_rows()` sums `implied.pipeline` over implement groups
    with `chunk != null` **only**; a `(implement, null)` group of stage-level
    fixes implies no pipeline dispatch. `attempts()` and `implied.verifier`
    unchanged — traces to `docs/spec/telemetry-reader.md` §Implication-Derived
    `expected` (REQ-TELEM-HARNESSP5-002).
-2. [implement] Restrict the `--lint` equal-heads cross-field rule to `v: 2`
+2. [x] [implement] Restrict the `--lint` equal-heads cross-field rule to `v: 2`
    records; a `v: 1` record is exempt (it carries no field that can prove
    landing) and gains **no** `migration` marker. Document the exemption in
    `docs/spec/telemetry-reader.md` §Schema Lint's cross-field row — traces to
    `docs/spec/telemetry-reader.md` §Schema Lint (REQ-TELEM-HARNESSP5-003).
-3. [implement] Route both `load()` paths through one helper testing
+3. [x] [implement] Route both `load()` paths through one helper testing
    `_is_int(v) and v in ADMITTED_V`, so `v: 2.0` is skipped-and-counted by
    `summarize` exactly as `--lint` rejects it with `[type] v` — traces to
    `docs/spec/telemetry-reader.md` §Out-of-Loop Reader
    (REQ-TELEM-HARNESSP5-004).
-4. [implement] Stable-sort `lint()`'s findings by `(int seq ascending, then
+4. [x] [implement] Stable-sort `lint()`'s findings by `(int seq ascending, then
    non-int seqs in insertion order)` across all three passes before rendering —
    traces to `docs/spec/telemetry-reader.md` §Schema Lint
    (REQ-TELEM-HARNESSP5-006).
-5. [implement] Close the gc row-drop defect in `tools/sdd-gc.py`: make
+5. [x] [implement] Close the gc row-drop defect in `tools/sdd-gc.py`: make
    `table_cells()` split on **unescaped** pipes only (a `\|` is literal cell
    content and is re-emitted unchanged by `render_row()` / the aggregate
    regenerator), and make `trace_rows()` raise a **fail** finding
@@ -276,7 +276,7 @@ the cycle's **tool-code** chunk — Chunk 7 stays text-only.
    exit 2). No other gc rule, severity or counting rule changes and no
    allowlist is added — traces to `docs/spec/drift-sweep.md` §Row-Drop Safety
    (REQ-GC-HARNESSP5-001).
-6. [verify] `--self-test` gains: three stage-level fixes with no chunk record →
+6. [x] [verify] `--self-test` gains: three stage-level fixes with no chunk record →
    0 implied pipeline; `v: 1` + equal heads + `files_written_n > 0` → no
    finding, the same shape at `v: 2` with null `commit.token` → finding; a
    synthetic `v: 2.0` record; a type finding on seq 5 and a cross-field finding

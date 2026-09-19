@@ -490,3 +490,19 @@ adding a gc allowlist entry: the sweep's Q-IMPL reference exclusion already skip
 fenced content (Q-IMPL-HARNESSP2-054), so no rule change is needed and the
 exemption stays visible at the point of use.
 **Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP5-001: the expected cell count is the table header's, not a fixed 6
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Row-Drop Safety
+**Decision**:
+
+Rule 2 says a row "does not yield the expected cell count" without fixing that
+count. `trace_rows()` takes it from the **table's own header row** (the
+`| Requirement …` line, defaulting to 6 when no header precedes the rows), so
+the pre-v4 five-column table keeps its existing normalisation (a 5-cell row
+under a 5-column header gains the empty `Workstream` cell) while a 5-cell row
+under the canonical six-column header is the `[traceability-rowdrop]` fail the
+acceptance asks for. A hard-coded 6 would have flagged every legacy
+five-column table as a row drop, which §Row-Drop Safety's "no existing rule,
+severity or counting rule changes" forbids.
+**Date**: 2026-09-20 (implement stage, Chunk 4 task 5)

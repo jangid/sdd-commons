@@ -93,6 +93,13 @@ P3_PLAN = os.path.join(_REPO, "docs", "ws", "harness-p3", "plan.md")
 FIXTURE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures",
                             "telemetry-harness-p3-2026-09-18.jsonl")
 FIXTURE_SHA256 = "7e20b6307da09355f9aee504c451f0ed59e79ef9a33861cd72f370ea84af9237"
+P4_FIXTURE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures",
+                               "telemetry-harness-p4-2026-09-19.jsonl")
+P4_FIXTURE_SHA256 = "ff5cf2864abc74c2c05449b86e5117f5c4ed8851b6b5f96617859b8b061ef370"
+# The p3 fixture's `--lint` finding SET, order-insensitive: sha256 over the sorted
+# finding lines (the summary line excluded).  REQ-TELEM-HARNESSP5-006's sort may
+# reorder the rendering, so the set — never the sequence — is the invariant.
+FIXTURE_LINT_SORTED_SHA256 = "b1b8c072db2d826380d1120f4fbbf39c651de8bfde486d0251d94f4d0301243c"
 
 # ---------------------------------------------------------------------------
 # Domain table (telemetry.md §Record Schema — the code table is the schema's
@@ -334,6 +341,24 @@ def v_key_set(v: int) -> set[tuple]:
 
 SCHEMA_V_ADMITTED: frozenset = enum_members(None, "v")  # {"1", "2"} as rendered → ints below
 ADMITTED_V = {int(x) for x in SCHEMA_V_ADMITTED}
+V_ADMITTED_TEXT = f"the admitted set {sorted(ADMITTED_V)}"
+
+
+def _is_int(v) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+def v_admitted(v) -> bool:
+    """The ONE admission test for a record's schema version (REQ-TELEM-HARNESSP5-004).
+
+    Called from **both** ``load()`` paths — ``load()`` (what ``summarize`` reads)
+    and ``_check_value``'s ``v`` branch (what ``--lint`` reads) — so the two agree
+    by construction: an inadmissible ``v`` is skipped-and-counted by ``summarize``
+    exactly as ``--lint`` rejects it with ``[type] v``.  The test is int-typed
+    because ``2.0 in {1, 2}`` is ``True`` in Python, so the bare membership test
+    admitted a float (telemetry-reader.md §Out-of-Loop Reader).
+    """
+    return _is_int(v) and v in ADMITTED_V
 
 # The fix-only reason subset — derived from the `const` row, never a bare code
 # constant, so adding a reason later is a schema (table) change.
@@ -411,7 +436,7 @@ def load(path: str) -> tuple[list[dict], int]:
     records: list[dict] = []
     skipped = 0
     for rec in load_raw(path):
-        if not isinstance(rec, dict) or isinstance(rec.get("v"), bool) or rec.get("v") not in ADMITTED_V:
+        if not isinstance(rec, dict) or not v_admitted(rec.get("v")):
             skipped += 1  # torn line, or unknown schema version
             continue
         records.append(rec)
@@ -786,13 +811,17 @@ def session_rows(records: list[dict]) -> list[dict]:
                 implied[(stage, "fix")] += 1                       # clause (b)
         for (stage, _gate) in fix_gates:
             implied[(stage, "fix")] += 1                           # clause (a): one fix per deciding gate
-        for (stage, _chunk), grecs in groups.items():
+        for (stage, chunk_key), grecs in groups.items():
             attempts = 1 + max(_int0(_get(r, "dispatch", "redo")) for r in grecs)
             if any(_get(r, "verdict", "chunk_verdict") is not None and _get(r, "dispatch", "kind") != "verifier"
                    for r in grecs):
                 implied[(stage, "verifier")] += attempts
-            if stage == "implement":
-                # the first attempt is always a pipeline dispatch; a redo recorded as
+            if stage == "implement" and chunk_key != "null":
+                # Chunk groups ONLY (REQ-TELEM-HARNESSP5-002): a `(implement, null)`
+                # group — the stage-level fix records of a `loop-back-to-fix` after the
+                # stage review — implies no pipeline dispatch, because its first attempt
+                # was the per-chunk pipeline records, not a null-chunk one.
+                # The first attempt is always a pipeline dispatch; a redo recorded as
                 # pipeline (the p3 collapsed shape) stands in for its own first attempt
                 implied[(stage, "pipeline")] += 1 + sum(
                     1 for r in grecs
@@ -913,14 +942,10 @@ def summarize(records: list[dict], skipped: int, plan_path: str | None = None) -
 # ---------------------------------------------------------------------------
 
 
-def _is_int(v) -> bool:
-    return isinstance(v, int) and not isinstance(v, bool)
-
-
 def _check_value(check: str, value, members: frozenset) -> str | None:
     """Return a one-line message when ``value`` violates ``check``; None when in domain."""
     if check == "v":
-        return None if _is_int(value) and value in ADMITTED_V else f"{value!r} not in the admitted set {sorted(ADMITTED_V)}"
+        return None if v_admitted(value) else f"{value!r} is not an int in {V_ADMITTED_TEXT}"
     if check == "timestamp":
         ok = isinstance(value, str) and _ts(value) is not None and (value.endswith("Z") or "+00:00" in value)
         return None if ok else f"{value!r} is not an ISO-8601 UTC timestamp"
@@ -1055,8 +1080,11 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
             # finding only when the record shows nothing landed: no landed commit group
             # (`commit.token` null, or a v1 record with no `commit` group at all) while the leaf
             # reports files written (Q-IMPL-HARNESSP4-005 item 2, Q-IMPL-HARNESSP4-007).
+            # A `v: 1` record is EXEMPT (REQ-TELEM-HARNESSP5-003): it carries no field
+            # that can prove landing (no `commit` group at all), so equal heads on it are
+            # unprovable, not a finding — and no `migration` marker is stamped to say so.
             hb, ha = _get(r, "git", "head_before"), _get(r, "git", "head_after")
-            if stage == "implement" and kind in ("pipeline", "fix") and _get(r, "gate", "decision") == "proceed" \
+            if r.get("v") == 2 and stage == "implement" and kind in ("pipeline", "fix") and _get(r, "gate", "decision") == "proceed" \
                     and isinstance(hb, str) and SHA_RE.fullmatch(hb) and hb == ha \
                     and _get(r, "return", "files_written_n", default=1) != 0 \
                     and _get(r, "commit", "token") is None:
@@ -1068,7 +1096,16 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
         stage = next((_get(r, "dispatch", "stage") for r in valid if _get(r, "dispatch", "seq") == s), "?")
         add(s, "reason-review", "dispatch.reason",
             f"REVIEW at iteration ≥ 1 with no preceding loop-back-to-fix at {stage}", warn=True)
-    return findings
+    return sort_findings(findings)
+
+
+def sort_findings(findings: list[dict]) -> list[dict]:
+    """Stable-sort by ``(int seq ascending, then non-int seqs in insertion order)``
+    across all three passes, so a cross-field finding on ``seq`` 2 renders before a
+    type finding on ``seq`` 5 (REQ-TELEM-HARNESSP5-006).  ``sorted`` is stable, so
+    non-int seqs (``line 3``, ``?``) keep their insertion order after the ints.
+    """
+    return sorted(findings, key=lambda f: (0, f["seq"]) if _is_int(f["seq"]) else (1, 0))
 
 
 def lint(path: str) -> tuple[int, list[str]]:
@@ -1465,6 +1502,90 @@ def self_test() -> int:
             check(reason_review_warnings(frecs) == [3, 4, 5], f"fixture [reason-review] seqs: {reason_review_warnings(frecs)}")
             check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after")
 
+        # --- harness-p5 reader/lint findings (REQ-TELEM-HARNESSP5-002..004, -006) ---
+
+        # (1) Three stage-level fixes and NO chunk record: the `(implement, null)`
+        #     group implies no pipeline dispatch (REQ-TELEM-HARNESSP5-002, finding 1).
+        nullfix = [_record2(dispatch={"seq": i, "kind": "fix", "stage": "implement", "chunk": None,
+                                      "iteration": i, "redo": None},
+                            gate={"decision": "proceed", "fix_iteration": i})
+                   for i in (1, 2, 3)]
+        nrow = session_rows(nullfix)[0]
+        check(nrow["kinds"]["pipeline"] == {"implied": 0, "recorded": 0, "missing": 0, "mistyped": 0},
+              f"null-chunk group implied a pipeline dispatch: {nrow['kinds']['pipeline']}")
+        check(nrow["implement_missing"]["pipeline"] == 0,
+              f"null-chunk group reported a missing pipeline: {nrow['implement_missing']}")
+
+        # (2) equal heads: a v: 1 record is exempt, the same shape at v: 2 with a null
+        #     commit.token is a finding (REQ-TELEM-HARNESSP5-003, finding 3).
+        eq_dispatch = {"seq": 1, "kind": "pipeline", "stage": "implement", "chunk": 1}
+        eq_heads = {"head_before": "c38922d", "head_after": "c38922d"}
+        eq_v1 = _record(dispatch=dict(eq_dispatch), git=dict(eq_heads),
+                        **{"return": {"files_written_n": 3}})
+        eq_v2 = _record2(dispatch=dict(eq_dispatch), git=dict(eq_heads),
+                         commit={"token": None, "missing_n": 0, "extra_n": 0},
+                         **{"return": {"files_written_n": 3}})
+        def _equal_heads(recs):
+            return [f for f in lint_records(recs)
+                    if f["class"] == "cross-field" and f["field"] == "git.head_after"]
+        check(_equal_heads([eq_v1]) == [], f"v: 1 record not exempt from equal-heads: {_equal_heads([eq_v1])}")
+        check(len(_equal_heads([eq_v2])) == 1, f"v: 2 equal-heads finding lost: {_equal_heads([eq_v2])}")
+        check(not any("migration" in r for r in (eq_v1, eq_v2)), "a migration marker was stamped by the lint")
+
+        # (3) `v: 2.0` — an int-typed admission test, one helper, both load() paths
+        #     (REQ-TELEM-HARNESSP5-004, finding 4).
+        check(v_admitted(2) and not v_admitted(2.0) and not v_admitted(True) and not v_admitted("2"),
+              "v_admitted() is not the int-typed membership test")
+        float_v = _record2()
+        float_v["v"] = 2.0
+        fpath = os.path.join(tmp, "float-v.jsonl")
+        with open(fpath, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(float_v, separators=(",", ":")) + "\n")
+        frecs2, fskip2 = load(fpath)
+        check(frecs2 == [] and fskip2 == 1, f"v: 2.0 not skipped-and-counted by summarize: {len(frecs2)}, {fskip2}")
+        check("skipped: 1 unknown-schema record(s)" in summarize(frecs2, fskip2), "v: 2.0 missing from the skipped line")
+        vfind = [f for f in lint_records([float_v]) if f["class"] == "type" and f["field"] == "v"]
+        check(len(vfind) == 1, f"v: 2.0 raised no [type] v finding: {lint_records([float_v])}")
+
+        # (4) finding order: a type finding on seq 5 and a cross-field on seq 2 render
+        #     2, 5 although the passes emit 5 first (REQ-TELEM-HARNESSP5-006, finding 6).
+        type5 = _record2(dispatch={"seq": 5, "kind": "pipeline", "stage": "research"},
+                         scope={"widened": "two"})
+        cross2 = _record2(dispatch={"seq": 2, "kind": "pipeline", "stage": "implement", "chunk": 1},
+                          git=dict(eq_heads), commit={"token": None, "missing_n": 0, "extra_n": 0},
+                          **{"return": {"files_written_n": 3}})
+        ordered = lint_records([type5, cross2])
+        check([f["seq"] for f in ordered] == [2, 5],
+              f"findings not stable-sorted by seq: {[(f['seq'], f['class']) for f in ordered]}")
+        check(ordered[0]["class"] == "cross-field" and ordered[1]["class"] == "type",
+              f"sorted findings lost their classes: {[(f['seq'], f['class']) for f in ordered]}")
+
+        # (5) The frozen p3 fixture's `--lint` finding SET is unchanged under the sort
+        #     (order-insensitive: sha256 over the sorted lines) — REQ-TELEM-HARNESSP5-006.
+        if os.path.exists(FIXTURE_PATH):
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 before sorted-lint")
+            _rc3, _lines3 = lint(FIXTURE_PATH)
+            sorted_sha = hashlib.sha256("\n".join(sorted(_lines3[:-1])).encode()).hexdigest()
+            check(sorted_sha == FIXTURE_LINT_SORTED_SHA256,
+                  f"p3 fixture finding set changed: {sorted_sha} != {FIXTURE_LINT_SORTED_SHA256}")
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after sorted-lint")
+
+        # (6) The frozen p4 fixture (telemetry-reader.md §Fixture-Based Test Contract):
+        #     no missing pipeline for the `(implement, chunk null)` group and no
+        #     equal-heads finding on session 2 `seq` 2/4/6 (v: 1).
+        check(os.path.exists(P4_FIXTURE_PATH), f"frozen p4 fixture missing: {P4_FIXTURE_PATH}")
+        if os.path.exists(P4_FIXTURE_PATH):
+            check(_sha256(P4_FIXTURE_PATH) == P4_FIXTURE_SHA256, "p4 fixture sha256 before")
+            p4recs, p4skipped = load(P4_FIXTURE_PATH)
+            check(len(p4recs) == 67 and p4skipped == 0, f"p4 fixture load: {len(p4recs)} records, {p4skipped} skipped")
+            p4rows = [r for r in session_rows(p4recs) if r["workstream"] == "harness-p4"]
+            check(p4rows and all(r["kinds"]["pipeline"]["missing"] == 0 for r in p4rows),
+                  f"p4 fixture reports a missing pipeline: {[r['kinds']['pipeline'] for r in p4rows]}")
+            check(all(r["gap"] == 0 for r in p4rows), f"p4 fixture session gap: {[r['gap'] for r in p4rows]}")
+            check(_equal_heads(load_raw(P4_FIXTURE_PATH)) == [],
+                  f"p4 fixture raised an equal-heads finding: {_equal_heads(load_raw(P4_FIXTURE_PATH))}")
+            check(_sha256(P4_FIXTURE_PATH) == P4_FIXTURE_SHA256, "p4 fixture sha256 after")
+
         # Out-of-domain dispatch.chunk (the 2026-09-18 live break): a record whose
         # chunk is the "### Chunk N:" header STRING rather than the parsed int must
         # be visible, not silently dropped, and must not render a doubled prefix.
@@ -1586,8 +1707,14 @@ def self_test() -> int:
                                   git={"head_before": "c38922d", "head_after": "c38922d"},
                                   commit={"token": "INCOMPLETE", "missing_n": 1, "extra_n": 0})
         check(classes([landed_partial]) == {}, f"equal heads with commit.token INCOMPLETE is exempt: {classes([landed_partial])}")
+        # A v: 1 record is EXEMPT (REQ-TELEM-HARNESSP5-003): it carries no field that can
+        # prove landing, so the rule is evaluated on v: 2 records only.
         v1_same = _record(dispatch={"seq": 1, "stage": "implement", "chunk": 1})
-        check(classes([v1_same]).get("cross-field") == ["git.head_after"], f"v1 proceed implement with equal heads (no commit group): {classes([v1_same])}")
+        check(classes([v1_same]) == {}, f"v1 proceed implement with equal heads is exempt: {classes([v1_same])}")
+        v2_same = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1},
+                           git={"head_before": "c38922d", "head_after": "c38922d"})
+        check(classes([v2_same]).get("cross-field") == ["git.head_after"],
+              f"v2 proceed implement with equal heads and a null commit.token: {classes([v2_same])}")
         nothing_written = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1},
                                    git={"head_before": "c38922d", "head_after": "c38922d"}, **{"return": {"files_written_n": 0}})
         check(classes([nothing_written]) == {}, f"equal heads, null token, files_written_n 0 is exempt: {classes([nothing_written])}")
@@ -1727,7 +1854,10 @@ def self_test() -> int:
           "counted and folded to c?, missing file → records: 0, schema table agrees with both renderings, "
           "v ∈ {1, 2} admitted (v: 3 skipped), --lint one mutation per class + frozen fixture findings + gapless "
           "v2 fixture clean, scope.widened / commit group, --plan floor, migrate (--out, in place, idempotent, "
-          "partial stamp, fixture guard, fixture sha256 unchanged)")
+          "partial stamp, fixture guard, fixture sha256 unchanged); harness-p5: null-chunk group "
+          "implies no pipeline, v: 1 exempt from equal-heads, v: 2.0 skipped and [type] v from one "
+          "admission helper, findings sorted 2 before 5, frozen p3 finding set unchanged (sorted sha256) "
+          "and frozen p4 fixture clean (67 records, 0 missing pipeline, no equal-heads)")
     return 0
 
 
