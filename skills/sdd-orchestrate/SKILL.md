@@ -202,8 +202,13 @@ loop, gate defaults, the per-chunk redo counter (`Redo: N of 3` against
 `REDO_MAX`), FAIL routing, the once-only implement-stage review and verifier
 edge cases: [`references/loop-control.md`](references/loop-control.md) §1.
 The gate block —
-the **one canonical copy** in this skill, byte-identical to
-`harness-chunk-verifier.md` §Sequencing; under fan-out it is the per-leaf gate,
+the **one canonical copy** in this skill, identical in content to the copies in
+`harness-chunk-verifier.md` §Sequencing — Sequential Mode,
+`harness-write-scope.md` §Commit Ownership and `orchestration.md` §v5, and
+byte-identical to the latter two: it keeps the gate's two-space indentation on
+the `CHUNK_VERDICT:` line, where the chunk-verifier spec alone renders that
+token at column 0 to satisfy its file-wide no-indented-token criterion
+(REQ-QIMPL-HARNESSP5-001). Under fan-out it is the per-leaf gate,
 rendered before merge with no orchestrator commit (`references/fan-out.md` §3a.v):
 
 ```
@@ -377,16 +382,11 @@ list: [`references/isolation.md`](references/isolation.md).
 
 ## Rules
 
-- **Compose, never reimplement**: stage logic lives in the nine `sdd-*` skills
-  — dispatch them; never duplicate or modify them.
-- **Two dispatches per stage, always**, and **paths only to the reviewer** —
-  "helpful context" is exactly the leak the design prevents.
-- **Human gate at every stage**: never auto-advance.
-- **Reviews are ephemeral** and **artifacts are the source of truth for
-  resume** (no `docs/reviews/`, no loop-position marker, no loop log).
-- **Sequential by default**: fan-out only at the implement gate on operator
-  opt-in with ≥2 independent chunk branches; mid-pipeline entry only per §Entry
-  Points, never by guess.
+Five invariants govern every cycle: **compose, never reimplement**; **two
+dispatches per stage** with **paths only to the reviewer**; a **human gate at
+every stage**; **reviews ephemeral**, artifacts the source of truth for resume;
+**sequential by default** (fan-out at the implement gate on opt-in only,
+mid-pipeline entry per §Entry Points). In full: [`references/loop-control.md`](references/loop-control.md) §8.
 
 ## Transition
 

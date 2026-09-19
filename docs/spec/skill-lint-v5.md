@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 requires:
   - REQ-LINT-001
   - REQ-LINT-002
@@ -217,7 +217,19 @@ keeps the "behavior UNCHANGED under marker 3" sentence and a resolving link:
 | §Entry Points "Marker-4 scope" paragraph | yes | one line |
 | §KICKOFF "Kickoff path — version gate" | yes | one line |
 | §Integration anchor + "Marker-4 anchor" paragraph | yes → point at `references/fan-out.md` §0 | one line |
-| "Upgrade offer (entry, all markers)", phase table, §The gate, dispatch contracts, §Isolation Discipline, §Rules, §Orchestrator-Only Work | **no** | — |
+| "Upgrade offer (entry, all markers)", phase table, §The gate, dispatch contracts, §Isolation Discipline, §Rules, §Orchestrator-Only Work | **no** — not part of *this* move | — |
+
+**Scope of the `no` row.** The `Moves: no` row is scoped to **this**
+marker-4 prose move into `references/v4-workstreams.md` — it says those
+sections are not marker-4-only prose and so are not carried by REQ-LINT-007,
+**not** that they are pinned to `SKILL.md` forever. The general size work of
+§Size Warn-Clean Baseline governs them, and there "which sections move and
+into which file is the implementer's choice" applies as written: any of them
+may later move into another `references/*.md` under that section's invariants
+(stub with the marker-3 sentence, `REQUIRED` rows re-pointed not dropped,
+`[template-drift]` fences kept paired). [Clarified 2026-09-20, harness-p5 —
+the Chunk 8 move of §Isolation Discipline and §Orchestrator-Only Work into
+`references/isolation.md` relied on exactly that reading.]
 
 Two mandatory guards:
 

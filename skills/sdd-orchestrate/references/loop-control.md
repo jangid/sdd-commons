@@ -690,3 +690,17 @@ stage silently — confirmation is mandatory.
 the change*, the *entry stage*, and *which upstream is assumed approved* — not
 research questions. DISCUSS still runs first; from the entry stage on the LOOP
 is identical to a research-entry cycle.
+
+
+## 8. Driver rules (normative) — from §Rules
+
+- **Compose, never reimplement**: stage logic lives in the nine `sdd-*` skills
+  — dispatch them; never duplicate or modify them.
+- **Two dispatches per stage, always**, and **paths only to the reviewer** —
+  "helpful context" is exactly the leak the design prevents.
+- **Human gate at every stage**: never auto-advance.
+- **Reviews are ephemeral** and **artifacts are the source of truth for
+  resume** (no `docs/reviews/`, no loop-position marker, no loop log).
+- **Sequential by default**: fan-out only at the implement gate on operator
+  opt-in with ≥2 independent chunk branches; mid-pipeline entry only per §Entry
+  Points, never by guess.

@@ -89,7 +89,7 @@ In either case, run the implement stage sequentially in the main workspace even 
 the operator opted into fan-out, and tell the operator at the gate (see SKILL.md
 §Execution Model).
 
-**Opt-in gate (from SKILL.md §Boundary derivation and opt-in gate).** Fan-out is
+**Opt-in gate (from SKILL.md §Execution Model).** Fan-out is
 **opt-in at the implement gate** and never automatic: present it as an explicit
 operator choice, surfacing how many independent chunk-groups the plan yields (a
 single chain → say at the gate that it degrades to sequential). The same gate
@@ -322,7 +322,7 @@ reaches the integration branch (marker `3`: `main`; marker `4`: the workstream
 branch — §0). The verifier is read-only and is never `sdd-review`; the single
 implement-stage review still runs once, after the last merge and the §3e
 bookkeeping. The operator may have opted the verifier out for the cycle at the
-implement gate (`../SKILL.md` §Boundary derivation and opt-in gate) — then step b is skipped and the
+implement gate (`../SKILL.md` §Execution Model) — then step b is skipped and the
 per-leaf gate shows `CHUNK_VERDICT: (verifier disabled)`.
 
 ### 3b. Sequential merge to main (REQ-ORCH-025)

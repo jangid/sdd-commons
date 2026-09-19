@@ -498,12 +498,12 @@ landed.
 this workstream's traceability is filled.
 **Depends on**: Chunk 8.
 **Tasks**:
-1. [implement] Bring `skills/sdd-migrate/SKILL.md` (464) and
+1. [x] [implement] Bring `skills/sdd-migrate/SKILL.md` (464) and
    `skills/sdd-implement/SKILL.md` (434, plus Chunk 6's sentence) each under
    400 lines by the same stub-and-`references/` move, under the same marker-row
    constraints — traces to `docs/spec/skill-lint-v5.md` §Size Warn-Clean
    Baseline (REQ-LINT-HARNESSP5-001).
-2. [verify] `python3 tools/sdd-skill-lint.py` exits 0 and its summary reports
+2. [x] [verify] `python3 tools/sdd-skill-lint.py` exits 0 and its summary reports
    `0 warning(s)`; `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`
    prints 0; `wc -l skills/*/SKILL.md` shows every file < 400; the R7/R8
    `reproduce:` commands print 0 and a number < 400; and the file-wide baseline
@@ -513,19 +513,24 @@ this workstream's traceability is filled.
    left no legacy figure anywhere in the file) — traces to
    `docs/spec/skill-lint-v5.md` §Acceptance Criteria
    (REQ-LINT-HARNESSP5-001, -002).
-3. [verify] Read-only confirmation of O2's bookkeeping commit (the edit is
+3. [x] [verify] Read-only confirmation of O2's bookkeeping commit (the edit is
    O2's, never a leaf's): `grep -n 'descoped' docs/ws/harness-p4/traceability.md`
    hits exactly the two ARB rows; the regenerated aggregate shows three rows for
    REQ-ARB-HARNESSP3-001 (`fail`, `descoped`, `pass`) and two for
    REQ-ARB-HARNESSP4-001 (`descoped`, `pass`) — traces to
    `docs/spec/ws-traceability.md` §Legal `Verified` Cell Values
    (REQ-WS-HARNESSP5-002).
-4. [verify] Every row of `docs/ws/harness-p5/traceability.md` — the 21 minted
-   rows (20 at requirements, plus REQ-GC-HARNESSP5-001 at the 2026-09-20
-   replan) and the 2 carried rows — has `Test`, `Implementation` and `Verified`
-   filled and reads `pass`; `python3 tools/sdd-gc.py --report` raises no
-   `trace-empty` finding for this workstream — traces to
-   `docs/spec/ws-traceability.md` §Acceptance Criteria.
+4. [x] [verify] Every row of `docs/ws/harness-p5/traceability.md` — the 21
+   minted rows (20 at requirements, plus REQ-GC-HARNESSP5-001 at the 2026-09-20
+   replan) and the 2 carried rows, 23 in total — has `Test` and
+   `Implementation` filled; `Verified` is left empty for `sdd-verify` to set at
+   DONE; and `python3 tools/sdd-gc.py --report` raises no `trace-empty` finding
+   for this workstream — traces to `docs/spec/ws-traceability.md` §Acceptance
+   Criteria. [Reworded 2026-09-20 at implement: the earlier "and `Verified`
+   filled and reads `pass`" was unsatisfiable at implement time — the file's own
+   preamble assigns the `Verified` column to `sdd-verify` at DONE. This is the
+   same over-reach that review finding m4 and replan change 3 already removed
+   from milestone M1 and from Chunks 2 and 5.]
 
 **Entry criteria**: Chunk 8 complete; O2 has landed.
 **Exit criteria**: M3 done — lint warn-clean, gc clean, every traced row `pass`.

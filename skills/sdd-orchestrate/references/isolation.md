@@ -25,7 +25,9 @@ The driver MUST:
 Rules 1–3 mirror `sdd-review` Step 2's "Do NOT accept as inputs" list, enforced
 at dispatch time; rule 4 is the write-scope analogue — observe and report.
 Isolation holds **by construction**: a freshly dispatched subagent has no
-shared context window to leak through.
+shared context window to leak through (repo-level context — `CLAUDE.md`,
+project memory — is still inherited; the guarantee covers the session's
+reasoning and drafts, not repo docs).
 
 ## 2. Orchestrator-only work — from §Orchestrator-Only Work
 
