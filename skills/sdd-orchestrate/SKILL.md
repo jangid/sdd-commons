@@ -374,14 +374,19 @@ it. In production order, all ephemeral (REQ-ORCH-013): (1) `RETURN.status` +
 verbatim, then — on a red round N >= 2 — the derived `RED: Rn new-ground |
 regression` lines after them, before the exit rule and before (4); (4) the
 review `VERDICT:`; (5) the loop counters; (6) the `REVIEW: CONTRADICTION` pause
-block when it fires, after the counters; (7) the `TELEMETRY:` line, last, before
+block when it fires, after the counters; (6b) implement stage gate only, the
+plan completion parse — `PLAN: INCOMPLETE (N of M ticked)`, pausing with
+`replan │ stop` **only** and suppressing (6)'s options; (7) the `TELEMETRY:` line, last, before
 the options — 3b–7 render at the **stage gate**; (8) **post-decision**, the
 own-line `COMMIT: COMPLETE | INCOMPLETE` closing line rendered right after the
 orchestrator's own commit (or the fan-out merge; pre-decision at 2b for a
 fan-out per-leaf gate), pausing on `INCOMPLETE` with `amend | accept (note) |
 stop` before any next dispatch — comparands and pause in
 [`references/write-scope.md`](references/write-scope.md) §7a, position in
-`loop-control.md` §5.
+`loop-control.md` §5; (8b) implement stage gate `proceed` only, after (8): the
+orchestrator — the sole writer of the plan's `status:` under orchestration —
+flips `docs/ws/<id>/plan.md` to `status: complete` in its own bookkeeping
+commit, editing `status:` only and leaving `research_id:` untouched.
 
 **Red team (verify stage only, opt-in — REQ-REDB-HARNESSP2-001, -007, -008).**
 Ask `red team: off | on` (default `off`; optional `red input: +verification.md`)

@@ -482,6 +482,7 @@ Staging Path.
 | review | nobody | — |
 | chunk verifier | nobody | `files_written: []` |
 | aggregate regeneration (marker `4`, post-gate bookkeeping) | **orchestrator**, in its **own** commit, separate from any leaf's | — (not a dispatch; driven by the session dirty flag) |
+| plan `status: complete` flip (post-gate bookkeeping) | **orchestrator**, in its **own** commit at the implement **stage gate** on `proceed`, after the `COMMIT:` closing line | — (not a dispatch; no leaf returns this path) |
 
 **Aggregate-regeneration bookkeeping commit (REQ-WS-HARNESSP3-001).** Under
 marker `4` the shared `docs/requirements/traceability.md` is regenerated
@@ -494,6 +495,22 @@ by the write-scope check (§9), and it fires at **every** gate outcome —
 traceability rows since the last regeneration (`../SKILL.md` §The gate;
 `fan-out.md` §3e for the fan-out path). Regeneration is wholesale and
 idempotent, so a repeat costs nothing and never compounds.
+
+**Plan-completion bookkeeping commit (REQ-HARN-HARNESSP5-001).** The second
+bookkeeping write, beside aggregate regeneration: at the implement **stage
+gate**, on `proceed`, after the `COMMIT:` closing line, the orchestrator flips
+`docs/ws/<id>/plan.md` `status:` to `status: complete` in its **own** commit,
+editing `status:` only — `sdd-plan`'s `research_id:` stamp is byte-identical
+before and after. The path is the orchestrator's, never a leaf's: the per-chunk
+PIPELINE template says "tick tasks, never `status:`", `sdd-verify` never writes
+the plan, and a leaf that wrote `status:` would be a `SCOPE: VIOLATION`. Because
+`HEAD_landed` is captured before any bookkeeping commit (§7a), the flip falls
+outside the `COMMIT:` comparand range and can never render `landed, not
+observed`. When the completion parse finds an unticked task the flip is withheld
+and the gate pauses on `PLAN: INCOMPLETE (N of M ticked)` with `replan │ stop`
+only (`loop-control.md` §5 signal 6b, §6). Owning specs:
+`docs/spec/harness-loop-control.md` §Plan Completion Ownership Under
+Orchestration; `docs/spec/harness-write-scope.md` §Commit Ownership.
 
 Each template's return step states its row (`dispatch-templates.md` §PIPELINE
 step 4, §REVIEW, §CHUNK VERIFIER; `fan-out.md` §2 step 3). A pipeline leaf that

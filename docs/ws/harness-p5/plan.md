@@ -349,7 +349,7 @@ contract is asserted.
 with the `PLAN: INCOMPLETE` else-branch wired into the pause family.
 **Depends on**: Chunk 5.
 **Tasks**:
-1. [implement] State the orchestrator flip in **both**
+1. [x] [implement] State the orchestrator flip in **both**
    `skills/sdd-orchestrate/SKILL.md` §The gate and
    `skills/sdd-orchestrate/references/loop-control.md` **§1** (the gate-signal
    list) **and §5/§6** — the AC greps all four files and expects the flip
@@ -362,7 +362,7 @@ with the `PLAN: INCOMPLETE` else-branch wired into the pause family.
    6b-supersedes-6 precedence rule — traces to
    `docs/spec/harness-loop-control.md` §Plan Completion Ownership Under
    Orchestration (REQ-HARN-HARNESSP5-001).
-2. [implement] Add the second bookkeeping entry to
+2. [x] [implement] Add the second bookkeeping entry to
    `skills/sdd-orchestrate/references/write-scope.md` §7 (the `status:` flip,
    beside aggregate regeneration); state "tick tasks, never `status:`" in
    `references/dispatch-templates.md` §PIPELINE per-chunk; add the one sentence
@@ -373,12 +373,12 @@ with the `PLAN: INCOMPLETE` else-branch wired into the pause family.
    both files for `status: complete` and reads them item for item — traces to
    `docs/spec/harness-write-scope.md` §Commit Ownership
    (REQ-HARN-HARNESSP5-001).
-3. [implement] Widen the `Spec` cells of REQ-HARN-HARNESSP5-001 and
+3. [x] [implement] Widen the `Spec` cells of REQ-HARN-HARNESSP5-001 and
    REQ-WS-HARNESSP5-001 in `docs/ws/harness-p5/traceability.md` to **also**
    name `docs/spec/harness-write-scope.md §Commit Ownership` (carried
    specs-stage review item M2) — traces to `docs/spec/ws-traceability.md`
    §Per-Workstream File Shape.
-4. [verify] Run the AC's own grep verbatim —
+4. [x] [verify] Run the AC's own grep verbatim —
    `grep -n 'status: complete' skills/sdd-orchestrate/SKILL.md
    skills/sdd-orchestrate/references/loop-control.md
    skills/sdd-orchestrate/references/write-scope.md skills/sdd-implement/SKILL.md`

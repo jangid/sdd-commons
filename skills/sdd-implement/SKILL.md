@@ -312,7 +312,12 @@ When the plan is complete:
 1. Run the full verification suite one final time
 2. Walk through every spec's acceptance criteria — confirm each one passes
 3. List any spec gaps that were discovered and how they were resolved (Q-IMPL entries)
-4. Set the plan's frontmatter `status:` to `complete`
+4. Set the plan's frontmatter `status:` to `complete` — **direct sessions only**.
+   Under `sdd-orchestrate` this flip belongs to the orchestrator, at the implement
+   stage gate on `proceed` after the stage review's `VERDICT:`, so a dispatched
+   chunk leaf ticks its tasks `[x]` and never writes `status:` — the
+   `status: complete` flip is the orchestrator's bookkeeping commit
+   (`docs/spec/harness-loop-control.md` §Plan Completion Ownership Under Orchestration)
 5. Recommend invoking `sdd-verify` for holistic validation
 
 ## Rules

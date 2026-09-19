@@ -113,7 +113,10 @@ Do not perform any stage other than sdd-{stage}.
   implement is dispatched **per chunk, in plan order** — one dispatch per
   chunk, each closed at the per-chunk gate (`../SKILL.md` §Per-chunk implement
   dispatch and per-chunk gate) before the next is issued; the chunk verifier
-  (§CHUNK VERIFIER below) runs against the same `{N}`. Fan-out leaves receive
+  (§CHUNK VERIFIER below) runs against the same `{N}`. A chunk leaf's plan write is
+  **"tick tasks, never `status:`"** — it cannot know the stage review's verdict, so
+  the plan's `status: complete` flip is the orchestrator's at the implement
+  stage gate (`../SKILL.md` §The gate signal 8b; `write-scope.md` §7). Fan-out leaves receive
   their chunk-group through `fan-out.md` §2 instead. **v2-vocabulary edge
   case**: a plan with no `### Chunk N:` headers has chunk-close inactive
   (`overview.md` §Plan Vocabulary) — omit this line, issue **one** implement
