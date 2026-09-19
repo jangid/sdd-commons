@@ -40,6 +40,28 @@ workstream owns only its `docs/ws/<ws>/` execution artifacts and per-ws
 `traceability.md`; requirements/specs/research and the aggregated traceability
 are shared (ADD, never fork); omitting the argument resolves `default`.
 
+**Cycle identity (REQ-CYCID-HARNESSP3-001, -002).** Before reading a
+**completion signal** as "this cycle is done" — `verification.md` `status: pass`,
+or `plan.md` `status: complete` with every task `[x]` — compare that artifact's
+frontmatter `research_id:` against the kickoff's (`docs/ws/<ws>/kickoff.md` under
+marker `4`, `docs/handoff/kickoff.md` under marker `3`) by **exact string
+equality** on the trimmed value — no normalisation, case folding or prefix
+matching (Q-IMPL-HARNESSP3-015). The three cases are exhaustive:
+
+1. **Mismatch** — the artifact's `research_id` differs from the kickoff's → **a
+   previous cycle's artifact**; this stage has not been reached in this cycle.
+2. **Field absent** — a kickoff with a `research_id` exists but the artifact
+   carries none (legacy; existing files are **never back-filled**) → the same
+   reading as a mismatch. Absence is the safe direction: it costs one re-entry,
+   it never asserts a completion that did not happen.
+3. **No usable discriminator** — no `kickoff.md` for this `(repo, workstream)`,
+   **or** a kickoff that carries no `research_id` (Q-IMPL-HARNESSP3-016) → the
+   comparison is **skipped entirely** and the existing `status:`-only rule
+   applies unchanged. Cycle identity is an orchestrated-cycle discriminator,
+   never a precondition for detection.
+
+See `docs/spec/cycle-identity.md`.
+
 0. **Version check**: If `docs/.sdd-version` is missing, suggest running `sdd-migrate` before proceeding
 1. If `docs/verification.md` exists with `status: fail` → replan from verification failures
    - A `verification.md` with `status: pending-red` is **not** a verification failure — blue passed and the red-team verdict is pending (`docs/spec/adversarial-verify.md` §`status: pending-red`). Do not replan from it: route to `sdd-verify` (re-enter the verify stage)
@@ -153,6 +175,13 @@ When revising `docs/plan.md`:
 4. **Remove invalidated tasks** — move them to the archive file (for significant replans). Do NOT write `[removed: reason]` in the active plan
 5. **Reorder** remaining tasks based on new dependencies
 6. **Update replan triggers** — the old ones may no longer apply
+7. **Carry `## Post-cycle Fixes` across verbatim** — the optional,
+   orchestrator-owned section at the end of the plan (REQ-REDB-HARNESSP3-004,
+   `docs/spec/adversarial-verify.md` §`## Post-cycle Fixes` in the Active Plan;
+   contract in `docs/spec/milestone-plans.md` §Milestone Plan File Format). Its
+   lines are **not tasks**: never strip it on a rewrite, never archive-and-drop
+   it, never convert its lines into tasks or mark them done. `sdd-plan` does not
+   create it and `sdd-implement` does not read it as tasks
 
 **Archive file format** (for significant replans — written to `docs/plan-history/{date}-replan-{reason}.md`):
 

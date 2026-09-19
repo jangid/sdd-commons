@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-HARN-001
   - REQ-HARN-002
@@ -346,6 +346,41 @@ dispatch templates:
 REQ-ORCH-004, -013, -014 hold verbatim; no `docs/reviews/`, `.sdd/` or
 telemetry file is created.
 
+### Gate Signal Order (REQ-ORCH-034 counterpart)
+
+[Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-001, REQ-HARN-HARNESSP4-003;
+canonical spec-side statement, counterpart of `references/loop-control.md` §5]
+
+Signals surface in the order they are produced; everything is ephemeral
+(REQ-ORCH-013). **This section is the one spec-side statement of the full
+order.** `orchestration.md` §v5 Harness Hardening, `adversarial-verify.md`
+§Verify-Stage Gate, `harness-chunk-verifier.md`, `harness-commit-fidelity.md`
+and `telemetry.md` point here and state only their own signal's position; none
+restates the list in a form that can diverge from it. The skill side mirrors it
+in `references/loop-control.md` §5 — the two must agree item for item.
+
+| # | Signal | Renders at | Owner spec |
+|---|---|---|---|
+| 1 | `RETURN.status` and `budget_consumed` against the dispatched `Budget:` | per-chunk gate / per-leaf gate / stage gate | `harness-return-contract.md`, this spec §Budget Exhaustion |
+| 2 | write-scope block ending in the own-line `SCOPE: CLEAN \| VIOLATION (N paths)` | same | `harness-write-scope.md` |
+| 2b | **fan-out per-leaf gate only**: `COMMIT: COMPLETE \| INCOMPLETE` computed pre-decision from the leaf's observed writes vs its committed delta | per-leaf gate, after `SCOPE:`, before `CHUNK_VERDICT:` | `harness-commit-fidelity.md` |
+| 3 | implement stage, per chunk: `CHUNK_VERDICT: PASS \| FAIL` with `Redo: N of REDO_MAX` — signals 1–3 (and 2b) render at the **per-chunk / per-leaf gate** | per-chunk gate | `harness-chunk-verifier.md` |
+| 3b | verify stage, red opted in: `RED_VERDICT: BROKEN \| HELD`, red's `Rn` lines, then on round N >= 2 the derived `RED: Rn new-ground \| regression` lines | stage gate, after `SCOPE:`, before `VERDICT:` | `adversarial-verify.md` |
+| 4 | the parsed review `VERDICT:` | stage gate | `harness-return-contract.md` |
+| 5 | loop counters — `iteration N of MAX`, derived replan re-entry count against `REPLAN_MAX` | stage gate | this spec |
+| 6 | `REVIEW: CONTRADICTION (round N vs round N+1, class b\|c[, file-level])` pause block | stage gate, after the counters | `arbitrated-handoff.md` |
+| 7 | the `TELEMETRY:` line — `rec <n> │ WRITE FAILED │ OFF │ .gitignore updated`, at most once each, immediately after the last counter-bearing line and **before the options** | every gate | `telemetry.md` |
+| — | the options (`proceed │ fix │ stop` per chunk; `proceed │ loop-back-to-fix │ stop` per stage; pause-family options where a pause fired) | every gate | `orchestration.md` §Gate Protocol |
+| 8 | **post-decision**: `COMMIT: COMPLETE \| INCOMPLETE` — rendered immediately after the orchestrator's own commit (sequential per-chunk and stage gates) or after the merge (fan-out merge step), as the **closing line of the same gate**, before the next dispatch; on `INCOMPLETE` it pauses with `amend \| accept (note) \| stop` and no next dispatch — including the implement-stage review after the last chunk — is issued until resolved | closing line of the gate that decided `proceed` | `harness-commit-fidelity.md` |
+
+Two rules follow from "produced order": a signal whose data exists before the
+decision renders before the options (items 1–7 and 2b); a signal that is the
+*consequence* of the decision renders after them (item 8) and is **not**
+deferred to the next gate — `TELEMETRY: rec <n>` is the one deferred signal,
+and it may be because telemetry is never load-bearing (`telemetry.md` §Writer).
+`COMMIT:` is load-bearing and therefore closes the gate it belongs to. No
+`TELEMETRY:` line ever pauses the gate or changes an option.
+
 ## Verification
 
 ### Automated
@@ -385,6 +420,7 @@ telemetry file is created.
 - [ ] Stuck detection lists both oscillation conditions under the word "oscillation" (REQ-HARN-007)
 - [ ] Checkpoint format and RETURN-field mapping are stated in `sdd-implement` and `sdd-replan`; `sdd-replan` Step 1 reads the checkpoint; fixture ≤ 15 lines, traceback-free (REQ-HARN-008)
 - [ ] After a full orchestrated cycle `git ls-files docs/` shows no new file type beyond `plan-history/` archives (REQ-HARN-027)
+- [ ] §Gate Signal Order is the only spec-side statement of the full order, lists item 8 "post-decision: `COMMIT:`" and position 2b, and agrees item for item with `references/loop-control.md` §5; `orchestration.md` §v5 points here rather than restating the list (REQ-ORCH-034; placement per REQ-HARN-HARNESSP4-001/-003, owned by `harness-commit-fidelity.md`)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
 
 ## Edge Cases
@@ -432,6 +468,10 @@ Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
   Q-IMPL ids and never restates them — consistent.
 - `ws-integration.md` merge target = workstream branch under marker `4` —
   restated here identically.
+- §Gate Signal Order names each signal's owner spec; every token it lists
+  (`SCOPE:`, `CHUNK_VERDICT:`, `RED_VERDICT:`, `VERDICT:`, `REVIEW:
+  CONTRADICTION`, `TELEMETRY:`, `COMMIT:`) is defined with the same members in
+  that owner — consistent [Added 2026-09-18, harness-p4].
 - **No unresolved contradictions.**
 
 ## Open Questions

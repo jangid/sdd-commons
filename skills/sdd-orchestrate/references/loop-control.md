@@ -114,7 +114,26 @@ round[N]      = { verdict: APPROVE | APPROVE_WITH_FIXES | REJECT,
                              key: { file: <repo-relative path>, section: <§Name> | "?",
                                     affects: { REQ-… } } } ] }
 fix[N]        = { written: { (file, section) }, hunks: { (file, section): "L40-58, L120" } }
+regen[N]      = { written: { (file, section) }, hunks: { (file, section): "L1-240" }, by: leaf | orchestrator }
+                # every orchestrator-dispatched regeneration of the stage deliverable between round N and N+1
+                # (a pipeline re-dispatch of the same stage — Q-IMPL-HARNESSP3-010), PLUS derived artifacts the
+                # orchestrator itself regenerated in that window, e.g. docs/requirements/traceability.md
+                # (by: orchestrator — Q-IMPL-HARNESSP3-017)
+W_N           = sections(fix[N].written) UNION sections(regen[N].written)
+                # the set §Contradiction classes tests against; (file, *) only where section resolution is unavailable
 ```
+
+`regen[N]` is a **sibling** set beside `fix[N]`, not a rename of it
+(Q-IMPL-HARNESSP3-009): `fix[N]` keeps meaning the fix dispatch's writes, and
+`regen[N]` holds the writes of every **regeneration of the stage deliverable**
+between round N and round N+1 — defined as a pipeline re-dispatch of the **same**
+stage (Q-IMPL-HARNESSP3-010), never another stage's leaf and never an operator's
+manual edit, which stays outside the loop's write set. The orchestrator's own
+post-gate regeneration of an artifact **derived** from that leaf's output — the
+shared aggregate `docs/requirements/traceability.md` — counts with it
+(Q-IMPL-HARNESSP3-017). The two sets have
+different provenance in the telemetry record and in the ledger, so they are kept
+separable; only their union is contractual (§`W_N`, below).
 
 Key parsing from a review line `- C1: <what> — [file:section] — affects
 [REQ-A-001, REQ-A-004]` (finding ids `C1`/`M1` are not stable across rounds,
@@ -134,9 +153,27 @@ path it falls back to `(file, *)` — every section of the file — from the
 path-level delta (REQ-HARN-021). A fix dispatch fanned into several
 chunk-grouped dispatches contributes the **union** of their written pairs.
 
+**`W_N` — regenerated is not new ground (REQ-ARB-HARNESSP3-001).** The retained
+per-round write set is the **union** of the fix dispatch's written pairs and the
+regeneration writes since round N:
+
+```
+W_N := sections(fix[N].written) UNION sections(regen[N].written)
+       # falling back to (file, *) only where section resolution is unavailable,
+       # which is the existing rule and already labels the pause "(file-level)"
+```
+
+This is a **regenerated-not-patched** rule at the §2a level, not a red-round
+special case: it applies to **any** stage whose pipeline leaf rewrites its
+deliverable wholesale between review rounds — specs, plan, verification alike.
+Granularity is not lost: section resolution (`write-scope.md` §3) is a function
+of a diff and applies to a regeneration diff exactly as it applies to a fix's;
+the existing `(file, *)` fallback and its `(file-level)` pause label are
+unchanged.
+
 **Contradiction classes (REQ-ARB-HARNESSP2-002, -003, -004).** Let `K_N` =
-set of `(file, section)` keys of round N's C/M lines, `W_N` = `fix[N].written`,
-`F(K)` = the files of a key set. With `∈` at section level unless degraded:
+set of `(file, section)` keys of round N's C/M lines, `W_N` as defined just
+above, `F(K)` = the files of a key set. With `∈` at section level unless degraded:
 
 | Class | Rule | Detected? |
 |---|---|---|
@@ -154,6 +191,34 @@ that guessed "opposite" from text would be a semantic judgement inside the
 orchestrator, which REQ-HARN-019 and REQ-ORCH-012 keep out; the cap remains
 the backstop for reversals. Red findings (`adversarial-verify.md`) are not
 review lines and never enter `K_N` — arbitration compares review rounds only.
+
+**Replay fixture (REQ-ARB-HARNESSP3-001).** The observed verify-stage sequence —
+round 1 `APPROVE`, then a pipeline re-dispatch of `sdd-verify` that regenerated
+the deliverable, then round 2 `APPROVE_WITH_FIXES` with three Material findings
+(`RS-HARNESSP3-001` evidence appendix §B8) — resolves as follows under the
+amended `W_N`:
+
+```
+round 1 (APPROVE):             K_1 = ∅
+regen[1] (verify re-dispatch): docs/ws/<id>/verification.md §Criteria, §Issues Found, …   by: leaf
+                               docs/ws/<id>/traceability.md  §(matrix)                        by: leaf
+                               docs/requirements/traceability.md §(matrix)                    by: orchestrator
+                                 # the shared aggregate, regenerated post-gate from the leaf-written
+                                 # per-ws file — a derived artifact (Q-IMPL-HARNESSP3-017)
+round 2 (APPROVE_WITH_FIXES):  M1 — docs/ws/<id>/verification.md:§Criteria        -> in W_1, no pause
+                               M2 — docs/ws/<id>/verification.md:§Issues Found    -> in W_1, no pause
+                               M3 — docs/requirements/traceability.md:§(matrix)   -> in W_1 (by: orchestrator), no pause
+               synthetic M4 — docs/spec/telemetry.md:§Record Shape                -> k ∉ K_1, k ∉ W_1
+                                                                                  -> REVIEW: CONTRADICTION (class b)
+```
+
+All three observed findings named sections of files the loop itself had just
+regenerated — `M3` on the **orchestrator**-regenerated aggregate, not the
+leaf-written per-ws file, and admitted through `regen[1]`'s `by: orchestrator`
+entry — so the class (b) false positive is gone; the synthetic finding on a
+file no loop dispatch touched still pauses, so the true positive is retained.
+Pre-amendment, `W_1 = fix[1].written = ∅` (there was no fix between the rounds)
+and all four fired.
 
 **`REVIEW: CONTRADICTION` pause (REQ-ARB-HARNESSP2-006).** On (b) or (c) at a
 **stage gate** (never the per-chunk gate, which shows no review verdict —
@@ -263,6 +328,38 @@ after a verify-pipeline return, its gate, and — when the operator routes a
   non-token line `Red team: not run (blue status fail)` and proceeds to the
   normal fix/replan routing.
 
+**New-ground vs regression on red round N >= 2 (REQ-REDB-HARNESSP3-002).** A
+second `BROKEN` on the same acceptance criterion may be a *failed fix* or a
+*different mechanism behind the first break*; the gate must distinguish them.
+On a red round **N >= 2**, for each `BROKEN` `Rn` of the new round the
+orchestrator re-runs the **previous round's** routed `reproduce:` command — it
+holds those `Rn` lines verbatim from the earlier gate — and renders one derived
+line per prior break, in `Rn` order (Q-IMPL-HARNESSP3-007):
+
+```
+RED: R1 new-ground (prior R6 reproduce now passes)
+RED: R1 regression  (prior R6 reproduce still fails)
+```
+
+- `new-ground` — the prior round's `reproduce:` command now **passes**: the
+  earlier break was really fixed and this is a fresh break behind it.
+- `regression` — the prior round's `reproduce:` command **still fails**: the
+  fix did not hold.
+- The lines render **inside the `RED_VERDICT:` block, after red's own `Rn`
+  lines** and **before the exit rule is applied** (the gate fixture below and
+  `../SKILL.md` §The gate carry that position). On round 1 no `RED:` line is
+  rendered.
+- The lines are **derived in the orchestrator from evidence** — one command per
+  prior break. Red's return shape is unchanged between rounds.
+
+**Declined alternative**, recorded here with its reasons: no `supersedes:` or
+`new-ground:` marker is added to red's return shape. Such a marker would
+require handing red the previous round's findings, contradicting the
+withholding default (REQ-REDB-HARNESSP2-004) — and re-attacking the same
+criterion is exactly what found the second bug, so red must not be steered away
+from it. The derived line costs one command per prior break and changes neither
+red's return shape nor its isolation.
+
 Sequence per red round:
 
 ```
@@ -274,7 +371,8 @@ fix dispatch (implement chunk) → scope check → chunk verifier → per-chunk 
 
 Gate fixture — pasted verbatim from `docs/spec/adversarial-verify.md`
 §Verify-Stage Gate and Exit Rule (signal order `RETURN.status` → `SCOPE:` →
-`RED_VERDICT:` → `VERDICT:` → counters; `proceed` withheld until every
+`RED_VERDICT:` — its `Rn` lines verbatim, then the derived `RED:` lines on
+round N >= 2 — → `VERDICT:` → counters; `proceed` withheld until every
 `BROKEN` `Rn` is fixed or accepted):
 
 ```
@@ -284,6 +382,7 @@ Verify stage gate — pipeline #9 (sdd-verify), red #10, review #11
   RED_VERDICT: BROKEN
     - R1: <criterion> — attack: … — observed: … — reproduce: `python -m app --window 0` — BROKEN
     - R2: <criterion> — attack: … — observed: held — reproduce: `pytest -q tests/test_recon.py::test_window` — HELD
+  RED: R1 new-ground (prior R6 reproduce now passes)          # round N >= 2 only
   VERDICT: APPROVE
   iteration 0 of 3
   Options per BROKEN finding: R1 → fix (RED_BREAK packet) | accept (record) | stop
@@ -383,8 +482,15 @@ termination. A merge-abort redo counts toward that group's chunks'
 ## 5. Gate signal order (REQ-ORCH-034) — from §The gate
 
 Signals surface in the order they are produced; everything is ephemeral
-(REQ-ORCH-013). `SKILL.md` §The gate keeps the one-line summary; this is the
-per-signal detail:
+(REQ-ORCH-013). `SKILL.md` §The gate keeps the one-line summary; **this section
+is the one canonical statement of the full order** and the per-signal detail —
+every other surface (the `SKILL.md` summary, `USAGE.md` §7b, the fixtures in §1
+and §2a) points here and must not restate the order in a form that can diverge
+from it. The full order is `RETURN.status` → `SCOPE:` → (fan-out per-leaf gate
+only) `COMMIT:` at 2b → `CHUNK_VERDICT:` → `RED_VERDICT:` (with its derived
+`RED:` lines) → review `VERDICT:` → the loop counters → `REVIEW: CONTRADICTION`
+→ the `TELEMETRY:` line, then the options, then — **post-decision** — the
+`COMMIT:` closing line (item 8):
 
 1. the leaf's `RETURN.status` and `budget_consumed` against the dispatched
    `Budget:` (`references/return-contract.md` §1, §7);
@@ -395,15 +501,72 @@ per-signal detail:
    merge (fan-out), with `proceed` unavailable while any `OUT` path is
    unresolved; a `HISTORY_REWRITE` finding counts as a violation and offers only
    `stop` (`SKILL.md` §Isolation Discipline);
+2b. **fan-out per-leaf gate only**: the own-line `COMMIT: COMPLETE | INCOMPLETE`
+   token computed **pre-decision** from the leaf's observed writes vs its
+   committed delta `base..tip`, with the `RETURN.commits not on branch: <sha>`
+   clause appended on the same line when a claimed sha is absent from
+   `git rev-list <base>..<tip>` — after `SCOPE:`, before `CHUNK_VERDICT:`
+   (`references/write-scope.md` §7a comparand table; `references/fan-out.md`
+   §3a.v). The data exists before the decision, so it renders before the
+   options; on `INCOMPLETE` it pauses with `amend | accept (note) | stop` and
+   `amend` commits the uncommitted paths on the **leaf branch**;
 3. implement stage only, per chunk: the chunk's `CHUNK_VERDICT:` (parsed from
    the verifier's `RETURN:` block, last line; missing or unrecognized →
    `RETURN: MALFORMED`) with `Redo: N of 3` against `REDO_MAX` — signals 1–3
-   render at the **per-chunk gate** (§1);
+   (and 2b) render at the **per-chunk / per-leaf gate** (§1);
+3b. verify stage only, and only when the operator opted in to a red round: the
+   own-line `RED_VERDICT: BROKEN | HELD` token with red's own `Rn` lines
+   rendered verbatim beneath it, then — on a red round **N >= 2** only — one
+   derived `RED: Rn new-ground | regression` line per `BROKEN` `Rn`, in `Rn`
+   order, **after** those `Rn` lines and **before** the exit rule is applied
+   (§2a "Red round"; `docs/spec/adversarial-verify.md` §Gate position). The
+   token renders **after** `SCOPE:` and **before** the review `VERDICT:`, because
+   the red leaf is dispatched on the blue return and the review follows it;
 4. the parsed review `VERDICT:`;
 5. when a loop is active, the loop counters — `iteration N of MAX` for the
    fix-loop cap (§2) and the derived count against the replan re-entry cap
-   (§3) — signals 4–5 (and, for a non-implement stage, 1–2 with them) render
-   at the **stage gate**.
+   (§3) — signals 3b–5 (and, for a non-implement stage, 1–2 with them) render
+   at the **stage gate**;
+6. when the arbitration rule fires at a stage gate (iteration ≥ 2), the
+   `REVIEW: CONTRADICTION (round N vs round N+1, class b|c[, file-level])`
+   pause block with both rounds' verbatim lines and `fix #N wrote:` (§2a; §6
+   below) — it renders **after** the counters, because it is derived from the
+   round pair the counters name, and it restates `iteration N of MAX` on its own
+   token line, so signal 7 is still immediately after the last counter-bearing
+   line;
+7. the `TELEMETRY:` line — the four-member family `rec <n> │ WRITE FAILED │ OFF
+   │ .gitignore updated`, at most once each, rendered **last**, immediately
+   after the `iteration`/cap line (or, when the pause of signal 6 fired, after
+   its token line) and **before the options**
+   (`references/telemetry.md` §3). `TELEMETRY: rec <n>` is the positive member
+   (REQ-TELEM-HARNESSP3-001): `<n>` is the count of **successful appends this
+   session**, not `dispatch.seq`, so a gate whose append failed shows
+   `WRITE FAILED` and no `rec` line. No `TELEMETRY:` line ever pauses the gate
+   or changes an option;
+— the options (`proceed │ fix │ stop` per chunk; `proceed │ loop-back-to-fix │
+   stop` per stage; pause-family options where a pause fired);
+8. **post-decision**: the own-line `COMMIT: COMPLETE | INCOMPLETE` token —
+   rendered immediately after the orchestrator's **own** commit (sequential
+   per-chunk and stage gates, on `proceed`) or after the merge (fan-out merge
+   step, per branch), as the **closing line of the same gate**, before the
+   next dispatch; `landed` is the two-sha range `git diff --name-only
+   --no-renames HEAD_before HEAD_landed` captured before any bookkeeping
+   commit, `expected` the observed-writes set (sequential) or the leaf's
+   committed delta (merge step) — comparands, token shape and pause options:
+   `references/write-scope.md` §7a. On `INCOMPLETE` the gate **pauses** with
+   `amend | accept (note) | stop` (`amend` unavailable at the merge step) and
+   **no next dispatch — including the implement-stage review after the last
+   chunk — is issued while the pause is unresolved**. `COMMIT:` joins the pause
+   family beside `RETURN: MALFORMED`, `SCOPE: VIOLATION`, `REVIEW:
+   CONTRADICTION` and budget exhaustion (§6). `COMPLETE` needs no
+   acknowledgement.
+
+Two rules follow from "produced order": a signal whose data exists before the
+decision renders before the options (items 1–7 and 2b); a signal that is the
+*consequence* of the decision renders after them (item 8) and is **not**
+deferred to the next gate — `TELEMETRY: rec <n>` is the one deferred signal,
+and it may be because telemetry is never load-bearing. `COMMIT:` is
+load-bearing and therefore closes the gate it belongs to.
 
 ## 6. Edge cases routed through the gate — from §The gate
 
@@ -434,7 +597,13 @@ per-signal detail:
   iteration; only `accept round N+1 (fix)` increments the counter; at most one
   third opinion per contradiction. Fourth member of the pause family, beside
   `REVIEW: MALFORMED`, `RETURN: MALFORMED` and reject-with-no-actionable-
-  findings above (§2a; `docs/spec/arbitrated-handoff.md`).
+  findings above (§2a; `docs/spec/arbitrated-handoff.md`). The arbitration
+  guarantee is **unchanged** by `W_N`'s regeneration union (§2a): the pause still
+  catches a reviewer raising new Critical/Material findings on ground the
+  previous round approved **and the loop did not touch** — a
+  wholesale-regenerated file *was* touched by the loop. Admitting regeneration
+  writes removes false positives only; it cannot mask a contradiction about a
+  file the loop left alone.
 
 ## 7. Mid-pipeline entry: detect → confirm → validate (REQ-ORCH-031..033) — from §Entry Points
 

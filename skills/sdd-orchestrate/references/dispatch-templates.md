@@ -212,6 +212,11 @@ paths above instead and read everything else from the repository.
 Invoke the sdd-review skill and follow it to produce a tiered verdict on the
 deliverable. Obtain any context you need by reading files from the repository
 yourself — none is provided in this prompt by design.
+
+Emit no RETURN: block — a review returns its report plus, on a line of its own,
+the verdict token:
+
+VERDICT: APPROVE │ APPROVE_WITH_FIXES │ REJECT
 ```
 
 ### Slot contract (review)
@@ -274,9 +279,23 @@ run Check 2 or Check 4; do not invoke sdd-review or sdd-implement; do not fix
 anything.
 
 Return: findings in the chunk-close report shape (Check 1, Check 3, Gates),
-then the RETURN: block, whose last line is
-  CHUNK_VERDICT: PASS | FAIL
-on its own.
+then this RETURN: block — every key present (empties allowed), `status` first,
+`CHUNK_VERDICT:` on its own line, last:
+
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED
+  budget_consumed: {tool_calls: N, test_runs: N}
+  files_written: []                    # must be empty — read-only dispatch
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {chunk: N, check1: pass|fail, check2: deferred, check3: pass|advisory, check4: deferred, overrides: []}
+  failures: []                         # one line each: test / kind / message / location
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
+CHUNK_VERDICT: PASS | FAIL           # column 0 — the only key of the block not indented
 ```
 
 ### Slot contract (chunk verifier)
@@ -311,6 +330,8 @@ per-chunk gate — never applied by the verifier.
 
 ### Return contract (chunk verifier)
 
+The literal key block lives **inside the fenced body above** (REQ-HARN-HARNESSP3-002);
+what follows is that block worked through, not a second source for it.
 The verifier returns the **full** leaf key set (`return-contract.md` §1 — every
 key present, empties allowed) plus the one verifier-only key,
 `CHUNK_VERDICT`, as the last line of the block (or the line immediately after
@@ -340,7 +361,7 @@ RETURN:
   verified_do_not_touch: []
   open_questions: []
   blocked_writes: []
-  CHUNK_VERDICT: FAIL                  # verifier-only key, last line
+CHUNK_VERDICT: FAIL                    # verifier-only key, last line, column 0
 ```
 
 The verifier produces the token; only the orchestrator interprets it
@@ -379,7 +400,28 @@ Write scope: (empty — read-only)
 Commit ownership: you never commit
 Rules: pick the weakest criteria; construct inputs/commands that violate them; a break counts ONLY
        with a reproducible `reproduce:` command or test id — otherwise report it as HELD with your
-       suspicion under `observed:`. Return in the shape below; end with RED_VERDICT: on its own last line.
+       suspicion under `observed:`.
+Return, in this order — one `## Red team — <spec.md>` heading per spec examined, one Rn line per
+attempted criterion, then this RETURN: block (every key present, empties allowed, `status` first),
+then the token on its own last line:
+
+## Red team — <spec.md> acceptance criteria
+- R1: <criterion text> — attack: <what was tried> — observed: <one line> — reproduce: `<command or test id>` — BROKEN | HELD
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED
+  budget_consumed: {tool_calls: N, test_runs: N}
+  files_written: []                    # must be empty — read-only dispatch
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {}
+  failures:                            # exactly one entry per BROKEN line; [] when none
+    - {test: "<reproduce command or test id>", kind: assertion|error|lint|type|build, message: "<one line>", location: <path:line>}
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
+RED_VERDICT: BROKEN | HELD
 ```
 
 ### Slot contract (red team)
@@ -431,9 +473,12 @@ return**, never a committed test.
 
 ### Return contract (red team)
 
-Red's return text, in order — one `## Red team — <spec.md>` heading per spec
-examined, one `Rn` line per attempted criterion (numbering is global per
-return across headings), then the full leaf `RETURN:` block, then the token:
+The literal key block lives **inside the fenced body above**
+(REQ-HARN-HARNESSP3-002); what follows is that block worked through, not a
+second source for it. Red's return text, in order — one
+`## Red team — <spec.md>` heading per spec examined, one `Rn` line per
+attempted criterion (numbering is global per return across headings), then the
+full leaf `RETURN:` block, then the token:
 
 ```
 ## Red team — <spec.md> acceptance criteria            # one heading per spec examined

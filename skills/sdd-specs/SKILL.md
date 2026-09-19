@@ -155,6 +155,9 @@ After writing or updating each spec, update traceability:
 
 1. For each requirement ID listed in the spec's `requires` frontmatter, fill in the **Spec** column with the spec filename
 2. This keeps a single source of truth for requirement-to-artifact mapping
+3. Leave the **Verified** column to `sdd-verify` — its three legal values are
+   `pass`, `fail` and `pending-red` (`docs/spec/ws-traceability.md` §Legal
+   `Verified` Cell Values); never write it here
 
 **Per-workstream traceability (marker `4` only).** `docs/.sdd-version` is the sole gate.
 Under marker `3` or earlier, write the **Spec** column into the single shared
@@ -165,6 +168,15 @@ active workstream's OWN file `docs/ws/<ws>/traceability.md` (6-column matrix wit
 in place — then **regenerate** the shared `docs/requirements/traceability.md` wholesale
 (shipped legacy rows — rows predating the v4 migration, attributed to the blank/default workstream — + concat of every `docs/ws/<id>/traceability.md`, stable-sorted by
 requirement id; never appended/hand-merged). See `docs/spec/ws-traceability.md`.
+
+**Unless the dispatched write scope omits the aggregate (REQ-WS-HARNESSP3-001).**
+Regenerate the aggregate after the per-ws write **unless this run was dispatched
+with a write scope that omits `docs/requirements/traceability.md`** — under
+`sdd-orchestrate` that path is absent from every leaf scope by construction, and
+its absence *is* the signal that regeneration is the orchestrator's post-gate
+bookkeeping (`sdd-orchestrate/references/write-scope.md` §2, §7). Its presence in
+the dispatched scope, or no dispatched write scope at all (a standalone run),
+means regenerate here. No flag or field beyond the scope slot is involved.
 
 ### Spec Rules
 

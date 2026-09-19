@@ -75,6 +75,11 @@ Standalone scripts or utilities. Use the appropriate language for the task. Each
 - Skill and agent names use kebab-case
 - No orphaned files — every skill directory has a SKILL.md, every agent file has frontmatter
 - Descriptions must be actionable: state when to use AND when not to use
+- Prose describing **another** repository's artifacts (a toy clone, an evidence
+  record, a pilot log) must not quote that repository's `Q-IMPL` id tokens
+  verbatim — paraphrase them or wrap them in a fenced code block, which
+  `tools/sdd-gc.py`'s `qimpl-undefined` sweep already skips (the rule itself is
+  unchanged; there is no allowlist)
 - Run `tools/sdd-skill-lint.py` after editing any skill — it enforces the checks
   above plus cross-skill contract markers and known drift phrases (exit 0 = clean)
 
@@ -128,7 +133,12 @@ chunks (and after every non-implement stage) the **stage gate**
 (`proceed │ loop-back-to-fix │ stop`) shows the review's own-line `VERDICT:`
 token and, when a loop is active, `iteration N of FIX_LOOP_MAX` or the derived
 replan re-entry count against `REPLAN_MAX`. All three caps default to 3
-(`FIX_LOOP_MAX`, `REPLAN_MAX`, `REDO_MAX`). The no-new-artifact invariant holds:
+(`FIX_LOOP_MAX`, `REPLAN_MAX`, `REDO_MAX`). After `proceed` the orchestrator's own
+commit is checked against the leaf's observed writes and closes the same gate
+with `COMMIT: COMPLETE (N paths) | INCOMPLETE (…)` — `INCOMPLETE` pauses with
+`amend │ accept (note) │ stop` before any next dispatch (harness-p4;
+`skills/sdd-orchestrate/references/write-scope.md` §7a). The no-new-artifact
+invariant holds:
 counters are session-scoped or derived, reviews stay ephemeral, and the only
 durable trace is the bounded circuit-break checkpoint in the plan's existing
 blocked-task note.
@@ -136,8 +146,9 @@ blocked-task note.
 **Cycle signals (v5 part 2 — harness-p2).** After every gate the driver appends
 one record — counts, enums, shas, timestamps, never finding text — to
 `.sdd/telemetry.jsonl` (gitignored, orchestrator-only, never read by phase
-detection; default on, opt-out at KICKOFF; `TELEMETRY: WRITE FAILED | OFF |
-.gitignore updated` are its only gate lines; post-cycle reader `python3
+detection; default on, opt-out at KICKOFF; `TELEMETRY: rec <n> | WRITE FAILED | OFF |
+.gitignore updated` are its only gate lines — four members, `rec <n>` the
+positive one; post-cycle reader `python3
 tools/sdd-telemetry.py summarize`). At the verify stage the operator may opt in
 to a **red team** (`red team: off | on`, default off): one read-only leaf attacks
 the weakest acceptance criteria and ends with `RED_VERDICT: BROKEN | HELD`;
@@ -153,6 +164,28 @@ routed `--fix <rule>` │ `record | ignore` │ note; `record` appends to
 `verification.md` `## Next Steps`); gc never runs between stages, never blocks a
 gate and never touches a plan task.
 
+**Harness hardening, part 3 (harness-p3).** The write-scope observation is a
+**content** decision: a path already dirty when the snapshot was taken and
+re-touched by a leaf is observed (`git hash-object` per path in the ambiguous
+set), so paths cancel only when their content hash is unchanged too. Every
+dispatch template pins its leaf's `RETURN:` block verbatim, and a
+`BUDGET_EXHAUSTED` return pauses the gate with `budget_consumed` rather than
+reading as progress. Arbitration counts a **regenerated** artifact as written by
+the fix loop, so a finding in a wholesale-regenerated file is not a class (b)
+`REVIEW: CONTRADICTION`, while a file the loop left alone still pauses. The
+`TELEMETRY:` family gains its positive member — `TELEMETRY: rec <n>`, `<n>`
+counting successful appends this session — so a gate that claims telemetry is on
+now shows that the append happened. A completion signal (`verification.md`
+`status: pass`, or a fully-checked plan) counts for **this** cycle only when its
+frontmatter `research_id:` string-equals the kickoff's; a mismatch or an absent
+field reads as a previous cycle's artifact. At the verify gate a red round
+N >= 2 renders one derived `RED: Rn new-ground | regression` line per `BROKEN`
+`Rn`, from a re-run of the previous round's `reproduce:` command, and the
+`Verified` column reads `pending-red` until the `pending-red → pass` flip at
+DONE. The canonical gate signal order lives in
+`skills/sdd-orchestrate/references/loop-control.md` §5; `SKILL.md` §The gate is
+its non-divergent summary.
+
 ### Phase Detection
 
 Every skill checks `docs/.sdd-version` on entry. If missing, it suggests running `sdd-migrate`. `docs/.sdd-version` is the **sole layout gate**: marker `3` (or earlier) selects the flat single-operator layout; marker `4` selects the multi-workstream layout where phase detection is a **function of `(repo, workstream)`** — every skill takes a `workstream` argument (default `default`) and roots execution artifacts at `docs/ws/<id>/` (see [Multi-Workstream Layout (v4)](#multi-workstream-layout-v4)). Both markers are supported; this repo migrated to marker `4` on 2026-09-17 (solo work runs in the implicit `default` workstream).
@@ -165,11 +198,13 @@ Skills then detect the current phase by checking which artifacts exist **and whe
 | `docs/requirements/index.md` (status: Approved) — shared | Requirements done |
 | `docs/spec/*.md` (all status: Approved) — shared | Specs done |
 | `docs/plan.md` → `docs/ws/<id>/plan.md` (exists, tasks incomplete) | Planning done, implementing |
-| `docs/plan.md` → `docs/ws/<id>/plan.md` (all tasks done) | Implementation done |
-| `docs/verification.md` → `docs/ws/<id>/verification.md` (status: pass) | Verified, ready to ship |
+| `docs/plan.md` → `docs/ws/<id>/plan.md` (`status: complete`, all tasks done, **`research_id` matches the kickoff's — when a kickoff with one exists**) | Implementation done |
+| `docs/verification.md` → `docs/ws/<id>/verification.md` (status: pass, **`research_id` matches the kickoff's — when a kickoff with one exists**) | Verified, ready to ship |
 | `docs/verification.md` → `docs/ws/<id>/verification.md` (status: fail) | Needs replan |
 
 Under marker `4`, phase is resolved **per workstream** — two workstreams in the same repo can sit at different phases simultaneously. A skill under marker `3` never reads `docs/ws/`; a skill under marker `4` never reads flat `docs/plan.md` / `docs/verification.md`.
+
+**Cycle identity.** The two **completion-signal** rows above carry a second condition: the artifact's frontmatter `research_id:` must equal the kickoff's (`docs/ws/<id>/kickoff.md` under marker `4`, `docs/handoff/kickoff.md` under marker `3`), compared by **exact string equality** on the trimmed value. Three exhaustive cases: (1) **mismatch** → a previous cycle's artifact, the stage has not been reached in this cycle; (2) **field absent** while the kickoff has one (legacy — existing files are never back-filled) → read as a mismatch, the safe direction; (3) **no usable discriminator** (no kickoff, **or** a kickoff carrying no `research_id`) → the comparison is **skipped entirely** and the `status:`-only rule applies unchanged, so a repo that never ran the orchestrator still reads its `status: pass` report as verified. `sdd-plan` and `sdd-verify` write the stamp, copied verbatim from the kickoff; the shared corpus (`docs/requirements/**`, `docs/spec/**`) is never stamped, because `status: Approved` there is product-wide, not per-cycle. See `docs/spec/cycle-identity.md`.
 
 #### Staleness Detection
 

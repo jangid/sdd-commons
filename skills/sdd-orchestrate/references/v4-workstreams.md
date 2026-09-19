@@ -147,6 +147,24 @@ is no per-workstream mid-pipeline entry variant to select at its creation; selec
 an **existing** marker-`4` workstream simply resumes it from its detected phase via
 the picker, which is resume, not entry.
 
+## Legal `Verified` cell values (REQ-REDB-HARNESSP3-003) — from §The gate
+
+The per-ws `docs/ws/<id>/traceability.md` `Verified` column has **three** legal
+values — it tracks the *report's* status, not a separate judgement:
+
+| Value | Meaning |
+|---|---|
+| `pass` | the report covering that row is `status: pass` |
+| `fail` | the row's requirement failed verification |
+| `pending-red` | the report is `status: pending-red` — a red round is outstanding |
+
+`sdd-verify` writes `pending-red` into every cell it would otherwise have marked
+`pass` (a `fail` row stays `fail`); the orchestrator's `pending-red → pass` flip
+at DONE flips exactly those cells and regenerates the aggregate in the same
+post-gate bookkeeping step (`../SKILL.md` §The gate). No sweep in
+`tools/sdd-gc.py` constrains this cell's vocabulary. Full contract:
+`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values.
+
 ## Kickoff path — version gate — from §KICKOFF
 
 **Kickoff path — version gate.** `docs/.sdd-version` selects where the kickoff lives:

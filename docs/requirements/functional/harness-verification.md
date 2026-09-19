@@ -1,8 +1,8 @@
 ---
 domain: HARN
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-008, RS-005, RS-006]
+research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001]
 ---
 
 # Requirements: Harness Hardening — Decoupled Verification
@@ -218,3 +218,104 @@ SKILL.md body. (see RS-008 Q4 "not mechanical"; catalogue C9)
 classify a verdict, or judge scope; the principle appears in §Orchestrator-Only
 Work with pointers to the two references files.
 [Priority: must]
+
+### REQ-HARN-HARNESSP3-002: Every leaf template pins its return block inside the fenced prompt body
+The literal `RETURN:` key block must live **inside the fenced prompt body** of
+every leaf dispatch template, not in adjacent or later prose. Today the PIPELINE
+template (`references/dispatch-templates.md` §PIPELINE) and the fan-out leaf
+template (`references/fan-out.md` §2) already pin the literal key block inside
+the fence; the **chunk verifier** template states only "then the `RETURN:`
+block, whose last line is `CHUNK_VERDICT:`" with the shape in a later prose
+subsection, and the **red team** template says "Return in the shape below" with
+the shape in an adjacent subsection. Move the literal key block inside the
+fenced bodies of the chunk-verifier and red-team templates (red keeps its `Rn`
+line shape above the block and `RED_VERDICT:` on its own last line). The fix
+re-dispatch needs no separate change — it is the PIPELINE template with
+`{on_fix_only}`. The **review** template carries no `RETURN:` block by contract
+(`references/return-contract.md` §6, a review emits `VERDICT:` only), but its
+own-line `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT` token must be pinned
+inside its fenced body on the same principle. (see RS-HARNESSP3-001 Q2(i) —
+spec-read: the template table maps the observed drift exactly onto
+inside-the-fence vs outside-the-fence; the run corroboration behind it is n = 3
+and uncontrolled)
+**Acceptance**: the fenced bodies of the chunk-verifier and red-team templates
+in `references/dispatch-templates.md` each contain the full literal key list in
+contract order, and the review body contains the literal `VERDICT:` token line;
+`docs/spec/harness-return-contract.md`, `docs/spec/harness-chunk-verifier.md`
+and `docs/spec/adversarial-verify.md` §Red Dispatch Template carry the same
+bodies; no template's `RETURN:` shape is reachable only from prose outside its
+fence.
+[Priority: must]
+
+### REQ-HARN-HARNESSP3-003: A malformed `budget_consumed` shape is a pause, not a warning
+`references/return-contract.md` §Parsing must gain exactly one condition:
+
+```
+RETURN: MALFORMED (budget_consumed shape)   # present but not a map of unit -> integer
+```
+
+`status` and `budget_consumed` are the only two keys the **gate arithmetic**
+consumes — `budget_consumed` is rendered at every gate against the dispatched
+`Budget:` and sizes the next repair packet's `budget` — and `status` already has
+a malformed condition, so this closes the pair. The other nine keys stay a
+`RETURN: KEYS MISSING` **warning**: `files_written` is independently
+cross-checked by the write-scope observation so an omitted list cannot hide a
+write, and `tasks_completed`, `traceability_fills`, `chunk_close`, `failures`,
+`ledger`, `verified_do_not_touch`, `open_questions` and `commits` feed
+bookkeeping that degrades to "nothing to do" or that the orchestrator can
+observe for itself. `blocked_writes` is the deliberate borderline case — an
+omitted list silently loses content, but only when the leaf also failed to
+write, which surfaces as the deliverable being absent from the observed window;
+§1 must record that reasoning beside the warning so the boundary reads as a
+decision rather than an omission. (see RS-HARNESSP3-001 Q2(ii) — spec-read plus
+judgement; the "elevate exactly these two" boundary has no run evidence either
+way and is ratified here rather than inherited as an edit)
+**Acceptance**: `references/return-contract.md` §Parsing lists the
+`budget_consumed` shape row and §1 carries the `blocked_writes`-stays-a-warning
+note; `docs/spec/harness-return-contract.md` matches; a fixture return whose
+`budget_consumed` is prose rather than a map of unit → integer pauses the gate
+as `RETURN: MALFORMED (budget_consumed shape)`, and a fixture missing only
+`ledger` still renders a `KEYS MISSING` warning and does not pause.
+[Priority: must]
+
+### REQ-HARN-HARNESSP3-005: Review findings a fix leaf must not touch route to the next dispatch's deliverable contract
+`references/return-contract.md` §3 must state that review findings raised
+against an artifact the fix leaf is **not** scoped to touch are carried into the
+**next pipeline dispatch's** `{deliverable_contract}` slot rather than into the
+repair packet. No schema change: a `carry_to_next_dispatch:` field was
+considered and is not worth the cost, and the slot already exists. This
+specifies what the operator did by hand on 2026-09-18 when a repair packet had
+no place for such a finding. (see RS-HARNESSP3-001 Q8-IN row 4 — provenance:
+raised by the 2026-09-18 run itself, not carried in from the kickoff's Q8 seed
+list; observed gap with a constructed remedy, cheap enough that being wrong
+costs one edit)
+**Acceptance**: `references/return-contract.md` §3 names the
+`{deliverable_contract}` slot as the destination for out-of-fix-scope review
+findings and states that no repair-packet field is added;
+`docs/spec/harness-return-contract.md` carries the same sentence.
+[Priority: should]
+
+### REQ-HARN-HARNESSP4-007: the three leaf terminal tokens sit at column 0 in every template and restating spec
+The `CHUNK_VERDICT: PASS | FAIL` token in `references/dispatch-templates.md`'s
+CHUNK VERIFIER dispatch body and `RETURN:` block must sit at **column 0**, as
+`VERDICT:` (REVIEW) and `RED_VERDICT:` (RED TEAM) already do, and
+`skills/sdd-orchestrate/SKILL.md` must state the verifier token's parse rule as
+`^CHUNK_VERDICT:` on the last non-blank line, matching the anchored wording it
+already uses for the other two. The Approved specs that restate the fenced
+bodies byte-for-byte — `docs/spec/harness-chunk-verifier.md` (and
+`docs/spec/adversarial-verify.md` where a body it restates changes) — are
+amended in the same change so REQ-HARN-HARNESSP3-002's byte-consistency
+contract is preserved, and the `[template-drift]` rule of REQ-LINT-HARNESSP4-001
+is the mechanical check that they were. The template is the outlier today: two
+tokens are `^`-anchored, live leaves already render the third at column 0, and
+an indented template invites a leaf to emit an indented token a future anchored
+parser would miss. (workstream `harness-p4`; see `docs/ws/harness-p3/verification.md`
+§V9 — recorded with a recommendation; needs a cycle that can amend the two
+Approved specs)
+**Acceptance**: `grep -n '^  CHUNK_VERDICT:' skills/sdd-orchestrate/references/dispatch-templates.md`
+returns nothing and `grep -c '^CHUNK_VERDICT:'` on the same file is ≥ 2;
+`SKILL.md` §The gate states `^CHUNK_VERDICT:`; the fenced bodies of
+`dispatch-templates.md` and `harness-chunk-verifier.md` are byte-identical after
+the edit (`python3 tools/sdd-skill-lint.py` exits 0 with the `[template-drift]`
+rule active).
+[Priority: should]

@@ -1,8 +1,9 @@
 ---
 status: Approved
-last_updated: 2026-05-25
+last_updated: 2026-09-18
 requires:
   - REQ-MPLAN-001
+  - REQ-REDB-HARNESSP3-004
   - REQ-MPLAN-002
   - REQ-MPLAN-003
   - REQ-MPLAN-004
@@ -98,7 +99,18 @@ What this milestone delivers.
 
 ## Risks
 - [Risk]: [impact and mitigation]
+
+## Post-cycle Fixes          # optional, orchestrator-owned, outside the task list
+- R3 — <what was broken, what was changed, path> (<sha>)
 ```
+
+[Amended 2026-09-18, REQ-REDB-HARNESSP3-004] `## Post-cycle Fixes` is part of
+the plan-structure contract: **optional**, **orchestrator-owned**, and
+**outside the task list**. `sdd-plan` / `sdd-replan` must carry it across a plan
+rewrite rather than stripping it, and `sdd-implement` must not read its lines as
+tasks. It records a verify-stage `RED_BREAK` fix that belongs to no open chunk,
+one line per fix; the owning contract is
+`docs/spec/adversarial-verify.md` §`## Post-cycle Fixes` in the Active Plan.
 
 **Required frontmatter**:
 - `milestone:` — the milestone ID (e.g., `M2`), matching the index table
@@ -215,6 +227,7 @@ directly, as in the current model.
 - [ ] Per-milestone plan files at `docs/plan-{id}.md` (REQ-MPLAN-001)
 - [ ] `docs/plan.md` serves as lightweight index (REQ-MPLAN-001)
 - [ ] Milestone plan files include `milestone:` frontmatter (REQ-MPLAN-002)
+- [ ] The plan file format lists `## Post-cycle Fixes` as optional, orchestrator-owned and outside the task list; a plan rewrite by `sdd-plan` / `sdd-replan` preserves it and `sdd-implement` does not read it as tasks (REQ-REDB-HARNESSP3-004)
 - [ ] Index lists milestones with status and plan file path (REQ-MPLAN-002)
 - [ ] Completed milestones archived to plan-history (REQ-MPLAN-003)
 - [ ] Archive naming uses `{date}-{milestone-id}-complete.md` (REQ-MPLAN-003)

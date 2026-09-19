@@ -146,6 +146,12 @@ return is **malformed** when:
 - the `RETURN:` line is absent;
 - `status:` is not the first key or not one of the four values;
 - `status: BUDGET_EXHAUSTED` lacks `budget_consumed`;
+- `budget_consumed` is present but is **not a map of unit -> integer**
+  (`RETURN: MALFORMED (budget_consumed shape)`, REQ-HARN-HARNESSP3-003) —
+  checked **structurally**: the value must parse as a mapping whose every value
+  is an integer. Unit *names* are not constrained (`tool_calls`, `test_runs` and
+  any stage-specific unit are all legal), so the check never pauses a gate over
+  vocabulary drift, only over shape (Q-IMPL-HARNESSP3-004);
 - a `failures[]` entry lacks `test` or `message`;
 - any value spans multiple lines (traceback smuggling);
 - `status: COMPLETE` with non-empty `failures` (contradictory).
@@ -165,10 +171,48 @@ Warnings (not pauses), shown on the gate line:
 ```
 RETURN: KEYS MISSING (<names>)     # the named keys read as empty ([] / no value)
 RETURN: MULTIPLE                   # block returned more than once (e.g. once per chunk); the LAST block is taken
+RETURN drift: <k> path(s) claimed, not observed: <paths>   # RETURN.files_written − observed writes
 ```
 
 `CHUNK_VERDICT` present on a non-verifier return is likewise a warning, and the
 key is ignored.
+
+**Return-drift warning (REQ-HARN-HARNESSP4-002).** The fourth parser warning,
+`RETURN drift: <k> path(s) claimed, not observed: <paths>`, is the set
+difference `RETURN.files_written − observed_writes` (observed writes =
+`porcelain_delta ∪ committed_delta ∪ content_delta`, `write-scope.md` §3):
+paths the leaf *claims* to have written that no delta observed — never written,
+or written and reverted. It is a **warning, never a pause**, rendered on the
+gate line beside `KEYS MISSING` / `MULTIPLE` / `FOREIGN_TOKEN`, sorted,
+repo-relative, comma-separated, and it is **excluded from the `COMMIT:`
+comparison**: `RETURN.files_written` is never an operand of the
+commit-fidelity check's `expected` set (`write-scope.md` §7a), so a return
+defect can never render a false `COMMIT: INCOMPLETE`. The inverse set
+(`observed − files_written`, a path written but not claimed) is **not** a
+warning — `KEYS MISSING` already covers an omitted list and the write-scope
+observation cross-checks every write independently. Telemetry records it as
+the `return.warnings` enum member `RETURN_DRIFT` (`telemetry.md` §Record
+Schema). This is the sequential analogue of the fan-out clause
+`RETURN.commits ⊆ git rev-list <base>..<tip>` (`fan-out.md` §3a.v).
+
+**Why only these two keys pause (REQ-HARN-HARNESSP3-003).** `status` and
+`budget_consumed` are the only two keys the **gate arithmetic** consumes —
+`budget_consumed` is rendered at every gate against the dispatched `Budget:` and
+sizes the next repair packet's `budget` — and `status` already had a malformed
+condition, so the condition above closes the pair. The other nine keys stay a
+`RETURN: KEYS MISSING` **warning**: `files_written` is independently
+cross-checked by the write-scope observation (`write-scope.md` §2), so an
+omitted list cannot hide a write; `tasks_completed`, `traceability_fills`,
+`chunk_close`, `failures`, `ledger`, `verified_do_not_touch`, `open_questions`
+and `commits` feed bookkeeping that degrades to "nothing to do" or that the
+orchestrator can observe for itself.
+
+`blocked_writes` is the **deliberate borderline case**, recorded here so the
+boundary reads as a decision rather than an omission: an omitted list silently
+loses content, which argues for a pause — but only when the leaf **also** failed
+to write, and that failure surfaces independently as the deliverable being
+absent from the observed write window. A warning therefore loses nothing the
+gate would not already show, so `blocked_writes` stays on the warning side.
 
 **Red-team returns (REQ-REDB-HARNESSP2-005).** A red return is additionally
 malformed — the same `RETURN: MALFORMED (<reason>)` pause with
@@ -261,6 +305,14 @@ Rules:
   `ledger_summary`. Do not modify `verified_do_not_touch` paths."
 - `reason` names why the packet exists; `MERGE_CONFLICT` packets add
   `conflict_paths` and `base` (§10).
+- **Out-of-fix-scope findings go to the next dispatch, not into the packet**
+  (REQ-HARN-HARNESSP3-005). A review finding raised against an artifact the fix
+  leaf is **not** scoped to touch (`write_scope` above) is carried into the
+  **next pipeline dispatch's** `{deliverable_contract}` slot
+  (`dispatch-templates.md` §PIPELINE), verbatim as one line, and is **not** put
+  in `findings`. The packet stays what the fix leaf can act on. No schema change
+  and no `carry_to_next_dispatch:` field — the destination slot already exists,
+  and a field was considered and declined as not worth the cost.
 - **`RED_BREAK`** (REQ-REDB-HARNESSP2-009; defined in
   `docs/spec/adversarial-verify.md` §Fix-Loop Interaction) — a red-team
   `BROKEN` finding the operator routed to `fix` at the verify-stage gate
@@ -271,7 +323,7 @@ Rules:
   | `reason` | `RED_BREAK` |
   | `failures` | red's `RETURN.failures` verbatim (one per `BROKEN` line routed) |
   | `findings` | the routed `Rn` lines verbatim (`id` = `Rn`, `text` = the line; no `affects`) |
-  | `target.chunk` | resolved by §5 with the **spec** taken from the `## Red team — <spec.md>` heading the `Rn` line sits under (red lines carry no `affects`); a spec traced by no chunk → `all` |
+  | `target.chunk` | resolved by §5 — **step 1'** narrows on the routed `Rn`'s `failures[].location` first; otherwise the **spec** taken from the `## Red team — <spec.md>` heading the `Rn` line sits under (red lines carry no `affects`); a spec traced by no chunk → `all` |
   | `write_scope`, `budget` | that chunk's default row (`write-scope.md` §2; §Budget grammar) |
   | `iteration` | the **verify** stage's fix-loop counter — one red round = at most one iteration (`loop-control.md` §2a "Red round") |
 
@@ -318,11 +370,29 @@ findings mechanically — no judgement, no paraphrase:
    union of the plan's chunk write scopes, dispatched after the per-chunk fix
    dispatches.
 
-**Red-team findings** (`reason: RED_BREAK`) enter the same mapping at step 2:
-the spec is the `## Red team — <spec.md>` heading the routed `Rn` line sits
-under (red lines carry no `affects`, so step 1 is skipped); a spec traced by no
-chunk → `all` per step 4 (`docs/spec/harness-return-contract.md`
-Q-IMPL-HARNESSP2-003).
+**Red-team findings** (`reason: RED_BREAK`) enter the mapping at **step 1'**,
+inserted ahead of the heading-spec step (REQ-REDB-HARNESSP3-001):
+
+```
+1'. If the routed Rn's failures[].location names a file or chunk, resolve it to
+    the chunk whose tasks' implementation modules include that file.
+    Otherwise fall back to the spec named in the
+    "## Red team — <spec.md>" heading and continue at step 2 as today.
+```
+
+`location` is a `path:line` or a chunk name (Q-IMPL-HARNESSP3-003): a
+`location` that already names a chunk is used verbatim; a path is matched
+against the implementation modules named by each `### Chunk N:` task in the
+active plan, and resolves only when **exactly one** chunk owns it — a path owned
+by more than one chunk, or by none, falls through rather than guessing.
+
+On fall-through, step 2 is unchanged: the spec is the `## Red team — <spec.md>`
+heading the routed `Rn` line sits under (red lines carry no `affects`, so step 1
+is skipped); a spec traced by no chunk → `all` per step 4
+(`docs/spec/harness-return-contract.md` Q-IMPL-HARNESSP2-003). Step 1' only
+**narrows** the input to an otherwise unchanged mapping — the whole-plan
+fallback stays the rule, and nothing that resolved to a chunk before can be
+excluded by it.
 
 One review round is one fix iteration for the stage (`iteration N of MAX`)
 regardless of how many chunk-grouped dispatches it fans into. Every fix

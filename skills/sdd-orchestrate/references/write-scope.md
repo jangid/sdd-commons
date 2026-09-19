@@ -43,19 +43,31 @@ the redo's scope is the (possibly widened) scope of the dispatch it repairs.
 
 Marker `3` paths. Under marker `4`, `docs/plan*.md`, `docs/plan-history/**`,
 `docs/verification.md` and the traceability write resolve to their
-`docs/ws/<id>/` equivalents (`docs/ws/<id>/traceability.md` plus the
-regenerated aggregate `docs/requirements/traceability.md`), while
+`docs/ws/<id>/` equivalents (`docs/ws/<id>/traceability.md`), while
 `docs/research/**`, `docs/requirements/**` and `docs/spec/**` stay shared
 (§9).
+
+**Leaf rows omit the shared aggregate (REQ-WS-HARNESSP3-001).** For an
+**orchestrated** dispatch the shared aggregate `docs/requirements/traceability.md`
+is **not** part of any leaf row: regenerating it is the orchestrator's post-gate
+bookkeeping, committed separately (§7). The path appears in a leaf's
+`{write_scope}` only for a **standalone** (non-orchestrated) run, where the
+writing skill regenerates the aggregate itself. The omission *is* the
+discriminator, and no new flag or field is introduced: **absent path → the
+orchestrator regenerates; present path, or no dispatched write scope at all →
+the skill regenerates itself.** A skill therefore never has to know *who*
+invoked it, only what it was scoped to write. The rows below are stated in that
+amended form; the owning contract is `docs/spec/ws-traceability.md` §Aggregate
+Regeneration Ownership.
 
 | Stage / dispatch | Default write scope | Note |
 |---|---|---|
 | research | `docs/research/RS-NNN-*/**`, `docs/research/index.md` | `sdd-research` Steps 5–6 |
-| requirements | `docs/requirements/**` | category files, `index.md`, `traceability.md` rows |
-| specs | `docs/spec/**`, `docs/requirements/traceability.md` | traceability: Spec column only |
+| requirements | `docs/requirements/**`, minus `docs/requirements/traceability.md` when orchestrated | category files, `index.md`; marker `4`: rows go to `docs/ws/<id>/traceability.md` |
+| specs | `docs/spec/**`; marker `3`: `docs/requirements/traceability.md` (Spec column only) — marker `4`: `docs/ws/<id>/traceability.md` (Spec column only), plus the aggregate only for a standalone run | traceability: Spec column only |
 | plan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**` | rewrite archives, never `-replan-` |
-| implement (sequential, per chunk) | the chunk's source/test paths, `docs/plan.md`, `docs/plan-*.md`, `docs/requirements/traceability.md`, `docs/spec/*.md` (**ADVISORY**), `docs/plan-history/*-complete.md`, `docs/research/RS-NNN-*/**` + `docs/research/index.md` | traceability: Test/Implementation columns; spec writes = Q-IMPL entries; `-complete` archives multi-milestone only; research paths spike tasks only |
-| verify | `docs/verification.md`, `docs/requirements/traceability.md` | traceability: Verified column (Step 3b) |
+| implement (sequential, per chunk) | the chunk's source/test paths, `docs/plan.md`, `docs/plan-*.md`, the active traceability file (marker `3` `docs/requirements/traceability.md`, marker `4` `docs/ws/<id>/traceability.md`; the aggregate only for a standalone run), `docs/spec/*.md` (**ADVISORY**), `docs/plan-history/*-complete.md`, `docs/research/RS-NNN-*/**` + `docs/research/index.md` | traceability: Test/Implementation columns; spec writes = Q-IMPL entries; `-complete` archives multi-milestone only; research paths spike tasks only |
+| verify | `docs/verification.md`, the active traceability file (marker `3` `docs/requirements/traceability.md`, marker `4` `docs/ws/<id>/traceability.md`; the aggregate only for a standalone run) | traceability: Verified column (Step 3b) |
 | replan | `docs/plan.md`, `docs/plan-*.md`, `docs/plan-history/**`, `docs/spec/*.md` (**ADVISORY**) | `-replan-` archives; spec only for a Level-2 inline change |
 | fan-out leaf | the chunk-group's code and test paths **only** | plan + traceability barred by `fan-out.md` §2; `docs/spec/*.md` barred too — leaves never write Q-IMPL entries directly; a deviation is returned in `RETURN.open_questions` and the orchestrator files the Q-IMPL entry at merge (§3e) |
 | review, chunk verifier | *(empty — read-only)* | any write is `OUT` |
@@ -156,7 +168,9 @@ the verifier and the stage gate in place of the per-chunk gate.
 **Rules.**
 - `--untracked-files=all` expands untracked directories to file paths.
 - Paths present in both snapshots (pre-existing untracked noise such as
-  `.claude/worktrees/`) cancel — only the *delta* is a write.
+  `.claude/worktrees/`) cancel **only when their content hash is also
+  unchanged** (content-hash observation below) — otherwise only the *delta*
+  is a write.
 - Deletions (`D`) and renames (`R`, both old and new path) count as writes; a
   rename across the scope boundary (`R src/a.py -> docs/a.py`) tags the new
   path `OUT` and the old path `IN` — one finding.
@@ -168,6 +182,58 @@ the verifier and the stage gate in place of the per-chunk gate.
   above the path list and counted as a violation. The option offered is
   `stop` plus a manual recovery hint (`git reflog` in the affected tree) —
   **never an automatic reset** (`../SKILL.md` §Isolation Discipline).
+
+**Content-hash observation (REQ-HARN-HARNESSP3-001).** The porcelain pair is
+blind to a path that is **already dirty or untracked at snapshot time** and is
+written again during the dispatch: its status letter is unchanged, so the delta
+cancels it, and an uncommitted write leaves no committed delta either. A fourth
+term closes that gap — call it the **content-hash observation** in prose, never
+"the fourth observation" (the named-base observation above is already a
+four-part one).
+
+```
+ambiguous_set := paths listed as dirty or untracked by snapshot(before)
+sha.before    := {(path, content_hash) for path in ambiguous_set}          # pre-dispatch
+sha.after     := {(path, content_hash) for path in ambiguous_set INTERSECT snapshot(after)}
+content_delta := {p | sha.before[p] != sha.after[p]}
+                 UNION {p in sha.before and absent from the worktree on return}
+
+observed writes := porcelain_delta UNION committed_delta UNION content_delta
+```
+
+- The hash is taken over **working-tree** content — the blindness being closed
+  is an uncommitted working-tree rewrite. The contract is the `(path, sha)`
+  pair set, so any hash function conforms as long as the same one is used for
+  the before and the after snapshot of a dispatch; `git hash-object
+  --stdin-paths` over the ambiguous set is the recommendation, since the value
+  is git's own blob identity and needs no second hashing dependency
+  (`harness-write-scope.md` Q-IMPL-HARNESSP3-001).
+- A path **deleted** during the dispatch records the reserved non-hash sentinel
+  `ABSENT` in the sha slot — it cannot collide with a hex digest, so the
+  comparison stays a plain inequality and needs no separate presence set
+  (Q-IMPL-HARNESSP3-002). The sentinel pair is itself a content change.
+- Porcelain is parsed with **`-z`** (NUL-separated fields, no shell quoting or
+  mangling of paths containing spaces or newlines), and **both** paths of a
+  rename or copy (`R`, `C`) record enter the ambiguous set.
+- The `SCOPE:` token, the `IN` / `ADVISORY` / `OUT` tags, the `N` count, the
+  finding block, the operator options and the `HISTORY_REWRITE` rule are
+  **unchanged**: this changes *what counts as an observed write*, not how one
+  is matched or rendered, and `HISTORY_REWRITE` still rests on the untouched
+  ancestry check (c).
+- Cost is bounded to **O(dirty files)**, never O(repo), because the ambiguous
+  set is fixed before the dispatch (probe: 134 files in 0.064 s, an 8-path set
+  in 0.017 s, against a 0.008 s porcelain baseline — RS-HARNESSP3-001 Q1).
+  `git stash create` and a temp-index `read-tree HEAD` were both measured and
+  rejected: the first mutates the repository being observed, the second diffs
+  against HEAD and reproduces the identical blindness.
+- **Strict set (REQ-HARN-HARNESSP4-004).** The `UNION` is a set and the
+  implementation must be one: a path observed by more than one term is counted
+  **once** in the `N` of `SCOPE: VIOLATION (N paths)`, once in each `COMMIT:`
+  operand (§7a) and listed once on the `Observed writes:` provenance line,
+  keeping its richest label — `committed ≻ content ≻ porcelain` (fixture F14
+  of `tools/sdd-scope-check-selftest.py`: dirty at snapshot, committed during
+  the dispatch, dirtied again → one entry, `committed <sha>`, `(1 path)`).
+- Fixture: scenario F10 of `tools/sdd-scope-check-selftest.py` (both halves).
 
 **Third observation (telemetry) — REQ-TELEM-HARNESSP2-005.** Because `.sdd/`
 is gitignored (limitation (b), §5), the porcelain pair cannot see a leaf write
@@ -341,6 +407,14 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
   take `HEAD_before` at that named base, exclude `HEAD_prov..base` from the
   window and render the `CATCH-UP` line. Contract:
   `docs/spec/dispatch-snapshot-base.md`.
+- **(d) Round trip within one dispatch.** A file modified and then reverted to
+  its original content inside the dispatch — or created and then deleted —
+  stays invisible: **unchanged**, because a content hash cannot see a round
+  trip either.
+- **Closed, not a limitation:** a path **already dirty or untracked at snapshot
+  time** and written again during the dispatch is now observed by the
+  content-hash observation of §3 (REQ-HARN-HARNESSP3-001); it is no longer
+  recorded here.
 - Writes outside the repository (scratchpad, `$TMPDIR`) are the sandbox's
   concern, not this check's. The shared stash stack is out of scope (skills
   never stash).
@@ -407,6 +481,19 @@ Staging Path.
 | fan-out leaf (and its redo) | **leaf**, on its own branch with inline identity flags (REQ-ORCH-027); the orchestrator merges on `proceed` at the per-leaf gate | `commits` |
 | review | nobody | — |
 | chunk verifier | nobody | `files_written: []` |
+| aggregate regeneration (marker `4`, post-gate bookkeeping) | **orchestrator**, in its **own** commit, separate from any leaf's | — (not a dispatch; driven by the session dirty flag) |
+
+**Aggregate-regeneration bookkeeping commit (REQ-WS-HARNESSP3-001).** Under
+marker `4` the shared `docs/requirements/traceability.md` is regenerated
+wholesale from the per-ws files by the **orchestrator**, never by a leaf, and
+committed on its own — it is never folded into the chunk/stage commit that
+carries the leaf's `files_written`, and never into a leaf's branch commit under
+fan-out. It runs **after** the snapshot window closes, so it is never observed
+by the write-scope check (§9), and it fires at **every** gate outcome —
+`proceed`, `loop-back-to-fix` and `stop` alike — whenever a leaf wrote per-ws
+traceability rows since the last regeneration (`../SKILL.md` §The gate;
+`fan-out.md` §3e for the fan-out path). Regeneration is wholesale and
+idempotent, so a repeat costs nothing and never compounds.
 
 Each template's return step states its row (`dispatch-templates.md` §PIPELINE
 step 4, §REVIEW, §CHUNK VERIFIER; `fan-out.md` §2 step 3). A pipeline leaf that
@@ -440,6 +527,104 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
 (`revert path | accept & widen scope | stop`) are resolved first, inside this
 gate, and the gate is re-rendered with the resulting `SCOPE:` line.
 
+### 7a. Commit-fidelity check — `COMMIT: COMPLETE | INCOMPLETE` (REQ-HARN-HARNESSP4-001, -002, -003)
+
+This is the **skill-side defining section** for the check (the lint row's
+`fix:` points here; spec: `docs/spec/harness-commit-fidelity.md`). The write-
+scope check above asks *did the leaf write only where it was allowed to?* —
+a pre-decision question about the leaf. The commit-fidelity check asks *did
+the orchestrator land everything the leaf wrote?* — a **post-decision**
+question about the orchestrator's own commit, computable only after `proceed`.
+It shares the observed-writes set as an input and nothing else: subject, gate
+position, token family, pause options and telemetry group are its own.
+
+**Comparands.**
+
+```
+landed   := git diff --name-only --no-renames -z <HEAD_before> <HEAD_landed>
+            # -z: NUL-separated output, split on \0, so a space in a path stays one path
+            # a two-sha RANGE, captured right after the orchestrator's own commit
+            # (or merge) and BEFORE any bookkeeping commit — never `git show HEAD`
+expected := <mode-specific path set — table below>
+COMMIT: COMPLETE (N paths)                                        # expected == landed; N = |landed|, distinct paths
+COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <paths>])
+```
+
+- `HEAD_before` is the integration-line HEAD taken by `snapshot(before)`
+  immediately before the dispatch — the same sha `committed_delta` (§3, term
+  (b)) starts from — and it is the range start **unconditionally**: it equals
+  the gate-time HEAD whenever the leaf did not commit, and precedes the leaf's
+  commits when it did, so a compliant-but-eager leaf that committed anyway
+  (§7 above tolerates it) counts as landed with no special case.
+- `HEAD_landed` is the integration-line HEAD immediately after the
+  orchestrator's own chunk/stage commit (sequential) or merge (fan-out merge
+  step), **before** the aggregate-regeneration commit or any other bookkeeping
+  commit. Capture both shas first, then diff the range; never diff against a
+  moving `HEAD`.
+- **Why the range and not `git show --name-only HEAD`** (RS-HARNESSP4-001 §Q1):
+  `git show HEAD` names only the *last* commit — under fan-out a fast-forward of
+  a two-commit leaf renders a false `INCOMPLETE`, a true merge commit shows an
+  empty combined diff, and in sequential marker-4 mode the aggregate-
+  regeneration commit at every implement chunk would hide the chunk commit.
+  `--no-renames` keeps a rename as two paths on both sides (§3 observes both).
+- The token has **exactly two members**. `COMPLETE (N paths)` counts
+  **distinct** paths (the strict-set rule of §3 applies to both operands);
+  `INCOMPLETE` carries the `k observed, not landed: …` clause and, only when
+  `j > 0`, the `; j landed, not observed: …` clause on the **same line**. Paths
+  are repo-relative, sorted, comma-separated; the line is an own-line token
+  parsed as `^COMMIT:`, like `SCOPE:`. No third token exists for any case
+  (`fan-out.md` §3b explains why a merge drop needs none). A read-only or no-op
+  dispatch that reached `proceed` renders `COMMIT: COMPLETE (0 paths)`; review,
+  verifier and red dispatches never commit and render no `COMMIT:` line at all.
+
+**Comparand table.**
+
+| Gate | `expected` | `landed` | When computable | Position in the gate |
+|---|---|---|---|---|
+| sequential per-chunk gate and stage gate, on `proceed` | **observed writes only** — `porcelain_delta ∪ committed_delta ∪ content_delta` (§3) | `git diff --name-only --no-renames -z HEAD_before HEAD_landed` (NUL-separated, split on `\0`), captured right after the orchestrator's commit and before any bookkeeping commit | post-decision | closing line of the same gate — item 8 of `loop-control.md` §5 |
+| fan-out **per-leaf** gate | the leaf's observed writes in its worktree | the leaf's committed delta `git diff --name-only --no-renames -z <base> <tip>` (split on `\0`) — the write-scope check's own term (b) | pre-decision | position **2b** of `loop-control.md` §5 — after `SCOPE:`, before `CHUNK_VERDICT:` (`fan-out.md` §3a.v) |
+| fan-out **merge step**, per branch | that leaf's committed delta `base..tip` | `git diff --name-only --no-renames -z PRE_MERGE HEAD` on the integration branch (split on `\0`) | post-`proceed`, at merge | closing line after the merge — item 8 (`fan-out.md` §3b) |
+
+`base`, `tip` and `PRE_MERGE` are the shas `fan-out.md` §3a.v / §3b already
+compute; the check introduces no git state, no leaf, no counter and no artifact.
+
+**Sequential `expected` is the observed-writes set only (REQ-HARN-HARNESSP4-002).**
+`RETURN.files_written` is **never an operand** of `expected`. A path the leaf
+*claims* but never wrote — or wrote and reverted, so no delta observes it —
+cannot land; unioning the claim in would render `COMMIT: INCOMPLETE (observed,
+not landed)` for a defect of the leaf's *return*, not of the orchestrator's
+commit: a false pause on a load-bearing signal. The claim-vs-observation gap is
+instead the **return-drift warning** `RETURN drift: <k> path(s) claimed, not
+observed: <paths>` (`RETURN.files_written − observed`), owned by
+`return-contract.md` §1 — a warning beside `KEYS MISSING`, never a pause and
+never a `COMMIT:` term. This is the sequential analogue of the fan-out clause
+`RETURN.commits ⊆ git rev-list <base>..<tip>` (`fan-out.md` §3a.v): both keep a
+leaf's return error out of the landed-vs-observed comparison.
+
+**Placement.** In sequential mode the line cannot sit between `SCOPE:` and
+`CHUNK_VERDICT:` without asserting a commit that has not happened, so it renders
+as the **post-decision closing line of the same gate**, immediately after the
+commit and **before the next dispatch** — never deferred to the next gate the
+way `TELEMETRY: rec <n>` is (telemetry is never load-bearing; `COMMIT:` exists
+to be). The canonical order — item 8 and position 2b — is `loop-control.md`
+§5; this section states the comparands, not the order.
+
+**On `INCOMPLETE` the gate pauses** with three options:
+
+| Option | Effect |
+|---|---|
+| `amend (add the missing paths to the commit)` | the orchestrator stages every `observed, not landed` path and amends **its own** commit — never a leaf's commit and never a merge commit (`fan-out.md` §3b: `amend` is unavailable at the merge step) — then re-renders the line, which must now read `COMPLETE`. The write-scope check is **not** re-run: every amended path came from the observed set and was already classified there (`IN` / `ADVISORY` by construction — an `OUT` path could not have reached `proceed`). A `landed, not observed` clause is not amendable; it resolves by `accept (note)` or `stop` |
+| `accept (note)` | the note is recorded in the gate text and — if the path is never landed in a later commit of the cycle — in the plan's existing blocked-task note (`loop-control.md` §Circuit-break checkpoint): the only durable traces REQ-HARN-027 / REQ-ORCH-014 allow. No new artifact |
+| `stop` | as everywhere: the session ends at this gate; the partial commit stands and the pause text names the un-landed paths |
+
+**No next dispatch is issued until the pause is resolved** — including the
+implement-stage review after the last chunk: a review dispatched against an
+un-landed tree reviews the wrong artifact. `COMPLETE` needs no acknowledgement
+and does not alter the options. The pause is a member of the pause family
+beside `RETURN: MALFORMED`, `SCOPE: VIOLATION`, `REVIEW: CONTRADICTION` and
+budget exhaustion (`loop-control.md` §5, §6); telemetry normalises `amend` to
+`gate.decision: other`.
+
 ---
 
 ## 8. Operator options — summary
@@ -451,6 +636,7 @@ gate, and the gate is re-rendered with the resulting `SCOPE:` line.
 | `ADVISORY` path | none required — hint shown | operator eyeballs the hunk; counts 0 toward `N` |
 | `HISTORY_REWRITE` | `stop` + manual recovery hint | never an automatic reset |
 | verifier / review wrote anything | every path `OUT`; revert before any redo | `loop-control.md` §1b Verifier edge cases |
+| `COMMIT: INCOMPLETE` (post-decision, §7a) | `amend` │ `accept (note)` │ `stop` | `amend` stages only `observed, not landed` paths into the orchestrator's own commit, no write-scope re-run; no next dispatch until resolved |
 
 ---
 
@@ -459,11 +645,13 @@ gate, and the gate is re-rendered with the resulting `SCOPE:` line.
 Under `docs/.sdd-version` == `4` the default table's execution-artifact paths
 resolve to `docs/ws/<id>/…` (`docs/ws/<id>/plan.md`, `docs/ws/<id>/plan-*.md`,
 `docs/ws/<id>/plan-history/**`, `docs/ws/<id>/verification.md`,
-`docs/ws/<id>/traceability.md` + the regenerated aggregate
-`docs/requirements/traceability.md`); the shared corpus paths
+`docs/ws/<id>/traceability.md` — the aggregate
+`docs/requirements/traceability.md` is **not** in any orchestrated leaf row, §2);
+the shared corpus paths
 (`docs/research/**`, `docs/requirements/**`, `docs/spec/**`) are unchanged.
 The fan-out `<base>` is the workstream branch point (`fan-out.md` §0), and
 every revert / merge target is the **workstream branch**, never `main`. Under
 marker `3` the flat paths and `main` apply unchanged. The orchestrator's
-marker-4 aggregate regeneration in `fan-out.md` §3e happens after the snapshot
-and is never observed.
+marker-4 aggregate regeneration — `fan-out.md` §3e under fan-out, the post-gate
+step of `../SKILL.md` §The gate in sequential mode — happens after the snapshot
+and is never observed, and lands in its own bookkeeping commit (§7).

@@ -55,6 +55,33 @@ UNCHANGED — ignore the `workstream` argument, derive loop position from the fl
 artifacts below and never read `docs/ws/`. Under marker `4` execution artifacts
 are rooted at `docs/ws/<ws>/`: [`references/v4-workstreams.md`](references/v4-workstreams.md) §Workstream & version gate.
 
+**Cycle identity (REQ-CYCID-HARNESSP3-001, -002).** Before reading a
+**completion signal** as "this cycle is done" — `verification.md` `status: pass`,
+or `plan.md` `status: complete` with every task `[x]` — compare that artifact's
+frontmatter `research_id:` against the kickoff's (`docs/ws/<ws>/kickoff.md` under
+marker `4`, `docs/handoff/kickoff.md` under marker `3`) by **exact string
+equality** on the trimmed value — no normalisation, case folding or prefix
+matching (Q-IMPL-HARNESSP3-015). The three cases are exhaustive:
+
+1. **Mismatch** — the artifact's `research_id` differs from the kickoff's → **a
+   previous cycle's artifact**; this stage has not been reached in this cycle.
+2. **Field absent** — a kickoff with a `research_id` exists but the artifact
+   carries none (legacy; existing files are **never back-filled**) → the same
+   reading as a mismatch. Absence is the safe direction: it costs one re-entry,
+   it never asserts a completion that did not happen.
+3. **No usable discriminator** — no `kickoff.md` for this `(repo, workstream)`,
+   **or** a kickoff that carries no `research_id` (Q-IMPL-HARNESSP3-016) → the
+   comparison is **skipped entirely** and the existing `status:`-only rule
+   applies unchanged. Cycle identity is an orchestrated-cycle discriminator,
+   never a precondition for detection.
+
+See `docs/spec/cycle-identity.md`. The last two rows of the table below
+(`plan complete`, `verification.md` status pass) carry a completion signal and
+are subject to it. **Nothing is demoted**: `references/loop-control.md` §3's
+`git log -S'research_id: <id>'` runs against the **kickoff** and derives a
+cycle-start *date* for the replan re-entry cap — a different thing from this
+identity comparison, and its cap arithmetic is **unmodified**.
+
 | On disk | Loop position |
 |---------|---------------|
 | no `docs/handoff/kickoff.md` | before KICKOFF — run DISCUSS |
@@ -199,13 +226,14 @@ ownership is fixed per dispatch type (pipeline: orchestrator on `proceed`;
 fan-out leaf: the leaf; review/verifier: nobody): [`references/write-scope.md`](references/write-scope.md).
 
 **Telemetry.** Default **on** (opt-out at KICKOFF only, §KICKOFF). After **each
-gate** you append one record — counts, enums, shas, timestamps, never finding
-text — to the gitignored `.sdd/telemetry.jsonl`; no leaf ever writes it and no
-skill reads it: **never read by phase detection** — `rm -rf .sdd/` is
-behaviour-neutral. Bootstrap: if `git check-ignore -q .sdd/telemetry.jsonl`
-fails, append `.sdd/` to `.gitignore` as a bookkeeping commit outside any
-observed window. Post-cycle reader: `python3 tools/sdd-telemetry.py summarize`.
-Schema, writer rules, `TELEMETRY:` lines, third observation: [`references/telemetry.md`](references/telemetry.md).
+gate** the orchestrator appends **one record per dispatch, for every kind**: counts, enums,
+shas, timestamps — never finding text — to the gitignored `.sdd/telemetry.jsonl`; no leaf
+writes it, no skill reads it (**never read by phase detection**; `rm -rf .sdd/` is
+behaviour-neutral); if `git check-ignore -q .sdd/telemetry.jsonl` fails, append `.sdd/` to
+`.gitignore` as a bookkeeping commit outside any observed window. Records are stamped `v: 2`.
+Readers (post-cycle only): `python3 tools/sdd-telemetry.py summarize` and `--lint`. Schema,
+the per-kind clauses, `scope.widened`, the `commit` group and the `TELEMETRY:` lines:
+[`references/telemetry.md`](references/telemetry.md) §2–§3.
 
 ### Per-stage dispatch model
 
@@ -285,26 +313,71 @@ occurrence wins; never classify from prose) — surface it with the review's
 return text and **wait** for an explicit decision. Never auto-advance. Choices
 per token and per `RETURN.status`: `references/return-contract.md` §6, §7.
 
+**Chunk verifier token (REQ-HARN-HARNESSP4-007).** At the per-chunk gate parse
+`^CHUNK_VERDICT:` on the **last non-blank line** of the verifier's return —
+`CHUNK_VERDICT: PASS | FAIL`, anchored at column 0 exactly as `^VERDICT:` and
+`^RED_VERDICT:` are (`docs/spec/harness-chunk-verifier.md` §Terminal Token at
+Column 0). The template emits the token unindented, the only key of the
+`RETURN:` block that is; a token that is missing, indented or not on the last
+non-blank line is a malformed return (`references/return-contract.md` §1) and
+is never classified from prose.
+
 | Decision | Action |
 |----------|--------|
 | **proceed** | Advance to the next stage. |
 | **loop-back-to-fix** | Re-dispatch the pipeline subagent with a repair packet (findings + paths by construction — `references/return-contract.md` §3; never a re-litigation of the reviewer's reasoning), then re-run the review for this stage. |
 | **stop** | Halt the loop; leave artifacts as-is. |
 
+**Post-gate aggregate regeneration (marker `4` — REQ-WS-HARNESSP3-001).** After
+the decision is collected, on **every** outcome — `proceed`, `loop-back-to-fix`
+and `stop` alike — and before the session ends, regenerate
+`docs/requirements/traceability.md` wholesale from the per-ws
+`docs/ws/<id>/traceability.md` files and commit it in the orchestrator's **own**
+bookkeeping commit, separate from the stage/chunk commit
+(`references/write-scope.md` §7; `references/fan-out.md` §3e is the fan-out path
+of the same step). Trigger: a **session dirty flag**
+(`docs/spec/ws-traceability.md` Q-IMPL-HARNESSP3-011) set whenever a leaf's
+`RETURN.traceability_fills` is non-empty and cleared after a successful
+regeneration commit — so a gate whose flag is clear regenerates nothing, and a
+stopped or looped-back stage never leaves the aggregate stale. The flag is
+session state, not an artifact; on a resumed session it starts set, costing at
+most one redundant regeneration (the operation is wholesale and idempotent) and
+never a missed one. The regeneration runs **after** the snapshot window closes,
+so it is never observed by the write-scope check. Leaves never write this path:
+it is absent from every orchestrated `{write_scope}` by construction
+(`references/write-scope.md` §2), and that absence is the signal the leaf reads.
+
+**How the decision is collected (presentation only).** Render the gate block
+verbatim as text — it is a fixture, and its signal order is the contract — then
+collect the decision through the host's option picker when the session has one,
+listing the gate's options as the choices, and fall back to plain text when it
+does not. The picker never replaces, summarizes or reorders the block above it,
+and never adds an option the gate does not offer. This binds nothing about the
+loop: the options, their meaning and the caps are unchanged.
+
 **Approve-with-fixes shortcut.** For `APPROVE_WITH_FIXES` (`sdd-review`: "fix
 the named findings, then proceed without re-review") **loop-back-to-fix** offers
 re-dispatch then re-review (default) or skip the re-review; *Reject* never skips it.
 
-**Gate signals — REQ-ORCH-034 order (pointers only).** In production order,
-all ephemeral (REQ-ORCH-013): (1) `RETURN.status` + `budget_consumed` vs the
-dispatched `Budget:` (`references/return-contract.md` §1, §7); (2) the
-own-line `SCOPE:` token (`references/write-scope.md` §5; `HISTORY_REWRITE`
-offers only `stop`); (3) per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` —
-1–3 render at the **per-chunk gate**; (3b) verify stage only, `RED_VERDICT:`
-with its `Rn` lines verbatim (below); (4) the review `VERDICT:`; (5) the loop
-counters — `iteration N of MAX` for the fix-loop cap and the replan re-entry
-count — 3b–5 render at the **stage gate**. Detail:
-[`references/loop-control.md`](references/loop-control.md) §5.
+**Gate signals — REQ-ORCH-034 order (pointers only).** The **canonical** order
+and every per-signal rule live in
+[`references/loop-control.md`](references/loop-control.md) §5; this is the
+one-line summary and never restates the order in a form that can diverge from
+it. In production order, all ephemeral (REQ-ORCH-013): (1) `RETURN.status` +
+`budget_consumed` vs the dispatched `Budget:`; (2) the own-line `SCOPE:` token;
+(3) per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` — 1–3 render at the
+**per-chunk gate**; (3b) verify stage only, `RED_VERDICT:` with its `Rn` lines
+verbatim, then — on a red round N >= 2 — the derived `RED: Rn new-ground |
+regression` lines after them, before the exit rule and before (4); (4) the
+review `VERDICT:`; (5) the loop counters; (6) the `REVIEW: CONTRADICTION` pause
+block when it fires, after the counters; (7) the `TELEMETRY:` line, last, before
+the options — 3b–7 render at the **stage gate**; (8) **post-decision**, the
+own-line `COMMIT: COMPLETE | INCOMPLETE` closing line rendered right after the
+orchestrator's own commit (or the fan-out merge; pre-decision at 2b for a
+fan-out per-leaf gate), pausing on `INCOMPLETE` with `amend | accept (note) |
+stop` before any next dispatch — comparands and pause in
+[`references/write-scope.md`](references/write-scope.md) §7a, position in
+`loop-control.md` §5.
 
 **Red team (verify stage only, opt-in — REQ-REDB-HARNESSP2-001, -007, -008).**
 Ask `red team: off | on` (default `off`; optional `red input: +verification.md`)
@@ -318,11 +391,20 @@ follows each `COMPLETE` blue return, before the review; parse
 fixed/accepted); per `BROKEN` line `fix (RED_BREAK packet) | accept (record) |
 stop` (`accept` records the `Rn` under `verification.md` §Issues Found → Minor).
 Blue `status: fail` or a non-`COMPLETE` return → `Red team: not run`, no red
-dispatch. On `proceed` flip `pending-red → pass` immediately before the
-orchestrator's commit (its only writer). Rounds, the `accept` line format and
+dispatch. On a red round **N >= 2**, before applying the exit rule, re-run the
+**previous round's** routed `reproduce:` command for each `BROKEN` `Rn` (held
+verbatim) and render the derived `RED:` lines at the position given in the
+signal order above — `new-ground` when that command now passes, `regression`
+when it still fails (REQ-REDB-HARNESSP3-002); red's return shape is unchanged.
+On `proceed` flip `pending-red → pass` immediately before the
+orchestrator's commit (its only writer). **The same flip turns every
+`Verified` cell reading `pending-red` to `pass`** — in the workstream's own
+`docs/ws/<id>/traceability.md`, leaving `fail` cells untouched — and
+regenerates the shared aggregate in the same post-gate bookkeeping step above
+(REQ-REDB-HARNESSP3-003). Rounds, the `accept` line format and
 the gate fixture: [`references/loop-control.md`](references/loop-control.md) §2a "Red round".
 
-**`TELEMETRY:` lines** (`WRITE FAILED` │ `OFF` │ `.gitignore updated`) render at most once each, immediately after the `iteration`/cap line and before the options — [`references/telemetry.md`](references/telemetry.md) §3.
+**`TELEMETRY:` lines** — the four-member family `rec <n>` │ `WRITE FAILED` │ `OFF` │ `.gitignore updated` (`rec <n>` is the positive member, `<n>` = successful appends this session) — render at most once each, immediately after the `iteration`/cap line (or after the `REVIEW: CONTRADICTION` token line when that pause fired) and before the options — [`references/telemetry.md`](references/telemetry.md) §3, signal (7) of [`references/loop-control.md`](references/loop-control.md) §5.
 
 **Fix-loop cap (REQ-HARN-001).** `FIX_LOOP_MAX` (default **3**) is per stage,
 session-only, incremented once per fix re-dispatch (never on `proceed`, `stop`

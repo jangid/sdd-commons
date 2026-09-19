@@ -1,11 +1,13 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-HARN-014
   - REQ-HARN-015
   - REQ-HARN-016
   - REQ-HARN-017
+  - REQ-HARN-HARNESSP3-002
+  - REQ-HARN-HARNESSP4-007
 ---
 
 # Harness Chunk-Close Verifier
@@ -79,10 +81,26 @@ run Check 2 or Check 4; do not invoke sdd-review or sdd-implement; do not fix
 anything.
 
 Return: findings in the chunk-close report shape (Check 1, Check 3, Gates),
-then the RETURN: block, whose last line is
-  CHUNK_VERDICT: PASS | FAIL
-on its own.
+then this RETURN: block — every key present (empties allowed), `status` first,
+`CHUNK_VERDICT:` on its own line, last:
+
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED
+  budget_consumed: {tool_calls: N, test_runs: N}
+  files_written: []                    # must be empty — read-only dispatch
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {chunk: N, check1: pass|fail, check2: deferred, check3: pass|advisory, check4: deferred, overrides: []}
+  failures: []                         # one line each: test / kind / message / location
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
+CHUNK_VERDICT: PASS | FAIL           # column 0 — the only key of the block not indented
 ```
+
+[Amended 2026-09-18: template body synchronised with references/dispatch-templates.md per the spec's own byte-consistency clause]
 
 Slot contract: `{repo_root_or_worktree_path}` (sequential: repo root; fan-out:
 the leaf's worktree), `{plan_path}` + `{N}`, `{spec_paths}` (resolved by the
@@ -130,10 +148,13 @@ RETURN:
 The verifier carries the **full** leaf key set (`harness-return-contract.md`
 §RETURN Block — every key present, empties allowed) plus `CHUNK_VERDICT`, which
 is the one verifier-only key; `check2` / `check4` read `deferred` because the
-verifier does not run them. `CHUNK_VERDICT:` is the last line of the block (or
-the line immediately after it); the orchestrator accepts either placement and
-treats a missing or unrecognized token as a malformed return
-(`harness-return-contract.md` §Malformed Returns). `files_written` must be `[]`;
+verifier does not run them. `CHUNK_VERDICT:` is the **last line of the block**, on its own line
+[Amended 2026-09-18, REQ-HARN-HARNESSP3-002: the earlier text also accepted the
+line immediately after the block; that latitude is withdrawn, matching the
+sibling red rule where `RED_VERDICT:` off the last line is
+`RETURN: MALFORMED`]. A token that is missing, unrecognized, or not on the last
+line of the block is a malformed return (`harness-return-contract.md`
+§Malformed Returns). `files_written` must be `[]`;
 the scope check on a verifier return must observe zero writes
 (`harness-write-scope.md`).
 
@@ -251,6 +272,54 @@ all chunks (`orchestration.md` §v5). Nothing the verifier produces is written
 to `docs/` by it or on its behalf; the durable effects are the redo's code
 changes and, on exhaustion, the checkpoint under the task.
 
+### Return Block Pinned Inside the Fenced Body (REQ-HARN-HARNESSP3-002)
+
+[Changed 2026-09-18: the verifier template stated only "then the `RETURN:`
+block, whose last line is `CHUNK_VERDICT:`", with the shape in a later prose
+subsection. Spec-read defect.]
+
+The verifier dispatch template's **fenced prompt body** must carry the literal
+`RETURN:` key block in contract order — `status`, `budget_consumed`,
+`files_written`, `commits`, `tasks_completed`, `traceability_fills`,
+`chunk_close`, `failures`, `ledger`, `verified_do_not_touch`, `open_questions`,
+`blocked_writes` — with `CHUNK_VERDICT: PASS | FAIL` as the last line, on its
+own line, **inside** the block. A prose pointer outside the fence is no longer
+sufficient. Everything else about the verifier — read-only write scope, budget,
+ephemerality, never committing — is unchanged; this is a placement fix, and the
+body here must stay byte-consistent with
+`references/dispatch-templates.md` and `docs/spec/harness-return-contract.md`.
+
+### Terminal Token at Column 0 (REQ-HARN-HARNESSP4-007)
+
+[Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-007; `docs/ws/harness-p3/verification.md` §V9.
+Contract only: the fenced body in §Verifier Dispatch Template is **not** edited
+at this stage — it must stay byte-identical to `references/dispatch-templates.md`
+until both change in one commit with the `[template-drift]` rule active.]
+
+The `CHUNK_VERDICT: PASS | FAIL` line in the CHUNK VERIFIER dispatch body and its
+`RETURN:` block sits at **column 0**, as `VERDICT:` (REVIEW) and `RED_VERDICT:`
+(RED TEAM) already do, and `skills/sdd-orchestrate/SKILL.md` §The gate states
+the parse rule as **`^CHUNK_VERDICT:` on the last non-blank line**, matching the
+anchored wording it uses for the other two tokens. Today the template is the
+outlier: two tokens are `^`-anchored, live leaves already render the third at
+column 0, and an indented template invites a leaf to emit an indented token that
+a future anchored parser would miss.
+
+```
+RETURN:
+  status: …
+  …
+  blocked_writes: []
+CHUNK_VERDICT: PASS | FAIL          # column 0 — the only key of the block not indented
+```
+
+Change discipline: `references/dispatch-templates.md` (source of record) and
+this spec's §Verifier Dispatch Template fence are edited **in the same change**,
+after the `[template-drift]` rule (`skill-lint-v5.md`, REQ-LINT-HARNESSP4-001)
+has landed, so REQ-HARN-HARNESSP3-002's byte-consistency contract is preserved
+mechanically. `docs/spec/adversarial-verify.md` restates no body that changes
+here and is untouched.
+
 ## Verification
 
 ### Automated
@@ -281,6 +350,8 @@ changes and, on exhaustion, the checkpoint under the task.
 - [ ] The verifier template carries only the listed slots including `Budget:`, an empty `Write scope:` and the `RETURN:` block with `CHUNK_VERDICT:`; it never commits; nothing is written to `docs/` for it (REQ-HARN-017)
 - [ ] Four-layer table in `sdd-review` and `CLAUDE.md` unchanged (REQ-HARN-014)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
+- [ ] The chunk-verifier template's fenced body contains the full literal `RETURN:` key list in contract order plus the own-line `CHUNK_VERDICT:` token, and the shape is not reachable only from prose outside the fence (REQ-HARN-HARNESSP3-002)
+- [ ] `grep -n '^  CHUNK_VERDICT:' skills/sdd-orchestrate/references/dispatch-templates.md` returns nothing and `grep -c '^CHUNK_VERDICT:'` on that file is ≥ 2; `SKILL.md` §The gate states `^CHUNK_VERDICT:`; the fenced bodies of `dispatch-templates.md` and this spec are byte-identical after the edit (`python3 tools/sdd-skill-lint.py` exits 0 with `[template-drift]` active) (REQ-HARN-HARNESSP4-007)
 
 ## Edge Cases
 
@@ -328,6 +399,12 @@ changes and, on exhaustion, the checkpoint under the task.
   restated identically.
 - **No unresolved contradictions.**
 
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+harness-chunk-verifier.md. The verifier's fenced `RETURN:` key list is checked
+identical to the one in `docs/spec/harness-return-contract.md` §RETURN Block;
+`CHUNK_VERDICT:` is defined here and consumed by the per-chunk gate described
+there.
+
 ## Open Questions
 
 1. **Default-on vs opt-in.** RS-008 flagged per-chunk dispatch cost as a
@@ -368,3 +445,10 @@ changes and, on exhaustion, the checkpoint under the task.
 **Decision**: the PIPELINE template carries `{implement_only}Chunk: Chunk {N} — implement THIS chunk's tasks only`, mirroring the existing `{on_fix_only}` convention; the spec names the parameter "Chunk N" without a slot token.
 **Rationale**: consistency with the template's existing conditional-slot style.
 **Date**: 2026-09-17 (Chunk 3)
+
+### Q-IMPL-HARNESSP4-009: The §Verdict Rule return-shape example keeps its indented token
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Terminal Token at Column 0 (REQ-HARN-HARNESSP4-007); §Acceptance Criteria (`grep -n '^  CHUNK_VERDICT:'` on `dispatch-templates.md` returns nothing)
+**Decision**: the column-0 move is applied to the two `[template-drift]`-paired fences (the CHUNK VERIFIER dispatch body in `references/dispatch-templates.md` and this spec's §Verifier Dispatch Template restatement, byte-identical) and to the worked `yaml` return-shape example in `dispatch-templates.md` §Return contract, so the file-wide grep criterion holds. The twin `yaml` example under this spec's §Verdict Rule is **not** edited: it is not a lint pair, and the Chunk 7 write scope admits exactly one Approved-spec edit — the §Verifier Dispatch Template fence.
+**Rationale**: the contract is the dispatch body a leaf is pasted, which now shows the unindented token; the §Verdict Rule example is illustrative prose whose indentation the acceptance criteria do not constrain, and widening an Approved-spec edit beyond the operator's one-path widening would be a scope violation, not a fix. A later specs pass may align the example.
+**Date**: 2026-09-19 (harness-p4 Chunk 7)

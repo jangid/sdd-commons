@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-REDB-HARNESSP2-001
   - REQ-REDB-HARNESSP2-002
@@ -14,6 +14,12 @@ requires:
   - REQ-SKILL-HARNESSP2-002
   - REQ-SKILL-HARNESSP2-005
   - REQ-LINT-HARNESSP2-001
+  - REQ-REDB-HARNESSP3-001
+  - REQ-REDB-HARNESSP3-002
+  - REQ-REDB-HARNESSP3-003
+  - REQ-REDB-HARNESSP3-004
+  - REQ-HARN-HARNESSP3-002
+  - REQ-REDB-HARNESSP4-001
 ---
 
 # Adversarial (Red/Blue) Verify
@@ -81,8 +87,31 @@ Write scope: (empty — read-only)
 Commit ownership: you never commit
 Rules: pick the weakest criteria; construct inputs/commands that violate them; a break counts ONLY
        with a reproducible `reproduce:` command or test id — otherwise report it as HELD with your
-       suspicion under `observed:`. Return in the shape below; end with RED_VERDICT: on its own last line.
+       suspicion under `observed:`.
+Return, in this order — one `## Red team — <spec.md>` heading per spec examined, one Rn line per
+attempted criterion, then this RETURN: block (every key present, empties allowed, `status` first),
+then the token on its own last line:
+
+## Red team — <spec.md> acceptance criteria
+- R1: <criterion text> — attack: <what was tried> — observed: <one line> — reproduce: `<command or test id>` — BROKEN | HELD
+RETURN:
+  status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED
+  budget_consumed: {tool_calls: N, test_runs: N}
+  files_written: []                    # must be empty — read-only dispatch
+  commits: []
+  tasks_completed: []
+  traceability_fills: []
+  chunk_close: {}
+  failures:                            # exactly one entry per BROKEN line; [] when none
+    - {test: "<reproduce command or test id>", kind: assertion|error|lint|type|build, message: "<one line>", location: <path:line>}
+  ledger: []
+  verified_do_not_touch: []
+  open_questions: []
+  blocked_writes: []
+RED_VERDICT: BROKEN | HELD
 ```
+
+[Amended 2026-09-18: template body synchronised with references/dispatch-templates.md per the spec's own byte-consistency clause]
 
 Input contract (checked by the orchestrator's pre-dispatch self-check):
 
@@ -171,6 +200,13 @@ Signal order at the verify stage gate extends REQ-ORCH-034: `RETURN.status` →
 `SCOPE:` → **`RED_VERDICT:`** → review `VERDICT:` → counters. Red's `Rn` lines
 are rendered verbatim under the token.
 
+[Amended 2026-09-18, REQ-REDB-HARNESSP3-002] On a red round N >= 2 the token's
+block gains the derived `RED:` lines: signal order reads `RETURN.status` →
+`SCOPE:` → **`RED_VERDICT:`** (its `Rn` lines verbatim, then one derived `RED:`
+line per `BROKEN` `Rn`, **after** the `Rn` lines) → review `VERDICT:` →
+counters. The re-run rule is stated with the block below; §New-Ground vs
+Regression on Red Round N >= 2 carries the rationale.
+
 ```
 Verify stage gate — pipeline #9 (sdd-verify), red #10, review #11
   RETURN.status  : COMPLETE   budget_consumed: {tool_calls: 41, test_runs: 6}  vs  Budget: ~70 tool calls
@@ -178,11 +214,20 @@ Verify stage gate — pipeline #9 (sdd-verify), red #10, review #11
   RED_VERDICT: BROKEN
     - R1: <criterion> — attack: … — observed: … — reproduce: `python -m app --window 0` — BROKEN
     - R2: <criterion> — attack: … — observed: held — reproduce: `pytest -q tests/test_recon.py::test_window` — HELD
+  RED: R1 new-ground (prior R6 reproduce now passes)          # round N >= 2 only
   VERDICT: APPROVE
   iteration 0 of 3
   Options per BROKEN finding: R1 → fix (RED_BREAK packet) | accept (record) | stop
   proceed: unavailable until every BROKEN Rn is fixed or accepted
 ```
+
+Re-run rule for the `RED:` lines: on a red round N >= 2, for each `BROKEN` `Rn`
+the orchestrator re-runs the **previous round's** routed `reproduce:` command
+(it holds those lines verbatim) and renders one derived line —
+`new-ground` if the prior command now passes, `regression` if it still fails —
+immediately **after** the `Rn` lines and before the exit rule is applied. On
+round 1 no `RED:` line is rendered. The lines are derived in the orchestrator
+from evidence; red's return shape is unchanged.
 
 Exit rule: `proceed` (→ DONE, which flips `pending-red` and commits
 `verification.md`) is offered **iff** `VERDICT ≠ REJECT` **and** (red was not
@@ -285,6 +330,132 @@ counter — a cycle cannot spend 3 red rounds *and* 3 review rounds.
 | `tools/sdd-scope-check-selftest.py` | no new scenario — red's write revert reuses the verifier's rule; the write fixture of REQ-REDB-HARNESSP2-003 is a lint/gate fixture |
 | `CLAUDE.md` | four-layer bullet **unchanged** |
 
+### Red Dispatch Template — Key Block Inside the Fence (REQ-HARN-HARNESSP3-002)
+
+[Changed 2026-09-18: the red template said "Return in the shape below" with the
+shape in an adjacent subsection.]
+
+The red-team template's **fenced prompt body** must carry the literal `RETURN:`
+key block in contract order, with the `Rn` line shape above the block and
+`RED_VERDICT: BROKEN | HELD` as the own-line last line. The body here stays
+byte-consistent with `references/dispatch-templates.md` and
+`docs/spec/harness-return-contract.md`. Red's key set is otherwise unchanged.
+
+### New-Ground vs Regression on Red Round N >= 2 (REQ-REDB-HARNESSP3-002)
+
+[Changed 2026-09-18. **Evidence class: constructed — the weakest-evidenced item
+of this cycle.** §B7 directly records the operator making this distinction by
+hand with no gate vocabulary for it; the derived line below has **no run
+evidence**. It is carried with a named place to exercise it: the first
+harness-p3 verify stage with `red team: on` and a second round. Verification
+must exercise it rather than assume it.]
+
+On a red round N >= 2, for each `BROKEN` `Rn` the orchestrator re-runs the
+**previous round's** routed `reproduce:` command — it holds those lines verbatim
+— and renders one derived line under the `RED_VERDICT:` token:
+
+```
+RED: R1 new-ground (prior R6 reproduce now passes)
+RED: R1 regression  (prior R6 reproduce still fails)
+```
+
+The line is **derived in the orchestrator from evidence**. No `supersedes:` or
+`new-ground:` marker is added to red's return shape.
+
+**Declined**, with reasons: a marker on red's return would require handing red
+the previous round's findings, contradicting the withholding default
+(REQ-REDB-HARNESSP2-004) which §B3 shows works — red found the weakest criterion
+without blue's report — and re-attacking the same criterion is what found the
+second bug, so red must not be steered away from it. The rule costs one command
+per prior break and changes neither red's return shape nor its isolation.
+
+Gate position: the `RED:` lines render inside the `RED_VERDICT:` block
+**after** red's own `Rn` lines (one `RED:` line per `BROKEN` `Rn`, in `Rn`
+order), before the exit rule is applied; §Verify-Stage Gate and Exit Rule shows
+the rendered block and `skills/sdd-orchestrate/SKILL.md` §The gate names that
+position in the signal order.
+
+### `Verified` Reads `pending-red` While a Red Round Is Outstanding (REQ-REDB-HARNESSP3-003)
+
+[Changed 2026-09-18: spec-read and observed — §B9 recorded both the per-ws and
+the aggregate matrix carrying `Verified: pass` inherited from a superseded report
+while `verification.md` read `pending-red`.]
+
+The `Verified` column tracks the **report's** status. Therefore:
+
+- When `sdd-verify` writes `status: pending-red`, it writes `pending-red` into
+  the `Verified` cell of **every row it would otherwise have marked `pass`**. A
+  `fail` row stays `fail`.
+- The orchestrator's **existing** `pending-red -> pass` flip at DONE flips those
+  cells in the same bookkeeping step and regenerates the aggregate.
+- One writer per state, no new artifact. A cycle the operator stops leaves the
+  durable matrix reading `pending-red` rather than asserting a falsehood.
+- `docs/spec/ws-traceability.md` names `pending-red` as a legal `Verified` value
+  beside `pass` and `fail`.
+
+No code consequence: `tools/sdd-gc.py`'s `trace-empty` sweep flags only empty
+`Spec` cells and Implementation-filled / Test-empty rows, and does not constrain
+the `Verified` cell's vocabulary (verified by reading the sweep).
+
+**gc criterion wording** [Amended 2026-09-18, harness-p4 — REQ-REDB-HARNESSP4-001;
+`docs/ws/harness-p3/verification.md` §V5, R6]. Wherever the inherited criterion
+is stated — this spec's §Acceptance Criteria, `ws-traceability.md` §Legal
+`Verified` Cell Values and `skills/sdd-verify/SKILL.md` Step 3b / Step 6 — it
+reads: *"`python3 tools/sdd-gc.py --report` raises no new finding **on a
+`pending-red` cell**"*. The `[traceability-aggregate]` warning that legitimately
+appears between a per-workstream traceability write and the orchestrator's
+post-gate regeneration (`ws-traceability.md` §Aggregate Regeneration Ownership,
+REQ-WS-HARNESSP3-001) is the **designed handshake**, not a finding against the
+cell, and the criterion names it as expected. In p3 the bare "no new finding"
+made an honest verify record read as a near-failure: gc raised zero findings on
+the 17 live `pending-red` cells but one expected aggregate warning the wording
+did not admit.
+
+### `## Post-cycle Fixes` in the Active Plan (REQ-REDB-HARNESSP3-004)
+
+[Changed 2026-09-18: observed gap with a constructed remedy — this specifies a
+section a leaf invented ad hoc on 2026-09-18. The behaviour worked; specifying
+it costs less than leaving it to be re-invented.]
+
+When a verify-stage `RED_BREAK` fix belongs to **no open chunk**, it is recorded
+as **one line per fix** under a `## Post-cycle Fixes` section of the **active
+plan**:
+
+```
+  ## Post-cycle Fixes
+
+  - R3 — <one line: what was broken, what was changed, path> (<sha>)
+```
+
+(The fenced sample is indented so heading-extracting consumers do not read it as
+a real section of this spec; the section itself is written unindented in the
+plan.)
+
+- Ownership: **orchestrator**, in the same class as the `fan-out.md` §3e plan
+  marks. It is **not** a plan task and does not re-open the plan's task list.
+- Scope: the section is covered by the implement / `RED_BREAK` default write
+  scope naming the active plan path, so the write is tagged `IN`
+  (`docs/spec/harness-write-scope.md`).
+- Because this is a **new plan section**, the plan-structure contract must
+  record it. That contract is `docs/spec/milestone-plans.md` §Milestone Plan
+  File Format (**not** a `docs/spec/harness-*` file), restated in
+  `skills/sdd-plan/SKILL.md`'s plan template. Both list `## Post-cycle Fixes` as
+  **optional, orchestrator-owned, outside the task list**, so `sdd-plan` /
+  `sdd-replan` do not strip it on rewrite and `sdd-implement` does not read it
+  as tasks. [Amended 2026-09-18, REQ-REDB-HARNESSP3-004: the earlier wording
+  delegated this to "any `docs/spec/harness-*` restatement", which named no
+  existing file.]
+
+### Fix-Loop Interaction — harness-p3 Cross-References
+
+- Red break → chunk mapping gains **step 1'** on `failures[].location` before
+  the whole-plan fallback (REQ-REDB-HARNESSP3-001); the owning text is
+  `docs/spec/harness-return-contract.md` §5 and is not duplicated here beyond
+  this pointer.
+- `W_N` now includes **regeneration** writes, so a review round raising findings
+  in a wholesale-regenerated deliverable is **not** a class (b) contradiction
+  (REQ-ARB-HARNESSP3-001, `docs/spec/arbitrated-handoff.md`).
+
 ## Verification
 
 ### Automated
@@ -344,6 +515,16 @@ counter — a cycle cannot spend 3 red rounds *and* 3 review rounds.
 - [ ] Skill changes tabled for `sdd-orchestrate`, `sdd-verify`, `sdd-replan`; lint rows (a1), (a2) and the `(?<!RED_)` regex change; `--self-test` §7 covers them (REQ-SKILL-HARNESSP2-002, -005; REQ-LINT-HARNESSP2-001)
 - [ ] `sdd-verify` Step 6 template has a `## Next Steps` section after `## Recommendation`; `drift-sweep.md` §Skill Changes and `evaluation.md` §Manual N = 3 Pilot reference this row as the slot's single definition (REQ-SKILL-HARNESSP2-005)
 - [ ] `python3 tools/sdd-skill-lint.py` exits 0
+- [ ] The red template's fenced body contains the full literal `RETURN:` key list in contract order, the `Rn` line shape above it, and `RED_VERDICT:` on its own last line (REQ-HARN-HARNESSP3-002)
+- [ ] §Verify-Stage Gate shows the derived `RED:` line in its gate block with the re-run rule stated, and `skills/sdd-orchestrate/SKILL.md` §The gate names its position in the signal order (REQ-REDB-HARNESSP3-002)
+- [ ] A two-round walkthrough in which the prior `reproduce:` now passes renders `new-ground`, and one in which it still fails renders `regression`; red's `RETURN:` key set is unchanged between rounds (REQ-REDB-HARNESSP3-002)
+- [ ] **Constructed-evidence gate**: REQ-REDB-HARNESSP3-002 is exercised on a real verify stage with `red team: on` and a second round before it is treated as validated — a walkthrough alone does not discharge it (REQ-REDB-HARNESSP3-002)
+- [ ] §`status: pending-red` and `skills/sdd-verify/SKILL.md` Step 3b / Step 6 instruct the `pending-red` cell write; `docs/spec/ws-traceability.md` lists the three legal cell values (REQ-REDB-HARNESSP3-003)
+- [ ] A walkthrough where red returns `BROKEN` leaves every would-be-`pass` row reading `pending-red` in both the per-ws file and the regenerated aggregate; the DONE flip turns exactly those cells to `pass` while `fail` rows are untouched (REQ-REDB-HARNESSP3-003)
+- [ ] `python3 tools/sdd-gc.py --report` raises no new finding **on a `pending-red` cell**; a `[traceability-aggregate]` warning between the per-ws write and the orchestrator's regeneration is the designed handshake and is expected, not a finding (REQ-REDB-HARNESSP3-003, wording per REQ-REDB-HARNESSP4-001)
+- [ ] `grep -rn 'pending-red' docs/spec/adversarial-verify.md docs/spec/ws-traceability.md skills/sdd-verify/SKILL.md` shows the qualified wording and the named handshake warning in each place the criterion is stated; this cycle's `verification.md` gc item, run after a per-ws write and before regeneration, records the aggregate warning as expected and passes on the qualified criterion (REQ-REDB-HARNESSP4-001)
+- [ ] `## Post-cycle Fixes` is named here with its one-line-per-fix format and orchestrator ownership; `skills/sdd-plan/SKILL.md`'s template lists it as an optional orchestrator-owned non-task section and a plan rewrite preserves it (REQ-REDB-HARNESSP3-004)
+- [ ] A `RED_BREAK` fix dispatched with no open chunk yields `SCOPE: CLEAN` and one new line under that section (REQ-REDB-HARNESSP3-004)
 
 ## Edge Cases
 
@@ -393,6 +574,22 @@ counter — a cycle cannot spend 3 red rounds *and* 3 review rounds.
   the workstream branch checkout — consistent.
 - **No unresolved contradictions.**
 
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+adversarial-verify.md beyond the `Rn` finding shape, which is unchanged. Token
+and section checks:
+
+- `RED_VERDICT:`, `RED_BREAK`, `pending-red`, `target.chunk` — consistent with
+  `docs/spec/harness-return-contract.md`; step 1' is defined there and only
+  referenced here.
+- `pending-red` as a legal `Verified` cell value is stated here and defined in
+  `docs/spec/ws-traceability.md` — both amended in this pass, so the vocabulary
+  `pass | fail | pending-red` matches.
+- `## Post-cycle Fixes` is defined here and referenced by
+  `docs/spec/harness-write-scope.md` (scope row) — one definition, one
+  reference, no divergence.
+- The new `RED:` derived line is a **gate token only**; it appears in no
+  artifact, consistent with the ephemerality rule (REQ-ORCH-013 analogue).
+
 ## Open Questions
 
 1. **Red input A/B** (`index.md` Open Questions): does `+verification.md` find
@@ -413,3 +610,25 @@ counter — a cycle cannot spend 3 red rounds *and* 3 review rounds.
 **Rationale**: keeps the packet shape uniform with review findings while not inventing an `affects` the red return does not carry.
 **Date**: 2026-09-18 (Chunk 2)
 
+
+### Q-IMPL-HARNESSP3-007: The `RED:` line is emitted per prior break, in `Rn` order
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §New-Ground vs Regression on Red Round
+**Decision**:
+
+One `RED:` line is rendered for each `BROKEN` `Rn` of the current round that has
+a routed predecessor, ordered by the current round's `Rn` id. A `BROKEN` `Rn`
+with **no** prior round to compare against (round 1, or a criterion never
+previously attacked) renders **no** `RED:` line — absence reads as "nothing to
+compare", which is why the line names the prior `Rn` explicitly.
+**Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP3-008: `## Post-cycle Fixes` is appended at the end of the plan
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`## Post-cycle Fixes` in the Active Plan
+**Decision**:
+
+The section is appended after the last milestone/chunk section so a plan rewrite
+that regenerates the task list can preserve it by copying the trailing block
+verbatim. Ordering within the section is append-only, newest last.
+**Date**: 2026-09-18 (specs stage)

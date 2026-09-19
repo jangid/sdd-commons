@@ -1,8 +1,8 @@
 ---
 domain: TELEM
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-HARNESSP2-001, RS-008]
+research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001]
 workstream: harness-p2
 ---
 
@@ -119,6 +119,12 @@ simulated unwritable `.sdd/` produces `TELEMETRY: WRITE FAILED` at the next gate
 and the same `proceed | loop-back-to-fix | stop` options as before; no
 `docs/ws/*/telemetry*` path exists.
 [Priority: must]
+> **Amended by REQ-TELEM-HARNESSP4-005** (2026-09-18, workstream `harness-p4`):
+> the never-rewrite rule gains a **second exception** — the operator-invoked
+> `migrate` subcommand of `tools/sdd-telemetry.py`, run by the operator
+> **between sessions**, never by a leaf and never while a session is
+> appending. The orchestrator-only-writer rule is otherwise unchanged: no
+> dispatch template names `migrate`, and the orchestrator itself never runs it.
 
 ### REQ-TELEM-HARNESSP2-005: Leaf writes to `.sdd/` surface as `OUT`
 Any write to `.sdd/**` by a dispatched subagent must be a boundary finding
@@ -223,3 +229,291 @@ records prints one row per stage with the columns above; `--self-test` exits 0;
 `grep -rn sdd-telemetry skills/` hits only the `sdd-orchestrate` telemetry stub
 as a pointer to a post-cycle step.
 [Priority: should]
+
+### REQ-TELEM-HARNESSP3-001: A positive `TELEMETRY: rec <n>` gate line asserts the append happened
+`references/telemetry.md` §3 must add a **positive member to the `TELEMETRY:`
+gate-line family** — today the family is `WRITE FAILED | OFF | .gitignore
+updated`, with no line for "on, and the append happened":
+
+```
+TELEMETRY: rec <n>     # rendered on the gate AFTER an append; <n> counts SUCCESSFUL appends this session
+```
+
+`<n>` **counts successful appends in this session** — it is not `dispatch.seq`.
+The two diverge whenever a dispatch produces no append (a `WRITE FAILED`, or a
+mid-cycle opt-out), and where they diverge the **append count wins**: the line
+exists to assert that the append happened, so binding `<n>` to the dispatch
+sequence would have a later gate assert an append count that never occurred —
+weakening exactly the assurance the requirement provides. Concretely, `<n>` is a
+new session-scoped counter incremented **only** on a successful append,
+maintained beside `dispatch.seq` in the orchestrator's existing session state
+(§3) — no new artifact, and still **never a read of the telemetry file**, so the
+write-only rule
+(REQ-TELEM-HARNESSP2-004 — "the orchestrator performs zero reads of the file")
+is preserved intact, and the line is text, so the non-interference proof of §5
+is untouched. The writer sequence already appends *after* the gate decision, so
+the next gate is the natural place to assert the previous append. An operator
+who sees a gate carrying no `rec` line, no `OFF` line and no `WRITE FAILED` line
+knows the append did not happen. (see RS-HARNESSP3-001 Q4 — spec-read, with a
+direct negative observation: on 2026-09-18 the gate rendered telemetry as on,
+nothing was ever appended, and the text actually rendered — `TELEMETRY: on
+(record written after your decision)` — was not a member of the family §3
+defines. What no spec read establishes is whether an operator actually notices
+an absent line)
+**Acceptance**: `references/telemetry.md` §3's gate-line table lists `rec <n>`
+and its writer sequence names the gate that renders it; `docs/spec/telemetry.md`
+carries the same family, and `skills/sdd-orchestrate/SKILL.md` §The gate states
+it in one line; a walkthrough of two gated dispatches with telemetry on renders
+`TELEMETRY: rec 1` then `TELEMETRY: rec 2`, and a walkthrough with telemetry on
+but the file unwritable renders `TELEMETRY: WRITE FAILED` and no `rec` line;
+a **resumption** walkthrough of three gated dispatches whose second append fails
+renders `TELEMETRY: rec 1`, then `TELEMETRY: WRITE FAILED`, then
+`TELEMETRY: rec 2` — not `rec 3` — and the same holds after a mid-cycle opt-out
+(the `OFF` gates append nothing and do not advance `<n>`);
+`grep` for a telemetry-file read in the orchestrator's gate path returns
+nothing.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP3-002: `summarize` reports records-vs-expected per session as a post-cycle backstop
+`tools/sdd-telemetry.py summarize` may report a records-vs-expected count per
+session, so a missing-append gap is visible post-cycle even if the operator
+missed the absent gate line. The reporting slot already exists — `summarize`
+skips and counts unparsable lines on a trailing `skipped:` line. This is an
+optional backstop to REQ-TELEM-HARNESSP3-001, not a substitute for it, and it
+is a post-cycle reader: it must not influence control flow and the orchestrator
+must still perform zero reads of the file during a cycle
+(REQ-TELEM-HARNESSP2-004). If the plan has no room it is queued in
+`verification.md` §Next Steps rather than dropped. (see RS-HARNESSP3-001 Q4 —
+counted inside the Q4 item as an optional sub-part, not as a separate item)
+**Acceptance** (conditioned on the `may` — if the backstop is **not** built this
+cycle, acceptance is that it is queued under `verification.md` §Next Steps and
+nothing else changed): **if built**, `python3 tools/sdd-telemetry.py summarize`
+on a fixture whose session records fewer appends than gates prints a
+records-vs-expected line for that session and `--self-test` exits 0. Either way,
+no orchestrator reference instructs a read of the telemetry file during a cycle.
+[Priority: may]
+
+### REQ-TELEM-HARNESSP4-001: every dispatch kind gets its own record — verifier, fix and redo first attempts included
+The orchestrator's writer (`references/telemetry.md` §2 writer sequence) must
+append **one record per dispatch it issues**, for every kind the schema admits
+— `pipeline`, `fix`, `fanout_leaf`, `verifier`, `review`, `red` — with
+`dispatch.kind` set to the kind actually dispatched. In particular a chunk
+verifier dispatch gets a `verifier` record of its own rather than having its
+`CHUNK_VERDICT:` written onto the chunk's `pipeline` record alone; a fix
+dispatch (a `loop-back-to-fix`, a per-chunk `fix`, or a `RED_BREAK` packet) gets
+a `fix` record, never a `pipeline` one; and the first attempt of a redone chunk
+keeps its record when the redo is dispatched (the redo is a further record with
+`dispatch.redo` incremented). The p3 file holds zero `verifier` and zero `fix`
+records across a cycle that ran eight verifiers and three redos, and its one fix
+dispatch at `seq` 18 is typed `pipeline`; `records-vs-expected` saw no gap
+because nothing was appended and nothing incremented. (workstream `harness-p4`;
+see `docs/ws/harness-p3/verification.md` §P2 and §P3, and RS-HARNESSP4-001 §Q2
+fixture cross-check — every count recomputed from
+`tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`)
+**Acceptance**: `references/telemetry.md` §2 names every kind and states the
+one-record-per-dispatch rule with a worked example record for a `verifier` and a
+`fix` dispatch (non-null `chunk`), and `docs/spec/telemetry.md` carries the same
+rule; this cycle's live `.sdd/telemetry.jsonl`, summarised at DONE by
+`python3 tools/sdd-telemetry.py summarize`, shows a `verifier` count equal to the
+number of chunk verifiers dispatched and a `fix` count equal to the fix dispatches
+the gates rendered, with `implied vs recorded` (REQ-TELEM-HARNESSP4-002) reporting
+0 missing for both kinds in this cycle's session.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP4-002: `expected` is implication-derived, and the headline is the total shortfall
+`tools/sdd-telemetry.py summarize` must derive the `expected` of its
+`records-vs-expected:` line from **cross-field implications already present in
+the records**, not from the highest `dispatch.seq` alone. Per session, for each
+kind, `implied.<kind>` is computed as RS-HARNESSP4-001 §Q2 defines it — a
+non-null `chunk_verdict` on a non-verifier record implies `1 + dispatch.redo`
+verifier dispatches; a `pipeline` record with `dispatch.redo ≥ 1` implies its
+first attempts; a non-null `review_verdict` / `red_verdict` on a record of
+another kind implies one review / red dispatch per carrying record; fix
+dispatches follow REQ-TELEM-HARNESSP4-003 — with `missing.<kind> := max(0,
+implied − recorded)` matched **per stage**, never cross-stage and never negative,
+and `expected := highest seq + Σ missing`. **Headline definition (ratified
+here):** the reported gap is the **total shortfall of every implied append**,
+per session — on the p3 fixture 19 missing, `expected 39` against `20` records —
+and the implement-stage line reports the **full** implication count (14 for p3:
+3 first-attempt pipeline + 11 verifier), because `expected` is a count of
+appends that should exist, and any narrower reading would understate the file's
+incompleteness. The 8 + 3 "dispatches with no record of their own kind"
+reading may be printed as a secondary figure but is not the headline. One
+`implied vs recorded` line per kind is printed beside the headline. The
+implications are independent of `seq` and of the writer's append discipline
+because each is triggered by a field the writer *did* fill for its own gate
+rendering; the original class (`seq` incremented, record lost) is retained since
+`expected` starts from the highest `seq`. (workstream `harness-p4`; see
+RS-HARNESSP4-001 §Q2 — high confidence that the counts reproduce P2 and P3 on
+the frozen fixture; the headline choice was routed to requirements by the
+spike's third Open Question and is decided here)
+**Acceptance**: `python3 tools/sdd-telemetry.py summarize --file tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+prints `expected 39` against 20 records (or the equivalent "19 missing"
+headline), an implement line naming 14 missing, and per-kind `implied vs
+recorded` lines reading verifier 11 vs 0, pipeline 11 vs 8 at implement,
+review 6 vs 2 with 5 missing, red 1 vs 2 with 0 missing; `--self-test` gains one
+fixture per implication (verifier, redo first attempt, review, red) and a
+negative fixture in which every implied dispatch has its record and the headline
+reads 0 missing; `docs/spec/telemetry.md` §Records-vs-Expected and
+`references/telemetry.md` §7 state the definition and the headline;
+Q-IMPL-HARNESSP3-006 is amended to name the fields used; the tool still reads
+nothing but the telemetry file and the orchestrator still performs zero reads of
+it during a cycle (REQ-TELEM-HARNESSP2-004).
+[Priority: must]
+
+### REQ-TELEM-HARNESSP4-003: the fix implication has two clauses and a mis-typed-fix rule; the fix-only reason set lives in the domain table
+The fix implication of REQ-TELEM-HARNESSP4-002 must have **two clauses**:
+(a) a record whose `gate.decision` is `loop-back-to-fix` or `fix` implies one
+fix dispatch, and (b) a record of a kind other than `fix` whose
+`dispatch.reason` is in the **fix-only reason set** — `{red_break}` today —
+implies one fix dispatch. Both are needed: on the p3 fixture `seq` 18 is
+reachable only through (b), because its predecessor's `gate.decision` is null.
+The **mis-typed-fix rule**: when an implied fix is present as a record of
+another kind (a `pipeline` record with `dispatch.iteration ≥ 1` whose
+predecessor at the same stage decided `loop-back-to-fix`, or whose
+`dispatch.reason` is fix-only), `missing.fix` counts **0** for it and `--lint`
+(REQ-TELEM-HARNESSP4-004) reports it as a mis-typed record instead — it is a
+wrong `kind`, not a missing append, and must not inflate `expected`. The
+fix-only reason set is a row of the domain table, so adding a reason later is a
+schema change, not a code constant; `reason: REVIEW` at `iteration ≥ 1` with no
+preceding `loop-back-to-fix` at the stage (p3 `seq` 3–5) is a `--lint`
+**warning**, not a count, because the fixture cannot say whether those were fix
+dispatches or mis-labelled first dispatches and a legitimate chunk redo (`seq`
+13) carries the same reason. (workstream `harness-p4`; see RS-HARNESSP4-001 §Q2
+"Fix dispatches" and its fourth Open Question — decided here as a warning)
+**Acceptance**: on the frozen fixture the tool reports `implied.fix 2, recorded
+0, missing 0` with `seq` 2 and `seq` 18 listed as mis-typed fixes by `--lint`
+and `seq` 3–5 as `reason: REVIEW without preceding loop-back-to-fix` warnings;
+a self-test fixture with a `red_break` pipeline record and a null-decision
+predecessor is flagged (clause (b)); a fixture with a `loop-back-to-fix`
+decision followed by no record at all counts 1 missing fix; the fix-only reason
+set is declared in the domain table and echoed in `docs/spec/telemetry.md`
+§Record Schema.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP4-004: `--lint` validates every field from one domain table, and that table is the schema's single source of truth
+`tools/sdd-telemetry.py` must gain a `--lint` subcommand that validates
+**every** field of every record against its declared domain — enum membership
+(`dispatch.kind`, `gate.decision`, verdict tokens, `dispatch.reason`), type
+(`dispatch.chunk` int-or-null, counters int, shas as short hex, no `"HEAD"`
+literal), the **fixed key set** (an undeclared key such as `git.commit_n` is a
+finding; a missing declared key is a finding), and the cross-field rules of
+REQ-TELEM-HARNESSP4-003 plus "non-null `chunk_verdict` on a non-verifier record
+with no verifier record for that chunk" and "`proceed` implement record with
+`head_before == head_after`" — not only the one field that happened to break.
+**The domain table in the tool is the single source of truth for the record
+schema**: `docs/spec/telemetry.md` §Record Schema and `references/telemetry.md`
+§2 are renderings of it, and a self-test asserts the rendered table and the code
+table agree (whether by generating the spec block from the code or by parsing
+the spec block and diffing is a specs decision; the invariant is one table, two
+readers). Both documents must also carry at least one worked example whose
+`chunk` is non-null and one each for a `verifier` and a `fix` record, since the
+p3 mis-typing traces to a sole `"chunk":null` example. (workstream `harness-p4`;
+see `docs/ws/harness-p3/verification.md` §P1 and §P3 — the R1 fix validated one
+field, and the same session wrote `kind: "gate"`; RS-HARNESSP4-001 §Q2 lists
+five violation classes already present in the fixture)
+**Acceptance**: `python3 tools/sdd-telemetry.py --lint --file tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+exits non-zero and reports, at minimum, `kind: gate` on `seq` 20, the header
+strings on `seq` 6–13, `head_after: "HEAD"` on `seq` 5, null `git` heads on
+`seq` 6–14, 40-character shas on `seq` 15–20, and the undeclared key
+`git.commit_n` on `seq` 15–20; a gapless in-domain fixture exits 0;
+`--self-test` covers each domain class with one mutation; the schema-agreement
+self-test fails when a row is added to the code table but not the spec table or
+vice versa; `python3 tools/sdd-skill-lint.py` exits 0.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP4-005: the 8 mis-typed live records are migrated in place, stamped partial, only after the writer, `expected` and `--lint` land — the fixture is never touched
+`tools/sdd-telemetry.py` must gain a `migrate` subcommand that rewrites the 8
+`"Chunk N"` `dispatch.chunk` strings of the live `.sdd/telemetry.jsonl` (the
+p3 session's `seq` 6–13) to the integer `N` **in place**, and marks the migrated
+records so that the per-chunk block `summarize` renders from them is **stamped
+partial** — it must say that verifier, fix and redo records for those chunks
+were never written and cannot be reconstructed, so the block cannot be read as
+a full per-chunk history. `migrate` is the second, **operator-invoked**
+exception to REQ-TELEM-HARNESSP2-004's never-rewrite rule (see the amendment
+note there): the migration is run by the **operator between sessions** — never
+by a leaf (which would breach the orchestrator-only-writer rule) and never
+while a session is appending (which would race the orchestrator's appends); no
+dispatch template mentions it. The migration is **ordered**: the plan may schedule it
+only after REQ-TELEM-HARNESSP4-001, -002, -003 and -004 have landed and `--lint`
+reports the migrated records clean on their typed fields; otherwise the
+migrated block asserts more than the evidence supports (the P-section trap).
+`tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` is read-only evidence and
+is **never** modified, reformatted or migrated — `migrate` refuses a path under
+`tools/fixtures/`, and every test runs against the fixture as input with the
+output written elsewhere. Decided at DISCUSS; requirements inherit it unchanged.
+(workstream `harness-p4`; see `docs/ws/harness-p3/verification.md` §"Can the 8
+records be repaired in p4?", `docs/ws/harness-p4/kickoff.md` §Decided at
+DISCUSS, and `tools/fixtures/README.md`)
+**Acceptance**: `sha256sum tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+still reads `7e20b630…af9237` at DONE and `git diff --stat main -- tools/fixtures/`
+is empty; `python3 tools/sdd-telemetry.py migrate --file <copy of the fixture>
+--out <tmp>` produces a file on which `summarize` renders a per-chunk block for
+chunks 0–7 carrying the word `partial` and the unreconstructable kinds named;
+`migrate --file tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` exits
+non-zero without writing; the plan lists the migration task after the four
+prerequisite tasks; the operator ran `migrate` on the live file **before the
+verify stage** (between sessions, with no orchestrator session open) and this
+cycle's `verification.md` records the resulting `--lint` result on the migrated
+live records (expected: no typed-field finding).
+[Priority: must]
+
+### REQ-TELEM-HARNESSP4-006: `scope.widened` records an operator widening of the write scope
+The record schema must gain `scope.widened` (int — the count of globs the
+operator added to the dispatched write scope beyond the template's default for
+that stage; 0 when none), a sibling of `dispatch.write_scope_n`, written by the
+orchestrator from session state it already holds (the dispatched scope and the
+template default). It is a count, never the glob text, so the counts-not-text
+rule of REQ-TELEM-HARNESSP2-002 holds. Fixing R1 in p3 required widening the
+verify scope to `tools/` and `skills/`; the scope check then correctly read those
+paths `IN`, but `SCOPE: CLEAN` looks identical either way and nothing durable
+records that a widening happened — a post-cycle reader cannot tell a clean stage
+from a widened one. (workstream `harness-p4`; see `docs/ws/harness-p3/verification.md`
+§L6 and RS-HARNESSP4-001 §Implications — record-field addition, hence a
+requirements decision)
+**Acceptance**: the domain table (REQ-TELEM-HARNESSP4-004) declares
+`scope.widened` as int with default 0, and `docs/spec/telemetry.md` §Record
+Schema and `references/telemetry.md` §2 render it; `summarize` prints the number
+of widened dispatches per session; a self-test fixture with `scope.widened: 2`
+is in-domain and one with a string value is a `--lint` finding; the writer
+sequence in `references/telemetry.md` §2 names where the value comes from without
+any read of the telemetry file.
+[Priority: should]
+
+### REQ-TELEM-HARNESSP4-007: a `commit` record group carries the `COMMIT:` outcome as counts and an enum
+The record schema should gain a `commit` group — `{token: COMPLETE | INCOMPLETE
+| null, missing_n: int, extra_n: int}` — written from the `COMMIT:` result of
+REQ-HARN-HARNESSP4-001 for the dispatch the record describes (`null` / 0 / 0 for
+dispatches whose gate does not commit: review, verifier, red). Only the token and
+the two counts are recorded, never the path names, per the counts-not-text
+rule; telemetry remains non-load-bearing — the group is a post-cycle trace of
+the signal, and `COMMIT:` itself is rendered from git, never from the record.
+(workstream `harness-p4`; see RS-HARNESSP4-001 §Q1 cost table and
+§Recommendation — the spike recommends the group; adopting it costs the two
+telemetry texts and one writer/summariser change)
+**Acceptance**: the domain table declares the group, both telemetry documents
+render it, `summarize` prints per-session `COMMIT: INCOMPLETE` counts, an
+in-domain fixture with `token: INCOMPLETE, missing_n: 1, extra_n: 0` passes
+`--lint` and one with `token: DROPPED` fails it; `grep -n 'commit' skills/sdd-orchestrate/references/loop-control.md`
+shows the gate reading git, not telemetry, for the signal.
+[Priority: should]
+
+### REQ-TELEM-HARNESSP4-008: an opt-in `--plan` floor for implement-stage expectations
+`summarize` may accept `--plan <path>` and, when given, compute a **floor** for
+the implement stage — `chunk_count(plan)` pipeline dispatches, doubled when any
+chunk record carries a non-null `chunk_verdict` (the verifier was on) — and
+report when recorded implement records fall below it. The floor is the only
+reader-side check that sees a chunk whose pipeline **and** verifier records are
+both missing and whose verdicts were written nowhere; it can never see redos,
+because `Redo: N` and the verifier opt-in are session state that the plan does
+not hold. It is opt-in and reads an artifact that already exists; no new
+artifact under `docs/` and no phase-detection input. (workstream `harness-p4`;
+see RS-HARNESSP4-001 §Q2 candidates table — accepted as a floor, not as
+`expected`; medium confidence)
+**Acceptance** (conditioned on the `may` — if not built, it is queued under
+`verification.md` §Next Steps): **if built**, `summarize --plan
+docs/ws/harness-p3/plan.md --file <fixture>` prints an implement floor of 8 (16
+with verifier) and flags no shortfall against the 8 recorded pipeline records
+while REQ-TELEM-HARNESSP4-002's implication line still reports the 14 missing;
+`--self-test` covers a plan with a chunk that has no record at all.
+[Priority: may]

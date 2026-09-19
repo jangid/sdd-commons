@@ -73,6 +73,18 @@ new `- gc …` lines; `plan.md` is byte-identical; `git ls-files docs/` gains no
 path (no `docs/gc/`, no issues file — REQ-HARN-027, REQ-ORCH-004). `ignore`
 writes nothing.
 
+## 3b. Convention: never quote another repository's `Q-IMPL` ids (REQ-GC-HARNESSP3-001)
+
+Prose in this repository that describes **another** repository's artifacts — a
+toy clone, an evidence record, a pilot log — must not quote that repository's
+`Q-IMPL` id tokens verbatim; paraphrase them, or wrap them in a fenced code
+block. `tools/sdd-gc.py`'s `qimpl-undefined` rule is **unchanged** and behaved
+correctly when it flagged such a mention: those ids genuinely are undefined in
+this corpus, and "ids that look local" is not decidable from text. The escape
+hatch is therefore the **fenced span** — the sweep's Q-IMPL reference exclusion
+already skips fenced content — never a gc allowlist entry
+(`docs/spec/drift-sweep.md` Q-IMPL-HARNESSP3-012).
+
 ## 4. What the driver never does with gc
 
 - run it between stages, or make a `proceed` depend on its exit code;

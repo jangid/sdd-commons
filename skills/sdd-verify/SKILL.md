@@ -44,6 +44,28 @@ workstream owns only its `docs/ws/<ws>/` execution artifacts and per-ws
 `traceability.md`; requirements/specs/research and the aggregated traceability
 are shared (ADD, never fork); omitting the argument resolves `default`.
 
+**Cycle identity (REQ-CYCID-HARNESSP3-001, -002).** Before reading a
+**completion signal** as "this cycle is done" — `verification.md` `status: pass`,
+or `plan.md` `status: complete` with every task `[x]` — compare that artifact's
+frontmatter `research_id:` against the kickoff's (`docs/ws/<ws>/kickoff.md` under
+marker `4`, `docs/handoff/kickoff.md` under marker `3`) by **exact string
+equality** on the trimmed value — no normalisation, case folding or prefix
+matching (Q-IMPL-HARNESSP3-015). The three cases are exhaustive:
+
+1. **Mismatch** — the artifact's `research_id` differs from the kickoff's → **a
+   previous cycle's artifact**; this stage has not been reached in this cycle.
+2. **Field absent** — a kickoff with a `research_id` exists but the artifact
+   carries none (legacy; existing files are **never back-filled**) → the same
+   reading as a mismatch. Absence is the safe direction: it costs one re-entry,
+   it never asserts a completion that did not happen.
+3. **No usable discriminator** — no `kickoff.md` for this `(repo, workstream)`,
+   **or** a kickoff that carries no `research_id` (Q-IMPL-HARNESSP3-016) → the
+   comparison is **skipped entirely** and the existing `status:`-only rule
+   applies unchanged. Cycle identity is an orchestrated-cycle discriminator,
+   never a precondition for detection.
+
+See `docs/spec/cycle-identity.md`.
+
 0. **Version check**: If `docs/.sdd-version` is missing, suggest running `sdd-migrate` before proceeding
 1. If no `docs/plan.md` → use `sdd-plan`
 2. **Staleness check**: compare `last_updated` in `docs/requirements/index.md` and specs against `docs/plan.md`'s `last_updated` frontmatter (legacy plans without frontmatter: file modification date as fallback). If upstream artifacts are newer than the plan, the plan is stale → use `sdd-plan` to update before verifying
@@ -123,7 +145,28 @@ Read `docs/requirements/traceability.md` and verify:
 2. **Every implemented requirement has tests** — Test column is non-empty for requirements with Implementation filled
 3. **Flag gaps** — list any requirements missing spec, test, or implementation coverage
 
-After verification, update the **Verified** column with pass/fail for each requirement.
+After verification, update the **Verified** column for each requirement with one
+of its three legal values — `pass`, `fail` or `pending-red` (the block below
+says which applies).
+
+**`pending-red` cells (REQ-REDB-HARNESSP3-003).** The `Verified` column tracks
+the **report's** status, so whenever Step 6 writes `status: pending-red` write
+`pending-red` — not `pass` — into the `Verified` cell of **every row you would
+otherwise have marked `pass`**; a `fail` row stays `fail`. `pending-red`,
+`pass` and `fail` are the three legal cell values
+(`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values). The
+orchestrator's existing `pending-red → pass` flip at DONE turns exactly those
+cells back to `pass` and regenerates the aggregate in the same bookkeeping step
+— this skill never performs that flip.
+
+**gc criterion for these cells (REQ-REDB-HARNESSP4-001).** The check is that
+`python3 tools/sdd-gc.py --report` raises no new finding **on a `pending-red`
+cell**. The one `[traceability-aggregate]` warning that appears between this
+per-workstream write and the orchestrator's post-gate regeneration of the
+aggregate (`docs/spec/ws-traceability.md` §Aggregate Regeneration Ownership,
+REQ-WS-HARNESSP3-001) is the **designed handshake** — expected, and not a
+finding against any cell (`docs/spec/adversarial-verify.md` §`Verified` Reads
+`pending-red` While a Red Round Is Outstanding).
 
 **Per-workstream traceability (marker `4` only).** `docs/.sdd-version` is the sole gate.
 Under marker `3` or earlier, read and write the single shared
@@ -136,6 +179,15 @@ never the shared aggregate in place — then **regenerate** the shared aggregate
 (shipped legacy rows — rows predating the v4 migration, attributed to the blank/default workstream — + concat of every `docs/ws/<id>/traceability.md`, stable-sorted by
 requirement id; never hand-merged). See `docs/spec/ws-traceability.md` (REQ-WS-007,
 REQ-WS-008).
+
+**Unless the dispatched write scope omits the aggregate (REQ-WS-HARNESSP3-001).**
+Regenerate the aggregate after the per-ws write **unless this run was dispatched
+with a write scope that omits `docs/requirements/traceability.md`** — under
+`sdd-orchestrate` that path is absent from every leaf scope by construction, and
+its absence *is* the signal that regeneration is the orchestrator's post-gate
+bookkeeping (`sdd-orchestrate/references/write-scope.md` §2, §7). Its presence in
+the dispatched scope, or no dispatched write scope at all (a standalone run),
+means regenerate here. No flag or field beyond the scope slot is involved.
 
 ### Step 4: User-Perspective Validation
 
@@ -169,8 +221,9 @@ Save to `docs/verification.md` (or `docs/ws/<ws>/verification.md` under marker `
 
 ```markdown
 ---
-last_updated: YYYY-MM-DD
 status: pass | fail
+research_id: RS-<WS>-NNN   # copied verbatim from the workstream's kickoff.md; always the line after status:
+last_updated: YYYY-MM-DD
 plan_ref: docs/plan.md   # marker 4: docs/ws/<ws>/plan.md
 ---
 
@@ -231,6 +284,38 @@ plan_ref: docs/plan.md   # marker 4: docs/ws/<ws>/plan.md
 
 (`last_updated:` matches every other SDD artifact's staleness field; older reports may carry `date:` instead — treat the two as equivalent when reading.)
 
+**The `research_id:` stamp (REQ-CYCID-HARNESSP3-001).** Emit it on the line
+immediately after `status:`, before `last_updated:` (Q-IMPL-HARNESSP3-014;
+`docs/spec/cycle-identity.md` §The Stamp), copied **verbatim** from the
+active workstream's `kickoff.md` (`docs/ws/<ws>/kickoff.md` under marker `4`,
+`docs/handoff/kickoff.md` under marker `3`) — never derived or invented. It is
+what lets a later reader tell **this** cycle's `status: pass` report from a
+previous cycle's (§Phase Detection). Omit the field when there is no kickoff or
+the kickoff carries no `research_id` (case 3). Existing reports are **not**
+back-filled, and no file under `docs/requirements/**` or `docs/spec/**` is ever
+stamped. See `docs/spec/cycle-identity.md`.
+
+**Carry-or-close for unresolved Minors (REQ-SKILL-HARNESSP3-001).**
+`verification.md` is **overwritten** per cycle, so a Minor that is neither
+carried nor closed is lost to git history. Before writing the new report, read
+the report this write is about to replace — **the previous cycle's report**,
+identified via the `research_id` comparison of §Phase Detection — and for every
+unresolved entry under its `### Minor (can ship, fix later)` do exactly one of:
+
+- **carry** it into this cycle's §Issues Found → Minor, reproducing its
+  **original wording** plus a trailing `(carried from <research_id>)` marker, so
+  a reader tells an inherited finding from a fresh one without reading git
+  history (Q-IMPL-HARNESSP3-013) — under case 3 the previous report has no
+  `research_id` to name, so the marker degrades to `(carried forward)`
+  (Q-IMPL-HARNESSP3-019); or
+- **close** it, listing it once as `closed: <one-line reason>`; a closed Minor is
+  not carried again in the next cycle.
+
+No Minor silently disappears across the overwrite. The rule applies **including
+under case 3** (no kickoff, or a kickoff without `research_id`): with no
+discriminator the previous report is whatever sits at the report's path on disk,
+and **absence of a kickoff must not suppress the rule**.
+
 **Section slots.** `## Next Steps` (after `## Recommendation`) is the **single
 definition** of the report's follow-up slot: `- gc <rule>: <file:line> — <fix>`
 lines from the drift sweep (`docs/spec/drift-sweep.md`) and deferral lines
@@ -254,7 +339,13 @@ With the slot absent the output is byte-identical to v5. `pending-red` means
 "blue passed, red verdict pending": the **orchestrator** dispatches the red
 team, gates, and flips `pending-red → pass` in the frontmatter immediately
 before its own commit — this skill **never** writes `pass` while red is
-pending and never performs the flip. Every reader maps `pending-red` to
+pending and never performs the flip. Writing `pending-red` here also means
+writing `pending-red` into every would-be-`pass` `Verified` cell (Step 3b,
+REQ-REDB-HARNESSP3-003) — the durable matrix never asserts `pass` while a red
+round is outstanding. The gc criterion for those cells is Step 3b's qualified
+one — no new finding **on a `pending-red` cell**, with the
+`[traceability-aggregate]` handshake warning raised before the orchestrator's
+regeneration expected, not a finding. Every reader maps `pending-red` to
 "verification incomplete — re-enter the verify stage" (Phase Detection item 5;
 `sdd-replan` routes it back here; `sdd-orchestrate` resumes before the red
 dispatch).

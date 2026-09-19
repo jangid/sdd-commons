@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 requires:
   - REQ-GC-HARNESSP2-001
   - REQ-GC-HARNESSP2-002
@@ -10,6 +10,7 @@ requires:
   - REQ-GC-HARNESSP2-006
   - REQ-GC-HARNESSP2-007
   - REQ-SKILL-HARNESSP2-004
+  - REQ-GC-HARNESSP3-001
 ---
 
 # Drift Sweep (`tools/sdd-gc.py`)
@@ -228,6 +229,25 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 | `skills/sdd-orchestrate/USAGE.md` | section: the `GC:` summary, DONE findings and routing |
 | `tools/sdd-gc.py` (**new**) | this spec |
 
+### Convention: Do Not Quote Another Repository's `Q-IMPL` Ids (REQ-GC-HARNESSP3-001)
+
+[Added 2026-09-18: spec-read — the disposition rests on reading the gc sweep
+that produced the finding. This is a **documentation convention**, not a code
+change; the sweep is unchanged.]
+
+Prose in this repository that describes **another** repository's artifacts — a
+toy clone, an evidence record, a pilot log — must not quote that repository's
+`Q-IMPL-NNN` id tokens verbatim. Paraphrase them, or fence them, instead.
+
+`tools/sdd-gc.py`'s `qimpl-undefined` rule behaved **correctly** when it flagged
+such a mention on 2026-09-18: those ids genuinely are undefined in this corpus.
+Scoping the rule to "ids that look local" is **declined** — that is not decidable
+from text and would weaken a `fail`-class rule.
+
+The whole change is one sentence in `CLAUDE.md` and one in
+`skills/sdd-orchestrate/references/drift-sweep.md`, which also records that the
+`qimpl-undefined` rule is unchanged.
+
 ## Verification
 
 ### Automated
@@ -274,6 +294,8 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 - [ ] Explicit `FIXABLE` list of four rules, idempotent, prints paths, never touches `last_updated` or another workstream (REQ-GC-HARNESSP2-007)
 - [ ] Skill changes tabled (REQ-SKILL-HARNESSP2-004)
 - [ ] `python3 tools/sdd-gc.py --self-test` exits 0; `python3 tools/sdd-skill-lint.py` exits 0
+- [ ] `references/drift-sweep.md` states the convention and records that the `qimpl-undefined` rule is unchanged; `CLAUDE.md` carries the same sentence (REQ-GC-HARNESSP3-001)
+- [ ] `python3 tools/sdd-gc.py --report` raises no new `qimpl-undefined` finding on the amended prose, and the rule still fires on a genuinely undefined local id (REQ-GC-HARNESSP3-001)
 
 ## Edge Cases
 
@@ -315,6 +337,11 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 - `telemetry.md`: gc never reads `.sdd/` — consistent with the
   non-interference table.
 - **No unresolved contradictions.**
+
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+drift-sweep.md. The `qimpl-undefined` rule id and its `fail` class are unchanged
+here and in the sweep table; the new convention adds no rule id, no exit code and
+no `--fix` entry, so the CLI contract in §CLI and Exit Codes is untouched.
 
 ## Open Questions
 
@@ -411,3 +438,15 @@ it would mask staleness) and never edits `docs/ws/<other-id>/` when
 **Rationale**: Consistent with REQ-GC-HARNESSP2-007 (never touches `last_updated`) and the row-level regeneration contract.
 **Date**: 2026-09-18 (Chunk 5)
 
+
+### Q-IMPL-HARNESSP3-012: The convention's escape hatch is a fenced span, not an allowlist
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Convention: Do Not Quote Another Repository
+**Decision**:
+
+Where a foreign `Q-IMPL` id must be reproduced exactly (an evidence quotation
+that would lose meaning paraphrased), wrap it in a fenced code block rather than
+adding a gc allowlist entry: the sweep's Q-IMPL reference exclusion already skips
+fenced content (Q-IMPL-HARNESSP2-054), so no rule change is needed and the
+exemption stays visible at the point of use.
+**Date**: 2026-09-18 (specs stage)

@@ -1,8 +1,8 @@
 ---
 domain: LINT
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-008]
+research_refs: [RS-008, RS-HARNESSP4-001]
 ---
 
 # Requirements: Skill Lint (`tools/sdd-skill-lint.py`)
@@ -188,4 +188,43 @@ allowlisted locations mentioning the path exit 0; `--self-test` covers the
 allowlist. Operator documentation (`skills/sdd-orchestrate/USAGE.md`,
 `CLAUDE.md`) is not scanned by this row and may name the path
 (REQ-SKILL-HARNESSP2-008).
+[Priority: must]
+
+### REQ-LINT-HARNESSP4-001: `[template-drift]` — fenced leaf bodies restated in specs stay byte-identical
+`tools/sdd-skill-lint.py` must gain a `[template-drift]` rule that extracts the
+fenced bodies of the named pairs — the CHUNK VERIFIER dispatch, verdict rule and
+`RETURN:` block of `skills/sdd-orchestrate/references/dispatch-templates.md`
+against `docs/spec/harness-chunk-verifier.md`, and the RED TEAM dispatch and
+`RETURN:` block against `docs/spec/adversarial-verify.md` — compares their
+hashes, and on divergence emits
+`[template-drift] <file>:<line>: fenced body diverges from dispatch-templates.md L<n>`
+with a `fix:` line naming the source of record (the skill side changes; the
+spec side is Approved and stable). The pair list is a table in the linter so a
+future restated body is one row. The five bodies are byte-identical today and
+nothing keeps them so; the contract is invisible at edit time and a divergence
+would first surface as a leaf returning the wrong shape. (workstream
+`harness-p4`; see `docs/ws/harness-p3/verification.md` §V8 — verified identical
+today, rule recommended; REQ-HARN-HARNESSP3-002 is the contract it guards)
+**Acceptance**: the shipped skill set exits 0; changing one character inside
+the RED TEAM `RETURN:` block of `dispatch-templates.md` makes the lint exit 1
+with a `[template-drift]` line naming `adversarial-verify.md` and the fix;
+`--self-test`'s mutation loop covers the rule; REQ-HARN-HARNESSP4-007's edit is
+made with the rule active and leaves it at exit 0.
+[Priority: must]
+
+### REQ-LINT-HARNESSP4-002: REQUIRED row — `COMMIT: COMPLETE | INCOMPLETE` stated in `loop-control.md` and `SKILL.md`
+The `REQUIRED` table must gain one row asserting the `COMMIT:` token family of
+REQ-HARN-HARNESSP4-001 is stated in
+`skills/sdd-orchestrate/references/loop-control.md` (the §5 order) and in
+`skills/sdd-orchestrate/SKILL.md` §The gate, with a pattern that matches
+`COMMIT: COMPLETE` / `COMMIT: INCOMPLETE` and does **not** match a file that
+only names `SCOPE:` — the same guard the existing `CHUNK_VERDICT:` row already
+applies — and with a `fix:` string pointing at `write-scope.md` §7 as the
+defining section. (workstream `harness-p4`; see RS-HARNESSP4-001 §Q1 cost table
+— code; every new gate token so far has shipped with a lint pair,
+REQ-LINT-HARNESSP2-001)
+**Acceptance**: removing the `COMMIT:` line from `loop-control.md` §5 or from
+`SKILL.md` §The gate makes the lint exit 1 with the row's fix; a file containing
+only `SCOPE: CLEAN` does not satisfy the row; `--self-test`'s mutation loop
+covers the row; the shipped skill set exits 0.
 [Priority: must]

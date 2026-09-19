@@ -1,9 +1,11 @@
 ---
 status: Approved
-last_updated: 2026-07-21
+last_updated: 2026-09-18
 requires:
   - REQ-WS-007
   - REQ-WS-008
+  - REQ-WS-HARNESSP3-001
+  - REQ-REDB-HARNESSP3-003
 ---
 
 # Multi-Workstream Traceability Join
@@ -125,6 +127,88 @@ recorded join documents coverage for humans and review; the live walk drives sta
 Consequently no traceability **column** is added for staleness scope — the `Workstream`
 column above exists only to attribute aggregated rows, not to feed staleness.
 
+### Aggregate Regeneration Ownership: Orchestrated vs Standalone (REQ-WS-HARNESSP3-001)
+
+[Changed 2026-09-18. The defect is **spec-read** — two committed texts disagreed:
+Q-IMPL-011 below made every writing skill regenerate the aggregate immediately
+after its per-ws write, while `references/fan-out.md` §3e made the orchestrator
+regenerate at merge. Which side wins, and the discriminator, are **constructed**
+judgements ratified here.]
+
+**Rule.** Regeneration of the shared `docs/requirements/traceability.md` belongs
+to the **orchestrator**, in its own post-gate bookkeeping commit, for every
+**orchestrated** dispatch. Concretely:
+
+1. `docs/requirements/traceability.md` is **dropped from the leaf default write
+   scopes** for orchestrated dispatches
+   (`docs/spec/harness-write-scope.md` §2).
+2. A **post-gate orchestrator bookkeeping step** and a separate commit are added,
+   beside `fan-out.md` §3e's.
+3. Q-IMPL-011's behaviour is **kept for standalone, non-orchestrated skill
+   runs**, so the aggregate does not go stale when someone invokes a single
+   `sdd-*` skill outside the harness.
+
+**Regeneration trigger — every gate outcome, before the session ends.** Moving
+the regeneration behind the gate must not let a non-`proceed` outcome leave the
+shared aggregate stale: today the leaf regenerates inline, so a stopped or
+looped-back stage still leaves the aggregate consistent. The orchestrator
+therefore regenerates on **every** gate outcome — `proceed`,
+`loop-back-to-fix` and `stop` alike — and before the session ends. Concretely:
+after any gate at which a leaf wrote per-ws traceability rows since the last
+regeneration, the orchestrator regenerates and commits, so the aggregate is
+consistent with the per-ws files at every point an operator could walk away.
+Within a fix loop this means one regeneration per gate, each superseding the
+last — regeneration is wholesale and idempotent, so repeating it costs nothing
+and never compounds.
+
+**Discriminator — decided, not left open.** The dispatched `{write_scope}` slot
+**is** the signal; no new flag, field or schema is added. A writing skill
+regenerates the aggregate after its per-ws write **unless it was dispatched with
+a write scope that omits that path**, in which case the regeneration is the
+orchestrator's. Under item (1) the orchestrated leaf scopes omit the path by
+construction, so its absence from `{write_scope}` *is* the orchestrated signal,
+and its presence — or the absence of any dispatched scope at all — *is* the
+standalone signal. A skill therefore never has to know **who** invoked it, only
+what it was scoped to write.
+
+**Not adopted**: an explicit instruction line in the PIPELINE template body.
+More legible, but it adds text to every dispatch, and the slot-based signal
+already exists.
+
+Affected surfaces: `references/write-scope.md` §2 (leaf rows) and §7
+(commit-ownership table), `references/fan-out.md` §3e (cross-reference), and the
+marker-4 traceability notes in `sdd-requirements`, `sdd-specs`, `sdd-implement`
+and `sdd-verify` (each states the unless-clause).
+
+### Legal `Verified` Cell Values (REQ-REDB-HARNESSP3-003)
+
+The `Verified` column tracks the **report's** status, so its vocabulary is
+exactly three values:
+
+| Value | Meaning |
+|-------|---------|
+| `pass` | the report covering this row is `status: pass` |
+| `fail` | the report covering this row is `status: fail` |
+| `pending-red` | the report is `status: pending-red` — a red round is outstanding |
+
+`pending-red` is written by `sdd-verify` into every cell it would otherwise have
+marked `pass` (a `fail` row stays `fail`), and the orchestrator's existing
+`pending-red -> pass` flip at DONE flips exactly those cells and regenerates the
+aggregate in the same bookkeeping step. One writer per state; no new artifact.
+`tools/sdd-gc.py`'s `trace-empty` sweep does not constrain this cell's
+vocabulary, so no code change follows. See `docs/spec/adversarial-verify.md`.
+
+[Amended 2026-09-18, harness-p4 — REQ-REDB-HARNESSP4-001, owned by
+`adversarial-verify.md`] The gc criterion for these cells reads "`python3
+tools/sdd-gc.py --report` raises no new finding **on a `pending-red` cell**"; the
+`[traceability-aggregate]` warning raised between a per-workstream traceability
+write and the orchestrator's post-gate regeneration (§Aggregate Regeneration
+Ownership) is the **designed handshake** and is expected, not a finding.
+
+**Duplicate requirement id across per-workstream files** — see
+Q-IMPL-HARNESSP4-001 below: legal, aggregated as-is, newest-workstream row
+authoritative.
+
 ## Verification
 
 ### Automated
@@ -155,6 +239,32 @@ column above exists only to attribute aggregated rows, not to feed staleness.
 - [ ] Two concurrent workstreams' traceability additions 3-way-merge with no conflict
       (REQ-WS-008)
 - [ ] Markdown well-formed; frontmatter valid
+- [ ] Q-IMPL-011 carries the orchestrated/standalone split stated against `{write_scope}` (REQ-WS-HARNESSP3-001)
+- [ ] `references/write-scope.md` §2 leaf rows omit `docs/requirements/traceability.md` and §7's commit-ownership table assigns the regeneration to the orchestrator; `references/fan-out.md` §3e cross-references the same rule (REQ-WS-HARNESSP3-001)
+- [ ] The marker-4 traceability notes in `sdd-requirements`, `sdd-specs`, `sdd-implement` and `sdd-verify` state the unless-clause (REQ-WS-HARNESSP3-001)
+- [ ] A walkthrough of an orchestrated dispatch shows the aggregate regenerated in a separate orchestrator commit and the leaf's `files_written` containing no aggregate path; a standalone run of the same skill regenerates the aggregate itself (REQ-WS-HARNESSP3-001)
+- [ ] A walkthrough of a gate resolved `stop`, and one resolved `loop-back-to-fix`, each shows the aggregate regenerated and committed before the session ends (REQ-WS-HARNESSP3-001)
+- [ ] This spec lists `pass`, `fail` and `pending-red` as the legal `Verified` cell values (REQ-REDB-HARNESSP3-003)
+- [ ] §Legal `Verified` Cell Values states the qualified gc criterion ("no new finding on a `pending-red` cell") and names the `[traceability-aggregate]` handshake warning as expected (REQ-REDB-HARNESSP4-001, owned by `adversarial-verify.md`)
+- [ ] A requirement id present in two per-workstream files yields two adjacent aggregate rows; the newest-kickoff workstream's row is authoritative; `trace-empty` runs per file unchanged (Q-IMPL-HARNESSP4-001; REQ-ARB-HARNESSP4-001 cross-reference)
+
+## Cross-Spec Consistency (XSPEC)
+
+**harness-p3 pass (2026-09-18).** No extractable type definitions in
+ws-traceability.md — the matrix is a Markdown table contract, reported
+explicitly rather than passing silently. Checks:
+
+- The 6-column matrix shape (`Requirement | Spec | Workstream | Test |
+  Implementation | Verified`) is unchanged by this amendment.
+- `pending-red` is defined as a report status in
+  `docs/spec/adversarial-verify.md` and admitted here as a cell value — both
+  amended in this pass, vocabulary matches.
+- The `{write_scope}` discriminator is stated here and its table effect lives in
+  `docs/spec/harness-write-scope.md` §2 / §7 — one rule, two surfaces, no
+  divergence.
+- `docs/spec/ws-layout.md`'s ownership model (per-ws file owned, aggregate
+  regenerated wholesale) is untouched: only *who runs the regeneration* changed,
+  never *how* it is produced.
 
 ## Implementation Questions
 
@@ -175,6 +285,14 @@ file; the aggregate re-derives on merge).
 regeneration with each write is the least-surprising place and needs no separate trigger
 skill. Marker `3` behavior is untouched — the single shared file is still written directly.
 
+[Amended 2026-09-18, REQ-WS-HARNESSP3-001] The rule above now holds **only for
+standalone, non-orchestrated runs**. Under an orchestrated dispatch the
+aggregate regeneration belongs to the orchestrator's post-gate bookkeeping
+commit, and the discriminator is the dispatched `{write_scope}` slot: a writing
+skill regenerates the aggregate after its per-ws write **unless it was
+dispatched with a write scope that omits `docs/requirements/traceability.md`**.
+See §Aggregate Regeneration Ownership above.
+
 ### Q-IMPL-012: sdd-requirements (a shared-corpus skill) writes into a per-ws file
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Per-Workstream File Shape ("both new ws-prefixed requirements and
@@ -190,3 +308,45 @@ invariant even though requirements themselves are shared.
 workstream-owned state; only the requirement definition is shared. Splitting text (shared,
 merge-safe append) from row (per-ws owned) satisfies both REQ-WS-004 (shared corpus) and
 REQ-WS-008 (per-ws-owned rows) without a shared write point.
+
+### Q-IMPL-HARNESSP3-011: "Since the last regeneration" is tracked as a session-state dirty flag
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Aggregate Regeneration Ownership
+**Decision**:
+
+The orchestrator sets a session-scoped flag when a leaf's `traceability_fills`
+is non-empty, and clears it after a successful regeneration commit. The flag is
+session state, not an artifact, so the no-new-artifact invariant holds; on a
+resumed session the flag starts set, which costs at most one redundant
+regeneration (idempotent) and never a missed one.
+**Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-HARNESSP4-001: A requirement id carried into a second workstream yields two aggregate rows; the newest workstream's row is authoritative
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Aggregation Contract
+**Decision**:
+
+`REQ-ARB-HARNESSP3-001` has a row in `docs/ws/harness-p3/traceability.md`
+(`fail` = not exercised, history) and in `docs/ws/harness-p4/traceability.md`
+(carried for live exercise — REQ-ARB-HARNESSP4-001). `regenerate_aggregate()`
+concatenates and stable-sorts **without de-duplication**, so the aggregate
+carries **two rows for one id** with divergent `Verified` values once p4 writes
+`pass`. This is legal under §Per-Workstream File Shape (re-use rows) and is
+**documented as-is — no de-duplication is added**: the aggregate is a
+convenience view whose job is to show every workstream's join, and collapsing
+rows would hide the history the carried row exists to preserve.
+
+**Authority rule** (for a reader, `tools/sdd-gc.py` and `sdd-verify`): when one
+requirement id appears in more than one per-workstream file, the row of the
+workstream whose `kickoff.md` `date:` is **latest** is authoritative for the
+requirement's current state; ties (no kickoff, equal dates) fall back to the
+lexically greatest workstream id. Consequences: (i) `sdd-gc.py`'s `trace-empty`
+sweep already runs per file and needs **no tolerance change** — each row is
+judged in its own file; (ii) `sdd-verify` writes only its own workstream's file
+and applies the cycle's DONE rule to that file's rows, so it never reads the
+other row; (iii) any future aggregate-level reader (a completeness report, the
+scorer) applies the authority rule rather than counting the id twice. The stable
+sort by requirement id places the two rows adjacent, so the history is visible
+at a glance. No code change this cycle; the rule is the contract a future reader
+implements.
+**Date**: 2026-09-18 (specs stage, harness-p4)

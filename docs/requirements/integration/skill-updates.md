@@ -1,8 +1,8 @@
 ---
 domain: SKILL
-last_updated: 2026-09-17
+last_updated: 2026-09-18
 status: Approved
-research_refs: [RS-003, RS-004, RS-008]
+research_refs: [RS-003, RS-004, RS-008, RS-HARNESSP3-001]
 ---
 
 # Requirements: Skill Updates
@@ -325,3 +325,37 @@ it as "gitignored, orchestrator-only, never read by phase detection".
 **Acceptance**: `USAGE.md` has a section per signal; `CLAUDE.md` diff is one
 paragraph plus zero changes to the four-layer bullet.
 [Priority: must]
+
+### REQ-SKILL-HARNESSP3-001: `sdd-verify` carries unresolved Minor entries forward between cycles
+`skills/sdd-verify/SKILL.md` Step 6 must state one rule: unresolved **Minor**
+entries from the **previous cycle's** report are either carried into this
+cycle's §Issues Found → Minor or explicitly marked closed. `verification.md` is
+overwritten per cycle, so a minor that is neither carried nor closed is lost to
+git history — observed on 2026-09-18 with the RS-001 `KeyError('id')` minor.
+"The previous cycle's report" is identified via the `research_id` stamp of
+REQ-CYCID-HARNESSP3-001, so this requirement **depends on** it — including that
+requirement's third case: where **no `kickoff.md` exists** for the
+`(repo, workstream)`, there is no cycle discriminator, so the carry-or-close
+rule applies to whatever report the overwrite is about to replace, identified by
+its position on disk alone. Absence of a kickoff must not suppress the rule. (see
+RS-HARNESSP3-001 Q8-IN row 3 — provenance: raised by the 2026-09-18 run itself,
+not carried in from the kickoff's Q8 seed list, so it is new scope rather than an
+already-agreed item; observed gap with a constructed remedy)
+**Acceptance**: `sdd-verify` Step 6 contains the carry-or-close rule and names
+the `research_id` comparison as how the previous report is identified, and
+states that a missing kickoff does not suppress the rule; a
+walkthrough over a previous report holding two unresolved Minor entries yields a
+new report in which both appear under §Issues Found → Minor or are marked
+closed with a reason.
+[Priority: should]
+
+## Open Questions / Assumptions
+
+- **File size is past the 300-line split threshold — deliberately left
+  unsplit.** This file is at 350+ lines, over the skill's 300-line advisory
+  split threshold, for a second consecutive cycle. The carried operator default
+  is to **leave it unsplit**: the `SKILL` prefix is cohesive (one requirement
+  per skill edit, read together when the skill edits are planned), and a split
+  would fragment that reading for no structural gain while forcing a Domain
+  Prefixes multi-file entry. Recorded here so the unsplit state reads as a
+  decision, not an oversight; revisit if the file passes ~500 lines.

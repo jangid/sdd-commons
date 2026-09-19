@@ -303,16 +303,19 @@ This section is what the new lines mean when you see them.
 
 | Gate | When | Options | What it shows |
 |------|------|---------|---------------|
-| **Per-chunk gate** | implement stage only — after each `### Chunk N:` dispatch returns | `proceed │ fix │ stop` | `RETURN.status`, `SCOPE:`, `CHUNK_VERDICT:`, files changed, `Redo: N of 3` |
-| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` or the replan re-entry count when a loop is active; verify stage with red on: `RED_VERDICT:` and its `Rn` lines before the `VERDICT:` |
+| **Per-chunk gate** | implement stage only — after each `### Chunk N:` dispatch returns | `proceed │ fix │ stop` | `RETURN.status`, `SCOPE:`, `CHUNK_VERDICT:`, files changed, `Redo: N of 3`; after `proceed`, the `COMMIT:` closing line |
+| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` or the replan re-entry count when a loop is active; verify stage with red on: `RED_VERDICT:` and its `Rn` lines (position per `references/loop-control.md` §5); after `proceed`, the `COMMIT:` closing line |
 
-Signals appear in the order they are produced: (1) the leaf's `RETURN.status`
-and `budget_consumed` against the dispatched `Budget:`; (2) the write-scope
-block ending in `SCOPE:`; (3) the chunk's `CHUNK_VERDICT:`; then, at the stage
-gate, (3b) at the verify stage only and only when red is on, `RED_VERDICT:` with
-its `Rn` lines verbatim; (4) the review `VERDICT:` and (5) the loop counters,
-followed by any `TELEMETRY:` line (at most once each, before the options).
-Non-implement stages show (1), (2), (4), (5) together at the stage gate.
+Signals appear in the order they are produced, which is stated **once** in the
+repo — `references/loop-control.md` §5 "Gate signal order (REQ-ORCH-034)".
+Read it there; this section deliberately carries no second ordering of its own,
+so it cannot silently drift out of step with §5. In prose: the leaf's own
+signals come first, then the mechanical scope and verifier checks, then the
+review's judgement and the loop counters, with any pause block and the
+`TELEMETRY:` line last, each at most once, before the options. Which of those a
+given gate renders at all depends on the stage — a non-implement stage has no
+per-chunk signals, and the red-team signals appear only at the verify stage with
+red on.
 
 ### Reading the per-chunk gate block
 
@@ -324,6 +327,8 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
   Files changed  : src/recon/engine.py M, tests/test_recon.py M, docs/plan.md M
   Redo           : 0 of 3 (per-chunk redo counter)
   Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 2 with a repair packet; counts toward the per-chunk redo cap) │ stop
+  > proceed
+  COMMIT: COMPLETE (3 paths)                      # post-decision closing line; INCOMPLETE pauses: amend │ accept (note) │ stop
 ```
 
 - **`RETURN.status`** — the leaf's own one-word verdict on its deliverable:
@@ -349,6 +354,16 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
 - **Files changed** — the observed delta (sequential: the working tree;
   fan-out: the branch's committed delta). On `proceed` in sequential mode the
   orchestrator commits the chunk; under fan-out the leaf already committed.
+- **`COMMIT: COMPLETE (N paths)`** — the closing line after your `proceed`: the
+  orchestrator compared what the leaf was observed to write against what its
+  own commit landed (a two-sha `git diff --name-only` range). On
+  **`COMMIT: INCOMPLETE (k observed, not landed: …)`** the gate pauses —
+  **`amend`** stages the missing paths into the orchestrator's own commit,
+  **`accept (note)`** records the gap in the gate text, **`stop`** halts — and
+  nothing is dispatched next (not even the implement-stage review) until you
+  choose. Under fan-out the same line appears pre-decision at the per-leaf gate
+  (the leaf's uncommitted writes) and again after each merge. Defined in
+  `references/write-scope.md` §7a.
 
 ### Reading the stage gate
 
@@ -416,6 +431,7 @@ and is reverted before the gate. Lines you may see, at most once each, after the
 
 | Line | Meaning |
 |------|---------|
+| `TELEMETRY: rec <n>` | the previous dispatch's append **succeeded**; `<n>` counts successful appends this session (not the dispatch number), so a gate with telemetry on but no append shows no `rec` line |
 | `TELEMETRY: WRITE FAILED` | the previous append raised an error; the gate continues unchanged — never a pause |
 | `TELEMETRY: OFF` | first gate of a cycle you opted out of |
 | `TELEMETRY: .gitignore updated` | the orchestrator added the `.sdd/` ignore line (gitignored, orchestrator-only, never read by phase detection; a bookkeeping commit outside any observed window) |
@@ -531,6 +547,47 @@ history. Variants: `CATCH-UP base <sha> unresolved — window from <HEAD_prov>`
 (named base not reachable — no exclusion) and `CATCH-UP not performed (base
 <sha>)` (leaf ignored the instruction — a warning, not a violation). Detail:
 `references/write-scope.md` §3.
+
+## 7d. What changed in harness hardening, part 3 (harness-p3)
+
+Nothing here changes the one-word decisions either gate offers; each line is
+defined once in the reference named beside it.
+
+- **Write-scope is a content check.** A file that was already dirty when the
+  snapshot was taken and that the leaf then re-touched is now observed: paths
+  present in both snapshots cancel only when their content hash is unchanged
+  too. You will see such a path in the `SCOPE:` block where earlier versions
+  stayed silent — `references/write-scope.md` §3.
+- **`RETURN:` blocks are pinned.** Every dispatch template carries the leaf's
+  return block verbatim, so a `BUDGET_EXHAUSTED` return pauses with its
+  `budget_consumed` against the `Budget:` you approved instead of reading as
+  partial progress — `references/return-contract.md`.
+- **Regeneration is not a contradiction.** When a fix loop regenerates its
+  deliverable wholesale, findings the next review round raises inside the
+  regenerated file no longer pause as `REVIEW: CONTRADICTION (… class b)`; a
+  file the loop left alone still does — `references/loop-control.md` §2a.
+- **`TELEMETRY: rec <n>`.** The positive member of the `TELEMETRY:` family:
+  `<n>` is the count of successful appends this session, so a gate that says
+  telemetry is on now also shows that the append happened. After the cycle,
+  `python3 tools/sdd-telemetry.py summarize` reports any records-vs-expected
+  gap — `references/telemetry.md` §3.
+- **A previous cycle's report no longer counts as this one's.** Before a
+  `status: pass` verification or a fully-checked plan is read as "this stage is
+  done", its frontmatter `research_id:` is compared by exact string equality
+  with the kickoff's; a mismatch, or a missing field, reads as a previous
+  cycle's artifact and the stage runs. With no kickoff or no `research_id:` the
+  comparison is skipped and the old `status:`-only rule applies —
+  `docs/spec/cycle-identity.md`.
+- **`RED:` lines on a second red round.** From red round 2 on, the orchestrator
+  re-runs each previous `BROKEN` `Rn`'s `reproduce:` command and renders one
+  derived line — `RED: Rn new-ground` (the old command now passes: a second bug
+  behind the first, not a failed fix) or `RED: Rn regression` (it still fails)
+  — inside the `RED_VERDICT:` block, after red's own `Rn` lines and before the
+  exit rule. Meanwhile the traceability `Verified` column reads `pending-red`,
+  flipping to `pass` in the same DONE bookkeeping step that regenerates the
+  aggregate — `references/loop-control.md` §2a.
+
+---
 
 ---
 
