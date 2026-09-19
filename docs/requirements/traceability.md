@@ -208,8 +208,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p3 | loop-control.md §2a replay fixture (REQ-ARB-HARNESSP3-001) | skills/sdd-orchestrate/references/loop-control.md §2a, §6 | fail |
 | REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p4 |  |  |  |
 | REQ-ARB-HARNESSP4-001 | arbitrated-handoff.md | harness-p4 |  |  |  |
-| REQ-ARB-HARNESSP4-002 | arbitrated-handoff.md | harness-p4 |  |  |  |
-| REQ-ARB-HARNESSP4-003 | arbitrated-handoff.md | harness-p4 |  |  |  |
+| REQ-ARB-HARNESSP4-002 | arbitrated-handoff.md | harness-p4 | plan Chunk 5 task 4 — `grep -n 'docs/requirements/traceability.md' skills/sdd-orchestrate/references/loop-control.md` hits the §2a fixture's `regen[1]` block with `by: orchestrator` and the `M3` line; no bare `traceability.md` in the fixture's finding lines; `python3 tools/sdd-skill-lint.py` exit 0 | skills/sdd-orchestrate/references/loop-control.md §2a replay fixture (`regen[1]` aggregate entry `by: orchestrator`; `M1`–`M3` full paths) |  |
 | REQ-CYCID-HARNESSP3-001 | cycle-identity.md | harness-p3 | Chunk 5 task 7 three-state phase-detection walkthrough (mismatch / absent / no kickoff) — inline; no executable fixture (skill text) | `skills/sdd-verify/SKILL.md` §Phase Detection, Step 6 (`research_id:` stamp), `skills/sdd-{plan,replan,implement,orchestrate}/SKILL.md` §Phase Detection, `CLAUDE.md` §Phase Detection | pass |
 | REQ-CYCID-HARNESSP3-002 | cycle-identity.md | harness-p3 | Chunk 5 task 7 plan-completion half of the same walkthrough; `references/loop-control.md` §3 unmodified (diff empty) | `skills/sdd-plan/SKILL.md` (frontmatter template `research_id:`, plan-writing note, §Phase Detection), `CLAUDE.md` §Phase Detection | pass |
 | REQ-CYCID-HARNESSP4-001 | cycle-identity.md | harness-p4 |  |  |  |
