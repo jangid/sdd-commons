@@ -260,14 +260,16 @@ REQ-TELEM-HARNESSP4-003.
 3. [ ] [implement] Same tool: the mis-typed-fix rule — an implied fix present
    as a record of another kind counts 0 toward `missing.fix` and is reported by
    `--lint` as `[mistyped-fix]` (landed fully in Chunk 3; in this chunk the
-   `summarize` line reads `(0 missing; 2 mis-typed — see --lint)`); `reason:
+   `summarize` line already renders the spec's verbatim suffix `(0 missing;
+   2 mis-typed — see --lint)`, whose `see --lint` pointer resolves once Chunk 3
+   ships the `[mistyped-fix]` class); `reason:
    REVIEW` at `iteration ≥ 1` with no preceding `loop-back-to-fix` at the stage
    is the warning `[reason-review]`, never a count; `FIX_ONLY_REASONS` is parsed
    from a `const` row of the domain table, not a bare code constant — traces to
    `telemetry.md` §Implication-Derived `expected` and the Headline
    (REQ-TELEM-HARNESSP4-003). Files: `tools/sdd-telemetry.py`
-4. [ ] [implement] `references/telemetry.md` §5 (or the section that documents
-   `summarize`): document the implication formula, the headline definition and
+4. [ ] [implement] `references/telemetry.md` §7 (Post-cycle reader — or the
+   section that documents `summarize`): document the implication formula, the headline definition and
    both record shapes (p3 collapsed vs compliant redo) with the fixture's worked
    numbers — traces to `telemetry.md` §Implication-Derived `expected` and the
    Headline (REQ-TELEM-HARNESSP4-002). Files:
@@ -304,8 +306,9 @@ unchanged.
 that both telemetry documents render, and the two new record groups are
 declared, written and linted.
 **Depends on**: Chunk 2.
-**Delivers**: REQ-TELEM-HARNESSP4-004, REQ-TELEM-HARNESSP4-006,
-REQ-TELEM-HARNESSP4-007, REQ-TELEM-HARNESSP4-008 (optional, `may`).
+**Delivers**: REQ-TELEM-HARNESSP4-003, REQ-TELEM-HARNESSP4-004,
+REQ-TELEM-HARNESSP4-006, REQ-TELEM-HARNESSP4-007, REQ-TELEM-HARNESSP4-008
+(optional, `may`).
 **Tasks**:
 1. [ ] [implement] `tools/sdd-telemetry.py`: make the domain table the single
    source of truth — every `group.key` with type / enum members / `[p4]` mark /
@@ -666,10 +669,15 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   needs a `dispatch-templates.md` change → replan Chunk 5 to add the slot text
   before O1 runs; do not improvise the instruction in the gate.
 - If no `APPROVE_WITH_FIXES` review occurs in the cycle before the verify stage
-  (O1 never fires), or the live `COMMIT:` line never renders (O3) → descope
-  REQ-ARB-HARNESSP4-001 / carried REQ-ARB-HARNESSP3-001, or
-  REQ-HARN-HARNESSP4-001's live-render criterion, at replan under the DONE rule
-  (every remaining row `pass`, nothing a deliberate `fail`).
+  (O1 never fires), or the live `COMMIT:` line never renders (O3), or the
+  running orchestrator session's loaded skill text predates Chunk 2 and never
+  writes `verifier` / `fix` records (Verification Hand-off item 4) → descope
+  REQ-ARB-HARNESSP4-001 / carried REQ-ARB-HARNESSP3-001,
+  REQ-HARN-HARNESSP4-001's live-render criterion, or
+  REQ-TELEM-HARNESSP4-001's live-count criterion respectively, at replan under
+  the DONE rule (every remaining row `pass`, nothing a deliberate `fail`); the
+  operator records the predating-session fact in each case, never closing the
+  row `fail`.
 - If O2's pre-migration `--lint` shows findings on typed fields of the 8 p3
   `chunk` records other than the header string itself → do not migrate; replan
   REQ-TELEM-HARNESSP4-005 (the migrated block would assert more than the
@@ -765,7 +773,11 @@ must record, beyond the per-spec acceptance criteria:
    dispatches rendered, `implied vs recorded` 0 missing for both kinds, the
    `widened dispatches` line (≥ 1, from O4) and the `COMMIT: INCOMPLETE` count
    (REQ-TELEM-HARNESSP4-001, -006, -007); `--plan` result or its §Next Steps
-   entry (REQ-TELEM-HARNESSP4-008).
+   entry (REQ-TELEM-HARNESSP4-008). Descope path, as O3 has: if the running
+   orchestrator session's loaded skill text predates Chunk 2 and never writes
+   `verifier` / `fix` records, the operator records that fact and `sdd-verify`
+   descopes REQ-TELEM-HARNESSP4-001's live-count criterion at replan under the
+   DONE rule rather than failing the row.
 5. **gc criterion on a `pending-red` cell** — if red is enabled at the verify
    gate, the gc run after the per-ws write and before regeneration records the
    `[traceability-aggregate]` warning as expected and passes on the qualified
