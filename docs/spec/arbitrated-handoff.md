@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 requires:
   - REQ-ARB-HARNESSP2-001
   - REQ-ARB-HARNESSP2-002
@@ -340,13 +340,19 @@ carried ARB rows close by spec decision plus a frozen fixture, never a second
 live loop. Runner placement per Q-REQ-P5-H.]
 
 **Fixture** — `tools/fixtures/arbitration-harness-p4-regen-2026-09-19/`, a
-**reconstruction** of the p4 implement-stage gate from
-`docs/ws/harness-p4/verification.md` §1 and plan O1, not a byte capture
-(`tools/fixtures/README.md` says so per fixture):
+**git capture** of the p4 implement-stage regeneration: `before.md` and
+`after.md` are `git show 82d0af0:docs/ws/harness-p4/plan.md` and
+`git show 3772574:docs/ws/harness-p4/plan.md`, the real before/after images of
+the regenerated deliverable, not a hand reconstruction; the three round and
+dispatch files are authored from `docs/ws/harness-p4/verification.md` §1 and
+plan O1. `tools/fixtures/README.md` records the capture per fixture — naming
+**both shas** and the **sha256 of each file** — and the two shas are provenance
+only: the captured bytes live in the fixture, so it stands if they become
+unreachable:
 
 | File | Content |
 |---|---|
-| `before.md`, `after.md` | the plan before and after the wholesale regeneration — byte-identical outside `§(preamble)`, `§Operator Tasks` and `§Completed` |
+| `before.md`, `after.md` | the plan before and after the wholesale regeneration, captured at `82d0af0` and `3772574` — a broad diff (35 hunks, `§(preamble)` through `§Replan Triggers`) that nonetheless discriminates because the two sections round 2 keys on, `§Conventions` and `§Verification Hand-off`, are **byte-identical** across the pair |
 | `round-1.txt` | `VERDICT: APPROVE_WITH_FIXES`; its C/M lines keyed on the two changed sections |
 | `round-2.txt` | two Material lines keyed on the plan's **unchanged** `§Conventions` and `§Verification Hand-off`, confined to the regenerated file |
 | `dispatch.txt` | observed writes `{docs/ws/harness-p4/plan.md}`, `regenerate: true`, `by: leaf` |
@@ -459,7 +465,7 @@ the workstream's `traceability.md`.
 - [ ] The first `APPROVE_WITH_FIXES` fix dispatch of the harness-p4 cycle carries the regenerate-wholesale instruction in its `{deliverable_contract}`; the following review round's gate renders `VERDICT:` with no `REVIEW: CONTRADICTION` line although it raised findings in the regenerated file; `docs/ws/harness-p4/verification.md` §Criteria records stage, round numbers, regenerated paths and the retained `regen[N]`; the carried `REQ-ARB-HARNESSP3-001` row in `docs/ws/harness-p4/traceability.md` reads `pass` at DONE and the aggregate shows both rows with the `harness-p4` row authoritative (REQ-ARB-HARNESSP4-001, REQ-ARB-HARNESSP3-001)
 - [ ] `grep -n 'docs/requirements/traceability.md' skills/sdd-orchestrate/references/loop-control.md` hits inside the §2a fixture's `regen[1]` block with an orchestrator-regeneration label; no bare `traceability.md` remains in the fixture's finding lines; `python3 tools/sdd-skill-lint.py` exits 0 (REQ-ARB-HARNESSP4-002)
 - [ ] `grep -n 'byte-identical' docs/spec/arbitrated-handoff.md skills/sdd-orchestrate/references/loop-control.md` hits inside §`W_N` Includes Regeneration Writes and §2a respectively with matching wording; scenario A1 yields `class b` with two annotated keys under the diff-based rule and no token under provenance, printed side by side; no Q-IMPL-HARNESSP5-* entry is needed (the Approved sentence is the record); `python3 tools/sdd-skill-lint.py` exits 0 (REQ-ARB-HARNESSP5-001)
-- [ ] `python3 <runner> --self-test` — where `<runner>` is whichever of `tools/sdd-scope-check-selftest.py` (the Q-REQ-P5-H default) or `tools/sdd-arbitrate-selftest.py` the plan selects, named once in the plan and used verbatim by `verification.md` — exits 0 with A1–A3 listed and A1's provenance column printed alongside; deleting one `round-2.txt` line or flipping `§Conventions` to a changed section in a temp copy makes A1 fail; `tools/fixtures/README.md` labels the fixture a reconstruction with its files' sha256; `verification.md` §Criteria records the run as the evidence for both ARB rows, which read `pass` at DONE in `docs/ws/harness-p5/traceability.md` and in the regenerated aggregate (REQ-ARB-HARNESSP5-002, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001)
+- [ ] `python3 <runner> --self-test` — where `<runner>` is whichever of `tools/sdd-scope-check-selftest.py` (the Q-REQ-P5-H default) or `tools/sdd-arbitrate-selftest.py` the plan selects, named once in the plan and used verbatim by `verification.md` — exits 0 with A1–A3 listed and A1's provenance column printed alongside; deleting one `round-2.txt` line or flipping `§Conventions` to a changed section in a temp copy makes A1 fail; `tools/fixtures/README.md` labels the fixture a **git capture** naming both shas (`82d0af0`, `3772574`) with its files' sha256; `verification.md` §Criteria records the run as the evidence for both ARB rows, which read `pass` at DONE in `docs/ws/harness-p5/traceability.md` and in the regenerated aggregate (REQ-ARB-HARNESSP5-002, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001)
 - [ ] The key table's `section` row states the leading-ordinal strip rule and Open Question 3 reads closed, pointing at that row; `references/loop-control.md` §2a agrees; the A1–A3 key parser implements it and a round line with and without the ordinal resolves to the same key in `--self-test`; `python3 tools/sdd-gc.py --report` raises no new finding on this spec (REQ-ARB-HARNESSP5-003)
 - [ ] §Retained Per-Round State's fenced schema shows `round[N]`, `fix[N]` and `regen[N]` with the `W_N` union; its text and `references/loop-control.md` §2a agree on the definition (side-by-side read at specs); `python3 tools/sdd-gc.py --report` raises no new finding on this spec (REQ-ARB-HARNESSP4-003)
 

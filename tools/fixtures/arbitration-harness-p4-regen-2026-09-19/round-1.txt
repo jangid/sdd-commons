@@ -1,0 +1,3 @@
+VERDICT: APPROVE_WITH_FIXES
+- C1: the §Operator Tasks table omits O1's line-count check, so the fixture cut cannot be verified — [docs/ws/harness-p4/plan.md:§Operator Tasks] — affects [REQ-TELEM-HARNESSP4-001]
+- M1: the plan preamble's `last_updated` predates the specs it plans against — [docs/ws/harness-p4/plan.md:§(preamble)] — affects —

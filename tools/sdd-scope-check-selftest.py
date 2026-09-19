@@ -1504,6 +1504,235 @@ def scenario_c6(repo: str) -> tuple[bool, str, list[str]]:
     return ok, f"{line} (whitespace split would render: {line_naive})", [line, line_naive]
 
 
+# ---------------------------------------------------------------------------
+# arbitrated-handoff.md §Offline Arbitration Fixture — scenarios A1-A3
+# ---------------------------------------------------------------------------
+
+#: The frozen git capture of the harness-p4 implement-stage regeneration.
+#: ``before.md`` / ``after.md`` are ``git show`` captures of 82d0af0 and 3772574
+#: (see ``tools/fixtures/README.md``); the fixture is read-only here — every
+#: mutation case below copies it in memory and writes the copy into a temp repo.
+ARB_FIXTURE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "fixtures",
+    "arbitration-harness-p4-regen-2026-09-19",
+)
+#: The path the captured plan is replayed at, per ``dispatch.txt``'s observed writes.
+ARB_PLAN_PATH = "docs/ws/harness-p4/plan.md"
+
+#: ``- M1: text — [path:§Section] — affects [REQ-…]`` (loop-control.md §2a key form).
+FINDING_REF = re.compile(r"\[([^\[\]:]+):(§[^\[\]]+)\]")
+
+
+@dataclass(frozen=True)
+class Round:
+    """A parsed review round: its verdict and its C/M findings' keys, in order."""
+
+    verdict: str
+    keys: tuple[tuple[str, str], ...]
+
+
+def finding_key(line: str) -> tuple[str, str] | None:
+    """``(path, §Name)`` for a C/M finding line, or ``None`` when it carries no ref.
+
+    The section is normalised through :func:`section_name`, so a leading ordinal
+    (``§3. Conventions``) resolves to the same key as ``§Conventions``
+    (REQ-ARB-HARNESSP5-003).
+    """
+    m = FINDING_REF.search(line)
+    if not m:
+        return None
+    return m.group(1).strip(), section_name(m.group(2).lstrip("§"))
+
+
+def parse_round(text: str) -> Round:
+    """Parse a review round's text into its verdict and its findings' keys."""
+    verdict = ""
+    keys: list[tuple[str, str]] = []
+    for line in text.splitlines():
+        if line.startswith("VERDICT:"):
+            verdict = line.split(":", 1)[1].strip()
+            continue
+        if not line.lstrip().startswith("-"):
+            continue
+        key = finding_key(line)
+        if key is not None and key not in keys:
+            keys.append(key)
+    return Round(verdict, tuple(keys))
+
+
+def _is_written(key: tuple[str, str], w_n: set[tuple[str, str]]) -> bool:
+    """Whether ``key``'s section counts as written in ``w_n``.
+
+    ``(path, *)`` — the file-level fallback reserved for a *missing* diff — makes
+    every section of that path count as written (§Section Resolution).
+    """
+    return key in w_n or (key[0], "*") in w_n
+
+
+def arbitrate(
+    round_n: Round, round_n1: Round, w_n: set[tuple[str, str]]
+) -> tuple[str | None, list[tuple[str, str]]]:
+    """Pure §Contradiction Classes decision — no git, no I/O.
+
+    Class (b): round-N+1 keys with ``k not in K_N`` and ``k not in W_N`` — a
+    reviewer raising new ground the loop did not touch. Class (c): an
+    ``APPROVE_WITH_FIXES`` round N followed by a ``REJECT`` round N+1 on the
+    same refs. Returns ``(class | None, annotated_keys)``.
+    """
+    k_n = set(round_n.keys)
+    if (
+        round_n.verdict == "APPROVE_WITH_FIXES"
+        and round_n1.verdict == "REJECT"
+        and round_n1.keys
+        and set(round_n1.keys) <= k_n
+    ):
+        return "c", []
+    annotated = [k for k in round_n1.keys if k not in k_n and not _is_written(k, w_n)]
+    return ("b", annotated) if annotated else (None, [])
+
+
+def arb_fixture(name: str) -> str:
+    """Read one file of the frozen fixture (read-only; never written back)."""
+    with open(os.path.join(ARB_FIXTURE_DIR, name), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def _replay_regeneration(repo: str, after_text: str | None = None) -> set[tuple[str, str]]:
+    """Commit ``before.md`` at the plan path, write ``after.md``, return ``W_1``.
+
+    ``after_text`` overrides the captured after-image (the m-ii mutation case);
+    the fixture files themselves are never modified.
+    """
+    write(repo, ARB_PLAN_PATH, arb_fixture("before.md"))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "plan before the wholesale regeneration")
+    head = head_sha(repo)
+    write(repo, ARB_PLAN_PATH, arb_fixture("after.md") if after_text is None else after_text)
+    sections, _ = resolve_sections(repo, ARB_PLAN_PATH, head, head)
+    return sections
+
+
+def _a1(repo: str, round2_text: str | None = None, after_text: str | None = None):
+    """Run the A1 comparison, returning ``(w_1, diff_based, provenance)``.
+
+    ``diff_based`` applies this spec's rule (``W_1`` from the regeneration diff);
+    ``provenance`` applies the rejected ``regen[N] = (file, *)`` reading.
+    """
+    w_1 = _replay_regeneration(repo, after_text)
+    r1 = parse_round(arb_fixture("round-1.txt"))
+    r2 = parse_round(arb_fixture("round-2.txt") if round2_text is None else round2_text)
+    return w_1, arbitrate(r1, r2, w_1), arbitrate(r1, r2, {(ARB_PLAN_PATH, "*")})
+
+
+def _a1_holds(diff_based, provenance) -> bool:
+    """A1's asserted outcome: ``class b`` with two annotated keys, no provenance token."""
+    cls, annotated = diff_based
+    return cls == "b" and len(annotated) == 2 and provenance == (None, [])
+
+
+def scenario_a1(repo: str) -> tuple[bool, str, list[str]]:
+    """A1 — the discriminating p4 case: round 2 on the regenerated plan's unchanged sections.
+
+    The capture leaves `§Conventions` and `§Verification Hand-off` byte-identical,
+    so both round-2 keys are outside `W_1`: the diff-based rule raises `class b`
+    with two annotated keys, while the rejected provenance reading
+    (`regen[1] = (plan.md, *)`) raises no token. Both columns print side by side
+    (REQ-ARB-HARNESSP5-001, -002).
+    """
+    w_1, diff_based, provenance = _a1(repo)
+    cls, annotated = diff_based
+    # REQ-ARB-HARNESSP5-003: the same line with and without its ordinal is one key.
+    ordinal_same = finding_key(
+        f"- M1: x — [{ARB_PLAN_PATH}:§3. Conventions] — affects —"
+    ) == finding_key(f"- M1: x — [{ARB_PLAN_PATH}:§Conventions] — affects —")
+    expected = [(ARB_PLAN_PATH, "§Conventions"), (ARB_PLAN_PATH, "§Verification Hand-off")]
+    ok = _a1_holds(diff_based, provenance) and sorted(annotated) == sorted(expected) and ordinal_same
+    token = f"diff-based: class {cls} ({len(annotated)} keys) | provenance: {provenance[0] or 'no token'}"
+    return ok, token, [
+        f"W_1 sections: {len(w_1)}",
+        "annotated: " + ", ".join(f"{p}:{s}" for p, s in annotated),
+        f"ordinal strip resolves to the same key: {ordinal_same}",
+    ]
+
+
+def scenario_a2(repo: str) -> tuple[bool, str, list[str]]:
+    """A2 — the B8 case: round-2 findings in *changed* sections only → no token either way.
+
+    The round-2 key is chosen live from ``W_1`` minus round 1's keys, so it is a
+    section the regeneration actually rewrote and round 1 did not raise
+    (REQ-ARB-HARNESSP3-001's false positive stays removed).
+    """
+    w_1 = _replay_regeneration(repo)
+    r1 = parse_round(arb_fixture("round-1.txt"))
+    candidates = sorted(k for k in w_1 if k not in set(r1.keys) and k[1] not in ("*", "?"))
+    if not candidates:
+        return False, "no changed section outside round 1's keys", []
+    path, sec = candidates[0]
+    r2 = parse_round(
+        f"VERDICT: APPROVE_WITH_FIXES\n- M1: a gap in a rewritten section — [{path}:{sec}] — affects —\n"
+    )
+    diff_based = arbitrate(r1, r2, w_1)
+    provenance = arbitrate(r1, r2, {(ARB_PLAN_PATH, "*")})
+    ok = diff_based == (None, []) and provenance == (None, [])
+    return ok, f"diff-based: no token | provenance: no token ({sec})", [f"round-2 key: {path}:{sec}"]
+
+
+def scenario_a3(repo: str) -> tuple[bool, str, list[str]]:
+    """A3 — control: one round-2 key on a second file the loop never touched.
+
+    Both readings raise `class b` with one key: the rule stays armed for a file
+    outside the regeneration (REQ-ARB-HARNESSP4-001 re-stated).
+    """
+    w_1 = _replay_regeneration(repo)
+    r1 = parse_round(arb_fixture("round-1.txt"))
+    other = "docs/spec/harness-write-scope.md"
+    r2 = parse_round(
+        f"VERDICT: APPROVE_WITH_FIXES\n- M1: §Commit Ownership contradicts the plan — [{other}:§Commit Ownership] — affects [REQ-HARN-HARNESSP4-002]\n"
+    )
+    diff_based = arbitrate(r1, r2, w_1)
+    provenance = arbitrate(r1, r2, {(ARB_PLAN_PATH, "*")})
+    ok = diff_based == ("b", [(other, "§Commit Ownership")]) and provenance == diff_based
+    return ok, f"diff-based: class b (1 key) | provenance: class {provenance[0]} (1 key)", [
+        f"round-2 key: {other}:§Commit Ownership"
+    ]
+
+
+def scenario_a1_mi(repo: str) -> tuple[bool, str, list[str]]:
+    """Mutation (m-i) — one `round-2.txt` line deleted in a temp copy makes A1 fail.
+
+    A1 cannot pass vacuously: with one Material line gone the diff-based reading
+    annotates one key, not two, so A1's asserted outcome no longer holds. The
+    fixture on disk is untouched.
+    """
+    lines = arb_fixture("round-2.txt").splitlines(keepends=True)
+    mutated = "".join(lines[:-1])  # drop the last Material line
+    _, diff_based, provenance = _a1(repo, round2_text=mutated)
+    ok = not _a1_holds(diff_based, provenance) and len(diff_based[1]) == 1
+    return ok, f"A1 fails as required (annotated {len(diff_based[1])} of 2)", [
+        "mutation: last round-2 Material line deleted in a temp copy"
+    ]
+
+
+def scenario_a1_mii(repo: str) -> tuple[bool, str, list[str]]:
+    """Mutation (m-ii) — flipping `§Conventions` to a *changed* section makes A1 fail.
+
+    A line is appended under `§Conventions` in a temp copy of the after-image, so
+    the regeneration diff now covers it: the section enters `W_1` and only one key
+    is annotated. The fixture on disk is untouched.
+    """
+    after = arb_fixture("after.md")
+    marker = "\n## Conventions\n"
+    if marker not in after:
+        return False, "§Conventions heading not found in after.md", []
+    mutated = after.replace(marker, marker + "\n<!-- m-ii: §Conventions flipped to a changed section -->\n", 1)
+    _, diff_based, provenance = _a1(repo, after_text=mutated)
+    ok = not _a1_holds(diff_based, provenance) and len(diff_based[1]) == 1
+    return ok, f"A1 fails as required (annotated {len(diff_based[1])} of 2)", [
+        "mutation: §Conventions rewritten in a temp copy of after.md"
+    ]
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -1527,6 +1756,11 @@ SCENARIOS = [
     ("C4", "COMMIT: fan-out true merge after a bookkeeping commit", scenario_c4),
     ("C5", "COMMIT: conflict -> abort -> redo compares the redo's own sets", scenario_c5),
     ("C6", "COMMIT: path with a space counted once (-z landed operand, NUL split)", scenario_c6),
+    ("A1", "ARB: round 2 on the regenerated plan's unchanged sections (diff-based vs provenance)", scenario_a1),
+    ("A2", "ARB: round-2 findings in changed sections only -> no token either way", scenario_a2),
+    ("A3", "ARB: one round-2 key on an untouched second file -> class b under both readings", scenario_a3),
+    ("A1m-i", "ARB mutation: a deleted round-2 line makes A1 fail", scenario_a1_mi),
+    ("A1m-ii", "ARB mutation: §Conventions flipped to a changed section makes A1 fail", scenario_a1_mii),
 ]
 
 

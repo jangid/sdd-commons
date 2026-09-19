@@ -121,7 +121,7 @@ preconditions for both the fixture (Chunk 2) and O2.
 ARB rows close on fixture evidence — no second live loop.
 **Depends on**: Chunk 1.
 **Tasks**:
-1. [implement] Build
+1. [x] [implement] Build
    `tools/fixtures/arbitration-harness-p4-regen-2026-09-19/` as a **git
    capture**, not a hand reconstruction: `before.md` =
    `git show 82d0af0:docs/ws/harness-p4/plan.md`, `after.md` =
@@ -134,7 +134,7 @@ ARB rows close on fixture evidence — no second live loop.
    shas, with the **sha256 of each file** — traces to
    `docs/spec/arbitrated-handoff.md` §Offline Arbitration Fixture
    (REQ-ARB-HARNESSP5-002).
-2. [implement] Add the pure helper
+2. [x] [implement] Add the pure helper
    `arbitrate(round_n, round_n1, w_n) -> (class | None, annotated_keys)` (no
    git, no I/O) and scenarios **A1**, **A2**, **A3** to
    `tools/sdd-scope-check-selftest.py --self-test` — the single named runner
@@ -147,7 +147,7 @@ ARB rows close on fixture evidence — no second live loop.
    makes A1 fail — so A1 cannot pass vacuously — traces to
    `docs/spec/arbitrated-handoff.md` §Offline Arbitration Fixture
    (REQ-ARB-HARNESSP5-002).
-3. [implement] Amend **both** "reconstruction" claims in
+3. [x] [implement] Amend **both** "reconstruction" claims in
    `docs/spec/arbitrated-handoff.md` so the Approved text matches the git
    capture: (a) the §Offline Arbitration Fixture prose and its fixture table's
    `before.md`, `after.md` row — described as a **git capture** of the two shas
@@ -163,7 +163,7 @@ ARB rows close on fixture evidence — no second live loop.
    beside `test_class_b_*` (verified 2026-09-19; see §Open Questions) — traces
    to `docs/spec/arbitrated-handoff.md` §Offline Arbitration Fixture,
    §Acceptance Criteria (REQ-ARB-HARNESSP5-002, REQ-ARB-HARNESSP5-001).
-4. [verify] Run `python3 tools/sdd-scope-check-selftest.py --self-test`: A1 →
+4. [x] [verify] Run `python3 tools/sdd-scope-check-selftest.py --self-test`: A1 →
    `class b` with **two** annotated keys (provenance column: no token), A2 → no
    token either way, A3 → `class b` with one key. Assert **both mutation cases**
    from task 2 in the same run — (m-i) a `round-2.txt` line deleted and (m-ii)

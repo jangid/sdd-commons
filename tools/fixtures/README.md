@@ -52,3 +52,47 @@ for r in map(json.loads, open(sys.argv[1])):
     print(d['seq'], d['kind'], repr(d['chunk']))
 " tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl
 ```
+
+---
+
+## `arbitration-harness-p4-regen-2026-09-19/`
+
+**Provenance — a git capture, not a reconstruction.** `before.md` and `after.md`
+are `git show` captures of `docs/ws/harness-p4/plan.md` at two commits of this
+repository, taken 2026-09-19:
+
+| File | Capture | sha256 |
+|---|---|---|
+| `before.md` | `git show 82d0af0:docs/ws/harness-p4/plan.md` | `ec1bc1bdc7cee4787dd209c9361a7d522b62ed072ac8deae0f546bf13a569e25` |
+| `after.md` | `git show 3772574:docs/ws/harness-p4/plan.md` | `2a5c40ac21e60ddd7f7464fa8bfab6d65f588ae23686d21dc0d3de002dbced6d` |
+| `round-1.txt` | authored — `VERDICT: APPROVE_WITH_FIXES`, C/M lines on two **changed** sections | `d7625fba849557433e41e500838279bcff10f029b29e6d31e58e709d315345d8` |
+| `round-2.txt` | authored — two Material lines on the plan's **unchanged** `§Conventions` and `§Verification Hand-off` | `ebd2c691a615e83159dd677f750416a074565784f602732f37b30b736dd3cca9` |
+| `dispatch.txt` | authored — observed writes `{docs/ws/harness-p4/plan.md}`, `regenerate: true`, `by: leaf` | `95b8e5a1039835feca64870e8bb83d841cb806e5149df4d15bbee3ad887b1a73` |
+
+The two shas are **provenance, not a runtime dependency**: the captured bytes
+live here, so the fixture stands even if the commits are ever unreachable.
+
+**Why it is here.** It is the deterministic evidence that closes the carried
+arbitration rows REQ-ARB-HARNESSP3-001 and REQ-ARB-HARNESSP4-001 — the p4 live
+exercise was non-discriminating — without a second live fix loop
+(`docs/spec/arbitrated-handoff.md` §Offline Arbitration Fixture). The pair's
+diff is broad (35 hunks, `§(preamble)` through `§Replan Triggers`), yet it
+discriminates because the two sections round 2 keys on, `§Conventions` and
+`§Verification Hand-off`, are **byte-identical** across the capture: under the
+Approved diff-based `W_N` those keys are new ground (`class b`, two annotated
+keys), while under the rejected provenance reading `regen[1] = (plan.md, *)`
+they would be immune (no token).
+
+**How it is used.** `tools/sdd-scope-check-selftest.py --self-test` replays it as
+scenarios `A1` (the discriminating case, both readings printed side by side),
+`A2` (round-2 findings in changed sections only → no token either way) and `A3`
+(a key on an untouched second file → `class b` under both readings), plus two
+mutation scenarios that prove A1 cannot pass vacuously: `A1m-i` deletes a
+`round-2.txt` line and `A1m-ii` flips `§Conventions` to a changed section. Both
+mutations operate on in-memory copies written into a throwaway repo — the files
+here are never modified.
+
+```bash
+python3 tools/sdd-scope-check-selftest.py --self-test -v
+shasum -a 256 tools/fixtures/arbitration-harness-p4-regen-2026-09-19/*
+```

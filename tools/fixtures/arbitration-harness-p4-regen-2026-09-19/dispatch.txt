@@ -1,0 +1,3 @@
+observed_writes: docs/ws/harness-p4/plan.md
+regenerate: true
+by: leaf

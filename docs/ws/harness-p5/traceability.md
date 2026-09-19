@@ -1,6 +1,6 @@
 ---
 workstream: harness-p5
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 ---
 
 # Traceability — harness-p5
@@ -33,10 +33,10 @@ are **authoritative** for both requirements — a reader, `sdd-gc.py` and
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
-| REQ-ARB-HARNESSP4-001 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
+| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | Chunk 2 task 4: `python3 tools/sdd-scope-check-selftest.py --self-test` exits 0 (27/27 scenarios). Scenario A1 replays the harness-p4 regeneration case offline and discriminates the two readings: the diff-based reading yields `class b` with two annotated keys (`§Conventions`, `§Verification Hand-off`), the provenance reading `(file, *)` yields no token; mutations A1m-i / A1m-ii both fail A1, so the assertion cannot pass vacuously | tools/fixtures/arbitration-harness-p4-regen-2026-09-19/ (git capture: `before.md` = 82d0af0:docs/ws/harness-p4/plan.md, `after.md` = 3772574:docs/ws/harness-p4/plan.md, sha256 of all five files recorded in tools/fixtures/README.md); tools/sdd-scope-check-selftest.py scenario A1 with `arbitrate()` / `parse_round()`; docs/spec/arbitrated-handoff.md §Offline Arbitration Fixture, §Acceptance Criteria | |
+| REQ-ARB-HARNESSP4-001 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | Chunk 2 task 4: `python3 tools/sdd-scope-check-selftest.py --self-test` exits 0 (27/27 scenarios), covering the acceptance re-stated under Q-REQ-P5-A on the same offline capture — A1 (`class b`, two annotated keys; no token under the provenance reading), A2 (no token either way) and A3 (`class b`, one key) — replacing the non-discriminating live O1 exercise this row carried from harness-p4 | tools/fixtures/arbitration-harness-p4-regen-2026-09-19/ (git capture of 82d0af0 → 3772574 of docs/ws/harness-p4/plan.md; per-file sha256 in tools/fixtures/README.md); tools/sdd-scope-check-selftest.py scenarios A1–A3 (plus mutations A1m-i / A1m-ii); docs/spec/arbitrated-handoff.md §Offline Arbitration Fixture, §Acceptance Criteria | |
 | REQ-ARB-HARNESSP5-001 | arbitrated-handoff.md §W_N Includes Regeneration Writes | harness-p5 | Chunk 1 task 4: `grep -n 'byte-identical' docs/spec/arbitrated-handoff.md skills/sdd-orchestrate/references/loop-control.md` hits both with matching wording | docs/spec/arbitrated-handoff.md §`W_N` Includes Regeneration Writes; skills/sdd-orchestrate/references/loop-control.md §2a | |
-| REQ-ARB-HARNESSP5-002 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
+| REQ-ARB-HARNESSP5-002 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | Chunk 2 task 4: `python3 tools/sdd-scope-check-selftest.py --self-test` exits 0 with scenarios A1 (class b, two annotated keys; provenance column no token), A2 (no token either way), A3 (class b, one key) and mutations A1m-i / A1m-ii both failing A1 | tools/fixtures/arbitration-harness-p4-regen-2026-09-19/ (git capture, shas 82d0af0 and 3772574; sha256 per file in tools/fixtures/README.md); tools/sdd-scope-check-selftest.py `arbitrate()`, `parse_round()`, scenarios A1–A3, A1m-i, A1m-ii; docs/spec/arbitrated-handoff.md §Offline Arbitration Fixture, §Acceptance Criteria | |
 | REQ-ARB-HARNESSP5-003 | arbitrated-handoff.md §Retained Per-Round State | harness-p5 | Chunk 1 task 4 desk check: the key table's `section` row and `references/loop-control.md` §2a state the same leading-ordinal strip; Open Question 3 reads closed (Chunk 2 task 4 exercises it on A1–A3) | docs/spec/arbitrated-handoff.md §Retained Per-Round State key table (`section` row), §Open Questions item 3 | |
 | REQ-HARN-HARNESSP5-001 | harness-loop-control.md §Plan Completion Ownership Under Orchestration | harness-p5 | | | |
 | REQ-HARN-HARNESSP5-002 | harness-commit-fidelity.md §Comparand Table | harness-p5 | | | |
