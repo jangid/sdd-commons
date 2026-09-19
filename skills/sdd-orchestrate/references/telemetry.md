@@ -95,7 +95,7 @@ written with `v: 2`; a `v: 1` record is validated against the unmarked rows only
 | `git` | `head_before`, `head_after` | short sha (`^[0-9a-f]{7,12}$`) | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) — never the `HEAD` literal, never a 40-character sha |
 | `commit` | `token` | `COMPLETE` \| `INCOMPLETE` \| null `[p4]` | the gate's own `COMMIT:` closing line (`write-scope.md` §7a, `harness-commit-fidelity.md`), copied after it renders; null for a dispatch whose gate commits nothing (review, verifier, red) (REQ-TELEM-HARNESSP4-007) |
 | | `missing_n`, `extra_n` | int `[p4]` | that line's `observed, not landed` / `landed, not observed` counts — counts only, never paths |
-| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (`docs/spec/telemetry.md` §In-Place Migration); the writer never sets it |
+| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (`docs/spec/telemetry-reader.md` §In-Place Migration); the writer never sets it |
 
 **Writer sources of the `[p4]` fields — no read of the telemetry file.**
 `scope.widened` is computed from session state the orchestrator already holds
@@ -500,7 +500,7 @@ it is a backstop for a missed gate line, it never influences control flow, and i
 does not weaken the zero-reads rule — nothing inside the loop runs this tool.
 
 **Implication-derived `expected`** (REQ-TELEM-HARNESSP4-002, -003;
-`docs/spec/telemetry.md` §Implication-Derived `expected` and the Headline). The
+`docs/spec/telemetry-reader.md` §Implication-Derived `expected` and the Headline). The
 highest `seq` alone saw no gap on the p3 file, because a writer that never
 appends also never increments. `expected` therefore **starts** from the highest
 `seq` and adds every append implied by a cross-field value the writer *did*
@@ -570,7 +570,7 @@ plan's `### Chunk N:` headers: `implement floor: N pipeline (2N with verifier);
 recorded implement records: M; shortfall: max(0, N − M)`, `M` = implement
 `pipeline` records (REQ-TELEM-HARNESSP4-008; Q-IMPL-HARNESSP4-005).
 
-**Schema lint** (REQ-TELEM-HARNESSP4-004, `docs/spec/telemetry.md` §Schema Lint):
+**Schema lint** (REQ-TELEM-HARNESSP4-004, `docs/spec/telemetry-reader.md` §Schema Lint):
 
 ```
 python3 tools/sdd-telemetry.py --lint [--file .sdd/telemetry.jsonl]
@@ -594,7 +594,7 @@ the exit code. Exit 1 on any finding, 0 when clean. Like `summarize`, it is
 post-cycle and out-of-loop: nothing in the orchestrator runs it.
 
 **Migration of the 8 p3 records** (REQ-TELEM-HARNESSP4-005,
-`docs/spec/telemetry.md` §In-Place Migration of the 8 p3 Records, Stamped
+`docs/spec/telemetry-reader.md` §In-Place Migration of the 8 p3 Records, Stamped
 Partial):
 
 ```

@@ -6,7 +6,7 @@ the admitted set ``{1, 2}`` — Q-IMPL-HARNESSP4-002 — rendered in
 ``skills/sdd-orchestrate/references/telemetry.md`` §2 and ``docs/spec/telemetry.md``
 §Record Schema from the ``DOMAIN_TABLE`` below, the schema's single source of
 truth) and prints, per workstream, one row per ``dispatch.stage`` followed by a
-per-chunk block (RS-008 probe 1 as a query). Contract: ``docs/spec/telemetry.md``
+per-chunk block (RS-008 probe 1 as a query). Contract: ``docs/spec/telemetry-reader.md``
 §Out-of-Loop Reader (REQ-TELEM-HARNESSP2-009), §Schema Lint (REQ-TELEM-HARNESSP4-004).
 
 This tool is **never invoked inside the orchestration loop** and no skill
@@ -33,7 +33,7 @@ counted on a trailing ``skipped: N unknown-schema record(s)`` line. A sibling
 records imply versus how many are present — a post-cycle backstop for a missing
 gate append (REQ-TELEM-HARNESSP3-002). ``expected`` starts from the highest
 ``dispatch.seq`` and adds every append **implied by a cross-field value the
-writer did fill** (REQ-TELEM-HARNESSP4-002, -003; ``docs/spec/telemetry.md``
+writer did fill** (REQ-TELEM-HARNESSP4-002, -003; ``docs/spec/telemetry-reader.md``
 §Implication-Derived ``expected`` and the Headline): a ``chunk_verdict`` implies
 a ``verifier`` record, ``redo`` implies the first attempt, a carried review/red
 verdict implies its ``review``/``red`` record, and a fix-dispatching gate
@@ -41,8 +41,8 @@ decision or a fix-only ``reason`` implies a ``fix`` record. An implied fix that
 exists as a record of another kind is *mis-typed* (a ``--lint`` finding once
 that subcommand lands), never a missing append.
 
-``migrate`` (REQ-TELEM-HARNESSP4-005, ``docs/spec/telemetry.md`` §In-Place
-Migration) rewrites every ``dispatch.chunk`` header string ``"Chunk N"`` to the
+``migrate`` (REQ-TELEM-HARNESSP4-005, ``docs/spec/telemetry-reader.md``
+§In-Place Migration) rewrites every ``dispatch.chunk`` header string ``"Chunk N"`` to the
 int ``N`` and stamps the record ``"migration": {"from": "chunk-string", "at":
 <date>}``; ``summarize`` then renders those chunks **partial**, naming the
 verifier / fix / redo records that were never written and cannot be
@@ -82,14 +82,17 @@ KINDS = ["pipeline", "fix", "fanout_leaf", "verifier", "review", "red"]
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(_HERE)
-# The two human-readable renderings of the domain table (telemetry.md §Schema Lint).
+# The two human-readable renderings of the domain table that `--lint`
+# (telemetry-reader.md §Schema Lint) checks itself against: the spec's
+# §Record Schema table stayed in telemetry.md across the split, so SPEC_DOC
+# is unchanged (telemetry.md §Moved Sections).
 SPEC_DOC = os.path.join(_REPO, "docs", "spec", "telemetry.md")
 REF_DOC = os.path.join(_REPO, "skills", "sdd-orchestrate", "references", "telemetry.md")
-# The p3 plan the `--plan` floor is exercised against (telemetry.md §Fixture-Based Test Contract).
+# The p3 plan the `--plan` floor is exercised against (telemetry-reader.md §Fixture-Based Test Contract).
 P3_PLAN = os.path.join(_REPO, "docs", "ws", "harness-p3", "plan.md")
 
 # Frozen live-run evidence (tools/fixtures/README.md): every reader-side test reads
-# it read-only and asserts this sha256 before and after (telemetry.md
+# it read-only and asserts this sha256 before and after (telemetry-reader.md
 # §Fixture-Based Test Contract).
 FIXTURE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures",
                             "telemetry-harness-p3-2026-09-18.jsonl")
@@ -202,7 +205,7 @@ SHA_RE = re.compile(r"^[0-9a-f]{7,12}$")
 _BACKTICK_RE = re.compile(r"`([^`]+)`")
 _P4_MARK = "`[p4]`"
 
-# `migrate` (telemetry.md §In-Place Migration, REQ-TELEM-HARNESSP4-005): the
+# `migrate` (telemetry-reader.md §In-Place Migration, REQ-TELEM-HARNESSP4-005): the
 # marker's only `from` member, the header-string shape it rewrites, and the
 # read-only fixture directory the guard refuses to read from or write to.
 MIGRATION_FROM = "chunk-string"
@@ -613,7 +616,7 @@ PER_CHUNK_KINDS = ("pipeline", "fanout_leaf", "verifier", "fix")
 
 
 def partial_stamp(chunk: int) -> str:
-    """The `partial` stamp of a migrated chunk, verbatim from telemetry.md
+    """The `partial` stamp of a migrated chunk, verbatim from telemetry-reader.md
     §In-Place Migration "Stamped-partial block shape": the block cannot be read as
     a full per-chunk history because the kinds it names were never appended."""
     return (f'partial — migrated from "Chunk {chunk}"; verifier, fix and redo records '
@@ -715,7 +718,7 @@ def _group_key(r: dict) -> tuple[str, str]:
 def mistyped_fix_seqs(sess: list[dict]) -> list[int]:
     """``seq`` of every implied fix that exists as a record of another kind.
 
-    Mis-typed-fix rule (telemetry.md §Implication-Derived ``expected``): a non-``fix``
+    Mis-typed-fix rule (telemetry-reader.md §Implication-Derived ``expected``): a non-``fix``
     record whose ``dispatch.reason`` is fix-only (clause (b)), or one carrying
     ``iteration >= 1`` / ``redo >= 1`` whose predecessor **at the same stage** decided
     a fix-dispatching option (clause (a)). It counts 0 toward ``missing.fix`` and is
@@ -742,7 +745,7 @@ def reason_review_warnings(records: list[dict]) -> list[int]:
 
     A ``--lint`` **warning** ``[reason-review]``, never a count: the shape cannot
     distinguish a mis-recorded fix from a mis-labelled first dispatch (p3 ``seq`` 3–5;
-    telemetry.md §Implication-Derived ``expected``, mis-typed-fix rule).
+    telemetry-reader.md §Implication-Derived ``expected``, mis-typed-fix rule).
     """
     out: list[int] = []
     for _ws, _run, _i, sess in _sessions(records):
@@ -760,7 +763,7 @@ def reason_review_warnings(records: list[dict]) -> list[int]:
 def session_rows(records: list[dict]) -> list[dict]:
     """Per session: recorded vs implication-derived ``expected`` appends.
 
-    ``expected := highest dispatch.seq + Σ missing.<kind>`` (telemetry.md
+    ``expected := highest dispatch.seq + Σ missing.<kind>`` (telemetry-reader.md
     §Implication-Derived ``expected`` and the Headline; REQ-TELEM-HARNESSP4-002, -003).
     The chunk-shaped implications are computed **per ``(stage, chunk)`` group** —
     the ``pipeline``/``fix`` records sharing one stage and chunk — never by summing
@@ -860,7 +863,7 @@ def session_rows(records: list[dict]) -> list[dict]:
 
 def _implication_lines(row: dict, label: str) -> list[str]:
     """Render one session's headline and per-kind ``implied vs recorded`` lines exactly
-    as telemetry.md §Implication-Derived ``expected`` and the Headline shows them."""
+    as telemetry-reader.md §Implication-Derived ``expected`` and the Headline shows them."""
     lines = [f"records-vs-expected: {row['recorded']} recorded, expected {row['expected']} ({row['gap']} missing){label}"]
     for kind in ["verifier", "pipeline", "review", "red", "fix"]:
         k = row["kinds"][kind]
@@ -920,7 +923,7 @@ def summarize(records: list[dict], skipped: int, plan_path: str | None = None) -
     # Records-vs-expected: a sibling of the skipped line, so a cycle that lost an
     # append is visible post-cycle even if the absent gate line went unnoticed.
     # The headline is the TOTAL shortfall of every implied append, per session
-    # (telemetry.md §Implication-Derived `expected` and the Headline, Q-REQ-P4-D).
+    # (telemetry-reader.md §Implication-Derived `expected` and the Headline, Q-REQ-P4-D).
     sessions = session_rows(records)
     if not sessions:
         lines.append("records-vs-expected: 0 recorded, expected 0 (0 missing)")
@@ -939,7 +942,7 @@ def summarize(records: list[dict], skipped: int, plan_path: str | None = None) -
 
 # ---------------------------------------------------------------------------
 # --lint: every field of every record against the domain table
-# (telemetry.md §Schema Lint — `--lint` From One Domain Table, REQ-TELEM-HARNESSP4-004)
+# (telemetry-reader.md §Schema Lint — `--lint` From One Domain Table, REQ-TELEM-HARNESSP4-004)
 # ---------------------------------------------------------------------------
 
 
@@ -1005,7 +1008,7 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
     the ``[reason-review]`` warning, which never counts toward the exit code.
 
     Classes: ``enum``, ``type``, ``key-undeclared``, ``key-missing``, ``cross-field``,
-    ``mistyped-fix`` (telemetry.md §Schema Lint).
+    ``mistyped-fix`` (telemetry-reader.md §Schema Lint).
     """
     findings: list[dict] = []
     valid: list[dict] = []
@@ -1133,7 +1136,7 @@ def lint(path: str) -> tuple[int, list[str]]:
 
 
 # ---------------------------------------------------------------------------
-# --plan floor (telemetry.md §`--plan` Floor for Implement-Stage Expectations,
+# --plan floor (telemetry-reader.md §`--plan` Floor for Implement-Stage Expectations,
 # REQ-TELEM-HARNESSP4-008 [may]) — Q-IMPL-HARNESSP4-005 fixes the shortfall's operands.
 # ---------------------------------------------------------------------------
 
@@ -1165,7 +1168,7 @@ def plan_floor_line(floor: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# migrate (telemetry.md §In-Place Migration of the 8 p3 Records, Stamped Partial,
+# migrate (telemetry-reader.md §In-Place Migration of the 8 p3 Records, Stamped Partial,
 # REQ-TELEM-HARNESSP4-005). Operator-run between sessions; never invoked by a
 # skill, a leaf or a dispatch template.
 # ---------------------------------------------------------------------------
@@ -1554,7 +1557,7 @@ def self_test() -> int:
             grc = main(["summarize", "--file", gpath])
         check(grc == 0 and "(2 missing)" in gbuf.getvalue(), f"summarize on a gap fixture → exit {grc}, unchanged")
 
-        # Implication-derived expected (REQ-TELEM-HARNESSP4-002, -003; telemetry.md
+        # Implication-derived expected (REQ-TELEM-HARNESSP4-002, -003; telemetry-reader.md
         # §Implication-Derived `expected` and the Headline). Synthetic fixtures, one per
         # implication, built from the same complete-record helper.
         def imp(seq, kind, stage, chunk=None, iteration=None, redo=None, reason=None,
@@ -1637,7 +1640,7 @@ def self_test() -> int:
         check("records-vs-expected: 8 recorded, expected 8 (0 missing)" in nreport, f"C1 headline:\n{nreport}")
         check("verifier :  2 vs 2  (0 missing)" in nreport, "C1 verifier line")
 
-        # The frozen p3 fixture (telemetry.md §Fixture-Based Test Contract): read-only,
+        # The frozen p3 fixture (telemetry-reader.md §Fixture-Based Test Contract): read-only,
         # sha256 asserted before and after, exact headline and per-kind numbers.
         check(os.path.exists(FIXTURE_PATH), f"frozen fixture missing: {FIXTURE_PATH}")
         if os.path.exists(FIXTURE_PATH):
@@ -1788,7 +1791,7 @@ def self_test() -> int:
 
     # ------------------------------------------------------------------
     # Chunk 3 (harness-p4): whole-schema --lint, v ∈ {1, 2}, scope.widened,
-    # the commit group and the schema-agreement diff (telemetry.md §Schema Lint,
+    # the commit group and the schema-agreement diff (telemetry-reader.md §Schema Lint,
     # §scope.widened, §commit Group, §Fixture-Based Test Contract).
     # ------------------------------------------------------------------
     with tempfile.TemporaryDirectory() as tmp:
@@ -1931,7 +1934,7 @@ def self_test() -> int:
             for s in (3, 4, 5):
                 check(f"WARN seq {s}: [reason-review] dispatch.reason" in lout, f"fixture: [reason-review] on seq {s}")
             check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after lint")
-        # migrate (REQ-TELEM-HARNESSP4-005 — telemetry.md §In-Place Migration, §Fixture-Based
+        # migrate (REQ-TELEM-HARNESSP4-005 — telemetry-reader.md §In-Place Migration, §Fixture-Based
         # Test Contract): the frozen fixture is copied to the temp dir first; the fixture
         # itself is only ever the *refused* input of the guard test.
         if os.path.exists(FIXTURE_PATH):

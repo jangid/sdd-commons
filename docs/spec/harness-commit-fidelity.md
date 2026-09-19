@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 requires:
   - REQ-HARN-HARNESSP4-001
   - REQ-HARN-HARNESSP4-002
@@ -228,7 +228,8 @@ token family in every file stays exactly `COMPLETE | INCOMPLETE`.
 
 `tools/sdd-scope-check-selftest.py` gains a **pure** helper and six fixtures
 [Amended 2026-09-19, harness-p5 — REQ-HARN-HARNESSP5-002: C6 shipped with
-REQ-HARN-HARNESSP4-005 and the count read five]:
+REQ-HARN-HARNESSP4-005 while this sentence still counted the fixtures as one
+fewer; no stale fixture count remains in this file]:
 
 ```
 commit_check(expected: set[str], landed: set[str]) -> str

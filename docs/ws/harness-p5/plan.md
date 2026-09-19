@@ -405,12 +405,12 @@ defined behaviour for this cycle's own implement gate.
 lint baselines and the telemetry-split pointers are all correct.
 **Depends on**: Chunk 6.
 **Tasks**:
-1. [implement] `docs/spec/harness-commit-fidelity.md` §Comparand Table shows
+1. [x] [implement] `docs/spec/harness-commit-fidelity.md` §Comparand Table shows
    `git diff --name-only --no-renames -z` and every "five fixtures C1–C5"
    reference reads C1–C6 — traces to
    `docs/spec/harness-commit-fidelity.md` §Comparand Table
    (REQ-HARN-HARNESSP5-002).
-2. [implement] Fold Q-IMPL-HARNESSP4-004..009 into Approved text (-004/-005 →
+2. [x] [implement] Fold Q-IMPL-HARNESSP4-004..009 into Approved text (-004/-005 →
    `telemetry-reader.md` §Implication-Derived `expected`, §Schema Lint,
    §`--plan` Floor and `telemetry.md` §Record Schema; -006/-007 → §Schema Lint
    including the `v: 1` exemption; -008 → `skill-lint-v5.md`
@@ -419,19 +419,19 @@ lint baselines and the telemetry-split pointers are all correct.
    `[folded into §<section>, 2026-09-19]` note — append-only, never renumbered
    — traces to `docs/spec/deviation-protocol.md` §Fold-In Status Note
    (REQ-QIMPL-HARNESSP5-001).
-3. [implement] Re-point the **Spec reference** of Q-IMPL-009 (`ws-ids.md`),
+3. [x] [implement] Re-point the **Spec reference** of Q-IMPL-009 (`ws-ids.md`),
    Q-IMPL-014 (`ws-integration.md`) and Q-IMPL-072 (`ws-orchestration.md`) at a
    heading that exists (or restore the named heading) — text edits only, no gc
    rule change, no allowlist, no renumbering. Q-IMPL-002 is a fenced
    illustration and is **not** one of the three — traces to
    `docs/spec/deviation-protocol.md` §Spec-Reference Integrity
    (REQ-QIMPL-HARNESSP5-002).
-4. [implement] Amend `docs/spec/skill-lint-v5.md` so the size baseline reads
+4. [x] [implement] Amend `docs/spec/skill-lint-v5.md` so the size baseline reads
    **none** and the `sdd-orchestrate` bound reads **under 400** (no `450`, no
    "exactly `sdd-orchestrate` and `sdd-migrate`" anywhere in the file) — traces
    to `docs/spec/skill-lint-v5.md` §Size Warn-Clean Baseline
    (REQ-LINT-HARNESSP5-002).
-5. [implement] Re-aim the tool and skill pointers left by the
+5. [x] [implement] Re-aim the tool and skill pointers left by the
    `telemetry.md` → `telemetry-reader.md` split: `tools/sdd-telemetry.py`'s
    docstring/comment references and
    `skills/sdd-orchestrate/references/telemetry.md`. `SPEC_DOC` stays at
@@ -439,7 +439,7 @@ lint baselines and the telemetry-split pointers are all correct.
    corpus and closed workstreams' `Spec` cells are **never** edited — they
    resolve through §Moved Sections — traces to `docs/spec/telemetry.md`
    §Moved Sections (REQ-LINT-HARNESSP5-003).
-6. [verify] Run the AC's grep verbatim — `grep -c 'folded into'
+6. [x] [verify] Run the AC's grep verbatim — `grep -c 'folded into'
    docs/spec/telemetry.md docs/spec/telemetry-reader.md
    docs/spec/skill-lint-v5.md docs/spec/harness-chunk-verifier.md` — summing to
    6 across the **four** files the acceptance bullet names (the sum is the same
@@ -596,7 +596,7 @@ this workstream's traceability is filled.
   Chunk 5 task 4. The boundary correction is **consequence-free** — `--lint`
   on a 61-line and a 67-line cut is byte-identical (65 findings, 4 warnings,
   the same three `[cross-field]` records at seq 21, 24, 27) — so the "A frozen
-  fixture's numbers move" trigger did not fire. Chunks 1 and 2 stay complete;
+  fixture's numbers move" trigger did not fire. [Re-measured 2026-09-20 after Chunk 4's reader fixes: **62 findings, 4 warnings** — the `v: 2`-only equal-heads guard correctly removed the three findings at `seq` 2, 4 and 6. 65/4 is the figure as measured before those fixes; the equivalence claim is unchanged — both cuts still produce byte-identical output, with the same three `[cross-field]` records at `seq` 21, 24 and 27.] Chunks 1 and 2 stay complete;
   chunk numbering and every `**Depends on**:` edge are unchanged.
 - **`docs/spec/telemetry-reader.md` still says 61** (§Automated
   `test_p4_fixture_frozen` and the REQ-TELEM-HARNESSP5-007 acceptance bullet).

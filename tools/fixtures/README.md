@@ -31,7 +31,7 @@ boundary. `harness-p5` begins at line 68 of the live file and is excluded.
 consequence-free: `python3 tools/sdd-telemetry.py --lint` produces
 byte-identical output on a 61-line and a 67-line cut — 65 findings, 4 warnings,
 the same three `[cross-field]` records at `seq` 21, 24 and 27 — so no acceptance
-number moved. The six extra records (`seq` 29–34: p4's verify stage, two red
+number moved. [Re-measured 2026-09-20 after Chunk 4's reader fixes: **62 findings, 4 warnings** — the `v: 2`-only equal-heads guard correctly removed the three findings at `seq` 2, 4 and 6. 65/4 is the figure as measured before those fixes; the equivalence claim is unchanged — both cuts still produce byte-identical output, with the same three `[cross-field]` records at `seq` 21, 24 and 27.] The six extra records (`seq` 29–34: p4's verify stage, two red
 rounds, two reviews) add no lint finding, and the 67-line cut is the more
 faithful one because the 61-line cut silently truncated the verify stage.
 

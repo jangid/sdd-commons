@@ -634,7 +634,7 @@ records starting `v: 2` at seq 8; harness-p5 begins at line 68. [Corrected
 seq 1–28" — was measured wrong. The correction is consequence-free: `--lint` on
 a 61-line and on a 67-line cut produce byte-identical output — 65 findings, 4
 warnings, the same three `[cross-field]` records at seq 21, 24, 27 — so no
-acceptance number below moves]) — must be cut by the **operator** as a plan
+acceptance number below moves. [Re-measured 2026-09-20 after Chunk 4's reader fixes: **62 findings, 4 warnings** — the `v: 2`-only equal-heads guard correctly removed the three findings at `seq` 2, 4 and 6. 65/4 is the figure as measured before those fixes; the equivalence claim is unchanged — both cuts still produce byte-identical output, with the same three `[cross-field]` records at `seq` 21, 24 and 27.]]) — must be cut by the **operator** as a plan
 operator task (leaves never read `.sdd/`), scheduled before the telemetry
 chunk, with its sha256 recorded in `tools/fixtures/README.md`; the `migrate`
 fixture guard covers it automatically (path under `tools/fixtures/`). Findings
