@@ -296,9 +296,13 @@ the cycle's **tool-code** chunk — Chunk 7 stays text-only.
    five-cell row raises exactly one `[traceability-rowdrop]` fail naming
    `<file>:<line>`; `--fix traceability-rowdrop` exits 2);
    `python3 tools/sdd-gc.py --report` exits 0 with no `traceability-rowdrop`
-   finding on this repository and `grep -c '&#124;'
-   docs/requirements/traceability.md` prints `2` (the two harness-p4 rows
-   recovered in commit 9c7cb9c are still in the aggregate);
+   finding on this repository and
+   `grep -c '^| REQ-ARB-HARNESSP4-003 \|^| REQ-CYCID-HARNESSP4-001 ' docs/requirements/traceability.md`
+   prints `2` (both harness-p4 rows recovered in commit 9c7cb9c are still
+   present in the aggregate). [Criterion reworded 2026-09-20 at implement:
+   the earlier corpus-wide `grep -c '&#124;'` count was self-defeating —
+   this cycle's own compliant pipe escaping in three harness-p5 rows raised
+   it from 2 to 5 while the intent, both recovered rows present, held.]
    `python3 tools/sdd-skill-lint.py` exits 0. Then fill the `Test` and
    `Implementation` cells of REQ-GC-HARNESSP5-001 in
    `docs/ws/harness-p5/traceability.md` (never `Verified`) — traces to
@@ -418,7 +422,11 @@ lint baselines and the telemetry-split pointers are all correct.
    un-indenting the example token). Each entry keeps its text and gains a
    `[folded into §<section>, 2026-09-19]` note — append-only, never renumbered
    — traces to `docs/spec/deviation-protocol.md` §Fold-In Status Note
-   (REQ-QIMPL-HARNESSP5-001).
+   (REQ-QIMPL-HARNESSP5-001). [Noted 2026-09-20 at implement: the
+   `telemetry.md` → `telemetry-reader.md` split moved the §Record Schema
+   fold-in home, so -004/-005 landed wholly in `telemetry-reader.md`;
+   `telemetry.md` routes those ids through §Moved Sections and the
+   acceptance grep still sums to 6 across the four files.]
 3. [x] [implement] Re-point the **Spec reference** of Q-IMPL-009 (`ws-ids.md`),
    Q-IMPL-014 (`ws-integration.md`) and Q-IMPL-072 (`ws-orchestration.md`) at a
    heading that exists (or restore the named heading) — text edits only, no gc
@@ -515,11 +523,16 @@ this workstream's traceability is filled.
    (REQ-LINT-HARNESSP5-001, -002).
 3. [x] [verify] Read-only confirmation of O2's bookkeeping commit (the edit is
    O2's, never a leaf's): `grep -n 'descoped' docs/ws/harness-p4/traceability.md`
-   hits exactly the two ARB rows; the regenerated aggregate shows three rows for
-   REQ-ARB-HARNESSP3-001 (`fail`, `descoped`, `pass`) and two for
-   REQ-ARB-HARNESSP4-001 (`descoped`, `pass`) — traces to
+   hits exactly the two ARB rows; the regenerated aggregate shows three rows
+   for REQ-ARB-HARNESSP3-001 (`fail`, `descoped`, and this workstream's own
+   row with `Verified` empty pending `sdd-verify` at DONE) and two for
+   REQ-ARB-HARNESSP4-001 (`descoped`, and this workstream's own row, likewise
+   pending) — traces to
    `docs/spec/ws-traceability.md` §Legal `Verified` Cell Values
-   (REQ-WS-HARNESSP5-002).
+   (REQ-WS-HARNESSP5-002). [Reworded 2026-09-20 at implement: the earlier
+   "and `pass`" for this workstream's row was the same `Verified`-column
+   over-reach already removed from task 4 — the column is `sdd-verify`'s to
+   write at DONE, and the per-ws traceability `Test` cell words it this way.]
 4. [x] [verify] Every row of `docs/ws/harness-p5/traceability.md` — the 21
    minted rows (20 at requirements, plus REQ-GC-HARNESSP5-001 at the 2026-09-20
    replan) and the 2 carried rows, 23 in total — has `Test` and

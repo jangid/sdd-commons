@@ -208,7 +208,9 @@ is present in the regenerated aggregate), the same row raises **no**
 escaped pipe) raises exactly one `[traceability-rowdrop]` **fail** finding whose
 location is `<file>:<line>`; `python3 tools/sdd-gc.py --report` on this
 repository exits 0 with no `traceability-rowdrop` finding and
-`grep -c '&#124;' docs/requirements/traceability.md` prints `2` (the two
-recovered harness-p4 rows are still in the aggregate);
+`grep -c '^| REQ-ARB-HARNESSP4-003 \|^| REQ-CYCID-HARNESSP4-001 ' docs/requirements/traceability.md`
+prints `2` (both recovered harness-p4 rows are still present in the
+aggregate; a row-anchored presence assertion rather than a corpus-wide count of an
+escape sequence, which every future correctly-escaped cell would inflate);
 `python3 tools/sdd-skill-lint.py` exits 0.
 [Priority: must]
