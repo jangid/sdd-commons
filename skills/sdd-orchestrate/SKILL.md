@@ -226,21 +226,14 @@ ownership is fixed per dispatch type (pipeline: orchestrator on `proceed`;
 fan-out leaf: the leaf; review/verifier: nobody): [`references/write-scope.md`](references/write-scope.md).
 
 **Telemetry.** Default **on** (opt-out at KICKOFF only, §KICKOFF). After **each
-gate** append **one record per dispatch, for every kind** (`pipeline`, `fix`, `fanout_leaf`,
-`verifier`, `review`, `red`; `dispatch.kind` = the kind actually dispatched): a chunk verifier
-gets its own `verifier` record and its `CHUNK_VERDICT:` is also copied onto the chunk record's
-`verdict.chunk_verdict`; every fix dispatch (stage `loop-back-to-fix`, per-chunk redo, `RED_BREAK`)
-is a `fix` record, never `pipeline`; a redo keeps the first attempt's record and adds a `fix`
-record with `redo` incremented and `reason` set (REQ-TELEM-HARNESSP4-001). Counts, enums, shas,
-timestamps — never finding text — go to the gitignored `.sdd/telemetry.jsonl`; no leaf writes it,
-no skill reads it (**never read by phase detection**; `rm -rf .sdd/` is behaviour-neutral); if
-`git check-ignore -q .sdd/telemetry.jsonl` fails, append `.sdd/` to `.gitignore` as a bookkeeping
-commit outside any observed window. A record also carries `scope.widened` (= dispatched scope
-globs − stage template default globs, from session state) and the `commit` group (token and two
-counts copied from the gate's own `COMMIT:` line) and is stamped `v: 2`; neither source reads the
-telemetry file. Readers (post-cycle only): `python3 tools/sdd-telemetry.py summarize` and `--lint`,
-which validates every field against the domain table `references/telemetry.md` §2 renders. Schema,
-writer rules, `TELEMETRY:` lines, third observation: [`references/telemetry.md`](references/telemetry.md) §2–§3.
+gate** the orchestrator appends **one record per dispatch, for every kind**: counts, enums,
+shas, timestamps — never finding text — to the gitignored `.sdd/telemetry.jsonl`; no leaf
+writes it, no skill reads it (**never read by phase detection**; `rm -rf .sdd/` is
+behaviour-neutral); if `git check-ignore -q .sdd/telemetry.jsonl` fails, append `.sdd/` to
+`.gitignore` as a bookkeeping commit outside any observed window. Records are stamped `v: 2`.
+Readers (post-cycle only): `python3 tools/sdd-telemetry.py summarize` and `--lint`. Schema,
+the per-kind clauses, `scope.widened`, the `commit` group and the `TELEMETRY:` lines:
+[`references/telemetry.md`](references/telemetry.md) §2–§3.
 
 ### Per-stage dispatch model
 

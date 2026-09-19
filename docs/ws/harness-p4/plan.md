@@ -41,8 +41,12 @@ fan-out.
   `**Delivers**:` lists the requirement ids whose traceability row the chunk's
   tasks fill (Test / Implementation columns are written by `sdd-implement`,
   never by this plan).
-- **Spec-text vs skill-text**: `docs/spec/*.md` are Approved and are **not**
-  edited by this plan, with **one deliberate exception**: Chunk 7 task 1 edits
+- **Spec-text vs skill-text**: the Approved **contract text** of
+  `docs/spec/*.md` is **not** edited by this plan, with **one deliberate
+  exception** (the Chunk 7 fence, below). Q-IMPL entries appended under a
+  spec's `## Implementation Questions` section are the write-scope table's
+  ADVISORY writes (`references/write-scope.md` §2), not contract edits — this
+  cycle appended Q-IMPL-HARNESSP4-003..009 that way. The exception: Chunk 7 task 1 edits
   the fenced body of `docs/spec/harness-chunk-verifier.md` §Verifier Dispatch
   Template in the *same commit* as `references/dispatch-templates.md`, because
   `harness-chunk-verifier.md` §Terminal Token at Column 0 requires the two
@@ -641,7 +645,7 @@ delivers them, and the implement fan-out never sees them. They are executed by
 the operator at the gates named, and their evidence is what `sdd-verify` records
 (§Verification Hand-off).
 
-- [ ] **O1 — Live arbitration exercise** (REQ-ARB-HARNESSP4-001, carried
+- [x] **O1 — Live arbitration exercise** (REQ-ARB-HARNESSP4-001, carried
   REQ-ARB-HARNESSP3-001; `arbitrated-handoff.md` §Live Exercise of the Union in
   harness-p4). At the **first `APPROVE_WITH_FIXES`** stage review of this cycle
   — whichever stage that is, possibly this plan's own review — the operator
@@ -655,6 +659,7 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   absence of the pause in the gate text for `sdd-verify`. If no
   `APPROVE_WITH_FIXES` occurs before the verify stage, the item is **descoped at
   replan** under the cycle's DONE rule — never closed `fail`.
+  Exercised live 2026-09-19 at the implement stage: round 1 review `APPROVE_WITH_FIXES` (C1, M1, M2, M3); fix #1 was dispatched with a regenerate-wholesale `{deliverable_contract}` for `docs/ws/harness-p4/plan.md` and the leaf rewrote the file in full, but the rewrite was byte-identical outside three sections, so diff-based section resolution put only `§(frontmatter)`, `§Operator Tasks`, `§Completed` into `W_1` (`regen[1]` added no sections; no orchestrator-regenerated aggregate this round); round 2 `APPROVE_WITH_FIXES` raised new Critical/Material ground on `SKILL.md §Telemetry` and on the regenerated plan's untouched `§Conventions` / `§Verification Hand-off`, so the gate DID render `REVIEW: CONTRADICTION (round 1 vs round 2, class b)`; operator accepted round 2 (fix). Observation for verify: a byte-identical regeneration adds nothing to `W_N` under §2a as written; the provenance reading (Q-IMPL-HARNESSP3-010, `regen[N] = (file, *)`) is a p5 spec question.
 - [ ] **O2 — Telemetry migration of the live file** (REQ-TELEM-HARNESSP4-005;
   `telemetry.md` §In-Place Migration). **After Chunk 4 lands and before the
   verify stage is dispatched, with no orchestrator session open**: `python3
@@ -667,6 +672,7 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   classes, no record text) for the hand-off. If the pre-migration `--lint`
   shows findings on the migrated records' **typed** fields beyond the 8
   `chunk` strings, do not migrate — raise the replan trigger below.
+  Pending: to be run by the operator in a closed-session window after the implement stage closes and before the verify dispatch; evidence recorded here when done.
 - [x] **O3 — Live `COMMIT:` observation** (REQ-HARN-HARNESSP4-001;
   `harness-commit-fidelity.md` §Live Exercise Required). From the first
   implement gate that runs after Chunk 0 lands in the orchestrator's own loaded
