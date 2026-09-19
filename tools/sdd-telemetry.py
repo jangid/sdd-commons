@@ -18,9 +18,17 @@ Usage:
 
 Records with an unknown ``v`` and lines that are not JSON are skipped and
 counted on a trailing ``skipped: N unknown-schema record(s)`` line. A sibling
-``records-vs-expected:`` line reports, per session, how many appends the records
-imply (highest ``dispatch.seq``) versus how many are present — a post-cycle
-backstop for a missing gate append (REQ-TELEM-HARNESSP3-002).
+``records-vs-expected:`` headline reports, per session, how many appends the
+records imply versus how many are present — a post-cycle backstop for a missing
+gate append (REQ-TELEM-HARNESSP3-002). ``expected`` starts from the highest
+``dispatch.seq`` and adds every append **implied by a cross-field value the
+writer did fill** (REQ-TELEM-HARNESSP4-002, -003; ``docs/spec/telemetry.md``
+§Implication-Derived ``expected`` and the Headline): a ``chunk_verdict`` implies
+a ``verifier`` record, ``redo`` implies the first attempt, a carried review/red
+verdict implies its ``review``/``red`` record, and a fix-dispatching gate
+decision or a fix-only ``reason`` implies a ``fix`` record. An implied fix that
+exists as a record of another kind is *mis-typed* (a ``--lint`` finding once
+that subcommand lands), never a missing append.
 
 Exit codes: 0 = ok (a missing/empty file is an empty run set), 1 = self-test failure, 2 = usage error.
 """
@@ -29,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -42,6 +51,78 @@ from datetime import datetime, timezone
 SCHEMA_V = 1
 DEFAULT_FILE = ".sdd/telemetry.jsonl"
 STAGES = ["research", "requirements", "specs", "plan", "implement", "verify", "replan"]
+KINDS = ["pipeline", "fix", "fanout_leaf", "verifier", "review", "red"]
+
+# Frozen live-run evidence (tools/fixtures/README.md): every reader-side test reads
+# it read-only and asserts this sha256 before and after (telemetry.md
+# §Fixture-Based Test Contract).
+FIXTURE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures",
+                            "telemetry-harness-p3-2026-09-18.jsonl")
+FIXTURE_SHA256 = "7e20b6307da09355f9aee504c451f0ed59e79ef9a33861cd72f370ea84af9237"
+
+# ---------------------------------------------------------------------------
+# Domain table (telemetry.md §Record Schema — the code table is the schema's
+# single source of truth; §Record Schema and references/telemetry.md §2 are its
+# renderings). Chunk 2 (harness-p4) lands the rows the implication formula reads
+# plus the `const` row; Chunk 3 completes the table and adds `--lint`, which
+# validates every record field against it and diffs it with the spec's table.
+#
+# A row whose group is the literal ``const`` declares a **schema constant**, not a
+# record key: its members are the backticked tokens after the colon of its domain
+# cell, and it is parsed into ``schema_constants()`` — never into the key set.
+# ---------------------------------------------------------------------------
+
+DOMAIN_TABLE: list[dict] = [
+    {"group": "dispatch", "key": "kind", "domain": "`pipeline` | `fix` | `fanout_leaf` | `verifier` | `review` | `red`", "p4": False},
+    {"group": "dispatch", "key": "stage", "domain": "`research` | `requirements` | `specs` | `plan` | `implement` | `verify` | `replan`", "p4": False},
+    {"group": "dispatch", "key": "chunk", "domain": "int or null", "p4": False},
+    {"group": "dispatch", "key": "iteration", "domain": "int or null", "p4": False},
+    {"group": "dispatch", "key": "redo", "domain": "int or null", "p4": False},
+    {"group": "dispatch", "key": "reason", "domain": "repair-packet `reason` enum or null", "p4": False},
+    {"group": "const", "key": "FIX_ONLY_REASONS", "domain": "subset of `dispatch.reason`: `red_break`", "p4": True},
+    {"group": "verdict", "key": "chunk_verdict", "domain": "`PASS` | `FAIL` | null", "p4": False},
+    {"group": "verdict", "key": "review_verdict", "domain": "`APPROVE` | `APPROVE_WITH_FIXES` | `REJECT` | null", "p4": False},
+    {"group": "verdict", "key": "red_verdict", "domain": "`BROKEN` | `HELD` | null", "p4": False},
+    {"group": "gate", "key": "decision", "domain": "`proceed` | `fix` | `loop-back-to-fix` | `stop` | `redo` | `replan` | `revert` | `widen` | `accept` | `third-opinion` | `re-dispatch` | `override` | `other`", "p4": False},
+]
+
+_BACKTICK_RE = re.compile(r"`([^`]+)`")
+
+
+def schema_constants() -> dict[str, set[str]]:
+    """Parse every ``const`` row of the domain table into ``{name: member set}``.
+
+    Members are the backticked tokens **after the colon** of the domain cell (the
+    part before it names the superset, e.g. ``dispatch.reason``); a ``[p4]``-style
+    marker token is not a member. Kept separate from the ``group.key`` set so a
+    constant can never be mistaken for a record key (telemetry.md §Record Schema,
+    ``const`` rows).
+    """
+    out: dict[str, set[str]] = {}
+    for row in DOMAIN_TABLE:
+        if row["group"] != "const":
+            continue
+        members = row["domain"].split(":", 1)[1] if ":" in row["domain"] else row["domain"]
+        out[row["key"]] = {tok for tok in _BACKTICK_RE.findall(members) if not tok.startswith("[")}
+    return out
+
+
+# The fix-only reason subset — derived from the `const` row, never a bare code
+# constant, so adding a reason later is a schema (table) change.
+FIX_ONLY_REASONS: set[str] = schema_constants()["FIX_ONLY_REASONS"]
+
+# Gate decisions that each dispatch exactly one fix (clause (a) of the implied-fix
+# formula; a per-chunk `fix` normalises to `redo`, telemetry.md §Writer rule (ii)).
+FIX_DECISIONS = {"loop-back-to-fix", "fix", "redo"}
+
+
+def _sha256(path: str) -> str:
+    """Hex sha256 of a file — used to assert the frozen fixture is untouched."""
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for block in iter(lambda: fh.read(65536), b""):
+            h.update(block)
+    return h.hexdigest()
 
 # ---------------------------------------------------------------------------
 # Budget: line grammar (telemetry.md §2 — budget object)
@@ -315,26 +396,20 @@ def _table(rows: list[dict], columns: list[tuple[str, str]]) -> list[str]:
     return out
 
 
-def session_rows(records: list[dict]) -> list[dict]:
-    """Split records into sessions and report recorded-vs-expected appends per session.
+def _sessions(records: list[dict]) -> list[tuple[str, str, int, list[dict]]]:
+    """Split records into sessions: ``(workstream, run, session_no, records)``.
 
     ``dispatch.seq`` is 1-based **per orchestrator session** (telemetry.md §2), so a
     session is a maximal run of records — ordered by ``ts_dispatch`` within one
     (``cycle.workstream``, ``cycle.research_id``) group — whose ``seq`` strictly
     increases; a ``seq`` that does not exceed its predecessor opens a new session
-    (Q-IMPL-HARNESSP3-018). Since the writer appends exactly one record per gated
-    dispatch, ``expected`` is the highest ``seq`` seen in the session and ``gap =
-    expected - recorded`` counts appends that never happened (a ``WRITE FAILED``, a
-    mid-cycle opt-out, or a gate that rendered no ``TELEMETRY:`` line at all).
-
-    Strictly post-cycle: this is a reader-side derivation from the file alone
-    (REQ-TELEM-HARNESSP3-002, Q-IMPL-HARNESSP3-006) and never influences control flow.
+    (Q-IMPL-HARNESSP3-018).
     """
     by_run: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in records:
         key = (str(_get(r, "cycle", "workstream", default="?")), str(_get(r, "cycle", "research_id")))
         by_run[key].append(r)
-    rows: list[dict] = []
+    out: list[tuple[str, str, int, list[dict]]] = []
     for (ws, run) in sorted(by_run):
         recs = sorted(by_run[(ws, run)],
                       key=lambda r: (_ts(r.get("ts_dispatch")) or datetime.min.replace(tzinfo=timezone.utc)))
@@ -348,12 +423,181 @@ def session_rows(records: list[dict]) -> list[dict]:
             sessions[-1].append(r)
             prev_seq = seq
         for i, sess in enumerate(sessions, start=1):
-            expected = max((_get(r, "dispatch", "seq") or 0) for r in sess)
-            recorded = len(sess)
-            rows.append({"workstream": ws, "run": run, "session": i,
-                         "recorded": recorded, "expected": expected,
-                         "gap": max(expected - recorded, 0)})
+            out.append((ws, run, i, sess))
+    return out
+
+
+def _int0(value) -> int:
+    """``dispatch.redo`` / ``dispatch.iteration`` read as 0 when null or non-int."""
+    return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
+def _group_key(r: dict) -> tuple[str, str]:
+    """The ``(stage, chunk)`` group of a record; the raw chunk value is kept (an
+    out-of-domain header string still groups its own records, never a neighbour's)."""
+    return (str(_get(r, "dispatch", "stage")), json.dumps(_get(r, "dispatch", "chunk")))
+
+
+def mistyped_fix_seqs(sess: list[dict]) -> list[int]:
+    """``seq`` of every implied fix that exists as a record of another kind.
+
+    Mis-typed-fix rule (telemetry.md §Implication-Derived ``expected``): a non-``fix``
+    record whose ``dispatch.reason`` is fix-only (clause (b)), or one carrying
+    ``iteration >= 1`` / ``redo >= 1`` whose predecessor **at the same stage** decided
+    a fix-dispatching option (clause (a)). It counts 0 toward ``missing.fix`` and is
+    a ``--lint`` ``[mistyped-fix]`` finding — a wrong ``kind``, not a missing append.
+    """
+    out: list[int] = []
+    last_decision_by_stage: dict[str, object] = {}
+    for r in sess:
+        d = r.get("dispatch") or {}
+        stage = str(d.get("stage"))
+        if d.get("kind") != "fix":
+            fix_only = d.get("reason") in FIX_ONLY_REASONS
+            after_fix_decision = (_int0(d.get("iteration")) >= 1 or _int0(d.get("redo")) >= 1) \
+                and last_decision_by_stage.get(stage) in FIX_DECISIONS
+            if fix_only or after_fix_decision:
+                out.append(_int0(d.get("seq")))
+        last_decision_by_stage[stage] = _get(r, "gate", "decision")
+    return out
+
+
+def reason_review_warnings(records: list[dict]) -> list[int]:
+    """``seq`` of every ``reason: REVIEW`` record at ``iteration >= 1`` with **no**
+    preceding ``loop-back-to-fix`` decision at its stage in the session.
+
+    A ``--lint`` **warning** ``[reason-review]``, never a count: the shape cannot
+    distinguish a mis-recorded fix from a mis-labelled first dispatch (p3 ``seq`` 3–5;
+    telemetry.md §Implication-Derived ``expected``, mis-typed-fix rule).
+    """
+    out: list[int] = []
+    for _ws, _run, _i, sess in _sessions(records):
+        loop_back_seen: set[str] = set()
+        for r in sess:
+            d = r.get("dispatch") or {}
+            stage = str(d.get("stage"))
+            if d.get("reason") == "REVIEW" and _int0(d.get("iteration")) >= 1 and stage not in loop_back_seen:
+                out.append(_int0(d.get("seq")))
+            if _get(r, "gate", "decision") == "loop-back-to-fix":
+                loop_back_seen.add(stage)
+    return sorted(out)
+
+
+def session_rows(records: list[dict]) -> list[dict]:
+    """Per session: recorded vs implication-derived ``expected`` appends.
+
+    ``expected := highest dispatch.seq + Σ missing.<kind>`` (telemetry.md
+    §Implication-Derived ``expected`` and the Headline; REQ-TELEM-HARNESSP4-002, -003).
+    The chunk-shaped implications are computed **per ``(stage, chunk)`` group** —
+    the ``pipeline``/``fix`` records sharing one stage and chunk — never by summing
+    ``1 + redo`` over records, because a compliant redo keeps the first attempt's
+    record *and* adds a ``fix`` record (§Writer rule (iii)):
+
+        attempts(group)  = 1 + max(redo) over the group's pipeline/fix records
+        implied.verifier = Σ attempts over groups with a non-verifier chunk_verdict
+        implied.pipeline = Σ over implement groups of (1 + #pipeline records with redo >= 1)
+        implied.review   = #non-review records with review_verdict     (per stage)
+        implied.red      = #non-red records with red_verdict            (per stage)
+        implied.fix      = #records with gate.decision in FIX_DECISIONS  (clause (a))
+                         + #non-fix records with reason in FIX_ONLY_REASONS (clause (b))
+        missing.<kind>   = Σ_stage max(0, implied − recorded [− mistyped, fix only])
+
+    Strictly post-cycle: a reader-side derivation from the file alone
+    (REQ-TELEM-HARNESSP3-002, Q-IMPL-HARNESSP3-006) that never influences control flow.
+    Row keys: ``workstream, run, session, recorded, highest_seq, expected, gap,
+    kinds{kind: {implied, recorded, missing, mistyped}}, implement_missing,
+    mistyped_fix_seqs, records``.
+    """
+    rows: list[dict] = []
+    for ws, run, i, sess in _sessions(records):
+        highest = max((_int0(_get(r, "dispatch", "seq")) for r in sess), default=0)
+        recorded = len(sess)
+        # implied / recorded per (stage, kind)
+        implied: dict[tuple[str, str], int] = defaultdict(int)
+        rec_by: dict[tuple[str, str], int] = defaultdict(int)
+        groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+        fix_gates: dict[tuple[str, str], int] = defaultdict(int)
+        for r in sess:
+            d = r.get("dispatch") or {}
+            stage, kind = str(d.get("stage")), str(d.get("kind"))
+            rec_by[(stage, kind)] += 1
+            if kind in ("pipeline", "fix"):
+                groups[_group_key(r)].append(r)
+            v = r.get("verdict") or {}
+            if kind != "review" and v.get("review_verdict") is not None:
+                implied[(stage, "review")] += 1
+            if kind != "red" and v.get("red_verdict") is not None:
+                implied[(stage, "red")] += 1
+            if _get(r, "gate", "decision") in FIX_DECISIONS:
+                # clause (a) counts gate DECISIONS, not records: a chunk record and its
+                # verifier (or a stage record and its review) share one gate and so one
+                # ts_gate; a compliant file would otherwise imply two fixes per redo
+                # (Q-IMPL-HARNESSP4-004). Falls back to seq when ts_gate is null.
+                fix_gates[(stage, str(r.get("ts_gate") or f"seq:{_int0(d.get('seq'))}"))] += 1
+            if kind != "fix" and d.get("reason") in FIX_ONLY_REASONS:
+                implied[(stage, "fix")] += 1                       # clause (b)
+        for (stage, _gate) in fix_gates:
+            implied[(stage, "fix")] += 1                           # clause (a): one fix per deciding gate
+        for (stage, _chunk), grecs in groups.items():
+            attempts = 1 + max(_int0(_get(r, "dispatch", "redo")) for r in grecs)
+            if any(_get(r, "verdict", "chunk_verdict") is not None and _get(r, "dispatch", "kind") != "verifier"
+                   for r in grecs):
+                implied[(stage, "verifier")] += attempts
+            if stage == "implement":
+                # the first attempt is always a pipeline dispatch; a redo recorded as
+                # pipeline (the p3 collapsed shape) stands in for its own first attempt
+                implied[(stage, "pipeline")] += 1 + sum(
+                    1 for r in grecs
+                    if _get(r, "dispatch", "kind") == "pipeline" and _int0(_get(r, "dispatch", "redo")) >= 1)
+        mistyped = mistyped_fix_seqs(sess)
+        mistyped_by_stage: dict[str, int] = defaultdict(int)
+        for r in sess:
+            if _int0(_get(r, "dispatch", "seq")) in mistyped:
+                mistyped_by_stage[str(_get(r, "dispatch", "stage"))] += 1
+        kinds: dict[str, dict] = {}
+        implement_missing: dict[str, int] = {"pipeline": 0, "verifier": 0, "fix": 0}
+        for kind in KINDS:
+            stages = {st for (st, k) in list(implied) + list(rec_by) if k == kind}
+            imp_total = sum(implied[(st, kind)] for st in stages)
+            # pipeline is an implement-scoped implication, so its recorded count is too
+            rec_stages = {"implement"} if kind == "pipeline" else stages
+            rec_total = sum(rec_by[(st, kind)] for st in rec_stages)
+            missing = 0
+            for st in (rec_stages if kind == "pipeline" else stages):
+                mt = mistyped_by_stage[st] if kind == "fix" else 0
+                m = max(0, implied[(st, kind)] - rec_by[(st, kind)] - mt)
+                missing += m
+                if st == "implement" and kind in implement_missing:
+                    implement_missing[kind] += m
+            kinds[kind] = {"implied": imp_total, "recorded": rec_total, "missing": missing,
+                           "mistyped": len(mistyped) if kind == "fix" else 0}
+        expected = highest + sum(k["missing"] for k in kinds.values())
+        rows.append({"workstream": ws, "run": run, "session": i,
+                     "recorded": recorded, "highest_seq": highest, "expected": expected,
+                     "gap": max(expected - recorded, 0), "kinds": kinds,
+                     "implement_missing": implement_missing,
+                     "mistyped_fix_seqs": mistyped, "records": sess})
     return rows
+
+
+def _implication_lines(row: dict, label: str) -> list[str]:
+    """Render one session's headline and per-kind ``implied vs recorded`` lines exactly
+    as telemetry.md §Implication-Derived ``expected`` and the Headline shows them."""
+    lines = [f"records-vs-expected: {row['recorded']} recorded, expected {row['expected']} ({row['gap']} missing){label}"]
+    for kind in ["verifier", "pipeline", "review", "red", "fix"]:
+        k = row["kinds"][kind]
+        suffix = ""
+        if kind == "fix" and k["mistyped"]:
+            suffix = f"; {k['mistyped']} mis-typed — see --lint"
+        tag = "        [implement]" if kind == "pipeline" else ""
+        lines.append(f"  implied vs recorded — {kind:<8} : {k['implied']:>2} vs {k['recorded']:<2} "
+                     f"({k['missing']} missing{suffix}){tag}")
+    im = row["implement_missing"]
+    parts = [f"{im['pipeline']} pipeline first attempts", f"{im['verifier']} verifier"]
+    if im["fix"]:
+        parts.append(f"{im['fix']} fix")
+    lines.append(f"  implement: {sum(im.values())} missing ({' + '.join(parts)})")
+    return lines
 
 
 def summarize(records: list[dict], skipped: int) -> str:
@@ -396,12 +640,14 @@ def summarize(records: list[dict], skipped: int) -> str:
                  f"(schema: int or null — telemetry.md §Record Schema)")
     # Records-vs-expected: a sibling of the skipped line, so a cycle that lost an
     # append is visible post-cycle even if the absent gate line went unnoticed.
+    # The headline is the TOTAL shortfall of every implied append, per session
+    # (telemetry.md §Implication-Derived `expected` and the Headline, Q-REQ-P4-D).
     sessions = session_rows(records)
-    with_gap = [s for s in sessions if s["gap"]]
-    lines.append(f"records-vs-expected: {len(sessions)} session(s), {len(with_gap)} with a missing append")
-    for s in with_gap:
-        lines.append(f"  {s['workstream']}/{s['run']} session {s['session']}: "
-                     f"recorded {s['recorded']}, expected {s['expected']}, gap {s['gap']}")
+    if not sessions:
+        lines.append("records-vs-expected: 0 recorded, expected 0 (0 missing)")
+    for s in sessions:
+        label = f"   [{s['workstream']}/{s['run']} session {s['session']}]" if len(sessions) > 1 else ""
+        lines += _implication_lines(s, label)
     return "\n".join(lines)
 
 
@@ -512,11 +758,16 @@ def self_test() -> int:
         for _, header in STAGE_COLUMNS:
             check(header in report, f"column missing: {header}")
 
-        # Records-vs-expected (REQ-TELEM-HARNESSP3-002): the six-record fixture is
-        # one gapless session; a synthetic gap is reported and the exit code is unchanged.
+        # Records-vs-expected (REQ-TELEM-HARNESSP3-002 / -HARNESSP4-002): the six-record
+        # fixture is one session with no seq gap, but it is p3-shaped — chunk 1 carries a
+        # chunk_verdict with no verifier record (1 implied verifier), and chunk 2 is a
+        # fix at redo 1 whose first attempt was never recorded (2 verifiers + 1 pipeline)
+        # — so the implication formula reads 4 missing appends.
         sessions = session_rows(records)
-        check(len(sessions) == 1 and sessions[0]["gap"] == 0, f"six-record fixture: one gapless session, got {sessions}")
-        check("records-vs-expected: 1 session(s), 0 with a missing append" in report, "records-vs-expected line")
+        check(len(sessions) == 1 and sessions[0]["highest_seq"] == 6 and sessions[0]["gap"] == 4,
+              f"six-record fixture: one session, seq 6, 4 implied missing; got {[(x['highest_seq'], x['gap']) for x in sessions]}")
+        check("records-vs-expected: 6 recorded, expected 10 (4 missing)" in report, "records-vs-expected headline")
+        check("verifier :  3 vs 0  (3 missing)" in report and "pipeline :  2 vs 1  (1 missing)" in report, "six-record per-kind lines")
 
         gappy = [_record(dispatch={"seq": s, "kind": "pipeline", "stage": "implement"},
                          ts_dispatch=f"2026-09-17T1{i}:00:00Z")
@@ -527,15 +778,122 @@ def self_test() -> int:
               f"gap session counts: {grows[0] if grows else None}")
         check(grows[1]["gap"] == 0, "second session is gapless")
         greport = summarize(gappy, 0)
-        check("records-vs-expected: 2 session(s), 1 with a missing append" in greport, "gap summary line")
-        check("recorded 3, expected 5, gap 2" in greport, "per-session gap line")
+        check("records-vs-expected: 3 recorded, expected 5 (2 missing)" in greport, f"gap headline:\n{greport}")
+        check("records-vs-expected: 1 recorded, expected 1 (0 missing)" in greport, "second-session headline")
         gpath = os.path.join(tmp, "gappy.jsonl")
         with open(gpath, "w", encoding="utf-8") as fh:
             fh.write("\n".join(json.dumps(r, separators=(",", ":")) for r in gappy) + "\n")
         gbuf = io.StringIO()
         with contextlib.redirect_stdout(gbuf):
             grc = main(["summarize", "--file", gpath])
-        check(grc == 0 and "gap 2" in gbuf.getvalue(), f"summarize on a gap fixture → exit {grc}, unchanged")
+        check(grc == 0 and "(2 missing)" in gbuf.getvalue(), f"summarize on a gap fixture → exit {grc}, unchanged")
+
+        # Implication-derived expected (REQ-TELEM-HARNESSP4-002, -003; telemetry.md
+        # §Implication-Derived `expected` and the Headline). Synthetic fixtures, one per
+        # implication, built from the same complete-record helper.
+        def imp(seq, kind, stage, chunk=None, iteration=None, redo=None, reason=None,
+                cv=None, rv=None, red=None, decision="proceed", gate_of=None):
+            # gate_of=<seq>: this record fed the same gate as that record (shared ts_gate),
+            # as a verifier does with its chunk record and a review with its stage record.
+            return _record(dispatch={"seq": seq, "kind": kind, "stage": stage, "chunk": chunk,
+                                     "iteration": iteration, "redo": redo, "reason": reason},
+                           verdict={"chunk_verdict": cv, "review_verdict": rv, "red_verdict": red},
+                           gate={"decision": decision},
+                           ts_dispatch=f"2026-09-19T10:{seq:02d}:00Z",
+                           ts_gate=f"2026-09-19T10:{(gate_of or seq):02d}:30Z")
+
+        def one(recs):
+            rows = session_rows(recs)
+            check(len(rows) == 1, f"implication fixture: one session expected, got {len(rows)}")
+            return rows[0]
+
+        # FIX_ONLY_REASONS is parsed from the `const` row of the domain table, never a bare constant.
+        const_rows = [r for r in DOMAIN_TABLE if r["group"] == "const"]
+        check([r["key"] for r in const_rows] == ["FIX_ONLY_REASONS"], f"const rows: {const_rows}")
+        check(schema_constants() == {"FIX_ONLY_REASONS": {"red_break"}}, f"schema constants: {schema_constants()}")
+        check(FIX_ONLY_REASONS == {"red_break"}, f"FIX_ONLY_REASONS: {FIX_ONLY_REASONS}")
+
+        # (1) verifier: a chunk record carrying chunk_verdict implies one verifier record.
+        v = one([imp(1, "pipeline", "implement", chunk=1, cv="PASS")])
+        check(v["kinds"]["verifier"] == {"implied": 1, "recorded": 0, "missing": 1, "mistyped": 0}, f"verifier implication: {v['kinds']['verifier']}")
+        check(v["expected"] == 2 and v["gap"] == 1, f"verifier expected/gap: {v}")
+        # (2) redo first attempt (p3 collapsed shape): attempts = 1 + max(redo) = 2.
+        r2 = one([imp(1, "pipeline", "implement", chunk=1, redo=1, reason="VERIFIER_FAIL", cv="PASS")])
+        check(r2["kinds"]["verifier"]["implied"] == 2, f"collapsed redo verifier: {r2['kinds']['verifier']}")
+        check(r2["kinds"]["pipeline"] == {"implied": 2, "recorded": 1, "missing": 1, "mistyped": 0}, f"collapsed redo pipeline: {r2['kinds']['pipeline']}")
+        check(r2["expected"] == 4 and r2["gap"] == 3, f"collapsed redo expected: {r2}")
+        check(r2["implement_missing"] == {"pipeline": 1, "verifier": 2, "fix": 0}, f"implement missing: {r2['implement_missing']}")
+        # (3) review and (4) red: a verdict carried by a record of another kind implies its own record.
+        rv = one([imp(1, "pipeline", "research", rv="APPROVE")])
+        check(rv["kinds"]["review"] == {"implied": 1, "recorded": 0, "missing": 1, "mistyped": 0}, f"review implication: {rv['kinds']['review']}")
+        rd = one([imp(1, "pipeline", "verify", red="BROKEN")])
+        check(rd["kinds"]["red"] == {"implied": 1, "recorded": 0, "missing": 1, "mistyped": 0}, f"red implication: {rd['kinds']['red']}")
+        # (5) clause (b): a red_break pipeline record whose predecessor decided nothing is an
+        # implied fix, present as a record of another kind → mis-typed, 0 missing.
+        cb = one([imp(1, "pipeline", "verify", decision=None),
+                  imp(2, "pipeline", "verify", iteration=1, reason="red_break", decision=None)])
+        check(cb["kinds"]["fix"] == {"implied": 1, "recorded": 0, "missing": 0, "mistyped": 1}, f"clause (b): {cb['kinds']['fix']}")
+        check(cb["mistyped_fix_seqs"] == [2], f"clause (b) mistyped seqs: {cb['mistyped_fix_seqs']}")
+        # (6) a loop-back-to-fix followed by no record at all: 1 missing fix.
+        lb = one([imp(1, "pipeline", "research", decision="loop-back-to-fix")])
+        check(lb["kinds"]["fix"] == {"implied": 1, "recorded": 0, "missing": 1, "mistyped": 0}, f"loop-back no record: {lb['kinds']['fix']}")
+        # (6b) the same decision followed by a pipeline record at iteration 1 is a mis-typed fix, not a gap.
+        mt = one([imp(1, "pipeline", "research", rv="APPROVE_WITH_FIXES", decision="loop-back-to-fix"),
+                  imp(2, "pipeline", "research", iteration=1, reason="REVIEW", rv="APPROVE_WITH_FIXES")])
+        check(mt["kinds"]["fix"] == {"implied": 1, "recorded": 0, "missing": 0, "mistyped": 1}, f"mis-typed fix: {mt['kinds']['fix']}")
+        check(reason_review_warnings(mt["records"]) == [], "a preceding loop-back-to-fix is not a [reason-review] warning")
+        # reason: REVIEW at iteration >= 1 with no preceding loop-back-to-fix at the stage → warning, never a count.
+        rr = one([imp(1, "pipeline", "requirements", iteration=1, reason="REVIEW", rv="APPROVE_WITH_FIXES")])
+        check(rr["kinds"]["fix"] == {"implied": 0, "recorded": 0, "missing": 0, "mistyped": 0}, f"[reason-review] must not count: {rr['kinds']['fix']}")
+        check(reason_review_warnings(rr["records"]) == [1], f"[reason-review] seqs: {reason_review_warnings(rr['records'])}")
+        # (7) gapless negative fixture with one compliant redone chunk [C1]:
+        # pipeline redo 0 + fix redo 1 (both with chunk_verdict) + two verifier records
+        # → 2 implied verifiers / 1 implied pipeline / 0 missing anywhere.
+        neg = [imp(1, "pipeline", "research", rv="APPROVE_WITH_FIXES"),
+               imp(2, "review", "research", rv="APPROVE_WITH_FIXES"),
+               imp(3, "pipeline", "implement", chunk=1, redo=0, cv="FAIL", decision="redo"),
+               imp(4, "verifier", "implement", chunk=1, cv="FAIL", decision="redo", gate_of=3),
+               imp(5, "fix", "implement", chunk=1, redo=1, reason="VERIFIER_FAIL", cv="PASS"),
+               imp(6, "verifier", "implement", chunk=1, cv="PASS", gate_of=5),
+               imp(7, "pipeline", "verify", red="HELD"),
+               imp(8, "red", "verify", red="HELD", gate_of=7)]
+        ng = one(neg)
+        check(ng["kinds"]["verifier"] == {"implied": 2, "recorded": 2, "missing": 0, "mistyped": 0}, f"C1 verifier: {ng['kinds']['verifier']}")
+        check(ng["kinds"]["pipeline"] == {"implied": 1, "recorded": 1, "missing": 0, "mistyped": 0}, f"C1 pipeline: {ng['kinds']['pipeline']}")
+        check(ng["kinds"]["fix"] == {"implied": 1, "recorded": 1, "missing": 0, "mistyped": 0}, f"C1 fix: {ng['kinds']['fix']}")
+        check(ng["expected"] == 8 and ng["gap"] == 0, f"C1 gapless: {ng}")
+        # clause (a) is per deciding gate: the verifier sharing the chunk record's `redo`
+        # gate (same ts_gate) must not imply a second fix (Q-IMPL-HARNESSP4-004).
+        shared = one([imp(1, "pipeline", "implement", chunk=2, redo=0, cv="FAIL", decision="redo"),
+                      imp(2, "verifier", "implement", chunk=2, cv="FAIL", decision="redo", gate_of=1)])
+        check(shared["kinds"]["fix"]["implied"] == 1, f"shared gate implies one fix: {shared['kinds']['fix']}")
+        nreport = summarize(neg, 0)
+        check("records-vs-expected: 8 recorded, expected 8 (0 missing)" in nreport, f"C1 headline:\n{nreport}")
+        check("verifier :  2 vs 2  (0 missing)" in nreport, "C1 verifier line")
+
+        # The frozen p3 fixture (telemetry.md §Fixture-Based Test Contract): read-only,
+        # sha256 asserted before and after, exact headline and per-kind numbers.
+        check(os.path.exists(FIXTURE_PATH), f"frozen fixture missing: {FIXTURE_PATH}")
+        if os.path.exists(FIXTURE_PATH):
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 before")
+            frecs, fskipped = load(FIXTURE_PATH)
+            fbuf = io.StringIO()
+            with contextlib.redirect_stdout(fbuf):
+                frc = main(["summarize", "--file", FIXTURE_PATH])
+            freport = fbuf.getvalue()
+            check(frc == 0 and fskipped == 0 and len(frecs) == 20, f"fixture load: rc {frc}, {len(frecs)} records, {fskipped} skipped")
+            for needle in ["records-vs-expected: 20 recorded, expected 39 (19 missing)",
+                           "verifier : 11 vs 0  (11 missing)",
+                           "pipeline : 11 vs 8  (3 missing)",
+                           "review   :  6 vs 2  (5 missing)",
+                           "red      :  1 vs 2  (0 missing)",
+                           "fix      :  2 vs 0  (0 missing; 2 mis-typed — see --lint)",
+                           "implement: 14 missing (3 pipeline first attempts + 11 verifier)"]:
+                check(needle in freport, f"fixture report lacks {needle!r}")
+            frow = session_rows(frecs)[0]
+            check(frow["mistyped_fix_seqs"] == [2, 18], f"fixture mis-typed fix seqs: {frow['mistyped_fix_seqs']}")
+            check(reason_review_warnings(frecs) == [3, 4, 5], f"fixture [reason-review] seqs: {reason_review_warnings(frecs)}")
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after")
 
         # Out-of-domain dispatch.chunk (the 2026-09-18 live break): a record whose
         # chunk is the "### Chunk N:" header STRING rather than the parsed int must
@@ -574,8 +932,10 @@ def self_test() -> int:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
     print("SELF-TEST OK: budget grammar, six-record fixture (one row per stage, per-chunk block, skipped: 2), "
-          "records-vs-expected (gapless + a seq gap), out-of-domain dispatch.chunk counted and folded to c?, "
-          "missing file → records: 0")
+          "records-vs-expected (gapless + a seq gap), implication-derived expected (verifier, redo first attempt, "
+          "review, red, clause (b), loop-back with no record, [reason-review] not counted, gapless compliant-redo "
+          "fixture 2/1/0, frozen p3 fixture expected 39 with sha256 unchanged), out-of-domain dispatch.chunk "
+          "counted and folded to c?, missing file → records: 0")
     return 0
 
 

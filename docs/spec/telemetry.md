@@ -1063,6 +1063,28 @@ against the `v: 1` key set. Resolves review finding M1 (the bump was prose only
 and `summarize` at DONE would have skipped every live p4 record).
 **Date**: 2026-09-18 (specs stage, review round 1)
 
+### Q-IMPL-HARNESSP4-004: clause (a) of `implied.fix` counts deciding gates, not records
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Implication-Derived `expected` and the Headline, clause (a) — "#records with `gate.decision` ∈ {loop-back-to-fix, fix, redo}"
+**Decision**:
+
+§Writer gives a verifier, review or red record the `gate.decision` of the gate
+it fed, so on a **compliant** file a chunk record and its `verifier` record both
+carry the per-chunk `redo` decision (and a stage record and its `review` record
+both carry a `loop-back-to-fix`). Read literally per record, clause (a) implies
+two fixes for one decision and REQ-TELEM-HARNESSP4-001's "0 missing on a live
+redo" cannot hold. `tools/sdd-telemetry.py` counts clause (a) **per deciding
+gate**: records sharing one gate share `ts_gate`, so the count is the number of
+distinct `(stage, ts_gate)` among fix-deciding records (falling back to the
+record's `seq` when `ts_gate` is null). On the p3 fixture only `seq` 1 decides
+a fix, so `implied.fix` stays 2 and every worked number in the section is
+unchanged; the `--self-test` gapless fixture asserts one implied fix for a
+`redo` shared by a chunk record and its verifier.
+**Rationale**: one gate decision dispatches exactly one fix — the intent the
+clause's own comment states ("each such decision dispatches one fix"); no
+record key is added and the reader still reads nothing but the telemetry file.
+**Date**: 2026-09-19 (implement stage, Chunk 2)
+
 ### Q-IMPL-HARNESSP3-018: `summarize` derives a session boundary from a `dispatch.seq` reset
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Records-vs-Expected in `summarize`

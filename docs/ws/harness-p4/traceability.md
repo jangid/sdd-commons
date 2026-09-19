@@ -44,9 +44,9 @@ row reads as history — a reader, `sdd-gc.py` and `sdd-verify` consult the
 | REQ-LINT-HARNESSP4-001 | skill-lint-v5.md | harness-p4 | | | |
 | REQ-LINT-HARNESSP4-002 | skill-lint-v5.md | harness-p4 | tools/sdd-skill-lint.py --self-test (COMMIT: rows stripped → exit 1 with fix; SCOPE:-only negative control) | tools/sdd-skill-lint.py REQUIRED rows for loop-control.md and SKILL.md | |
 | REQ-REDB-HARNESSP4-001 | adversarial-verify.md | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-001 | telemetry.md | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-002 | telemetry.md | harness-p4 | | | |
-| REQ-TELEM-HARNESSP4-003 | telemetry.md | harness-p4 | | | |
+| REQ-TELEM-HARNESSP4-001 | telemetry.md | harness-p4 | tools/sdd-telemetry.py --self-test (gapless compliant-redo fixture: pipeline redo 0 + fix redo 1 + two verifier records → 0 missing) [C1] | skills/sdd-orchestrate/SKILL.md §Telemetry (one record per dispatch kind, clauses i–iii); references/telemetry.md §3 rule list + §2 worked verifier/fix examples | |
+| REQ-TELEM-HARNESSP4-002 | telemetry.md | harness-p4 | tools/sdd-telemetry.py --self-test (verifier / redo-first-attempt / review / red implications; frozen fixture expected 39 against 20, sha256 asserted before and after) | tools/sdd-telemetry.py session_rows / _implication_lines (per-(stage,chunk) groups, headline); references/telemetry.md §7 formula + both shapes | |
+| REQ-TELEM-HARNESSP4-003 | telemetry.md | harness-p4 | tools/sdd-telemetry.py --self-test (clause (b) red_break with null-decision predecessor → mis-typed, 0 missing; loop-back-to-fix with no record → 1 missing; [reason-review] seqs 3–5 never counted; FIX_ONLY_REASONS parsed from the const row) | tools/sdd-telemetry.py DOMAIN_TABLE const row / schema_constants / FIX_ONLY_REASONS / mistyped_fix_seqs / reason_review_warnings | |
 | REQ-TELEM-HARNESSP4-004 | telemetry.md | harness-p4 | | | |
 | REQ-TELEM-HARNESSP4-005 | telemetry.md | harness-p4 | | | |
 | REQ-TELEM-HARNESSP4-006 | telemetry.md | harness-p4 | | | |

@@ -234,7 +234,7 @@ orchestrator writes a record for every dispatched kind, and `summarize` derives
 **Delivers**: REQ-TELEM-HARNESSP4-001, REQ-TELEM-HARNESSP4-002,
 REQ-TELEM-HARNESSP4-003.
 **Tasks**:
-1. [ ] [implement] `skills/sdd-orchestrate/SKILL.md` telemetry-append step and
+1. [x] [implement] `skills/sdd-orchestrate/SKILL.md` telemetry-append step and
    `references/telemetry.md` §2: state the one-record-per-dispatch rule for
    every kind (`pipeline`, `fix`, `fanout_leaf`, `verifier`, `review`, `red`)
    with the three clauses — (i) a chunk verifier gets its own `verifier` record
@@ -246,7 +246,7 @@ REQ-TELEM-HARNESSP4-003.
    examples carrying a non-null `chunk` — traces to `telemetry.md` §Writer
    (REQ-TELEM-HARNESSP4-001). Files: `skills/sdd-orchestrate/SKILL.md`,
    `skills/sdd-orchestrate/references/telemetry.md`
-2. [ ] [implement] `tools/sdd-telemetry.py` `summarize`: replace the
+2. [x] [implement] `tools/sdd-telemetry.py` `summarize`: replace the
    highest-`seq` `expected` with the implication formula — per session, per
    kind, `attempts(stage, chunk) = 1 + max(redo)` per `(stage, chunk)` group;
    `implied.verifier`, `implied.pipeline`, `implied.review`, `implied.red`,
@@ -257,7 +257,7 @@ REQ-TELEM-HARNESSP4-003.
    `implied vs recorded` lines exactly as §Implication-Derived `expected`
    shows — traces to `telemetry.md` §Implication-Derived `expected` and the
    Headline (REQ-TELEM-HARNESSP4-002). Files: `tools/sdd-telemetry.py`
-3. [ ] [implement] Same tool: the mis-typed-fix rule — an implied fix present
+3. [x] [implement] Same tool: the mis-typed-fix rule — an implied fix present
    as a record of another kind counts 0 toward `missing.fix` and is reported by
    `--lint` as `[mistyped-fix]` (landed fully in Chunk 3; in this chunk the
    `summarize` line already renders the spec's verbatim suffix `(0 missing;
@@ -268,13 +268,13 @@ REQ-TELEM-HARNESSP4-003.
    from a `const` row of the domain table, not a bare code constant — traces to
    `telemetry.md` §Implication-Derived `expected` and the Headline
    (REQ-TELEM-HARNESSP4-003). Files: `tools/sdd-telemetry.py`
-4. [ ] [implement] `references/telemetry.md` §7 (Post-cycle reader — or the
+4. [x] [implement] `references/telemetry.md` §7 (Post-cycle reader — or the
    section that documents `summarize`): document the implication formula, the headline definition and
    both record shapes (p3 collapsed vs compliant redo) with the fixture's worked
    numbers — traces to `telemetry.md` §Implication-Derived `expected` and the
    Headline (REQ-TELEM-HARNESSP4-002). Files:
    `skills/sdd-orchestrate/references/telemetry.md`
-5. [ ] [implement] `--self-test`: synthetic fixtures for each implication
+5. [x] [implement] `--self-test`: synthetic fixtures for each implication
    (verifier, redo first attempt, review, red), clause (b) (`red_break`
    pipeline record with a null-decision predecessor), a `loop-back-to-fix`
    followed by no record (1 missing fix), and the gapless negative fixture that
@@ -284,7 +284,7 @@ REQ-TELEM-HARNESSP4-003.
    frozen fixture's sha256 before and after — traces to `telemetry.md`
    §Fixture-Based Test Contract (REQ-TELEM-HARNESSP4-001, -002, -003). Files:
    `tools/sdd-telemetry.py`
-6. [ ] [verify] `python3 tools/sdd-telemetry.py summarize --file
+6. [x] [verify] `python3 tools/sdd-telemetry.py summarize --file
    tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` prints `expected 39`
    against 20 records (19 missing), implement line 14 missing, verifier 11 vs 0,
    pipeline 11 vs 8 at implement, review 6 vs 2 (5 missing), red 1 vs 2 (0

@@ -157,6 +157,41 @@ Example (a review dispatch with two Material findings):
  "replan_trigger":null,"git":{"head_before":"8515816","head_after":"8515816"}}
 ```
 
+Example (the **`verifier` record** of Chunk 3's first attempt — its own
+dispatch, its own append; `chunk` is the parsed integer, never a header string;
+`gate.decision` is the per-chunk gate it fed — §3 rule (i)):
+
+```json
+{"v":1,"ts_dispatch":"2026-09-19T12:30:11Z","ts_return":"2026-09-19T12:36:02Z","ts_gate":"2026-09-19T12:38:40Z",
+ "cycle":{"workstream":"harness-p4","research_id":"RS-HARNESSP4-001","kickoff_date":"2026-09-19","marker":"4"},
+ "dispatch":{"seq":9,"kind":"verifier","stage":"implement","chunk":3,"iteration":null,"redo":0,"reason":null,
+             "budget":{"tool_calls":20,"test_runs":2,"prototypes":false,"read_only":true},"write_scope_n":0},
+ "return":{"status":"COMPLETE","budget_consumed":{"tool_calls":14,"test_runs":2,"self_reported":true},
+           "files_written_n":0,"commits_n":0,"tasks_completed_n":0,"failures_n":1,"ledger_n":0,"open_questions_n":0,"blocked_writes_n":0,"warnings":[]},
+ "scope":{"token":null,"in":0,"advisory":0,"out":0,"history_rewrite":false},
+ "verdict":{"chunk_verdict":"FAIL","review_verdict":null,"red_verdict":null,"findings":{"C":0,"M":0,"m":0},"malformed":false,"contradiction_class":null},
+ "gate":{"decision":"redo","decision_by":"operator","fix_iteration":0,"fix_cap":3,"cap_raised":0,"redo_count":1,"replan_count":0,"replan_cap":3},
+ "replan_trigger":null,"git":{"head_before":"1753b8d","head_after":"1753b8d"}}
+```
+
+Example (the **`fix` record** of that chunk's redo — the first attempt's
+`pipeline` record at `redo: 0` is kept; this is a *further* record, `kind:
+"fix"`, `redo` incremented, `reason` set, its own verifier's `CHUNK_VERDICT:`
+copied onto `verdict.chunk_verdict` — §3 rules (ii)–(iii)):
+
+```json
+{"v":1,"ts_dispatch":"2026-09-19T12:40:05Z","ts_return":"2026-09-19T13:02:19Z","ts_gate":"2026-09-19T13:09:51Z",
+ "cycle":{"workstream":"harness-p4","research_id":"RS-HARNESSP4-001","kickoff_date":"2026-09-19","marker":"4"},
+ "dispatch":{"seq":10,"kind":"fix","stage":"implement","chunk":3,"iteration":null,"redo":1,"reason":"VERIFIER_FAIL",
+             "budget":{"tool_calls":45,"test_runs":6,"prototypes":false,"read_only":false},"write_scope_n":6},
+ "return":{"status":"COMPLETE","budget_consumed":{"tool_calls":31,"test_runs":4,"self_reported":true},
+           "files_written_n":3,"commits_n":0,"tasks_completed_n":2,"failures_n":0,"ledger_n":1,"open_questions_n":0,"blocked_writes_n":0,"warnings":[]},
+ "scope":{"token":"CLEAN","in":3,"advisory":0,"out":0,"history_rewrite":false},
+ "verdict":{"chunk_verdict":"PASS","review_verdict":null,"red_verdict":null,"findings":{"C":0,"M":0,"m":0},"malformed":false,"contradiction_class":null},
+ "gate":{"decision":"proceed","decision_by":"operator","fix_iteration":0,"fix_cap":3,"cap_raised":0,"redo_count":1,"replan_count":0,"replan_cap":3},
+ "replan_trigger":null,"git":{"head_before":"1753b8d","head_after":"4c2e9a1"}}
+```
+
 **Why a transcript and not a log**: every value under `return`, `scope`,
 `verdict` and `gate` is copied from what the gate already renders, so the record
 can never expose more than the operator already saw — and because the gate
@@ -188,6 +223,28 @@ Rules:
   review dispatch is its own dispatch and gets its own record (its
   `gate.decision` is the stage/per-chunk gate decision it fed). A dispatch
   that never reaches a gate (session aborted mid-dispatch) writes no record.
+- **One record per dispatch, for every kind the schema admits**
+  (REQ-TELEM-HARNESSP4-001) — `pipeline`, `fix`, `fanout_leaf`, `verifier`,
+  `review`, `red` — with `dispatch.kind` set to the kind **actually
+  dispatched**. Where each kind's record goes:
+  - (i) **a chunk verifier gets a `verifier` record of its own** (`kind:
+    "verifier"`, `chunk: N`, `verdict.chunk_verdict` = its `CHUNK_VERDICT:`,
+    `gate.decision` = the per-chunk gate it fed); its `CHUNK_VERDICT:` is
+    *also* copied onto the chunk's own `pipeline`/`fix` record's
+    `verdict.chunk_verdict` — the field the post-cycle reader's implication
+    reads (§7). Two appends per verified chunk attempt, not one.
+  - (ii) **every fix dispatch is a `fix` record, never `pipeline`** — a stage
+    `loop-back-to-fix` (`iteration: N`, `reason: REVIEW`), a per-chunk `fix`
+    (redo — `chunk: N`, `redo: N`, `reason: VERIFIER_FAIL`), or a `RED_BREAK`
+    packet (`reason: red_break`).
+  - (iii) **a redo keeps the first attempt's record**; the redo is a further
+    `fix` record with `dispatch.redo` incremented and `dispatch.reason` set.
+    A redone chunk therefore leaves `pipeline redo: 0` + `fix redo: 1`, each
+    with its own `verifier` record — four appends.
+  Worked `verifier` and `fix` examples with a non-null `chunk` are in §2. The
+  p3 file held zero `verifier` and zero `fix` records across eight verifiers
+  and three redos, and its one fix (`seq` 18) was typed `pipeline`, because
+  the text above did not say where the verifier's record goes.
 - **Append-only.** The orchestrator never rewrites or truncates the file, with
   the **single exception** of the leaf-write revert in §4.
 - **Never load-bearing.** On any write error (unwritable directory, disk full)
@@ -386,16 +443,77 @@ time dispatch and gate mean/max), then a per-chunk block (RS-008 probe 1 as a
 query). Unknown-`v` and non-JSON lines are skipped and counted on a trailing
 `skipped: N …` line. A **sibling** of that line,
 `records-vs-expected: N session(s), K with a missing append`, reports per session
-how many appends the records imply versus how many are present, with one indented
-line per gap-bearing session (REQ-TELEM-HARNESSP3-002). "Expected" is derived
-**from the records themselves** — the highest `dispatch.seq` in a session, since
-`seq` is 1-based per session and the writer appends once per gated dispatch — and
-never from a gate or any side channel from the orchestrator
+how many appends the records imply versus how many are present
+(REQ-TELEM-HARNESSP3-002). "Expected" is derived **from the records themselves**
+and never from a gate or any side channel from the orchestrator
 (Q-IMPL-HARNESSP3-006); a session boundary is a `dispatch.seq` that does not
 exceed its predecessor within one (`cycle.workstream`, `cycle.research_id`) group
 ordered by `ts_dispatch` (Q-IMPL-HARNESSP3-018). It is **strictly post-cycle**:
 it is a backstop for a missed gate line, it never influences control flow, and it
 does not weaken the zero-reads rule — nothing inside the loop runs this tool.
+
+**Implication-derived `expected`** (REQ-TELEM-HARNESSP4-002, -003;
+`docs/spec/telemetry.md` §Implication-Derived `expected` and the Headline). The
+highest `seq` alone saw no gap on the p3 file, because a writer that never
+appends also never increments. `expected` therefore **starts** from the highest
+`seq` and adds every append implied by a cross-field value the writer *did*
+fill, per session, per kind, `redo` read as 0 when null. The chunk-shaped
+implications are computed **per `(stage, chunk)` group** — the `pipeline` and
+`fix` records sharing one stage and chunk — never by summing `1 + redo` over
+records, since §3 rule (iii) keeps the first attempt's record *and* adds a
+`fix` record per redo:
+
+```
+attempts(stage, chunk) := 1 + max(dispatch.redo) over the group's pipeline/fix records
+implied.verifier       := Σ attempts over groups with a non-verifier record carrying verdict.chunk_verdict
+implied.pipeline       := Σ over implement groups of (1 + #pipeline records with redo ≥ 1)   # a redo typed pipeline stands in for its own first attempt
+implied.review         := #records with kind != review and verdict.review_verdict != null
+implied.red            := #records with kind != red    and verdict.red_verdict    != null
+implied.fix            := #gates deciding loop-back-to-fix | fix | redo                       # clause (a) — records sharing one gate share ts_gate and count once (Q-IMPL-HARNESSP4-004)
+                        + #records with kind != fix and dispatch.reason ∈ FIX_ONLY_REASONS     # clause (b) — the `const` row of the schema table ({red_break})
+missing.<kind>         := Σ per stage of max(0, implied − recorded)      never cross-stage, never negative
+missing.fix            := 0 for an implied fix PRESENT as a record of another kind (mis-typed — a --lint [mistyped-fix] finding, not a missing append)
+expected               := highest dispatch.seq + Σ missing.<kind>
+```
+
+**Both record shapes** the formula must hold on, one implement group each:
+
+| Shape | Records | `attempts` | implied verifier | implied pipeline vs recorded |
+|---|---|---|---|---|
+| p3 collapsed (fixture `seq` 7, 10, 13) | one `pipeline`, `redo: 1`, `chunk_verdict: PASS` | 2 | 2 | 2 vs 1 → 1 missing |
+| p3 single attempt (fixture `seq` 6, 8, 9, 11, 12) | one `pipeline`, `redo: null`, `chunk_verdict: PASS` | 1 | 1 | 1 vs 1 → 0 missing |
+| compliant redo (§3 rule (iii)) | `pipeline redo: 0` + `fix redo: 1`, both with `chunk_verdict`, + two `verifier` records | 2 | 2 (vs 2 recorded) | 1 vs 1 → 0 missing |
+
+**Headline** — the **total shortfall of every implied append, per session**
+(ratified, Q-REQ-P4-D): `records-vs-expected: <recorded> recorded, expected <n>
+(<n − recorded> missing)`, followed by one `implied vs recorded` line per kind
+(the `pipeline` line is implement-scoped, tagged `[implement]`; the `fix` line
+carries `; N mis-typed — see --lint` when mis-typed fixes exist) and an
+`implement: N missing (…)` line giving the **full** implication count. On the
+frozen fixture `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` (20
+records, read-only, sha256 asserted before and after — `tools/fixtures/README.md`):
+
+```
+records-vs-expected: 20 recorded, expected 39 (19 missing)
+  implied vs recorded — verifier : 11 vs 0  (11 missing)
+  implied vs recorded — pipeline : 11 vs 8  (3 missing)        [implement]
+  implied vs recorded — review   :  6 vs 2  (5 missing)
+  implied vs recorded — red      :  1 vs 2  (0 missing)
+  implied vs recorded — fix      :  2 vs 0  (0 missing; 2 mis-typed — see --lint)
+  implement: 14 missing (3 pipeline first attempts + 11 verifier)
+```
+
+Eight implement groups, three with `max(redo) = 1`: `implied.verifier = 5 × 1
++ 3 × 2 = 11` against 0 recorded; `implied.pipeline = 11` against 8 (3
+missing); review 6 vs 2 with the 5 missing matched per stage (research 2,
+requirements, specs, plan 1 each — the implement and verify reviews exist);
+red 1 vs 2 (0 missing, never negative); fix implied 2 (`seq` 1's
+`loop-back-to-fix`, clause (a); `seq` 18's `reason: red_break`, clause (b))
+against 0 recorded, both **present as `pipeline` records** (`seq` 2 and 18) and
+so mis-typed, 0 missing. `reason: REVIEW` at `iteration ≥ 1` with no preceding
+`loop-back-to-fix` at the stage (`seq` 3–5) is the `--lint` **warning**
+`[reason-review]`, never a count. The `see --lint` pointer resolves when the
+`--lint` subcommand lands (P3); `summarize` renders the suffix already.
 
 A missing or empty telemetry file is an empty run set: `summarize` prints `records: 0` and an empty table and exits 0 (the same
 `n_before := 0 if absent` rule the writer and `sdd-eval.py` follow), never an
