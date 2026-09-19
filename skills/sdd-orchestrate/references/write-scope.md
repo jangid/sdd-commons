@@ -496,6 +496,16 @@ traceability rows since the last regeneration (`../SKILL.md` §The gate;
 `fan-out.md` §3e for the fan-out path). Regeneration is wholesale and
 idempotent, so a repeat costs nothing and never compounds.
 
+The trigger is a **session dirty flag** (`docs/spec/ws-traceability.md`
+Q-IMPL-HARNESSP3-011) set whenever a leaf's `RETURN.traceability_fills` is
+non-empty and cleared after a successful regeneration commit — so a gate whose
+flag is clear regenerates nothing, and a stopped or looped-back stage never
+leaves the aggregate stale. The flag is session state, not an artifact; on a
+resumed session it starts **set**, costing at most one redundant regeneration
+and never a missed one. Leaves never write this path: it is absent from every
+orchestrated `{write_scope}` by construction (§2), and that absence *is* the
+signal the leaf reads.
+
 **Plan-completion bookkeeping commit (REQ-HARN-HARNESSP5-001).** The second
 bookkeeping write, beside aggregate regeneration: at the implement **stage
 gate**, on `proceed`, after the `COMMIT:` closing line, the orchestrator flips

@@ -563,8 +563,9 @@ only) `COMMIT:` at 2b → `CHUNK_VERDICT:` → `RED_VERDICT:` (with its derived
    (`docs/spec/harness-loop-control.md` §Plan Completion Ownership; §6 below);
 7. the `TELEMETRY:` line — the four-member family `rec <n> │ WRITE FAILED │ OFF
    │ .gitignore updated`, at most once each, rendered **last**, immediately
-   after the `iteration`/cap line (or, when the pause of signal 6 fired, after
-   its token line) and **before the options**
+   after the `iteration`/cap line (or, when the pause of signal 6 or of signal
+   6b fired, after that pause's token line — 6b renders between 6 and 7) and
+   **before the options**
    (`references/telemetry.md` §3). `TELEMETRY: rec <n>` is the positive member
    (REQ-TELEM-HARNESSP3-001): `<n>` is the count of **successful appends this
    session**, not `dispatch.seq`, so a gate whose append failed shows
@@ -606,6 +607,21 @@ decision renders before the options (items 1–7, 2b and 6b); a signal that is t
 deferred to the next gate — `TELEMETRY: rec <n>` is the one deferred signal,
 and it may be because telemetry is never load-bearing. `COMMIT:` is
 load-bearing and therefore closes the gate it belongs to.
+
+### 5a. Presentation of the gate block — from §The gate
+
+Render the gate block **verbatim as text**: it is a fixture and its signal
+order is the contract. Then collect the decision through the host's option
+picker when the session has one, listing the gate's options as the choices, and
+fall back to plain text when it does not. The picker never replaces, summarizes
+or reorders the block above it, and never adds an option the gate does not
+offer. This binds nothing about the loop: the options, their meaning and the
+caps are unchanged.
+
+**Approve-with-fixes shortcut.** For `APPROVE_WITH_FIXES` (`sdd-review`: "fix
+the named findings, then proceed without re-review") `loop-back-to-fix` offers
+re-dispatch then re-review (the default) or skipping the re-review; a *Reject*
+never skips it.
 
 ## 6. Edge cases routed through the gate — from §The gate
 

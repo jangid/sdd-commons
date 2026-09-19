@@ -224,7 +224,10 @@ VERDICT: APPROVE │ APPROVE_WITH_FIXES │ REJECT
 
 ### Slot contract (review)
 - `{repo_root}` — absolute repository path.
-- `{deliverable_path}` — the artifact(s) the pipeline just wrote.
+- `{deliverable_path}` — the artifact(s) the pipeline just wrote. For the
+  **implement stage** this is the plan path plus the source/test files changed
+  during the stage (`git diff --name-only` against the stage-start commit) —
+  paths only, never a diff body or a summary of the work.
 - `{upstream_path_line}` — the upstream SDD artifact for the stage. **Omit
   entirely for the research stage.** For later stages supply requirements (for a
   specs review), specs (for a plan review), etc.

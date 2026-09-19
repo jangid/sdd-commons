@@ -5,9 +5,10 @@ the v1 record schema and its gate-signal sources, the `Budget:` grammar, the
 writer sequence and rules, the `TELEMETRY:` gate-line family, the third
 (telemetry-specific) write-scope observation with its finding strings, the
 non-interference table of phase-detection inputs, the scorer derivation and
-the post-cycle reader. Contract: `docs/spec/telemetry.md`
+the post-cycle reader. Contracts: `docs/spec/telemetry.md`
 (REQ-TELEM-HARNESSP2-001..009, REQ-HARN-027 amendment,
-REQ-SKILL-HARNESSP2-001). Stub: `../SKILL.md` §LOOP; the KICKOFF opt-out is
+REQ-SKILL-HARNESSP2-001) and, for §6 (scorer derivation) and §7 (post-cycle
+reader), `docs/spec/telemetry-reader.md`. Stub: `../SKILL.md` §LOOP; the KICKOFF opt-out is
 at `../SKILL.md` §KICKOFF; the `TELEMETRY:` line position is named at
 `../SKILL.md` §The gate. Every token below is **defined here and nowhere
 else**: the four-member `TELEMETRY:` line family (`rec <n>` included) and the

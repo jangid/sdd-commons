@@ -474,7 +474,7 @@ landed before the size pass measures the files.
 **Goal**: the largest skill is warn-clean without losing a contract.
 **Depends on**: Chunk 7.
 **Tasks**:
-1. [implement] Move detail out of `skills/sdd-orchestrate/SKILL.md` (551 lines
+1. [x] [implement] Move detail out of `skills/sdd-orchestrate/SKILL.md` (551 lines
    plus this cycle's additions) into `references/*.md`, each moved section
    leaving a stub with a resolving link and, where one applies, the marker-3
    "behavior UNCHANGED" sentence. Every `REQUIRED` marker row, the
@@ -482,7 +482,7 @@ landed before the size pass measures the files.
    `[template-drift]` fence stay satisfied — a row may be re-pointed to the new
    file, never dropped — traces to `docs/spec/skill-lint-v5.md` §Size
    Warn-Clean Baseline (REQ-LINT-HARNESSP5-001).
-2. [verify] `wc -l skills/sdd-orchestrate/SKILL.md` < 400;
+2. [x] [verify] `wc -l skills/sdd-orchestrate/SKILL.md` < 400;
    `python3 tools/sdd-skill-lint.py` raises no `[size]` finding for this skill
    and no new `[required]` or `[template-drift]` finding; every new
    `references/*.md` is linked from its stub and resolves — traces to
