@@ -226,6 +226,13 @@ observed writes := porcelain_delta UNION committed_delta UNION content_delta
   `git stash create` and a temp-index `read-tree HEAD` were both measured and
   rejected: the first mutates the repository being observed, the second diffs
   against HEAD and reproduces the identical blindness.
+- **Strict set (REQ-HARN-HARNESSP4-004).** The `UNION` is a set and the
+  implementation must be one: a path observed by more than one term is counted
+  **once** in the `N` of `SCOPE: VIOLATION (N paths)`, once in each `COMMIT:`
+  operand (§7a) and listed once on the `Observed writes:` provenance line,
+  keeping its richest label — `committed ≻ content ≻ porcelain` (fixture F14
+  of `tools/sdd-scope-check-selftest.py`: dirty at snapshot, committed during
+  the dispatch, dirtied again → one entry, `committed <sha>`, `(1 path)`).
 - Fixture: scenario F10 of `tools/sdd-scope-check-selftest.py` (both halves).
 
 **Third observation (telemetry) — REQ-TELEM-HARNESSP2-005.** Because `.sdd/`

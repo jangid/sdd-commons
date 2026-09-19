@@ -44,6 +44,25 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
   F13 RED_BREAK fix with NO open chunk: the     -> IN, SCOPE: CLEAN, exactly one
       only write is the plan's ## Post-cycle       new line under the section
       Fixes append
+  F14 strict set: a path already dirty, then    -> rendered once, labelled
+      committed and dirtied again (committed       "committed <sha>",
+      AND content delta)                           SCOPE: VIOLATION (1 path)
+
+Commit-fidelity fixtures (``docs/spec/harness-commit-fidelity.md`` §Self-Test
+Helper and Fixtures, ``references/write-scope.md`` §7a) — the pure helper
+``commit_check(expected, landed)`` renders the own-line ``COMMIT:`` token from
+two path sets; ``landed`` is always the two-sha range ``HEAD_before..HEAD_landed``:
+
+  C1  sequential omission: 2 of 3 staged        -> COMMIT: INCOMPLETE (1 observed, not
+                                                   landed: docs/plan.md); amended ->
+                                                   COMMIT: COMPLETE (3 paths)
+  C2  sequential inverse: stray.txt committed   -> both clauses on ONE line
+  C3  fan-out fast-forward, two leaf commits    -> COMPLETE (2 paths) from the range;
+                                                   git show HEAD -> false INCOMPLETE
+  C4  fan-out true merge after bookkeeping      -> COMPLETE with the leaf's full delta;
+                                                   a later regeneration commit changes nothing
+  C5  conflict -> abort -> redo                  -> the redo's own sets -> COMPLETE (1 path);
+                                                   never a third token
 
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
@@ -168,13 +187,25 @@ def snapshot(repo: str) -> list[str]:
     return records
 
 
+# Label precedence of the strict observed-writes set (harness-write-scope.md
+# §Observed Writes Are a Strict Set): a path arriving from more than one term
+# keeps the richest label — committed ≻ content ≻ porcelain.
+TERM_RANK = {"porcelain": 0, "content": 1, "committed": 2}
+
+
 @dataclass
 class Observed:
-    """One observed write: path, porcelain/diff status letter, provenance label."""
+    """One observed write: path, porcelain/diff status letter, provenance label.
+
+    ``term`` names the §3 term that observed the path (``porcelain``,
+    ``content`` or ``committed``) and drives the label precedence when the
+    observation is collapsed to a strict set.
+    """
 
     path: str
     letter: str
-    where: str  # "uncommitted" or "committed <sha>"
+    where: str  # "uncommitted", "uncommitted (content)" or "committed <sha>"
+    term: str = "porcelain"
 
 
 @dataclass
@@ -186,6 +217,29 @@ class Observation:
     # the gitignored ``.sdd/`` — each counts as one more OUT path.
     telemetry_findings: list[str] = field(default_factory=list)
     telemetry_after: "TelemetrySnapshot | None" = None
+
+    def collapse(self) -> None:
+        """Collapse ``writes`` to a strict set — one entry per path (REQ-HARN-HARNESSP4-004).
+
+        ``observed writes := porcelain_delta UNION committed_delta UNION
+        content_delta`` is a set: a path observed by several terms is kept once,
+        in first-seen order, carrying the entry with the richest ``term``
+        (``TERM_RANK``). ``N`` in ``SCOPE: VIOLATION (N paths)``, every ``COMMIT:``
+        operand and the ``Observed writes:`` list therefore count each path once.
+        """
+        best: dict[str, Observed] = {}
+        order: list[str] = []
+        for w in self.writes:
+            if w.path not in best:
+                best[w.path] = w
+                order.append(w.path)
+            elif TERM_RANK[w.term] > TERM_RANK[best[w.path].term]:
+                best[w.path] = w
+        self.writes = [best[p] for p in order]
+
+    def paths(self) -> set[str]:
+        """The observed-writes set — the sequential ``expected`` operand of ``COMMIT:``."""
+        return {w.path for w in self.writes}
 
 
 # ---------------------------------------------------------------------------
@@ -328,7 +382,7 @@ def _add_name_status(obs: Observation, text: str, sha: str) -> None:
         letter = parts[0][0]
         paths = parts[1:]  # renames/copies carry old and new
         for p in paths:
-            obs.writes.append(Observed(p, letter, f"committed {sha[:7]}"))
+            obs.writes.append(Observed(p, letter, f"committed {sha[:7]}", term="committed"))
 
 
 def observe(
@@ -408,20 +462,14 @@ def observe(
     # sentinel for a path deleted during the dispatch (itself a content change).
     if content_before:
         after_paths = set(ambiguous_set(after))
-        seen = {w.path for w in obs.writes}
         letters = {}
         for line in after:
             letter, paths = _porcelain_paths(line)
             for p in paths:
                 letters.setdefault(p, letter)
+        # A path may be observed here AND by term (a) above or (b) below; the
+        # strict-set collapse at the end keeps one entry with the richest label.
         for p, sha_before in content_before.items():
-            if p in seen:
-                # ``seen`` covers term (a) only: the committed delta (b) runs
-                # AFTER this block, so a path it will observe is not in ``seen``
-                # here and can be appended twice (once here, once by (b)).
-                # Whether to collapse observed writes to strict set semantics
-                # is owned by the plan's §Verify-Stage Acceptance Obligations V7.
-                continue
             on_disk = os.path.isfile(os.path.join(repo, p))
             if not on_disk:
                 sha_after = ABSENT
@@ -430,7 +478,14 @@ def observe(
             else:
                 continue  # no longer dirty: the reverted/committed round trip of §5
             if sha_after != sha_before:
-                obs.writes.append(Observed(p, "D" if sha_after == ABSENT else letters.get(p, "M"), "uncommitted"))
+                obs.writes.append(
+                    Observed(
+                        p,
+                        "D" if sha_after == ABSENT else letters.get(p, "M"),
+                        "uncommitted (content)",
+                        term="content",
+                    )
+                )
 
     # (b) committed delta — catches writes that vanished from porcelain.
     if head_after != head_before:
@@ -451,7 +506,71 @@ def observe(
             f"HISTORY_REWRITE  HEAD_after {head_after[:7]} does not descend "
             f"from HEAD_before {head_before[:7]}"
         )
+    # Strict set: the three terms are a UNION, so each path is kept once with
+    # its richest provenance label (harness-write-scope.md, REQ-HARN-HARNESSP4-004).
+    obs.collapse()
     return obs
+
+
+# ---------------------------------------------------------------------------
+# write-scope.md §7a — commit-fidelity check, COMMIT: COMPLETE | INCOMPLETE
+# ---------------------------------------------------------------------------
+
+
+def head_sha(repo: str) -> str:
+    """``git rev-parse HEAD`` — captured as a sha, never used as a literal ``HEAD`` comparand."""
+    return git(repo, "rev-parse", "HEAD").stdout.strip()
+
+
+def observed_paths(obs: Observation) -> set[str]:
+    """The observed-writes set: the sequential ``expected`` operand (never ``RETURN.files_written``)."""
+    return obs.paths()
+
+
+def landed_paths(repo: str, head_before: str, head_landed: str) -> set[str]:
+    """``git diff --name-only --no-renames <HEAD_before> <HEAD_landed>`` as a set.
+
+    The two-sha RANGE comparand of §7a: captured right after the orchestrator's
+    own commit or merge and before any bookkeeping commit. The same command
+    yields a leaf's committed delta ``base..tip`` (write-scope term (b)), which
+    is the fan-out ``expected``. ``--no-renames`` keeps a rename as two paths so
+    both sides agree with §3's observation.
+    """
+    return set(git(repo, "diff", "--name-only", "--no-renames", head_before, head_landed).stdout.split())
+
+
+def show_head_paths(repo: str, sha: str) -> set[str]:
+    """``git show --name-only --format= <sha>`` — the REJECTED comparand, kept as C3's negative control.
+
+    It names only that one commit's paths (empty for a merge commit), so after a
+    fast-forward of a multi-commit leaf it renders a false ``INCOMPLETE``.
+    """
+    return set(git(repo, "show", "--name-only", "--format=", sha).stdout.split())
+
+
+def commit_check(expected: set[str], landed: set[str]) -> str:
+    """Render the own-line ``COMMIT:`` token (harness-commit-fidelity.md §Self-Test Helper).
+
+    Pure: no git, no I/O. ``N`` counts distinct paths. Exactly two members:
+
+      COMMIT: COMPLETE (N paths)                                  # expected == landed
+      COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <paths>])
+
+    Paths are rendered sorted and comma-separated. The first clause is elided
+    when ``k == 0``; the second is present whenever ``j > 0``.
+    """
+    expected, landed = set(expected), set(landed)
+    missing = sorted(expected - landed)  # observed, not landed — the V14 omission
+    stray = sorted(landed - expected)  # landed, not observed — the inverse error
+    if not missing and not stray:
+        n = len(landed)
+        return f"COMMIT: COMPLETE ({n} path{'s' if n != 1 else ''})"
+    clauses: list[str] = []
+    if missing:
+        clauses.append(f"{len(missing)} observed, not landed: {', '.join(missing)}")
+    if stray:
+        clauses.append(f"{len(stray)} landed, not observed: {', '.join(stray)}")
+    return f"COMMIT: INCOMPLETE ({'; '.join(clauses)})"
 
 
 # ---------------------------------------------------------------------------
@@ -1065,6 +1184,220 @@ def scenario_f13(repo: str) -> tuple[bool, str, list[str]]:
     return ok, f.token, f.lines
 
 
+def scenario_f14(repo: str) -> tuple[bool, str, list[str]]:
+    """Strict observed-writes set: one path seen by the committed AND the content delta.
+
+    ``harness-write-scope.md`` §Observed Writes Are a Strict Set
+    (REQ-HARN-HARNESSP4-004): ``docs/plan.md`` is dirty at snapshot time,
+    committed during the dispatch and dirtied again, so its porcelain lines
+    cancel while **both** the committed delta (b) and the content delta observe
+    it. The path must be rendered once, labelled ``committed <sha>`` (the richest
+    label), and counted once -> ``SCOPE: VIOLATION (1 path)`` — never ``(2 paths)``.
+    """
+    write(repo, "docs/plan.md", "# Plan\ndirty before the dispatch\n")
+    head, before, content_before = _begin(repo)
+    write(repo, "docs/plan.md", "# Plan\nleaf edit, committed\n")
+    git(repo, "commit", "-q", "-am", "leaf: plan edit")
+    write(repo, "docs/plan.md", "# Plan\nleaf edit, committed\ndirtied again\n")
+    porcelain_cancels = snapshot(repo) == before
+    obs = observe(repo, head, before, content_before=content_before)
+    f = render(SEQ_SCOPE_SRC, obs, "F14")
+    plan_writes = [w for w in obs.writes if w.path == "docs/plan.md"]
+    plan_lines = [ln for ln in f.lines if ln.startswith("    ") and "docs/plan.md" in ln]
+    ok = (
+        porcelain_cancels
+        and len(plan_writes) == 1
+        and plan_writes[0].where.startswith("committed ")
+        and len(plan_lines) == 1
+        and "committed" in plan_lines[0]
+        and f.token == "SCOPE: VIOLATION (1 path)"
+        and f.out_paths == ["docs/plan.md"]
+    )
+    return ok, f.token, f.lines
+
+
+# ---------------------------------------------------------------------------
+# commit-fidelity fixtures C1–C5 (harness-commit-fidelity.md §Self-Test Helper)
+# ---------------------------------------------------------------------------
+
+
+def scenario_c1(repo: str) -> tuple[bool, str, list[str]]:
+    """C1 sequential omission: leaf writes three paths, the orchestrator stages two.
+
+    ``expected`` is the observed-writes set (never ``RETURN.files_written``);
+    ``landed`` is the range ``HEAD_before..HEAD_landed``. Two of three staged ->
+    ``COMMIT: INCOMPLETE (1 observed, not landed: docs/plan.md)``; after the
+    ``amend`` remedy (stage the missing path, amend the orchestrator's own
+    commit) the same range renders ``COMMIT: COMPLETE (3 paths)``.
+    """
+    head_before, before, content_before = _begin(repo)
+    write(repo, "a.txt", "a\n")
+    write(repo, "b.txt", "b\n")
+    write(repo, "docs/plan.md", "# Plan\n- [x] task 1\n")
+    expected = observed_paths(observe(repo, head_before, before, content_before=content_before))
+    # Orchestrator commit: docs/plan.md is left unstaged (the V14 defect).
+    git(repo, "add", "a.txt", "b.txt")
+    git(repo, "commit", "-q", "-m", "chunk 1")
+    line_omit = commit_check(expected, landed_paths(repo, head_before, head_sha(repo)))
+    # amend: stage every ``observed, not landed`` path into the orchestrator's own commit.
+    git(repo, "add", "docs/plan.md")
+    git(repo, "commit", "-q", "--amend", "--no-edit")
+    line_full = commit_check(expected, landed_paths(repo, head_before, head_sha(repo)))
+    ok = (
+        expected == {"a.txt", "b.txt", "docs/plan.md"}
+        and line_omit == "COMMIT: INCOMPLETE (1 observed, not landed: docs/plan.md)"
+        and line_full == "COMMIT: COMPLETE (3 paths)"
+    )
+    return ok, f"{line_omit} -> {line_full}", [line_omit, line_full]
+
+
+def scenario_c2(repo: str) -> tuple[bool, str, list[str]]:
+    """C2 sequential inverse: the orchestrator also commits ``stray.txt`` no leaf wrote.
+
+    Both directions of the set difference are clauses of **one** line:
+    ``INCOMPLETE (1 observed, not landed: b.txt; 1 landed, not observed: stray.txt)``.
+    The pure form with an empty first clause elides it but keeps the second.
+    """
+    head_before, before, content_before = _begin(repo)
+    write(repo, "a.txt", "a\n")
+    write(repo, "b.txt", "b\n")
+    expected = observed_paths(observe(repo, head_before, before, content_before=content_before))
+    write(repo, "stray.txt", "orchestrator wrote this\n")
+    git(repo, "add", "a.txt", "stray.txt")
+    git(repo, "commit", "-q", "-m", "chunk 1 (with a stray path)")
+    line = commit_check(expected, landed_paths(repo, head_before, head_sha(repo)))
+    pure = commit_check({"a.txt"}, {"a.txt", "stray.txt"})
+    ok = (
+        line == "COMMIT: INCOMPLETE (1 observed, not landed: b.txt; 1 landed, not observed: stray.txt)"
+        and "\n" not in line
+        and pure == "COMMIT: INCOMPLETE (1 landed, not observed: stray.txt)"
+    )
+    return ok, line, [line, pure]
+
+
+def scenario_c3(repo: str) -> tuple[bool, str, list[str]]:
+    """C3 fan-out fast-forward: a two-commit leaf merges by fast-forward.
+
+    ``expected`` is the leaf's committed delta ``base..tip``; ``landed`` is the
+    range ``PRE_MERGE..HEAD`` -> ``COMMIT: COMPLETE (2 paths)``. Negative
+    control: ``git show --name-only --format= HEAD`` names only the *last*
+    commit's path, so the same comparison renders a false ``INCOMPLETE`` —
+    which is why the range, never ``git show HEAD``, is the comparand.
+    """
+    base = head_sha(repo)
+    git(repo, "checkout", "-q", "-b", "leaf")
+    write(repo, "a.txt", "a\n")
+    git(repo, "add", "a.txt")
+    git(repo, "commit", "-q", "-m", "leaf 1: a.txt")
+    write(repo, "b.txt", "b\n")
+    git(repo, "add", "b.txt")
+    git(repo, "commit", "-q", "-m", "leaf 2: b.txt")
+    tip = head_sha(repo)
+    git(repo, "checkout", "-q", "main")
+    expected = landed_paths(repo, base, tip)  # the leaf's committed delta — write-scope term (b)
+    pre_merge = head_sha(repo)
+    git(repo, "merge", "-q", "--ff-only", "leaf")
+    head_landed = head_sha(repo)
+    landed = landed_paths(repo, pre_merge, head_landed)  # C3 RANGE — the two-sha comparand
+    line = commit_check(expected, landed)
+    shown = show_head_paths(repo, head_landed)
+    control = commit_check(expected, shown)
+    ok = (
+        expected == {"a.txt", "b.txt"}
+        and line == "COMMIT: COMPLETE (2 paths)"
+        and shown == {"b.txt"}
+        and control.startswith("COMMIT: INCOMPLETE (")
+        and "a.txt" in control
+    )
+    return ok, f"{line}; git show HEAD -> {control}", [line, f"negative control (git show): {control}"]
+
+
+def scenario_c4(repo: str) -> tuple[bool, str, list[str]]:
+    """C4 fan-out true merge after a bookkeeping commit on the integration branch.
+
+    The integration branch diverges (a bookkeeping commit) before the leaf
+    merges, so the merge is a true merge commit. ``PRE_MERGE..HEAD`` still
+    equals the leaf's full delta -> ``COMPLETE (2 paths)``; a regeneration
+    commit made *after* the two shas are captured leaves the line unchanged.
+    """
+    base = head_sha(repo)
+    git(repo, "checkout", "-q", "-b", "leaf")
+    write(repo, "a.txt", "a\n")
+    write(repo, "b.txt", "b\n")
+    git(repo, "add", "a.txt", "b.txt")
+    git(repo, "commit", "-q", "-m", "leaf: a.txt b.txt")
+    tip = head_sha(repo)
+    git(repo, "checkout", "-q", "main")
+    write(repo, "docs/requirements/traceability.md", "| REQ | Spec |\n| R1 | recon.md |\n")
+    git(repo, "commit", "-q", "-am", "bookkeeping before the merge")
+    expected = landed_paths(repo, base, tip)
+    pre_merge = head_sha(repo)
+    git(repo, "merge", "-q", "--no-ff", "--no-edit", "leaf")
+    head_landed = head_sha(repo)
+    is_merge = len(git(repo, "rev-list", "--parents", "-n1", head_landed).stdout.split()) == 3
+    line = commit_check(expected, landed_paths(repo, pre_merge, head_landed))
+    # Regeneration commit AFTER the range was captured: not inside the range.
+    write(repo, "docs/requirements/traceability.md", "| REQ | Spec |\n| R1 | recon.md |\n| R2 | x.md |\n")
+    git(repo, "commit", "-q", "-am", "regenerate aggregate")
+    line_after = commit_check(expected, landed_paths(repo, pre_merge, head_landed))
+    ok = (
+        is_merge
+        and expected == {"a.txt", "b.txt"}
+        and line == "COMMIT: COMPLETE (2 paths)"
+        and line_after == line
+    )
+    return ok, line, [line, f"after regeneration commit: {line_after}"]
+
+
+def scenario_c5(repo: str) -> tuple[bool, str, list[str]]:
+    """C5 conflict -> abort -> redo: the redo's own sets are compared.
+
+    The first leaf commits ``a.txt b.txt`` and conflicts with the integration
+    branch on ``a.txt``; the merge is aborted (tree restored). The redo is a new
+    dispatch with its own base and tip, committing ``b.txt`` only -> ``COMMIT:
+    COMPLETE (1 path)``. The first attempt's set never enters the comparison and
+    no third token is rendered.
+    """
+    base = head_sha(repo)
+    git(repo, "checkout", "-q", "-b", "leaf1")
+    write(repo, "a.txt", "leaf version\n")
+    write(repo, "b.txt", "b\n")
+    git(repo, "add", "a.txt", "b.txt")
+    git(repo, "commit", "-q", "-m", "leaf1: a.txt b.txt")
+    tip1 = head_sha(repo)
+    git(repo, "checkout", "-q", "main")
+    write(repo, "a.txt", "integration version\n")
+    git(repo, "add", "a.txt")
+    git(repo, "commit", "-q", "-m", "main: a.txt")
+    pre_abort = head_sha(repo)
+    snap_pre = snapshot(repo)
+    conflicted = git(repo, "merge", "-q", "leaf1", check=False).returncode != 0
+    git(repo, "merge", "--abort")
+    restored = head_sha(repo) == pre_abort and snapshot(repo) == snap_pre
+    first_attempt = landed_paths(repo, base, tip1)  # {a.txt, b.txt} — discarded by design
+    # Redo: a new dispatch with its own snapshot, committed delta and per-leaf gate.
+    base2 = head_sha(repo)
+    git(repo, "checkout", "-q", "-b", "leaf2")
+    write(repo, "b.txt", "b\n")
+    git(repo, "add", "b.txt")
+    git(repo, "commit", "-q", "-m", "leaf2 (redo): b.txt")
+    tip2 = head_sha(repo)
+    git(repo, "checkout", "-q", "main")
+    expected = landed_paths(repo, base2, tip2)
+    pre_merge = head_sha(repo)
+    git(repo, "merge", "-q", "--ff-only", "leaf2")
+    line = commit_check(expected, landed_paths(repo, pre_merge, head_sha(repo)))
+    ok = (
+        conflicted
+        and restored
+        and first_attempt == {"a.txt", "b.txt"}
+        and expected == {"b.txt"}
+        and line == "COMMIT: COMPLETE (1 path)"
+        and re.fullmatch(r"COMMIT: (COMPLETE|INCOMPLETE) \(.*\)", line) is not None
+    )
+    return ok, line, [f"first attempt (aborted): {sorted(first_attempt)}", line]
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -1079,6 +1412,12 @@ SCENARIOS = [
     ("F11", "orchestrated marker-4 specs dispatch: spec + per-ws row, both IN", scenario_f11),
     ("F12", "orchestrated marker-4 verify dispatch also writes the shared aggregate", scenario_f12),
     ("F13", "RED_BREAK fix with no open chunk: ## Post-cycle Fixes append only", scenario_f13),
+    ("F14", "strict set: one path in committed AND content delta, counted once", scenario_f14),
+    ("C1", "COMMIT: sequential omission (2 of 3 staged), then amended", scenario_c1),
+    ("C2", "COMMIT: sequential inverse (stray.txt landed, not observed)", scenario_c2),
+    ("C3", "COMMIT: fan-out fast-forward of a two-commit leaf (range vs git show)", scenario_c3),
+    ("C4", "COMMIT: fan-out true merge after a bookkeeping commit", scenario_c4),
+    ("C5", "COMMIT: conflict -> abort -> redo compares the redo's own sets", scenario_c5),
 ]
 
 
@@ -1098,6 +1437,10 @@ def main(argv: list[str] | None = None) -> int:
             "Exit 0 when all pass."
         ),
     )
+    # Accepted for parity with ``sdd-skill-lint.py --self-test`` and the spec's
+    # §Verification command; the self-test is this script's only mode
+    # (harness-commit-fidelity.md Q-IMPL-HARNESSP4-003).
+    parser.add_argument("--self-test", action="store_true", help="run the fixtures (the default and only mode)")
     parser.add_argument("-v", "--verbose", action="store_true", help="print each finding block")
     parser.add_argument("--keep", action="store_true", help="keep the temp repos (prints the path)")
     args = parser.parse_args(argv)

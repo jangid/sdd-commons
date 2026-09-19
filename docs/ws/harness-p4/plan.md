@@ -179,7 +179,7 @@ renders is a count of distinct paths.
 **Depends on**: Chunk 0.
 **Delivers**: REQ-HARN-HARNESSP4-006, REQ-HARN-HARNESSP4-004.
 **Tasks**:
-1. [ ] [implement] `tools/sdd-scope-check-selftest.py`: make the observation a
+1. [x] [implement] `tools/sdd-scope-check-selftest.py`: make the observation a
    **set** — `Observation.paths` de-duplicated across `porcelain_delta ∪
    committed_delta ∪ content_delta`, one entry per path with the richest
    provenance label (`committed ≻ content ≻ porcelain`); `N` in `SCOPE:
@@ -188,16 +188,16 @@ renders is a count of distinct paths.
    content delta and assert `N == 1` labelled `committed` — traces to
    `harness-write-scope.md` §Observed Writes Are a Strict Set
    (REQ-HARN-HARNESSP4-004). Files: `tools/sdd-scope-check-selftest.py`
-2. [ ] [implement] `references/write-scope.md` §3: state the de-duplication and
+2. [x] [implement] `references/write-scope.md` §3: state the de-duplication and
    label-precedence rule in one sentence — traces to `harness-write-scope.md`
    §Observed Writes Are a Strict Set (REQ-HARN-HARNESSP4-004). Files:
    `skills/sdd-orchestrate/references/write-scope.md`
-3. [ ] [implement] Add the pure helper `commit_check(expected: set[str],
+3. [x] [implement] Add the pure helper `commit_check(expected: set[str],
    landed: set[str]) -> str` (no git, no I/O; `N` = distinct paths; the second
    clause is always present when non-empty, the first may be elided when empty)
    — traces to `harness-commit-fidelity.md` §Self-Test Helper and Fixtures
    (REQ-HARN-HARNESSP4-006). Files: `tools/sdd-scope-check-selftest.py`
-4. [ ] [implement] Add fixtures C1 (sequential omission → `INCOMPLETE (1
+4. [x] [implement] Add fixtures C1 (sequential omission → `INCOMPLETE (1
    observed, not landed: docs/plan.md)`, then fully staged → `COMPLETE (3
    paths)`), C2 (inverse — `stray.txt` clause on the same line), C3 (fan-out
    fast-forward, two leaf commits → `COMPLETE (2 paths)` from the range, with
@@ -210,7 +210,7 @@ renders is a count of distinct paths.
    the five scenarios are the contract — traces to `harness-commit-fidelity.md`
    §Self-Test Helper and Fixtures (REQ-HARN-HARNESSP4-006). Files:
    `tools/sdd-scope-check-selftest.py`
-5. [ ] [verify] Run the self-test and confirm its output lists the five
+5. [x] [verify] Run the self-test and confirm its output lists the five
    `COMMIT:` fixtures and the strict-set fixture; apply the C3 `git show`
    mutation in a temp copy and confirm it fails with a false `INCOMPLETE`;
    confirm `commit_check({"a","b","c"}, {"a","b"})` and `commit_check(S, S)`

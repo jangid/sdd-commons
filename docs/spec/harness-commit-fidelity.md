@@ -391,3 +391,11 @@ Run per `sdd-specs` Step 4b against `harness-write-scope.md`,
    normally, `HEAD_before` when the committed delta is non-empty) is withdrawn.
    The self-test fixture family (§Self-Test Helper) covers the eager-leaf case
    as the sequential mode's leaf-committed fixture.
+
+## Implementation Questions
+
+### Q-IMPL-HARNESSP4-003: `--self-test` flag accepted by the scope self-test tool
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Verification / Automated — `python3 tools/sdd-scope-check-selftest.py --self-test`
+**Decision**: `tools/sdd-scope-check-selftest.py` gains an accepted `--self-test` flag; it is a no-op selector because running the fixtures is the script's only mode (its argparse previously knew only `-v` / `--keep`, so the spec's command would have exited 2).
+**Rationale**: keeps the spec's and the plan's Close-out command literal and gives the tool the same invocation shape as `tools/sdd-skill-lint.py --self-test`, without adding a second mode. Bare invocation is unchanged.
