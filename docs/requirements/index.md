@@ -1,7 +1,7 @@
 ---
-version: "15.0"
+version: "16.0"
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 traceability: traceability.md
 ---
 
@@ -10,7 +10,7 @@ traceability: traceability.md
 ## Summary
 
 Requirements for SDD (Spec-Driven Development) skill improvements in the
-tools-skills-agents repository. Covers ten scopes:
+tools-skills-agents repository. Covers eleven scopes:
 
 1. **v2 artifact structure** (RS-001): Research structure, requirements
    splitting, plan management, staleness detection, migration, and per-skill
@@ -85,6 +85,21 @@ tools-skills-agents repository. Covers ten scopes:
    `COMMIT:` lint row, terminal tokens at column 0, the `research_id:` stamp
    order, the `pending-red` gc criterion wording and the `CLAUDE.md`
    completion-row qualifier (HARN, LINT, CYCID, REDB).
+11. **Harness hardening part 5** (RS-HARNESSP5-001, workstream `harness-p5`):
+   arbitration closure over regenerated artifacts — `W_N` ratified diff-based
+   ("byte-identical re-emission is not a regeneration write"), REQ-ARB-HARNESSP4-001
+   re-stated and both ARB rows closed by a deterministic offline fixture, never a
+   second live loop (ARB); a legal `descoped` `Verified` value limited to carried
+   rows and the orchestrator's bookkeeping flip of harness-p4's two empty cells
+   (WS); six telemetry writer/reader fixes from the p4 live run — a stage-level
+   `fix` carries no `chunk_verdict`, chunk-only pipeline implication, the `v: 1`
+   equal-heads exemption, integer-typed `v`, the closing-line `commit` record
+   and `seq`-ordered `--lint`, tested on a frozen p4 fixture (TELEM); the
+   orchestrator owns the plan `status: complete` flip at the implement stage gate
+   and the `--no-renames -z` / C6 comparand-table repair (HARN); the six
+   Q-IMPL-HARNESSP4 fold-ins and the four `[qimpl-broken-ref]` routings (QIMPL);
+   and size housekeeping — every `SKILL.md` under 400 lines, `telemetry.md`
+   split, REQ-LINT-003/-007 baselines "none" / "under 400" (LINT).
 
 ## Stakeholders
 
@@ -101,24 +116,24 @@ tools-skills-agents repository. Covers ten scopes:
 | functional | [staleness-detection.md](functional/staleness-detection.md) | STALE | REQ-STALE-001..003 | Approved | 2026-05-25 |
 | functional | [migration.md](functional/migration.md) | MIG | REQ-MIG-001..015 | Approved | 2026-05-25 |
 | functional | [chunk-close.md](functional/chunk-close.md) | CHKC | REQ-CHKC-001..008 | Approved | 2026-05-25 |
-| functional | [deviation-protocol.md](functional/deviation-protocol.md) | QIMPL | REQ-QIMPL-001..003 | Approved | 2026-05-25 |
+| functional | [deviation-protocol.md](functional/deviation-protocol.md) | QIMPL | REQ-QIMPL-001..003, REQ-QIMPL-HARNESSP5-001..002 | Approved | 2026-09-19 |
 | functional | [milestone-plans.md](functional/milestone-plans.md) | MPLAN | REQ-MPLAN-001..004 | Approved | 2026-05-25 |
 | functional | [cross-spec-consistency.md](functional/cross-spec-consistency.md) | XSPEC | REQ-XSPEC-001..002 | Approved | 2026-05-25 |
 | functional | [review.md](functional/review.md) | REV | REQ-REV-001..008 | Approved | 2026-05-25 |
 | functional | [orchestration.md](functional/orchestration.md) | ORCH | REQ-ORCH-001..034 | Approved | 2026-09-17 |
-| functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030, REQ-WS-HARNESSP3-001 | Approved | 2026-09-18 |
-| functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027 | Approved | 2026-09-17 |
+| functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030, REQ-WS-HARNESSP3-001, REQ-WS-HARNESSP5-001..002 | Approved | 2026-09-19 |
+| functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027, REQ-HARN-HARNESSP5-001 | Approved | 2026-09-19 |
 | functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019, REQ-HARN-HARNESSP3-002..003, -005, REQ-HARN-HARNESSP4-007 | Approved | 2026-09-18 |
-| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002, REQ-HARN-HARNESSP3-001, -004, REQ-HARN-HARNESSP4-001..006 | Approved | 2026-09-18 |
-| functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001..003 | Approved | 2026-09-18 |
+| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002, REQ-HARN-HARNESSP3-001, -004, REQ-HARN-HARNESSP4-001..006, REQ-HARN-HARNESSP5-002 | Approved | 2026-09-19 |
+| functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001..003, REQ-ARB-HARNESSP5-001..003 | Approved | 2026-09-19 |
 | functional | [adversarial-verify.md](functional/adversarial-verify.md) | REDB | REQ-REDB-HARNESSP2-001..009, REQ-REDB-HARNESSP3-001..004, REQ-REDB-HARNESSP4-001 | Approved | 2026-09-18 |
-| functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009, REQ-TELEM-HARNESSP3-001..002, REQ-TELEM-HARNESSP4-001..008 | Approved | 2026-09-18 |
+| functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009, REQ-TELEM-HARNESSP3-001..002, REQ-TELEM-HARNESSP4-001..008, REQ-TELEM-HARNESSP5-001..008 | Approved | 2026-09-19 |
 | functional | [cycle-identity.md](functional/cycle-identity.md) | CYCID | REQ-CYCID-HARNESSP3-001..002, REQ-CYCID-HARNESSP4-001..002 | Approved | 2026-09-18 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
 | non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
 | integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001 | Approved | 2026-09-18 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
-| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002 | Approved | 2026-09-18 |
+| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003 | Approved | 2026-09-19 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
 
 > **ORCH delta note:** The ORCH domain mixes shipped requirements (REQ-ORCH-001..015,
@@ -268,6 +283,73 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Decided: DONE rule (every traced requirement `pass`, descope at replan) | REQ-ARB-HARNESSP4-001 (stated), applies to every row |
 | Decided: plan priority = §Scope order | recorded for `sdd-plan` in Q-REQ-P4-F below |
 
+> **harness-p5 delta note (marker 4, workstream `harness-p5`):**
+> REQ-ARB-HARNESSP5-001..003, REQ-TELEM-HARNESSP5-001..008,
+> REQ-HARN-HARNESSP5-001..002 (001 in harness-loop-control.md, 002 in
+> harness-boundaries.md — one per-domain counter, as for `HARNESSP3`/`HARNESSP4`),
+> REQ-WS-HARNESSP5-001..002, REQ-QIMPL-HARNESSP5-001..002 and
+> REQ-LINT-HARNESSP5-001..003 are the RS-HARNESSP5-001 delta added at the
+> requirements phase on 2026-09-19 — 20 new requirements, no new domain, plus
+> three in-place amendments carrying `[Updated: 2026-09-19]` /
+> re-stated notes (REQ-ARB-HARNESSP4-001, REQ-LINT-003, REQ-LINT-007). Their
+> ids carry the `HARNESSP5` workstream token per `docs/spec/ws-ids.md`; their
+> traceability rows are owned by `docs/ws/harness-p5/traceability.md`, which also
+> carries the **carried** rows for REQ-ARB-HARNESSP3-001 and REQ-ARB-HARNESSP4-001
+> (left empty in `harness-p4`, `descoped` there once REQ-WS-HARNESSP5-001 lands;
+> REQ-ARB-HARNESSP5-002 closes both on fixture evidence). They are **not yet
+> specced or implemented**. Standing constraints they must not contradict:
+> REQ-ORCH-011/012/013/014 (no auto-advance, no orchestrator-only work in
+> leaves, no new artifact — the p4 fixture lives under `tools/fixtures/`, the
+> plan flip edits an existing artifact), REQ-HARN-027 as amended,
+> REQ-TELEM-HARNESSP2-004 (the p4 fixture is cut by the operator, never read by a
+> leaf), REQ-TELEM-HARNESSP2-002 (no new record key — `commit.amended` deferred),
+> REQ-ARB-HARNESSP3-001's union (unchanged; -001 clarifies its granularity), and
+> the marker-3 path, which is unchanged. **Evidence classes:** the ARB reading
+> rests on three Approved texts and a closed-form guarantee argument (spec-read);
+> the six TELEM findings are located to code paths and spec sentences, with
+> findings 1/2/3/5 reproducible only on the p4 fixture (REQ-TELEM-HARNESSP5-007)
+> and 4/6 synthetic; the HARN flip rule is excluded-by-Approved-rules
+> (constructed, zero code); the size figures are measured. Seq-number evidence
+> (21/24/27, 2/4/6) is cited from `docs/ws/harness-p4/verification.md` §Next
+> Steps / plan O2 until the p4 fixture is cut.
+
+### harness-p5 item coverage (kickoff §Scope, §Decided at DISCUSS and RS-HARNESSP5-001 Q1–Q3, none dropped)
+
+| Kickoff item | Requirement(s) |
+|---|---|
+| (1) ARB spec question — diff-based `W_N` vs provenance `(file, *)` (Q1 recommendation) | REQ-ARB-HARNESSP5-001 (Q-REQ-P5-A) |
+| (1) deterministic offline fixture, never a second live loop (Q1 fixture shape) | REQ-ARB-HARNESSP5-002 |
+| (1) both ARB rows traced and closed in this workstream's `traceability.md` | REQ-ARB-HARNESSP5-002; `docs/ws/harness-p5/traceability.md` carried rows |
+| (1) REQ-ARB-HARNESSP4-001 acceptance re-stated (research: "should be re-stated in p5") | REQ-ARB-HARNESSP4-001 re-stated note (Q-REQ-P5-A) |
+| (1) legal `descoped` `Verified` value, limited to carried rows | REQ-WS-HARNESSP5-001 (Q-REQ-P5-D) |
+| (1) harness-p4's two empty cells set to `descoped` in one orchestrator bookkeeping commit | REQ-WS-HARNESSP5-002 |
+| (2) finding 1 — `summarize` false "1 missing pipeline" on `(implement, chunk null)` | REQ-TELEM-HARNESSP5-002 |
+| (2) finding 2 — stage-level `fix` records carry `chunk_verdict` with `chunk: null` (writer rule) | REQ-TELEM-HARNESSP5-001 (Q-REQ-P5-B) |
+| (2) finding 3 — `v: 1` records of a mid-cycle upgrade trip the equal-heads rule | REQ-TELEM-HARNESSP5-003 (Q-REQ-P5-B) |
+| (2) finding 4 — `summarize` admits `v: 2.0` while `--lint` rejects it | REQ-TELEM-HARNESSP5-004 |
+| (2) finding 5 — `COMMIT: INCOMPLETE: 0` although one was forced live | REQ-TELEM-HARNESSP5-005 (Q-REQ-P5-E) |
+| (2) finding 6 — `--lint` findings not in `seq` order | REQ-TELEM-HARNESSP5-006 |
+| (2) tests on the p3 fixture and a new frozen p4 fixture, never the live file | REQ-TELEM-HARNESSP5-007 |
+| (3) every `SKILL.md` under 400 lines (`sdd-orchestrate`, `sdd-migrate`, `sdd-implement`) | REQ-LINT-HARNESSP5-001 |
+| (3) split `docs/spec/telemetry.md` (1137 lines) | REQ-LINT-HARNESSP5-003 (Q-REQ-P5-G) |
+| (3) amend `skill-lint-v5.md` REQ-LINT-003 / REQ-LINT-007 — baseline "none" (R7, R8) | REQ-LINT-HARNESSP5-002; REQ-LINT-003 / REQ-LINT-007 `[Updated]` notes |
+| (3) fold Q-IMPL-HARNESSP4-004..009 into Approved text | REQ-QIMPL-HARNESSP5-001 |
+| (3) fix `harness-commit-fidelity.md` §Comparand Table (`--no-renames -z`; C6) | REQ-HARN-HARNESSP5-002 |
+| (3) verifier advisory — `commit.token` positive test beyond `review` | REQ-TELEM-HARNESSP5-008 (a) |
+| (3) verifier advisory — uppercase `RED_BREAK` rejected test | REQ-TELEM-HARNESSP5-008 (b) |
+| (3) verifier advisory — `migration.from` validator accepts any string | REQ-TELEM-HARNESSP5-008 (c) |
+| (3) verifier advisory — `loop-control.md` §2a leading-ordinal strip rule absent from the spec table | REQ-ARB-HARNESSP5-003 |
+| (3) verifier advisory — arbitration §Automated test names prose-only | REQ-ARB-HARNESSP5-002 (§Automated names A1–A3) |
+| (3) route the four gc `[qimpl-broken-ref]` warnings (Q-IMPL-002, -009, -014, -072) | REQ-QIMPL-HARNESSP5-002 |
+| (3) owner for `sdd-implement` Step 6.4 under per-chunk dispatch (Q3 recommendation) | REQ-HARN-HARNESSP5-001 (Q-REQ-P5-C) |
+| Decided: ARB closure by spec decision plus offline fixture, no live re-run | REQ-ARB-HARNESSP5-001, -002 |
+| Decided: size target lint warn-clean; REQ-LINT-003 baseline "none" | REQ-LINT-HARNESSP5-001, -002 |
+| Decided: L2 stays deferred, p4 evidence recorded | Out of Scope below (no requirement, by decision) |
+| Decided: DONE rule (every traced row `pass`, nothing a deliberate `fail`, descope at replan) | REQ-ARB-HARNESSP5-002 (stated), REQ-WS-HARNESSP5-001 (`descoped` never counts as closure); applies to every row |
+| Decided: plan priority = §Scope order | recorded for `sdd-plan` in Q-REQ-P5-F below |
+| Q2 "no design decision beyond ratifying the writer rule and the `v: 1` exemption" | Q-REQ-P5-B |
+| Q3 "orchestrator at the stage gate `proceed`, own bookkeeping commit" | Q-REQ-P5-C |
+
 ## Domain Prefixes
 
 | Prefix | Domain | File |
@@ -284,7 +366,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | REV | External Review | functional/review.md |
 | ORCH | SDD Orchestration Driver | functional/orchestration.md |
 | WS | Multi-Workstream SDD | functional/multi-workstream.md |
-| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md, `HARNESSP3`-prefixed additions split across harness-verification.md and harness-boundaries.md — the `HARNESSP3` counter is per domain and runs 001..005 across both files; `HARNESSP4` likewise runs 001..007 — 001..006 in harness-boundaries.md, 007 in harness-verification.md) |
+| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md, `HARNESSP3`-prefixed additions split across harness-verification.md and harness-boundaries.md — the `HARNESSP3` counter is per domain and runs 001..005 across both files; `HARNESSP4` likewise runs 001..007 — 001..006 in harness-boundaries.md, 007 in harness-verification.md; `HARNESSP5` runs 001..002 — 001 in harness-loop-control.md, 002 in harness-boundaries.md) |
 | ARB | Arbitrated Handoff (contradicting review rounds) | functional/arbitrated-handoff.md |
 | REDB | Adversarial (Red/Blue) Verify | functional/adversarial-verify.md |
 | TELEM | Per-Dispatch Telemetry | functional/telemetry.md |
@@ -298,6 +380,78 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | CFG | Configuration | configuration/version-marker.md |
 
 ## Q-REQ Resolutions
+
+Resolved during requirements gathering for RS-HARNESSP5-001 (harness hardening
+part 5, workstream `harness-p5`). The spike answered Q1–Q3 with an
+evidence-backed recommendation each and named three ratifications for this
+stage; the §Decided at DISCUSS list is inherited unchanged. Research-stage
+review findings M1, M2, m1 and m3 are absorbed here (M1 → the exclusion list is
+in one place under Out of Scope; M2 → Q1 is sized at nine files; m1 → seq
+evidence is cited to the p4 report until the fixture is cut; m3 → the
+re-statement of an Approved criterion is an explicit decision, Q-REQ-P5-A).
+Research-review m2 (the findings' §Decided list cites the kickoff's §Scope,
+unresolvable from the findings file alone) is **declined** at this stage: the
+findings file is a shared research artifact outside this stage's write scope,
+and every requirement that leans on a §Scope item names it by number
+(REQ-WS-HARNESSP5-002 → item 1, REQ-QIMPL-HARNESSP5-001 → item 3) so the
+requirements resolve without the findings file:
+
+- **Q-REQ-P5-A** (Q1 — regen provenance; **explicit edit of an Approved
+  criterion**): **ratified diff-based** — "a byte-identical re-emission is not
+  a regeneration write"; the provenance reading `regen[N] = (file, *)` is
+  rejected for a dispatch whose diff exists (REQ-ARB-HARNESSP5-001). Because the
+  fixture-based closure changes what REQ-ARB-HARNESSP4-001 asserts, its
+  acceptance is **re-stated in place** — "no pause on findings in changed
+  sections of the regenerated file; a pause on findings in unchanged sections"
+  — under a dated note rather than inherited silently; the requirement text is
+  otherwise unchanged and the p4 pause is recorded as a true positive. The
+  p4 exercise was non-discriminating on key (i) (a finding on a file the loop
+  never touched), so A1 confines round 2 to the regenerated file.
+- **Q-REQ-P5-B** (Q2 — stage-level fixes and `v: 1` records): **ratified the
+  writer rule** — a stage-level `fix` carries no `chunk_verdict`; the verifier's
+  verdict is copied onto per-chunk records only, and the reader implies a
+  first-attempt pipeline for chunk groups only (REQ-TELEM-HARNESSP5-001/-002).
+  **Ratified the `v: 1` exemption** from the equal-heads rule with **no
+  migration marker** — `migration.from` keeps its single `chunk-string` meaning
+  and a live record is never edited to satisfy a lint (REQ-TELEM-HARNESSP5-003).
+  Neither "writer stamps the chunk" nor "reader excludes" alone was adopted.
+- **Q-REQ-P5-C** (Q3 — who flips `status: complete`): **the orchestrator, at
+  the implement stage gate `proceed`, in its own bookkeeping commit** — never
+  the last-chunk leaf (premature: the stage review has not decided) and never
+  `sdd-verify` on entry (widens its scope onto an upstream artifact and leaves
+  a resumed session mis-reading the phase). `sdd-implement` Step 6.4 stays for
+  direct sessions (REQ-HARN-HARNESSP5-001). Which spec carries the rule
+  (`harness-loop-control.md` or `ws-orchestration.md`) is left to specs with
+  `harness-loop-control.md` as the default, since the gate order lives there.
+- **Q-REQ-P5-D** (`descoped` semantics): a fourth `Verified` value, **written
+  only on rows carried from a previous workstream** that its DONE rule could not
+  close; never on a workstream's own rows, never a `fail` substitute, never read
+  as completion (REQ-WS-HARNESSP5-001). The p4 cells are flipped by one
+  orchestrator bookkeeping commit — cross-workstream, outside every leaf scope
+  (REQ-WS-HARNESSP5-002). The alternative — removing the two rows from
+  `harness-p4`'s file — was rejected because it erases the descoping record.
+- **Q-REQ-P5-E** (finding 5 — `commit.amended`): **deferred, not adopted.** The
+  `commit` record carries the gate's closing line by documented expectation and
+  `summarize` labels the count `INCOMPLETE (accepted)`; a new key would change
+  the `v: 2` key set with no evidence anyone needs amend counts
+  (REQ-TELEM-HARNESSP5-005). Revisit only if a later cycle needs it.
+- **Q-REQ-P5-F** (plan ordering and sizing): the plan's chunk order follows the
+  kickoff §Scope order — ARB closure (with the `descoped` vocabulary and the p4
+  bookkeeping flip), then the six telemetry fixes with the operator fixture task
+  (REQ-TELEM-HARNESSP5-007) scheduled before the telemetry chunk, then size and
+  spec housekeeping — so a `stop` partway leaves arbitration and telemetry
+  landed. Q1 is sized at **nine** files plus this workstream's
+  `traceability.md` (research review M2); Q2 at five; Q3 at six (+1 optional
+  lint row).
+- **Q-REQ-P5-G** (where the `docs/spec/telemetry.md` split lives): under the
+  **LINT** domain (REQ-LINT-HARNESSP5-003) per the deliverable contract — size
+  housekeeping under one owner — although the lint does not size-check specs;
+  no new domain is minted. The requirements-side split of
+  `functional/telemetry.md` (p4 Open Question) stays deferred.
+- **Q-REQ-P5-H** (Q1 runner placement): default **`tools/sdd-scope-check-selftest.py`**
+  (where `resolve_sections()` and the temp-repo harness live and which is
+  already a verify gate); a separate `tools/sdd-arbitrate-selftest.py` is
+  acceptable at plan time with identical assertions (REQ-ARB-HARNESSP5-002).
 
 Resolved during requirements gathering for RS-HARNESSP4-001 (harness hardening
 part 4, workstream `harness-p4`). The spike answered Q1 and Q2 with an
@@ -686,6 +840,30 @@ Resolved during requirements gathering for RS-002:
   any new durable artifact type under `docs/` — both answers of RS-HARNESSP4-001
   read only artifacts and history that already exist.
 - Marker-3 behaviour changes.
+
+Added for RS-HARNESSP5-001 (harness hardening part 5) — the p5 exclusion list in
+one place (research review M1):
+
+- L2 (cross-layer convergence as a gate signal) — **deferred again**; the p4
+  evidence (the same defect class caught 4× by review, 1× by lint) is recorded
+  here for a later cycle and not acted on.
+- A second live arbitration exercise — closure is by spec decision plus the
+  offline fixture (REQ-ARB-HARNESSP5-002).
+- Touching `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` or the live
+  `.sdd/telemetry.jsonl` (the p4 fixture is an operator-cut copy,
+  REQ-TELEM-HARNESSP5-007).
+- A `commit.amended` record field (Q-REQ-P5-E) and any other `v: 2` key-set
+  change; `v` stays `{1, 2}`; the `migration` marker keeps its single meaning.
+- Any change to `sdd-review`, to the dispatch templates beyond the per-chunk
+  "never `status:`" instruction (REQ-HARN-HARNESSP5-001), or to
+  `tools/sdd-gc.py`'s rules (the broken refs are fixed at source,
+  REQ-QIMPL-HARNESSP5-002).
+- Any new durable artifact type under `docs/`, and letting telemetry, reviews or
+  red findings influence phase detection — `descoped` is a cell value in an
+  existing per-ws file and never a completion signal.
+- Re-opening anything settled by RS-008, RS-HARNESSP2-001, RS-HARNESSP3-001 or
+  RS-HARNESSP4-001.
+- Marker-3 behaviour: unchanged this cycle.
 - _(superseded 2026-09-17 — this repo now runs at marker `4`; see "A marker
   bump (the layout stays at `4`)" above and `functional/multi-workstream.md`)_
   This repo's v3→v4 migration (stays at marker `3` for this cycle)
@@ -828,6 +1006,43 @@ Added for RS-HARNESSP4-001 (harness hardening part 4):
 
 All other Q-REQ items resolved.
 
+Added for RS-HARNESSP5-001 (harness hardening part 5):
+
+- **Q1 runner placement (for `sdd-plan`):** scenarios A1–A3 in
+  `tools/sdd-scope-check-selftest.py` versus a new
+  `tools/sdd-arbitrate-selftest.py`. **Default**: the selftest (Q-REQ-P5-H); the
+  fixture shape and assertions are identical either way.
+- **Q3 contract owner (for `sdd-specs`):** whether `docs/spec/harness-loop-control.md`
+  or `ws-orchestration.md` carries the plan-flip rule of REQ-HARN-HARNESSP5-001.
+  **Default**: `harness-loop-control.md` (the gate order lives there); the rule
+  itself is settled (Q-REQ-P5-C).
+- **`descoped` and gc's legal-value handling — CLOSED:** `tools/sdd-gc.py`
+  has no `Verified`-cell legal-value check (`trace-empty` tests the
+  Spec/Test/Implementation cells only; `pending-red` is read from
+  `verification.md` `status:`, not from traceability cells), so "no gc rule
+  change" is established, not assumed; `drift-sweep.md` is untouched this
+  cycle and REQ-WS-HARNESSP5-001 says so.
+- **gc sweep widening is the dispatch-scope signal (for `sdd-specs`):**
+  `python3 tools/sdd-gc.py --report` moves from 31 warnings to ~155 with this
+  requirements diff — +22 `trace-empty` (empty Spec cells for the new rows),
+  +1 `traceability-aggregate` (the aggregate awaits the orchestrator's
+  regeneration), and ~+101 `stale-chain` because eight category files'
+  `last_updated` moved, including `deviation-protocol.md`, which flags every
+  spec requiring a `REQ-QIMPL-*` id. This is expected: the widened set is the
+  signal of which specs the specs stage must touch, and housing the p4
+  housekeeping under `QIMPL` is what widened it beyond the five domains the
+  cycle itself changes. Not a finding to fix at requirements.
+- **`docs/spec/telemetry.md` split shape (for `sdd-specs`):** the two-file
+  example in REQ-LINT-HARNESSP5-003 is illustrative; the constraint is that the
+  parsed §Record Schema path and every Q-IMPL entry survive. **Default**: two
+  files, schema/writer/lint and reader.
+- **Per-workstream traceability rows:** written this stage to
+  `docs/ws/harness-p5/traceability.md` (22 rows: 20 new + the carried
+  REQ-ARB-HARNESSP3-001 and REQ-ARB-HARNESSP4-001); the shared aggregate was
+  **not** touched — its absence from the dispatched write scope is the
+  REQ-WS-HARNESSP3-001 signal that regeneration is the orchestrator's post-gate
+  bookkeeping.
+
 ## Research References
 
 - [RS-001: SDD Artifact Structure](../research/RS-001-sdd-artifact-structure/findings.md)
@@ -839,6 +1054,7 @@ All other Q-REQ items resolved.
 - [RS-007: Multi-Workstream SDD (concurrent cycles in one repo)](../research/RS-007-multi-workstream/findings.md)
 - [RS-008: Harness Hardening (loop control, decoupled verification, boundaries)](../research/RS-008-harness-hardening/findings.md)
 - [RS-HARNESSP2-001: Harness Hardening, Part 2 (telemetry, adversarial verify, arbitration, drift sweep, evaluation)](../research/RS-HARNESSP2-001-harness-p2/findings.md)
+- [RS-HARNESSP5-001: Harness Hardening, Part 5 (regen provenance, stage-level fix telemetry, plan-completion ownership)](../research/RS-HARNESSP5-001-harness-hardening-p5/findings.md)
 - [RS-HARNESSP4-001: Harness Hardening, Part 4 (`COMMIT:` under fan-out, independent `expected` source for telemetry)](../research/RS-HARNESSP4-001-harness-hardening-p4/findings.md) — with its committed [evidence appendix](../research/RS-HARNESSP4-001-harness-hardening-p4/evidence-appendix.md)
 - [RS-HARNESSP3-001: Harness Hardening, Part 3 (write-scope fidelity, return conformance, arbitration over regenerated artifacts, telemetry assurance, red-team follow-ups)](../research/RS-HARNESSP3-001-harness-hardening-p3/findings.md) — with its committed [evidence appendix](../research/RS-HARNESSP3-001-harness-hardening-p3/evidence-appendix.md)
 

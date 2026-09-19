@@ -1,7 +1,8 @@
 ---
 domain: QIMPL
-last_updated: 2026-05-25
+last_updated: 2026-09-19
 status: Approved
+research_refs: [RS-HARNESSP5-001]
 ---
 
 # Requirements: Q-IMPL Deviation Protocol
@@ -46,4 +47,50 @@ When starting an implementation task, the implementer should read the
 relevant spec's existing Q-IMPL entries to understand how prior ambiguities
 were resolved. This is advisory — it informs implementation decisions but
 does not block.
+[Priority: should]
+
+<!-- REQ-QIMPL-HARNESSP5-NNN: workstream-prefixed additions for the harness-p5
+     cycle (RS-HARNESSP5-001; marker 4, per docs/spec/ws-ids.md). -->
+
+### REQ-QIMPL-HARNESSP5-001: Q-IMPL-HARNESSP4-004..009 are folded into Approved spec text
+The six harness-p4 Tier-2 entries must be folded into the Approved text of the
+spec each amends, so a reader of the section builds the shipped behaviour
+without reading the entry: Q-IMPL-HARNESSP4-004 (clause (a) of `implied.fix`
+counts deciding gates) and -005 (`dispatch.reason` members with `red_break` as
+the canonical spelling and uppercase `RED_BREAK` not admitted; the
+equal-heads exemption keyed on `commit.token` and `files_written_n`; `--plan`
+shortfall operands) into `docs/spec/telemetry.md` §Implication-Derived
+`expected`, §Record Schema and §`--plan` Floor; -006 (the OPTIONAL `migration`
+marker admitted on every `v`) and -007 (the equal-heads rule fires only when
+nothing landed, keyed on `commit.token`; plus the REQ-TELEM-HARNESSP5-003 `v: 1`
+exemption) into §Schema Lint; -008 (`[template-drift]` absent-side behaviour and
+finding order) into `docs/spec/skill-lint-v5.md` §`[template-drift]`; -009 (the
+§Verdict Rule yaml example) into `docs/spec/harness-chunk-verifier.md` by
+un-indenting the example's token so the illustrative prose matches the fenced
+contract. Entries are append-only: each keeps its text and gains a
+`[folded into §<section>, 2026-09-19]` status note (REQ-QIMPL-002's superseded
+device); nothing is deleted or renumbered. (workstream `harness-p5`; kickoff
+§Scope item 3)
+**Acceptance**: `grep -c 'folded into' docs/spec/telemetry.md docs/spec/skill-lint-v5.md docs/spec/harness-chunk-verifier.md`
+sums to 6 across the three files (or the split files of REQ-LINT-HARNESSP5-003);
+`tools/sdd-telemetry.py --self-test`'s `test_schema_table_agrees` still passes;
+`grep -n '^  CHUNK_VERDICT:' docs/spec/harness-chunk-verifier.md` returns
+nothing; `python3 tools/sdd-gc.py --report` raises no new finding.
+[Priority: must]
+
+### REQ-QIMPL-HARNESSP5-002: the four `[qimpl-broken-ref]` gc warnings are routed to zero
+The four pre-existing `tools/sdd-gc.py` `[qimpl-broken-ref]` warnings must be
+resolved at source so the sweep's entry baseline reads `0 warn` for that rule:
+Q-IMPL-002 (`docs/spec/deviation-protocol.md`) gains its missing
+**Spec reference** line; Q-IMPL-009 (`ws-ids.md`), Q-IMPL-014
+(`ws-integration.md`) and Q-IMPL-072 (`ws-orchestration.md`) have their
+**Spec reference** re-pointed at a heading that exists in the named spec (or the
+named heading restored) — text edits only, entries never renumbered, no gc rule
+change and no allowlist. (workstream `harness-p5`; deferred twice —
+`index.md` §Out of Scope RS-HARNESSP3-001 Q8-OUT row 6 and
+`docs/ws/harness-p4/verification.md` §Next Steps — and now in scope as
+housekeeping)
+**Acceptance**: `python3 tools/sdd-gc.py --report | grep -c 'qimpl-broken-ref'`
+prints 0; `git diff --stat main -- tools/sdd-gc.py` is empty; the entry `GC:`
+line at the next orchestrated run shows the reduced warning count.
 [Priority: should]

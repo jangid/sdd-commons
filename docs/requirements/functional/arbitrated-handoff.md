@@ -1,8 +1,8 @@
 ---
 domain: ARB
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 status: Approved
-research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001]
+research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001]
 workstream: harness-p2
 ---
 
@@ -242,6 +242,17 @@ authoritative** for this requirement and the `harness-p3` row reads as history �
 a reader, `sdd-gc.py` and `sdd-verify` consult the `harness-p4` row for the DONE
 rule, and the duplicate id is legal under `ws-traceability.md`'s re-use rows.
 [Priority: must]
+> **Re-stated for workstream `harness-p5`** (Q-REQ-P5-A, 2026-09-19): the p4
+> live exercise was **non-discriminating** — round 2 also raised a finding on a
+> file the loop never touched, so class (b) fired under both readings and the
+> two ARB cells were left empty (`docs/ws/harness-p4/verification.md` §Open
+> Questions; they read `descoped` once REQ-WS-HARNESSP5-001 lands). The
+> acceptance clause "no `REVIEW: CONTRADICTION` line although it raised findings
+> in the regenerated file" is re-stated as: **no pause on findings in changed
+> sections of the regenerated file; a pause on findings in unchanged sections**
+> — the contract the offline fixture of REQ-ARB-HARNESSP5-002 asserts (A1/A2/A3).
+> The requirement closes in `docs/ws/harness-p5/traceability.md` on that fixture,
+> never on a second live loop; the text above is otherwise unchanged.
 
 ### REQ-ARB-HARNESSP4-002: the §2a replay fixture demonstrates the derived-artifact case explicitly
 `references/loop-control.md` §2a's replay fixture must exercise the
@@ -272,5 +283,95 @@ gap is real, confined to the spec's internal consistency)
 **Acceptance**: §Retained Per-Round State's fenced schema shows `round[N]`,
 `fix[N]` and `regen[N]` with the union; the section's text and `loop-control.md`
 §2a agree on the definition (a side-by-side read at specs); `python3 tools/sdd-gc.py --report`
+raises no new finding on the amended spec.
+[Priority: should]
+
+<!-- REQ-ARB-HARNESSP5-NNN: workstream-prefixed additions for the harness-p5
+     cycle (RS-HARNESSP5-001; marker 4, per docs/spec/ws-ids.md). -->
+
+### REQ-ARB-HARNESSP5-001: `W_N` stays diff-based — a byte-identical re-emission is not a regeneration write
+The retained write set `W_N` of `docs/spec/arbitrated-handoff.md` §`W_N` and
+`references/loop-control.md` §2a must keep **diff-based section resolution** for
+a regenerated artifact: a regeneration that re-emits a section byte-identically
+adds **nothing** to `W_N`, and a round-N+1 Critical/Material line keyed on such a
+section is on ground round N saw **unchanged** — the class (b) signal, not the
+false positive REQ-ARB-HARNESSP3-001 removed. The provenance reading
+`regen[N] = (file, *)` for a wholesale dispatch whose diff exists is **not**
+adopted; `(file, *)` remains reserved for a *missing* diff (untracked or
+non-Markdown path, §Section Resolution / self-test F8). Both texts gain one
+clarifying sentence stating this — the Approved sentence is the required record.
+`arbitrated-handoff.md` **may** additionally gain one Q-IMPL entry recording the
+reading against Q-IMPL-HARNESSP3-010 (which decides which dispatches feed
+`regen[N]`, not granularity); left at specs' discretion so the reading is not
+stated in three places alongside REQ-QIMPL-HARNESSP5-001's fold-ins. Ratified as Q-REQ-P5-A in
+`index.md`. (workstream `harness-p5`; see RS-HARNESSP5-001 §Q1 — three Approved
+sources agree; under provenance a `regenerate-wholesale` contract would become
+blanket immunity for the whole file and the §`W_N` guarantee "cannot mask a
+contradiction" would break; the p4 O1 pause was a true positive)
+**Acceptance**: `grep -n 'byte-identical' docs/spec/arbitrated-handoff.md skills/sdd-orchestrate/references/loop-control.md`
+hits inside §`W_N` and §2a respectively with matching wording; if a
+`Q-IMPL-HARNESSP5-*` entry is added to `arbitrated-handoff.md`, it cites
+Q-IMPL-HARNESSP3-010 and names the fixture of REQ-ARB-HARNESSP5-002 as its
+evidence; scenario A1 of
+that fixture yields `class b` with two annotated keys under this rule and no
+token under the provenance rule, printed side by side; `python3 tools/sdd-skill-lint.py`
+exits 0.
+[Priority: must]
+
+### REQ-ARB-HARNESSP5-002: a deterministic offline fixture closes both ARB rows — no second live loop
+The arbitration rule must be verified by a frozen fixture under
+`tools/fixtures/arbitration-harness-p4-regen-2026-09-19/` — `before.md`,
+`after.md` (byte-identical outside `§(preamble)`, `§Operator Tasks`,
+`§Completed`), `round-1.txt` (`APPROVE_WITH_FIXES`, keys on the two changed
+sections), `round-2.txt` (two Material lines keyed on the plan's **unchanged**
+`§Conventions` and `§Verification Hand-off`, confined to the regenerated file)
+and `dispatch.txt` (observed writes `{docs/ws/harness-p4/plan.md}`,
+`regenerate: true`, `by: leaf`) — run as three scenarios of
+`tools/sdd-scope-check-selftest.py --self-test`: **A1** (p4 case: `class b`, two
+annotated keys diff-based; no token provenance — the discriminating case),
+**A2** (B8 case, findings in changed sections only: no token either way — the
+REQ-ARB-HARNESSP3-001 false positive stays removed), **A3** (control: one key
+on an untouched second file: `class b`, one key either way). The runner parses
+rounds with the §2a key rule, computes `W_1` via `resolve_sections()`, and
+applies the class (b)/(c) table through a pure
+`arbitrate(round_n, round_n1, w_n) -> (class | None, annotated_keys)` helper.
+`tools/fixtures/README.md` states per fixture that this one is a
+**reconstruction** of the p4 implement-stage gate from
+`docs/ws/harness-p4/verification.md` §1 and plan O1, not a byte capture.
+`arbitrated-handoff.md` §Automated names A1–A3 (its `test_class_b_*` names stop
+being prose-only). This closes the carried `REQ-ARB-HARNESSP3-001` and
+`REQ-ARB-HARNESSP4-001` rows in `docs/ws/harness-p5/traceability.md` on fixture
+evidence — the DONE rule of this cycle is every traced row `pass`, nothing a
+deliberate `fail`, and an item that cannot be exercised is descoped at replan
+(kickoff §Decided at DISCUSS). Cost sized at **nine** files (selftest, five
+fixture files, README, `arbitrated-handoff.md`, `loop-control.md`) plus this
+workstream's `traceability.md`. (workstream `harness-p5`; see RS-HARNESSP5-001
+§Q1 fixture table; runner placement is a plan-level Open Question — a separate
+`tools/sdd-arbitrate-selftest.py` is acceptable with the same assertions)
+**Acceptance**: `python3 tools/sdd-scope-check-selftest.py --self-test` exits 0
+with A1–A3 listed and A1's provenance column printed alongside; deleting one
+`round-2.txt` line or flipping `§Conventions` to a changed section in `after.md`
+in a temp copy makes A1 fail; `verification.md` §Criteria records the run as the
+evidence for both ARB rows, which read `pass` at DONE in
+`docs/ws/harness-p5/traceability.md` and in the regenerated aggregate (the
+`harness-p5` rows are authoritative; the `harness-p3` `fail` and `harness-p4`
+`descoped` rows read as history, per REQ-WS-HARNESSP5-001).
+[Priority: must]
+
+### REQ-ARB-HARNESSP5-003: the §2a leading-ordinal strip rule is stated in the spec's key table
+`docs/spec/arbitrated-handoff.md`'s finding-key table should carry the
+leading-ordinal strip rule that `references/loop-control.md` §2a applies when
+computing `K_N` (a `C1`/`M2` ordinal prefix is stripped before the
+`[file:section]` key is read), so the spec and the reference agree on the key
+function the fixture of REQ-ARB-HARNESSP5-002 exercises. The spec's §Open
+Questions item 3 already carries the strip rule as a Default; that open question
+is **closed** in the same edit that adds the rule to the key table (marked
+resolved, pointing at the table row). (workstream `harness-p5`; see
+`docs/ws/harness-p4/verification.md` verifier advisory — absent from the spec
+table, present in §2a)
+**Acceptance**: a side-by-side read at specs shows the strip rule in both texts
+and §Open Questions item 3 reads closed;
+the A1–A3 key parser implements it and a round line with and without the
+ordinal resolves to the same key in `--self-test`; `python3 tools/sdd-gc.py --report`
 raises no new finding on the amended spec.
 [Priority: should]

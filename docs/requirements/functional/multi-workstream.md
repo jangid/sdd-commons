@@ -1,8 +1,8 @@
 ---
 domain: WS
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 status: Approved
-research_refs: [RS-007, RS-HARNESSP3-001]
+research_refs: [RS-007, RS-HARNESSP3-001, RS-HARNESSP5-001]
 ---
 
 # Requirements: Multi-Workstream SDD
@@ -563,6 +563,51 @@ regenerates the aggregate itself. A walkthrough of a gate resolved `stop`, and o
 one resolved `loop-back-to-fix`, each shows the aggregate regenerated and
 committed before the session ends — the aggregate is never left inconsistent
 with the per-ws files by a non-`proceed` outcome.
+[Priority: must]
+
+<!-- REQ-WS-HARNESSP5-NNN: workstream-prefixed additions for the harness-p5
+     cycle (RS-HARNESSP5-001; marker 4, per docs/spec/ws-ids.md). -->
+
+### REQ-WS-HARNESSP5-001: `descoped` is a legal `Verified` value, limited to rows carried from a previous workstream
+`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values must admit a
+fourth value, **`descoped`**, with a stated use limit: it may be written only on
+a row **carried from a previous workstream** that the carrying cycle's DONE rule
+could not close (neither `pass` nor a deliberate `fail`), and it means "this
+workstream did not exercise the requirement; a later workstream carries it".
+It is never written on a row the workstream itself minted, never a substitute
+for `fail`, and never read as completion by phase detection or the DONE rule
+(a workstream's own DONE rule still requires every row it minted or carries for
+closure to read `pass`). `sdd-verify`, `tools/sdd-gc.py` (`trace-empty`; it has no
+`Verified`-cell legal-value check today, so no gc rule changes) and the
+aggregate regeneration accept the value; the
+aggregate may carry the same id with `fail` (history), `descoped` (history) and
+`pass` (authoritative, newest workstream) rows. Decided at DISCUSS; ratified as
+Q-REQ-P5-D. (workstream `harness-p5`; see `docs/ws/harness-p4/verification.md`
+§Open Questions — the two ARB cells were left empty because no legal value fit)
+**Acceptance**: the spec section lists `pass | fail | pending-red | descoped`
+with the use limit; `skills/sdd-verify/SKILL.md` Step 6 and
+`skills/sdd-requirements/SKILL.md` Step 5 name the four values; a per-ws
+traceability file containing a `descoped` cell passes
+`python3 tools/sdd-gc.py --report` with no new finding and regenerates into the
+aggregate unchanged; `python3 tools/sdd-skill-lint.py` exits 0.
+[Priority: must]
+
+### REQ-WS-HARNESSP5-002: harness-p4's two empty ARB cells are set to `descoped` by one orchestrator bookkeeping commit
+After REQ-WS-HARNESSP5-001 lands, the **orchestrator** must set the `Verified`
+cells of `REQ-ARB-HARNESSP3-001` and `REQ-ARB-HARNESSP4-001` in
+`docs/ws/harness-p4/traceability.md` to `descoped` in **one** bookkeeping
+commit of its own and regenerate the aggregate — a cross-workstream edit, so it
+is never inside any leaf's write scope (`write-scope.md` §7). The
+`harness-p5` rows for the same ids (REQ-ARB-HARNESSP5-002) are authoritative.
+(workstream `harness-p5`; kickoff §Scope item 1)
+**Acceptance**: `grep -n 'descoped' docs/ws/harness-p4/traceability.md` hits
+exactly the two ARB rows; `git show --name-only --format= $(git log -1 --format=%H -- docs/ws/harness-p4/traceability.md)`
+lists exactly `docs/ws/harness-p4/traceability.md` and
+`docs/requirements/traceability.md`, and that commit's subject starts
+`docs(traceability):` (the bookkeeping convention of the existing regeneration
+commits); the
+regenerated aggregate shows three rows for `REQ-ARB-HARNESSP3-001` (`fail`,
+`descoped`, `pass`) and two for `REQ-ARB-HARNESSP4-001` (`descoped`, `pass`).
 [Priority: must]
 
 ## Open Questions / Assumptions
