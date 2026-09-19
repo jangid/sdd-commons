@@ -231,6 +231,10 @@ shas, timestamps — never finding text — to the gitignored `.sdd/telemetry.js
 writes it, no skill reads it (**never read by phase detection**; `rm -rf .sdd/` is
 behaviour-neutral); if `git check-ignore -q .sdd/telemetry.jsonl` fails, append `.sdd/` to
 `.gitignore` as a bookkeeping commit outside any observed window. Records are stamped `v: 2`.
+A verifier's `CHUNK_VERDICT:` is copied onto the dispatched record **only** when that
+dispatch is per-chunk (`dispatch.chunk != null`) — a stage-level `fix` keeps
+`chunk_verdict: null` — and the `commit` group records the gate's **closing** `COMMIT:`
+line (an `amend` re-renders `COMPLETE`; only `accept (note)` leaves `INCOMPLETE`).
 Readers (post-cycle only): `python3 tools/sdd-telemetry.py summarize` and `--lint`. Schema,
 the per-kind clauses, `scope.widened`, the `commit` group and the `TELEMETRY:` lines:
 [`references/telemetry.md`](references/telemetry.md) §2–§3.

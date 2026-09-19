@@ -46,11 +46,11 @@ are **authoritative** for both requirements — a reader, `sdd-gc.py` and
 | REQ-LINT-HARNESSP5-003 | telemetry.md §Moved Sections; telemetry-reader.md | harness-p5 | | | |
 | REQ-QIMPL-HARNESSP5-001 | deviation-protocol.md §Fold-In Status Note | harness-p5 | | | |
 | REQ-QIMPL-HARNESSP5-002 | deviation-protocol.md §Spec-Reference Integrity | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-001 | telemetry.md §Writer | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-001 | telemetry.md §Writer | harness-p5 | Chunk 3 task 4: `python3 tools/sdd-telemetry.py --self-test` exits 0 (`test_schema_table_agrees` included, no key added); `--lint --file tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl` still lists `seq` 21, 24, 27 as `[cross-field]`; `python3 tools/sdd-skill-lint.py` exits 0 | docs/spec/telemetry.md §Writer rule (i); skills/sdd-orchestrate/references/telemetry.md §3 rule (i); skills/sdd-orchestrate/SKILL.md §Telemetry | |
 | REQ-TELEM-HARNESSP5-002 | telemetry-reader.md §Implication-Derived `expected` | harness-p5 | | | |
 | REQ-TELEM-HARNESSP5-003 | telemetry-reader.md §Schema Lint | harness-p5 | | | |
 | REQ-TELEM-HARNESSP5-004 | telemetry-reader.md §Out-of-Loop Reader | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-005 | telemetry.md §Writer | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-005 | telemetry.md §Writer | harness-p5 | Chunk 3 task 4: `summarize --file tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl` prints `COMMIT: INCOMPLETE (accepted): 0`; `--self-test` exits 0 with the updated `COMMIT: INCOMPLETE (accepted): 1` assertion and `test_schema_table_agrees` still passing (no `commit.amended` key) | docs/spec/telemetry.md §Writer `commit` source + §`commit` Group; docs/spec/telemetry-reader.md §Records-vs-Expected + §Fixture-Based Test Contract; skills/sdd-orchestrate/references/telemetry.md §3 `commit` source; tools/sdd-telemetry.py `summarize` COMMIT line | |
 | REQ-TELEM-HARNESSP5-006 | telemetry-reader.md §Schema Lint | harness-p5 | | | |
 | REQ-TELEM-HARNESSP5-007 | telemetry-reader.md §Fixture-Based Test Contract | harness-p5 | | | |
 | REQ-TELEM-HARNESSP5-008 | telemetry-reader.md §Schema Lint | harness-p5 | | | |

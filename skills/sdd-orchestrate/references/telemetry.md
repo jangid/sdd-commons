@@ -255,8 +255,20 @@ Rules:
     "verifier"`, `chunk: N`, `verdict.chunk_verdict` = its `CHUNK_VERDICT:`,
     `gate.decision` = the per-chunk gate it fed); its `CHUNK_VERDICT:` is
     *also* copied onto the chunk's own `pipeline`/`fix` record's
-    `verdict.chunk_verdict` — the field the post-cycle reader's implication
-    reads (§7). Two appends per verified chunk attempt, not one.
+    `verdict.chunk_verdict` — **only when that record is a per-chunk dispatch
+    (`dispatch.chunk != null`)** — the field the post-cycle reader's
+    implication reads (§7). Two appends per verified chunk attempt, not one.
+    A **stage-level `fix` record** (`iteration ≥ 1`, `redo: null`,
+    `chunk: null` — the implement-stage `loop-back-to-fix` dispatch after the
+    stage review) keeps `verdict.chunk_verdict: null`; its verifiers' verdicts
+    live on their own `verifier` records. `dispatch.chunk` keeps its one
+    meaning (the `### Chunk N:` number of a per-chunk dispatch), so the writer
+    never stamps a chunk on a stage-level fix, which may touch several chunks
+    and whose verifiers may run under several. This makes the `--lint`
+    cross-field rule true by construction — a `chunk_verdict` on a record
+    whose `(stage, chunk)` has no verifier is always a writer defect
+    (REQ-TELEM-HARNESSP5-001; p4 session 2 `seq` 21, 24, 27 were the live
+    defect).
   - (ii) **every fix dispatch is a `fix` record, never `pipeline`** — a stage
     `loop-back-to-fix` (`iteration: N`, `reason: REVIEW`), a per-chunk `fix`
     (redo — `chunk: N`, `redo: N`, `reason: VERIFIER_FAIL`), or a `RED_BREAK`
@@ -269,6 +281,17 @@ Rules:
   p3 file held zero `verifier` and zero `fix` records across eight verifiers
   and three redos, and its one fix (`seq` 18) was typed `pipeline`, because
   the text above did not say where the verifier's record goes.
+- **`commit` source — the gate's closing `COMMIT:` line**
+  (REQ-TELEM-HARNESSP4-007; amended harness-p5, REQ-TELEM-HARNESSP5-005). The
+  record copies the `COMMIT:` line the gate rendered **last** for this
+  dispatch, from the orchestrator's own rendering state (token + the two
+  clause counts); `{null, 0, 0}` when the gate commits nothing. An `amend`
+  re-renders `COMPLETE` before the append, so an amended omission is recorded
+  as `COMPLETE`, and only an `accept (note)` leaves `INCOMPLETE` on record —
+  which is why `summarize` labels the per-session count
+  `COMMIT: INCOMPLETE (accepted): N` (§7) rather than counting omissions
+  rendered. No `commit.amended` key is added (deferred, Q-REQ-P5-E): the
+  `v: 2` key set is unchanged by this cycle.
 - **Append-only.** The orchestrator never rewrites or truncates the file, with
   the **single exception** of the leaf-write revert in §4.
 - **Never load-bearing.** On any write error (unwritable directory, disk full)

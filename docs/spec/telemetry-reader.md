@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 requires:
   - REQ-TELEM-HARNESSP2-007
   - REQ-TELEM-HARNESSP2-009
@@ -469,9 +469,12 @@ that has no record at all (if `--plan` is built).
 
 **The frozen p4 fixture** [Added 2026-09-19, harness-p5 — REQ-TELEM-HARNESSP5-007;
 RS-HARNESSP5-001 §Q2 "Fixture"]. `tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl`
-is a copy of `.sdd/telemetry.jsonl` as it stood at harness-p4 DONE — **61
-lines**: p3 migrated `seq` 1–20, p4 session 1 `seq` 1–13, p4 session 2 `seq`
-1–28 (`docs/ws/harness-p4/plan.md` O2). It is cut by the **operator** as a plan
+is `head -67` of `.sdd/telemetry.jsonl` as it stood at harness-p4 DONE — **67
+lines**: the p3 migrated records at lines 1–20, and harness-p4 at lines
+21–67 — session 1 is 20 records at `v: 1`, session 2 is 27 records at `v: 2`
+starting at `seq` 8, and the last record is `seq` 34, `kind: review`, stage
+`verify` (`docs/ws/harness-p4/plan.md` O2). harness-p5's own records begin at
+line 68 of the live file and are excluded from the fixture. It is cut by the **operator** as a plan
 operator task scheduled before the telemetry chunk (leaves never read `.sdd/`),
 its sha256 recorded in `tools/fixtures/README.md`, and the `migrate` fixture
 guard covers it by path. Findings 1, 2, 3 and 5 of RS-HARNESSP5-001 §Q2 are
@@ -506,7 +509,7 @@ above are unchanged — sha256 asserted before and after each run):
 - `test_lint_findings_in_seq_order`: findings on `seq` 5 (type) and `seq` 2
   (cross-field) render 2, 5; the p3 finding set's sha256 over sorted lines is
   unchanged (REQ-TELEM-HARNESSP5-006).
-- `test_p4_fixture_frozen`: `wc -l` = 61 and the README sha256 asserted
+- `test_p4_fixture_frozen`: `wc -l` = 67 and the README sha256 asserted
   before and after every case that reads it (REQ-TELEM-HARNESSP5-007).
 - `test_advisory_cases`: (a) `verifier` with `commit.token: COMPLETE` →
   `[cross-field]`; (b) `reason: RED_BREAK` → `[enum]`; (c) `migration.from:
@@ -537,7 +540,7 @@ above are unchanged — sha256 asserted before and after each run):
 - [ ] `--self-test` feeds `v: 2.0`: `summarize` reports it skipped and counted, `--lint` emits `[type] v`; `grep -c 'ADMITTED_V' tools/sdd-telemetry.py` shows the membership test in one helper called from both `load()` paths (REQ-TELEM-HARNESSP5-004)
 - [ ] `summarize` on the p4 fixture prints `COMMIT: INCOMPLETE (accepted): 0`; the label is stated in §Records-vs-Expected and §Fixture-Based Test Contract; `test_schema_table_agrees` still passes (REQ-TELEM-HARNESSP5-005)
 - [ ] `--self-test` builds a type finding on `seq` 5 and a cross-field finding on `seq` 2 and asserts the rendered order 2, 5; the p3 finding set's sha256 over sorted lines is unchanged (REQ-TELEM-HARNESSP5-006)
-- [ ] `shasum -a 256 tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl` matches `tools/fixtures/README.md`; `wc -l` = 61; `git diff --stat main -- tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` is empty; the fixture was cut by the operator (plan operator task before the telemetry chunk) and its sha256 is asserted before and after every `--self-test` case that reads it (REQ-TELEM-HARNESSP5-007)
+- [ ] `shasum -a 256 tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl` matches `tools/fixtures/README.md`; `wc -l` = 67; `git diff --stat main -- tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` is empty; the fixture was cut by the operator (plan operator task before the telemetry chunk) and its sha256 is asserted before and after every `--self-test` case that reads it (REQ-TELEM-HARNESSP5-007)
 - [ ] The three advisory cases are named in `--self-test` output and each fails when its check is removed in a temp copy; the frozen fixtures' outputs are unchanged (REQ-TELEM-HARNESSP5-008)
 - [ ] The Q-IMPL-HARNESSP4-004..009 fold-in status notes count six across the three carrying specs (REQ-QIMPL-HARNESSP5-001's grep) — Q-IMPL-HARNESSP4-004, -005, -006, -007 here, -008 in `skill-lint-v5.md`, -009 in `harness-chunk-verifier.md` (REQ-QIMPL-HARNESSP5-001, owned by `deviation-protocol.md`)
 - [ ] This file is under the amended ~800-line bound of REQ-LINT-HARNESSP5-003 (Q-REQ-P5-I, 2026-09-19; 697 lines as split); every `## Implementation Questions` entry sits with the section it amends, unrenumbered; `python3 tools/sdd-gc.py --report` raises no `qimpl-broken-ref` finding here (REQ-LINT-HARNESSP5-003)

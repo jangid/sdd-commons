@@ -24,7 +24,7 @@ Usage:
 (classes enum / type / key-undeclared / key-missing / cross-field /
 mistyped-fix) and ``WARN … [reason-review]`` warnings that never affect the
 exit code. ``summarize`` adds per session ``widened dispatches: N; COMMIT:
-INCOMPLETE: M`` and, with ``--plan``, the implement-stage floor derived from
+INCOMPLETE (accepted): M`` and, with ``--plan``, the implement-stage floor derived from
 the plan's ``### Chunk N:`` headers (REQ-TELEM-HARNESSP4-006, -007, -008).
 
 Records with an unknown ``v`` and lines that are not JSON are skipped and
@@ -901,7 +901,7 @@ def summarize(records: list[dict], skipped: int, plan_path: str | None = None) -
         # §commit Group): counts only — a v: 1 record has neither key and counts 0.
         widened = sum(1 for r in s["records"] if _int0(_get(r, "scope", "widened")) > 0)
         incomplete = sum(1 for r in s["records"] if _get(r, "commit", "token") == "INCOMPLETE")
-        lines.append(f"  widened dispatches: {widened}; COMMIT: INCOMPLETE: {incomplete}")
+        lines.append(f"  widened dispatches: {widened}; COMMIT: INCOMPLETE (accepted): {incomplete}")
     if plan_path:
         lines.append(plan_floor_line(plan_floor(records, plan_path)))
     return "\n".join(lines)
@@ -1613,7 +1613,7 @@ def self_test() -> int:
         crc, cout = lint_file(clean2)
         check(crc == 0 and "0 finding(s)" in cout, f"gapless in-domain fixture lints clean, got rc {crc}:\n{cout}")
         creport = summarize(clean2, 0)
-        check("widened dispatches: 1" in creport and "COMMIT: INCOMPLETE: 1" in creport, f"summarize widened / COMMIT lines:\n{creport}")
+        check("widened dispatches: 1" in creport and "COMMIT: INCOMPLETE (accepted): 1" in creport, f"summarize widened / COMMIT lines:\n{creport}")
         check("records-vs-expected: 8 recorded, expected 8 (0 missing)" in creport, "v2 fixture gapless")
         # the frozen fixture: exit 1 with at minimum the findings of §Fixture-Based Test Contract
         if os.path.exists(FIXTURE_PATH):

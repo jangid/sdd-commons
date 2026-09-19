@@ -208,25 +208,25 @@ O1 is the fixture those three chunks' acceptance rests on
 faithfully" replan trigger rather than silently degrading three chunks'
 acceptance.
 **Tasks**:
-1. [implement] Amend `docs/spec/telemetry.md` §Writer rule (i) and
+1. [x] [implement] Amend `docs/spec/telemetry.md` §Writer rule (i) and
    `skills/sdd-orchestrate/references/telemetry.md` §3: a verifier's
    `CHUNK_VERDICT:` is copied onto the dispatched record **only** when
    `dispatch.chunk != null`; a stage-level `fix` record keeps
    `verdict.chunk_verdict: null`. Make `skills/sdd-orchestrate/SKILL.md`
    §Telemetry agree — traces to `docs/spec/telemetry.md` §Writer
    (REQ-TELEM-HARNESSP5-001).
-2. [implement] Amend `docs/spec/telemetry.md` §Writer / §`commit` Group and
+2. [x] [implement] Amend `docs/spec/telemetry.md` §Writer / §`commit` Group and
    `references/telemetry.md` §3: the `commit` source records the **closing**
    `COMMIT:` line (an `amend` re-renders `COMPLETE` before the append; only
    `accept (note)` leaves `INCOMPLETE` on record). No new key —
    `commit.amended` stays deferred (Q-REQ-P5-E) — traces to
    `docs/spec/telemetry.md` §Writer (REQ-TELEM-HARNESSP5-005).
-3. [implement] Change `summarize`'s label in `tools/sdd-telemetry.py` to
+3. [x] [implement] Change `summarize`'s label in `tools/sdd-telemetry.py` to
    `COMMIT: INCOMPLETE (accepted): N` and update
    `docs/spec/telemetry-reader.md` §Records-vs-Expected and §Fixture-Based Test
    Contract to match — traces to `docs/spec/telemetry-reader.md`
    §Records-vs-Expected (REQ-TELEM-HARNESSP5-005).
-4. [verify] `python3 tools/sdd-telemetry.py --self-test` passes including
+4. [x] [verify] `python3 tools/sdd-telemetry.py --self-test` passes including
    `test_schema_table_agrees` (no key added); `summarize` on the frozen p4
    fixture prints `COMMIT: INCOMPLETE (accepted): 0`; `--lint` on the p4 fixture
    still lists the three historical `[cross-field]` records by seq;
