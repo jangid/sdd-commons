@@ -279,9 +279,9 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-TELEM-HARNESSP2-009 | telemetry.md | harness-p2 | tools/sdd-telemetry.py --self-test | tools/sdd-telemetry.py | pass |
 | REQ-TELEM-HARNESSP3-001 | telemetry.md | harness-p3 | Chunk 4 tasks 5-8 counter walkthroughs (happy increment, unwritable file, failure between successes, mid-cycle opt-out) — inline; no executable fixture (gate text) | `skills/sdd-orchestrate/references/telemetry.md` §3 (four-member family, `telemetry.rec`, walkthrough table) | pass |
 | REQ-TELEM-HARNESSP3-002 | telemetry.md | harness-p3 | `tools/sdd-telemetry.py --self-test` (gapless six-record fixture + `seq`-gap fixture + out-of-domain `dispatch.chunk` fixture, R1); Chunk 4 task 4 synthetic-gap run | `tools/sdd-telemetry.py` (`session_rows`, `summarize` `records-vs-expected:` line, `out_of_domain_chunks`/`_chunk_label` — R1), `skills/sdd-orchestrate/references/telemetry.md` §7 | pass |
-| REQ-TELEM-HARNESSP4-001 | telemetry.md | harness-p4 |  |  |  |
-| REQ-TELEM-HARNESSP4-002 | telemetry.md | harness-p4 |  |  |  |
-| REQ-TELEM-HARNESSP4-003 | telemetry.md | harness-p4 |  |  |  |
+| REQ-TELEM-HARNESSP4-001 | telemetry.md | harness-p4 | tools/sdd-telemetry.py --self-test (gapless compliant-redo fixture: pipeline redo 0 + fix redo 1 + two verifier records → 0 missing) [C1] | skills/sdd-orchestrate/SKILL.md §Telemetry (one record per dispatch kind, clauses i–iii); references/telemetry.md §3 rule list + §2 worked verifier/fix examples |  |
+| REQ-TELEM-HARNESSP4-002 | telemetry.md | harness-p4 | tools/sdd-telemetry.py --self-test (verifier / redo-first-attempt / review / red implications; frozen fixture expected 39 against 20, sha256 asserted before and after) | tools/sdd-telemetry.py session_rows / _implication_lines (per-(stage,chunk) groups, headline); references/telemetry.md §7 formula + both shapes |  |
+| REQ-TELEM-HARNESSP4-003 | telemetry.md | harness-p4 | tools/sdd-telemetry.py --self-test (clause (b) red_break with null-decision predecessor → mis-typed, 0 missing; loop-back-to-fix with no record → 1 missing; [reason-review] seqs 3–5 never counted; FIX_ONLY_REASONS parsed from the const row) | tools/sdd-telemetry.py DOMAIN_TABLE const row / schema_constants / FIX_ONLY_REASONS / mistyped_fix_seqs / reason_review_warnings |  |
 | REQ-TELEM-HARNESSP4-004 | telemetry.md | harness-p4 |  |  |  |
 | REQ-TELEM-HARNESSP4-005 | telemetry.md | harness-p4 |  |  |  |
 | REQ-TELEM-HARNESSP4-006 | telemetry.md | harness-p4 |  |  |  |
