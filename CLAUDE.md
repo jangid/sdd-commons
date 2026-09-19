@@ -133,7 +133,12 @@ chunks (and after every non-implement stage) the **stage gate**
 (`proceed │ loop-back-to-fix │ stop`) shows the review's own-line `VERDICT:`
 token and, when a loop is active, `iteration N of FIX_LOOP_MAX` or the derived
 replan re-entry count against `REPLAN_MAX`. All three caps default to 3
-(`FIX_LOOP_MAX`, `REPLAN_MAX`, `REDO_MAX`). The no-new-artifact invariant holds:
+(`FIX_LOOP_MAX`, `REPLAN_MAX`, `REDO_MAX`). After `proceed` the orchestrator's own
+commit is checked against the leaf's observed writes and closes the same gate
+with `COMMIT: COMPLETE (N paths) | INCOMPLETE (…)` — `INCOMPLETE` pauses with
+`amend │ accept (note) │ stop` before any next dispatch (harness-p4;
+`skills/sdd-orchestrate/references/write-scope.md` §7a). The no-new-artifact
+invariant holds:
 counters are session-scoped or derived, reviews stay ephemeral, and the only
 durable trace is the bounded circuit-break checkpoint in the plan's existing
 blocked-task note.

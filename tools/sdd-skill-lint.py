@@ -225,6 +225,21 @@ REQUIRED = [
      "reason": "Material template line carries `affects` for contradiction-class resolution (REQ-SKILL-HARNESSP2-006)",
      "fix": "restore `affects` on the `M1:` Material template line — its consumer lives in "
             "skills/sdd-orchestrate/references/loop-control.md"},
+    # -- harness-p4 contract row (REQ-LINT-HARNESSP4-002): the post-decision
+    #    commit-fidelity token `COMMIT: COMPLETE | INCOMPLETE`
+    #    (skill-lint-v5.md §`REQUIRED` Row — `COMMIT: COMPLETE | INCOMPLETE`).
+    #    The pattern matches the token or its family spelling and never a file
+    #    that only names `SCOPE:` — the same guard the `CHUNK_VERDICT:` row uses.
+    {"file": "skills/sdd-orchestrate/references/loop-control.md",
+     "pattern": r"COMMIT: (COMPLETE \| INCOMPLETE|COMPLETE|INCOMPLETE)", "min": 1,
+     "reason": "post-decision `COMMIT:` gate signal — §5 order item 8 / position 2b (REQ-HARN-HARNESSP4-001)",
+     "fix": "keep the `COMMIT: COMPLETE | INCOMPLETE` closing line in loop-control.md §5 — its defining "
+            "section is skills/sdd-orchestrate/references/write-scope.md §7"},
+    {"file": "skills/sdd-orchestrate/SKILL.md",
+     "pattern": r"COMMIT: (COMPLETE \| INCOMPLETE|COMPLETE|INCOMPLETE)", "min": 1,
+     "reason": "post-decision `COMMIT:` one-line summary in §The gate (REQ-HARN-HARNESSP4-001)",
+     "fix": "keep the `COMMIT: COMPLETE | INCOMPLETE` line in SKILL.md §The gate — its defining "
+            "section is skills/sdd-orchestrate/references/write-scope.md §7"},
 ]
 
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
@@ -730,6 +745,20 @@ def self_test() -> int:
                   "d2 pattern matched RED_VERDICT:/CHUNK_VERDICT: — a file with only those tokens would pass")
             check(re.search(d2["pattern"], "parse the VERDICT: line") is not None,
                   "d2 pattern no longer matches a bare VERDICT:")
+            # harness-p4 adds the two `COMMIT:` rows (REQ-LINT-HARNESSP4-002); the
+            # mutation loop above already strips each one. Negative control: a
+            # file carrying only `SCOPE: CLEAN` must NOT satisfy the row, and the
+            # pattern must accept both the token and its family spelling.
+            commit_rows = [r for r in REQUIRED if r["pattern"].startswith("COMMIT: ")]
+            check(len(commit_rows) == 2, f"expected two COMMIT: REQUIRED rows, found {len(commit_rows)}")
+            for r in commit_rows:
+                check(re.search(r["pattern"], "SCOPE: CLEAN\nCHUNK_VERDICT: PASS\n") is None,
+                      "COMMIT: row pattern matched a file with only SCOPE:/CHUNK_VERDICT: tokens")
+                for good in ("COMMIT: COMPLETE (3 paths)", "COMMIT: INCOMPLETE (1 observed, not landed: x)",
+                             "`COMMIT: COMPLETE | INCOMPLETE`"):
+                    check(re.search(r["pattern"], good) is not None,
+                          f"COMMIT: row pattern no longer matches `{good}`")
+                check("write-scope.md §7" in r["fix"], "COMMIT: row fix must point at write-scope.md §7")
 
         # -- 7b. the shipped `\.sdd/` FORBIDDEN row (REQ-TELEM-HARNESSP2-007,
         #       REQ-LINT-HARNESSP2-002): fenced mention in a non-allowlisted skill

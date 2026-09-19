@@ -171,10 +171,29 @@ Warnings (not pauses), shown on the gate line:
 ```
 RETURN: KEYS MISSING (<names>)     # the named keys read as empty ([] / no value)
 RETURN: MULTIPLE                   # block returned more than once (e.g. once per chunk); the LAST block is taken
+RETURN drift: <k> path(s) claimed, not observed: <paths>   # RETURN.files_written − observed writes
 ```
 
 `CHUNK_VERDICT` present on a non-verifier return is likewise a warning, and the
 key is ignored.
+
+**Return-drift warning (REQ-HARN-HARNESSP4-002).** The fourth parser warning,
+`RETURN drift: <k> path(s) claimed, not observed: <paths>`, is the set
+difference `RETURN.files_written − observed_writes` (observed writes =
+`porcelain_delta ∪ committed_delta ∪ content_delta`, `write-scope.md` §3):
+paths the leaf *claims* to have written that no delta observed — never written,
+or written and reverted. It is a **warning, never a pause**, rendered on the
+gate line beside `KEYS MISSING` / `MULTIPLE` / `FOREIGN_TOKEN`, sorted,
+repo-relative, comma-separated, and it is **excluded from the `COMMIT:`
+comparison**: `RETURN.files_written` is never an operand of the
+commit-fidelity check's `expected` set (`write-scope.md` §7a), so a return
+defect can never render a false `COMMIT: INCOMPLETE`. The inverse set
+(`observed − files_written`, a path written but not claimed) is **not** a
+warning — `KEYS MISSING` already covers an omitted list and the write-scope
+observation cross-checks every write independently. Telemetry records it as
+the `return.warnings` enum member `RETURN_DRIFT` (`telemetry.md` §Record
+Schema). This is the sequential analogue of the fan-out clause
+`RETURN.commits ⊆ git rev-list <base>..<tip>` (`fan-out.md` §3a.v).
 
 **Why only these two keys pause (REQ-HARN-HARNESSP3-003).** `status` and
 `budget_consumed` are the only two keys the **gate arithmetic** consumes —

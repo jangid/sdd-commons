@@ -520,6 +520,103 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
 (`revert path | accept & widen scope | stop`) are resolved first, inside this
 gate, and the gate is re-rendered with the resulting `SCOPE:` line.
 
+### 7a. Commit-fidelity check — `COMMIT: COMPLETE | INCOMPLETE` (REQ-HARN-HARNESSP4-001, -002, -003)
+
+This is the **skill-side defining section** for the check (the lint row's
+`fix:` points here; spec: `docs/spec/harness-commit-fidelity.md`). The write-
+scope check above asks *did the leaf write only where it was allowed to?* —
+a pre-decision question about the leaf. The commit-fidelity check asks *did
+the orchestrator land everything the leaf wrote?* — a **post-decision**
+question about the orchestrator's own commit, computable only after `proceed`.
+It shares the observed-writes set as an input and nothing else: subject, gate
+position, token family, pause options and telemetry group are its own.
+
+**Comparands.**
+
+```
+landed   := git diff --name-only --no-renames <HEAD_before> <HEAD_landed>
+            # a two-sha RANGE, captured right after the orchestrator's own commit
+            # (or merge) and BEFORE any bookkeeping commit — never `git show HEAD`
+expected := <mode-specific path set — table below>
+COMMIT: COMPLETE (N paths)                                        # expected == landed; N = |landed|, distinct paths
+COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <paths>])
+```
+
+- `HEAD_before` is the integration-line HEAD taken by `snapshot(before)`
+  immediately before the dispatch — the same sha `committed_delta` (§3, term
+  (b)) starts from — and it is the range start **unconditionally**: it equals
+  the gate-time HEAD whenever the leaf did not commit, and precedes the leaf's
+  commits when it did, so a compliant-but-eager leaf that committed anyway
+  (§7 above tolerates it) counts as landed with no special case.
+- `HEAD_landed` is the integration-line HEAD immediately after the
+  orchestrator's own chunk/stage commit (sequential) or merge (fan-out merge
+  step), **before** the aggregate-regeneration commit or any other bookkeeping
+  commit. Capture both shas first, then diff the range; never diff against a
+  moving `HEAD`.
+- **Why the range and not `git show --name-only HEAD`** (RS-HARNESSP4-001 §Q1):
+  `git show HEAD` names only the *last* commit — under fan-out a fast-forward of
+  a two-commit leaf renders a false `INCOMPLETE`, a true merge commit shows an
+  empty combined diff, and in sequential marker-4 mode the aggregate-
+  regeneration commit at every implement chunk would hide the chunk commit.
+  `--no-renames` keeps a rename as two paths on both sides (§3 observes both).
+- The token has **exactly two members**. `COMPLETE (N paths)` counts
+  **distinct** paths (the strict-set rule of §3 applies to both operands);
+  `INCOMPLETE` carries the `k observed, not landed: …` clause and, only when
+  `j > 0`, the `; j landed, not observed: …` clause on the **same line**. Paths
+  are repo-relative, sorted, comma-separated; the line is an own-line token
+  parsed as `^COMMIT:`, like `SCOPE:`. No third token exists for any case
+  (`fan-out.md` §3b explains why a merge drop needs none). A read-only or no-op
+  dispatch that reached `proceed` renders `COMMIT: COMPLETE (0 paths)`; review,
+  verifier and red dispatches never commit and render no `COMMIT:` line at all.
+
+**Comparand table.**
+
+| Gate | `expected` | `landed` | When computable | Position in the gate |
+|---|---|---|---|---|
+| sequential per-chunk gate and stage gate, on `proceed` | **observed writes only** — `porcelain_delta ∪ committed_delta ∪ content_delta` (§3) | `git diff --name-only --no-renames HEAD_before HEAD_landed`, captured right after the orchestrator's commit and before any bookkeeping commit | post-decision | closing line of the same gate — item 8 of `loop-control.md` §5 |
+| fan-out **per-leaf** gate | the leaf's observed writes in its worktree | the leaf's committed delta `git diff --name-only --no-renames <base> <tip>` — the write-scope check's own term (b) | pre-decision | position **2b** of `loop-control.md` §5 — after `SCOPE:`, before `CHUNK_VERDICT:` (`fan-out.md` §3a.v) |
+| fan-out **merge step**, per branch | that leaf's committed delta `base..tip` | `git diff --name-only --no-renames PRE_MERGE HEAD` on the integration branch | post-`proceed`, at merge | closing line after the merge — item 8 (`fan-out.md` §3b) |
+
+`base`, `tip` and `PRE_MERGE` are the shas `fan-out.md` §3a.v / §3b already
+compute; the check introduces no git state, no leaf, no counter and no artifact.
+
+**Sequential `expected` is the observed-writes set only (REQ-HARN-HARNESSP4-002).**
+`RETURN.files_written` is **never an operand** of `expected`. A path the leaf
+*claims* but never wrote — or wrote and reverted, so no delta observes it —
+cannot land; unioning the claim in would render `COMMIT: INCOMPLETE (observed,
+not landed)` for a defect of the leaf's *return*, not of the orchestrator's
+commit: a false pause on a load-bearing signal. The claim-vs-observation gap is
+instead the **return-drift warning** `RETURN drift: <k> path(s) claimed, not
+observed: <paths>` (`RETURN.files_written − observed`), owned by
+`return-contract.md` §1 — a warning beside `KEYS MISSING`, never a pause and
+never a `COMMIT:` term. This is the sequential analogue of the fan-out clause
+`RETURN.commits ⊆ git rev-list <base>..<tip>` (`fan-out.md` §3a.v): both keep a
+leaf's return error out of the landed-vs-observed comparison.
+
+**Placement.** In sequential mode the line cannot sit between `SCOPE:` and
+`CHUNK_VERDICT:` without asserting a commit that has not happened, so it renders
+as the **post-decision closing line of the same gate**, immediately after the
+commit and **before the next dispatch** — never deferred to the next gate the
+way `TELEMETRY: rec <n>` is (telemetry is never load-bearing; `COMMIT:` exists
+to be). The canonical order — item 8 and position 2b — is `loop-control.md`
+§5; this section states the comparands, not the order.
+
+**On `INCOMPLETE` the gate pauses** with three options:
+
+| Option | Effect |
+|---|---|
+| `amend (add the missing paths to the commit)` | the orchestrator stages every `observed, not landed` path and amends **its own** commit — never a leaf's commit and never a merge commit (`fan-out.md` §3b: `amend` is unavailable at the merge step) — then re-renders the line, which must now read `COMPLETE`. The write-scope check is **not** re-run: every amended path came from the observed set and was already classified there (`IN` / `ADVISORY` by construction — an `OUT` path could not have reached `proceed`). A `landed, not observed` clause is not amendable; it resolves by `accept (note)` or `stop` |
+| `accept (note)` | the note is recorded in the gate text and — if the path is never landed in a later commit of the cycle — in the plan's existing blocked-task note (`loop-control.md` §Circuit-break checkpoint): the only durable traces REQ-HARN-027 / REQ-ORCH-014 allow. No new artifact |
+| `stop` | as everywhere: the session ends at this gate; the partial commit stands and the pause text names the un-landed paths |
+
+**No next dispatch is issued until the pause is resolved** — including the
+implement-stage review after the last chunk: a review dispatched against an
+un-landed tree reviews the wrong artifact. `COMPLETE` needs no acknowledgement
+and does not alter the options. The pause is a member of the pause family
+beside `RETURN: MALFORMED`, `SCOPE: VIOLATION`, `REVIEW: CONTRADICTION` and
+budget exhaustion (`loop-control.md` §5, §6); telemetry normalises `amend` to
+`gate.decision: other`.
+
 ---
 
 ## 8. Operator options — summary
@@ -531,6 +628,7 @@ gate, and the gate is re-rendered with the resulting `SCOPE:` line.
 | `ADVISORY` path | none required — hint shown | operator eyeballs the hunk; counts 0 toward `N` |
 | `HISTORY_REWRITE` | `stop` + manual recovery hint | never an automatic reset |
 | verifier / review wrote anything | every path `OUT`; revert before any redo | `loop-control.md` §1b Verifier edge cases |
+| `COMMIT: INCOMPLETE` (post-decision, §7a) | `amend` │ `accept (note)` │ `stop` | `amend` stages only `observed, not landed` paths into the orchestrator's own commit, no write-scope re-run; no next dispatch until resolved |
 
 ---
 

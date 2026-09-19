@@ -283,6 +283,20 @@ for each leaf, on return:
      (session-only) | stop. HISTORY_REWRITE → stop + manual recovery hint, no
      automatic reset. `proceed` is unavailable while an OUT path is unresolved.
      Full procedure, tags, finding format: write-scope.md §3–§5.
+  a2. COMMIT-FIDELITY, per-leaf clause (position 2b of loop-control.md §5 — after
+     SCOPE:, before CHUNK_VERDICT:; comparands and pause: write-scope.md §7a):
+       expected := the leaf's observed writes in its worktree (a ∪ b ∪ content delta)
+       landed   := union of `git -C <worktree> diff --name-only --no-renames <base> <tip>`
+                   over `git rev-list <base>..<tip>` — i.e. the branch's committed delta
+       COMMIT: COMPLETE (N paths) | COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <paths>])
+     The comparison reduces to the leaf's UNCOMMITTED writes — exactly what
+     teardown (§3d) would discard. Second clause on the SAME line, return side:
+       RETURN.commits ⊆ git rev-list <base>..<tip>
+       → violation appended: "; RETURN.commits not on branch: <sha>[, <sha>]"
+     INCOMPLETE → pause: amend (the orchestrator commits the uncommitted paths on
+     the LEAF BRANCH, in the worktree — never the integration branch — before the
+     branch may enter §3b) | accept (note) | stop. Exactly two token members; no
+     DROPPED or third token anywhere.
   b. dispatch the CHUNK VERIFIER (dispatch-templates.md §CHUNK VERIFIER) with
      Working directory = the leaf's worktree, Plan = the plan as seen on that
      branch, Chunk = the leaf's chunk(s) — one verifier dispatch per chunk for a
@@ -329,6 +343,27 @@ git merge --no-edit <branch>
 
 Because merges are one-at-a-time, each branch's merge is either fully applied or
 fully unwound — partial-merge corruption across branches cannot occur.
+
+**Merge-step commit-fidelity clause (item 8 of `loop-control.md` §5;
+REQ-HARN-HARNESSP4-003).** Per branch, capture `PRE_MERGE=$(git rev-parse HEAD)`
+on the integration branch immediately before `git merge`, and after exit 0
+render the closing line **before** any §3e bookkeeping commit:
+
+```
+expected := that leaf's committed delta   git diff --name-only --no-renames <base> <tip>
+landed   := git diff --name-only --no-renames PRE_MERGE HEAD          # two-sha range — never `git show HEAD`
+COMMIT: COMPLETE (N paths) | COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <paths>])
+```
+
+The range equals the leaf's full delta for a fast-forward **and** for a true
+merge commit (`git show --name-only HEAD` would name only the last commit or an
+empty combined diff — RS-HARNESSP4-001 §Q1). `amend` is **unavailable** here (a
+merge commit is not amended); an `INCOMPLETE` resolves by `accept (note) | stop`,
+and no further merge or dispatch is issued until it is resolved. A conflict →
+abort → redo (§3c) is a **new dispatch** with its own snapshot, committed delta
+and per-leaf gate: the redo's own `expected`/`landed` sets are compared and the
+aborted attempt's set is discarded by design — which is why the token family is
+**exactly two members** everywhere, with no `DROPPED` or third token.
 
 ### 3c. Merge-conflict handling (REQ-ORCH-026, Q-IMPL-1)
 

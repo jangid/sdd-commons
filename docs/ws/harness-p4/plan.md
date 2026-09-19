@@ -95,7 +95,7 @@ stop` pause and the return-drift warning, and the lint enforces the two
 **Delivers**: REQ-HARN-HARNESSP4-001, REQ-HARN-HARNESSP4-002,
 REQ-HARN-HARNESSP4-003, REQ-LINT-HARNESSP4-002.
 **Tasks**:
-1. [ ] [implement] `skills/sdd-orchestrate/references/write-scope.md` §7
+1. [x] [implement] `skills/sdd-orchestrate/references/write-scope.md` §7
    (commit ownership): add the **skill-side defining section** for the check —
    `expected` vs `landed` from `git diff --name-only --no-renames HEAD_before
    HEAD_landed` captured *before* any bookkeeping commit (never `git show
@@ -107,12 +107,12 @@ REQ-HARN-HARNESSP4-003, REQ-LINT-HARNESSP4-002.
    §Signal and Token Family, §Comparand Table, §Placement and the `amend |
    accept | stop` Pause (REQ-HARN-HARNESSP4-001). Files:
    `skills/sdd-orchestrate/references/write-scope.md`
-2. [ ] [implement] Same file, comparand table: the sequential `expected` is the
+2. [x] [implement] Same file, comparand table: the sequential `expected` is the
    **observed-writes set only**; `RETURN.files_written` is never an operand;
    cross-reference the return-drift warning of task 4 — traces to
    `harness-commit-fidelity.md` §Sequential `expected` Is Observed Writes Only
    (REQ-HARN-HARNESSP4-002)
-3. [ ] [implement] `references/loop-control.md` §5 (gate signal order): add
+3. [x] [implement] `references/loop-control.md` §5 (gate signal order): add
    item 8 "post-decision: `COMMIT:`" for sequential gates and position **2b**
    (after `SCOPE:`) for the fan-out per-leaf gate; state that no next dispatch —
    including the implement-stage review after the last chunk — is issued while
@@ -121,13 +121,13 @@ REQ-HARN-HARNESSP4-003, REQ-LINT-HARNESSP4-002.
    exhaustion — traces to `harness-loop-control.md` §Gate Signal Order;
    `harness-commit-fidelity.md` §Placement (REQ-HARN-HARNESSP4-001,
    REQ-HARN-HARNESSP4-003). Files: `skills/sdd-orchestrate/references/loop-control.md`
-4. [ ] [implement] `references/return-contract.md` §1 (or §3): add the fourth
+4. [x] [implement] `references/return-contract.md` §1 (or §3): add the fourth
    parser warning `RETURN drift: <k> path(s) claimed, not observed: <paths>`
    (`RETURN.files_written − observed`), a warning never a pause, excluded from
    `COMMIT:`; the inverse set is not a warning; telemetry enum `RETURN_DRIFT` —
    traces to `harness-return-contract.md` §Return-Drift Warning
    (REQ-HARN-HARNESSP4-002). Files: `skills/sdd-orchestrate/references/return-contract.md`
-5. [ ] [implement] `references/fan-out.md` §3a.v: the per-leaf clause —
+5. [x] [implement] `references/fan-out.md` §3a.v: the per-leaf clause —
    `expected` = the leaf's observed writes, `landed` = the union of
    `--name-only` over `git rev-list base..tip` of the leaf branch, plus the
    `RETURN.commits ⊆ rev-list` check whose failure renders a `RETURN.commits
@@ -137,21 +137,21 @@ REQ-HARN-HARNESSP4-003, REQ-LINT-HARNESSP4-002.
    members, no `DROPPED`/third token anywhere — traces to
    `harness-commit-fidelity.md` §Fan-out: Per-Leaf and Merge-Step Clauses, No
    Third Member (REQ-HARN-HARNESSP4-003). Files: `skills/sdd-orchestrate/references/fan-out.md`
-6. [ ] [implement] One-sentence restatements, never the order or the table:
+6. [x] [implement] One-sentence restatements, never the order or the table:
    `skills/sdd-orchestrate/SKILL.md` §The gate (the closing line, pointing at
    `write-scope.md` §7 and `loop-control.md` §5); `skills/sdd-orchestrate/USAGE.md`
    §7b gate fixtures gain the `COMMIT:` closing line after `proceed`;
    `CLAUDE.md` §Gate vocabulary one sentence — traces to
    `harness-commit-fidelity.md` §Restatement Surfaces (REQ-HARN-HARNESSP4-001).
    Files: `skills/sdd-orchestrate/SKILL.md`, `skills/sdd-orchestrate/USAGE.md`, `CLAUDE.md`
-7. [ ] [implement] `tools/sdd-skill-lint.py`: add the `REQUIRED` row
+7. [x] [implement] `tools/sdd-skill-lint.py`: add the `REQUIRED` row
    `COMMIT: (COMPLETE \| INCOMPLETE|COMPLETE|INCOMPLETE)` for
    `references/loop-control.md` and `SKILL.md` (min 1 each), `fix:` pointing at
    `write-scope.md` §7; a file containing only `SCOPE: CLEAN` does not satisfy
    it; extend the `--self-test` mutation loop with the row — traces to
    `skill-lint-v5.md` §`REQUIRED` Row — `COMMIT: COMPLETE | INCOMPLETE`
    (REQ-LINT-HARNESSP4-002). Files: `tools/sdd-skill-lint.py`
-8. [ ] [verify] Walk the four spec walkthroughs on paper against the amended
+8. [x] [verify] Walk the four spec walkthroughs on paper against the amended
    text: (a) leaf wrote `a.txt b.txt docs/plan.md`, orchestrator staged two →
    `COMMIT: INCOMPLETE (1 observed, not landed: docs/plan.md)` and the pause
    precedes the next dispatch; fully staged → `COMPLETE (3 paths)`; `stray.txt`

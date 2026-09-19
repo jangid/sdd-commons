@@ -475,9 +475,11 @@ Signals surface in the order they are produced; everything is ephemeral
 is the one canonical statement of the full order** and the per-signal detail —
 every other surface (the `SKILL.md` summary, `USAGE.md` §7b, the fixtures in §1
 and §2a) points here and must not restate the order in a form that can diverge
-from it. The full order is `RETURN.status` → `SCOPE:` → `CHUNK_VERDICT:` →
-`RED_VERDICT:` (with its derived `RED:` lines) → review `VERDICT:` → the loop
-counters → `REVIEW: CONTRADICTION` → the `TELEMETRY:` line, then the options:
+from it. The full order is `RETURN.status` → `SCOPE:` → (fan-out per-leaf gate
+only) `COMMIT:` at 2b → `CHUNK_VERDICT:` → `RED_VERDICT:` (with its derived
+`RED:` lines) → review `VERDICT:` → the loop counters → `REVIEW: CONTRADICTION`
+→ the `TELEMETRY:` line, then the options, then — **post-decision** — the
+`COMMIT:` closing line (item 8):
 
 1. the leaf's `RETURN.status` and `budget_consumed` against the dispatched
    `Budget:` (`references/return-contract.md` §1, §7);
@@ -488,10 +490,19 @@ counters → `REVIEW: CONTRADICTION` → the `TELEMETRY:` line, then the options
    merge (fan-out), with `proceed` unavailable while any `OUT` path is
    unresolved; a `HISTORY_REWRITE` finding counts as a violation and offers only
    `stop` (`SKILL.md` §Isolation Discipline);
+2b. **fan-out per-leaf gate only**: the own-line `COMMIT: COMPLETE | INCOMPLETE`
+   token computed **pre-decision** from the leaf's observed writes vs its
+   committed delta `base..tip`, with the `RETURN.commits not on branch: <sha>`
+   clause appended on the same line when a claimed sha is absent from
+   `git rev-list <base>..<tip>` — after `SCOPE:`, before `CHUNK_VERDICT:`
+   (`references/write-scope.md` §7a comparand table; `references/fan-out.md`
+   §3a.v). The data exists before the decision, so it renders before the
+   options; on `INCOMPLETE` it pauses with `amend | accept (note) | stop` and
+   `amend` commits the uncommitted paths on the **leaf branch**;
 3. implement stage only, per chunk: the chunk's `CHUNK_VERDICT:` (parsed from
    the verifier's `RETURN:` block, last line; missing or unrecognized →
    `RETURN: MALFORMED`) with `Redo: N of 3` against `REDO_MAX` — signals 1–3
-   render at the **per-chunk gate** (§1);
+   (and 2b) render at the **per-chunk / per-leaf gate** (§1);
 3b. verify stage only, and only when the operator opted in to a red round: the
    own-line `RED_VERDICT: BROKEN | HELD` token with red's own `Rn` lines
    rendered verbatim beneath it, then — on a red round **N >= 2** only — one
@@ -520,7 +531,31 @@ counters → `REVIEW: CONTRADICTION` → the `TELEMETRY:` line, then the options
    (REQ-TELEM-HARNESSP3-001): `<n>` is the count of **successful appends this
    session**, not `dispatch.seq`, so a gate whose append failed shows
    `WRITE FAILED` and no `rec` line. No `TELEMETRY:` line ever pauses the gate
-   or changes an option.
+   or changes an option;
+— the options (`proceed │ fix │ stop` per chunk; `proceed │ loop-back-to-fix │
+   stop` per stage; pause-family options where a pause fired);
+8. **post-decision**: the own-line `COMMIT: COMPLETE | INCOMPLETE` token —
+   rendered immediately after the orchestrator's **own** commit (sequential
+   per-chunk and stage gates, on `proceed`) or after the merge (fan-out merge
+   step, per branch), as the **closing line of the same gate**, before the
+   next dispatch; `landed` is the two-sha range `git diff --name-only
+   --no-renames HEAD_before HEAD_landed` captured before any bookkeeping
+   commit, `expected` the observed-writes set (sequential) or the leaf's
+   committed delta (merge step) — comparands, token shape and pause options:
+   `references/write-scope.md` §7a. On `INCOMPLETE` the gate **pauses** with
+   `amend | accept (note) | stop` (`amend` unavailable at the merge step) and
+   **no next dispatch — including the implement-stage review after the last
+   chunk — is issued while the pause is unresolved**. `COMMIT:` joins the pause
+   family beside `RETURN: MALFORMED`, `SCOPE: VIOLATION`, `REVIEW:
+   CONTRADICTION` and budget exhaustion (§6). `COMPLETE` needs no
+   acknowledgement.
+
+Two rules follow from "produced order": a signal whose data exists before the
+decision renders before the options (items 1–7 and 2b); a signal that is the
+*consequence* of the decision renders after them (item 8) and is **not**
+deferred to the next gate — `TELEMETRY: rec <n>` is the one deferred signal,
+and it may be because telemetry is never load-bearing. `COMMIT:` is
+load-bearing and therefore closes the gate it belongs to.
 
 ## 6. Edge cases routed through the gate — from §The gate
 

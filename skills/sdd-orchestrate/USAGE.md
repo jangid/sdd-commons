@@ -303,8 +303,8 @@ This section is what the new lines mean when you see them.
 
 | Gate | When | Options | What it shows |
 |------|------|---------|---------------|
-| **Per-chunk gate** | implement stage only — after each `### Chunk N:` dispatch returns | `proceed │ fix │ stop` | `RETURN.status`, `SCOPE:`, `CHUNK_VERDICT:`, files changed, `Redo: N of 3` |
-| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` or the replan re-entry count when a loop is active; verify stage with red on: `RED_VERDICT:` and its `Rn` lines (position per `references/loop-control.md` §5) |
+| **Per-chunk gate** | implement stage only — after each `### Chunk N:` dispatch returns | `proceed │ fix │ stop` | `RETURN.status`, `SCOPE:`, `CHUNK_VERDICT:`, files changed, `Redo: N of 3`; after `proceed`, the `COMMIT:` closing line |
+| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` or the replan re-entry count when a loop is active; verify stage with red on: `RED_VERDICT:` and its `Rn` lines (position per `references/loop-control.md` §5); after `proceed`, the `COMMIT:` closing line |
 
 Signals appear in the order they are produced, which is stated **once** in the
 repo — `references/loop-control.md` §5 "Gate signal order (REQ-ORCH-034)".
@@ -327,6 +327,8 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
   Files changed  : src/recon/engine.py M, tests/test_recon.py M, docs/plan.md M
   Redo           : 0 of 3 (per-chunk redo counter)
   Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 2 with a repair packet; counts toward the per-chunk redo cap) │ stop
+  > proceed
+  COMMIT: COMPLETE (3 paths)                      # post-decision closing line; INCOMPLETE pauses: amend │ accept (note) │ stop
 ```
 
 - **`RETURN.status`** — the leaf's own one-word verdict on its deliverable:
@@ -352,6 +354,16 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
 - **Files changed** — the observed delta (sequential: the working tree;
   fan-out: the branch's committed delta). On `proceed` in sequential mode the
   orchestrator commits the chunk; under fan-out the leaf already committed.
+- **`COMMIT: COMPLETE (N paths)`** — the closing line after your `proceed`: the
+  orchestrator compared what the leaf was observed to write against what its
+  own commit landed (a two-sha `git diff --name-only` range). On
+  **`COMMIT: INCOMPLETE (k observed, not landed: …)`** the gate pauses —
+  **`amend`** stages the missing paths into the orchestrator's own commit,
+  **`accept (note)`** records the gap in the gate text, **`stop`** halts — and
+  nothing is dispatched next (not even the implement-stage review) until you
+  choose. Under fan-out the same line appears pre-decision at the per-leaf gate
+  (the leaf's uncommitted writes) and again after each merge. Defined in
+  `references/write-scope.md` §7a.
 
 ### Reading the stage gate
 
