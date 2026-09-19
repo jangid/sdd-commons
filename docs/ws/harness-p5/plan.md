@@ -86,26 +86,26 @@ the spec's key table, and `descoped` is a legal `Verified` value — the
 preconditions for both the fixture (Chunk 2) and O2.
 **Depends on**: none.
 **Tasks**:
-1. [implement] Add the clarifying sentence to `docs/spec/arbitrated-handoff.md`
+1. [x] [implement] Add the clarifying sentence to `docs/spec/arbitrated-handoff.md`
    §`W_N` Includes Regeneration Writes and to
    `skills/sdd-orchestrate/references/loop-control.md` §2a, with **matching
    wording**: a regeneration that re-emits a section byte-identically adds
    nothing to `W_N`; `(file, *)` stays reserved for a *missing* diff — traces to
    `docs/spec/arbitrated-handoff.md` §`W_N` Includes Regeneration Writes
    (REQ-ARB-HARNESSP5-001).
-2. [implement] Add the leading-ordinal strip rule (a `C1`/`M2` prefix is
+2. [x] [implement] Add the leading-ordinal strip rule (a `C1`/`M2` prefix is
    stripped before the `[file:section]` key is read) to the finding-key table of
    `docs/spec/arbitrated-handoff.md` §Retained Per-Round State, and mark
    §Open Questions item 3 **closed**, pointing at that table row — traces to
    `docs/spec/arbitrated-handoff.md` §Retained Per-Round State
    (REQ-ARB-HARNESSP5-003).
-3. [implement] Add `descoped` to `docs/spec/ws-traceability.md` §Legal
+3. [x] [implement] Add `descoped` to `docs/spec/ws-traceability.md` §Legal
    `Verified` Cell Values with its use limit (carried rows only; never a
    substitute for `fail`; never read as completion), and name the four values in
    `skills/sdd-verify/SKILL.md` Step 6 and `skills/sdd-requirements/SKILL.md`
    Step 5 — traces to `docs/spec/ws-traceability.md` §Legal `Verified` Cell
    Values (REQ-WS-HARNESSP5-001).
-4. [verify] `grep -n 'byte-identical' docs/spec/arbitrated-handoff.md
+4. [x] [verify] `grep -n 'byte-identical' docs/spec/arbitrated-handoff.md
    skills/sdd-orchestrate/references/loop-control.md` hits both with matching
    wording; a `descoped` cell in a per-ws traceability file raises no new
    `python3 tools/sdd-gc.py --report` finding; `python3 tools/sdd-skill-lint.py`

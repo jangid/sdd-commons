@@ -171,6 +171,18 @@ of a diff and applies to a regeneration diff exactly as it applies to a fix's;
 the existing `(file, *)` fallback and its `(file-level)` pause label are
 unchanged.
 
+[Amended 2026-09-19, harness-p5 — REQ-ARB-HARNESSP5-001, ratified as Q-REQ-P5-A]
+`W_N` is **diff-based**: a regeneration that re-emits a section
+**byte-identically adds nothing to `W_N`**, and a round-N+1 Critical/Material
+line keyed on such a section is on ground round N saw **unchanged** — the
+class (b) signal, not the false positive this section removed. The provenance
+reading `regen[N] = (file, *)` for a wholesale dispatch whose diff exists is
+**not** adopted: `(file, *)` remains reserved for a *missing* diff (an untracked
+or non-Markdown path, §Section Resolution / self-test F8).
+`docs/spec/arbitrated-handoff.md` §`W_N` Includes Regeneration Writes carries
+this same sentence; scenario A1 of its §Offline Arbitration Fixture is the
+evidence.
+
 **Contradiction classes (REQ-ARB-HARNESSP2-002, -003, -004).** Let `K_N` =
 set of `(file, section)` keys of round N's C/M lines, `W_N` as defined just
 above, `F(K)` = the files of a key set. With `∈` at section level unless degraded:

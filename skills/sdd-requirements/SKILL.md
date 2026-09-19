@@ -245,10 +245,14 @@ last_updated: YYYY-MM-DD
 When adding new requirements, add rows with the Spec/Test/Implementation/Verified columns blank. Other SDD skills fill those columns later:
 - `sdd-specs` fills the Spec column
 - `sdd-implement` fills Test and Implementation columns
-- `sdd-verify` fills the Verified column — its three legal values are `pass`,
-  `fail` and `pending-red` (written while a red round is outstanding, flipped to
-  `pass` by the orchestrator at DONE; `docs/spec/ws-traceability.md` §Legal
-  `Verified` Cell Values)
+- `sdd-verify` fills the Verified column — the column's **four** legal values are
+  `pass`, `fail`, `pending-red` (written while a red round is outstanding,
+  flipped to `pass` by the orchestrator at DONE) and `descoped` (orchestrator
+  bookkeeping only, on a row **carried from a previous workstream** that the
+  carrying cycle's DONE rule could not close — never a substitute for `fail`,
+  never read as completion); `sdd-verify` writes the first three
+  (`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values,
+  REQ-WS-HARNESSP5-001)
 
 ### Requirement Rules
 
@@ -273,6 +277,10 @@ After every write to a category file, perform these maintenance steps:
    - Add rows for new requirements (all columns except Requirement are blank)
    - For removed requirements: delete from category file, mark `[Deprecated]` in the traceability Requirement column. Never reuse the ID
    - Bump `last_updated` to today
+   - Leave the `Verified` cell blank here; its four legal values — `pass`,
+     `fail`, `pending-red` and `descoped` — belong to `sdd-verify` (first three)
+     and to the orchestrator's carried-row bookkeeping (`descoped`), per
+     `docs/spec/ws-traceability.md` §Legal `Verified` Cell Values
 
    **Per-workstream traceability (marker `4` only).** `docs/.sdd-version` is the sole
    gate. Under marker `3` or earlier, add rows to the single shared

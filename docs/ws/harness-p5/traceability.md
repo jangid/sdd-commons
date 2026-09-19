@@ -35,9 +35,9 @@ are **authoritative** for both requirements — a reader, `sdd-gc.py` and
 |-------------|------|------------|------|----------------|----------|
 | REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
 | REQ-ARB-HARNESSP4-001 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
-| REQ-ARB-HARNESSP5-001 | arbitrated-handoff.md §W_N Includes Regeneration Writes | harness-p5 | | | |
+| REQ-ARB-HARNESSP5-001 | arbitrated-handoff.md §W_N Includes Regeneration Writes | harness-p5 | Chunk 1 task 4: `grep -n 'byte-identical' docs/spec/arbitrated-handoff.md skills/sdd-orchestrate/references/loop-control.md` hits both with matching wording | docs/spec/arbitrated-handoff.md §`W_N` Includes Regeneration Writes; skills/sdd-orchestrate/references/loop-control.md §2a | |
 | REQ-ARB-HARNESSP5-002 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
-| REQ-ARB-HARNESSP5-003 | arbitrated-handoff.md §Retained Per-Round State | harness-p5 | | | |
+| REQ-ARB-HARNESSP5-003 | arbitrated-handoff.md §Retained Per-Round State | harness-p5 | Chunk 1 task 4 desk check: the key table's `section` row and `references/loop-control.md` §2a state the same leading-ordinal strip; Open Question 3 reads closed (Chunk 2 task 4 exercises it on A1–A3) | docs/spec/arbitrated-handoff.md §Retained Per-Round State key table (`section` row), §Open Questions item 3 | |
 | REQ-HARN-HARNESSP5-001 | harness-loop-control.md §Plan Completion Ownership Under Orchestration | harness-p5 | | | |
 | REQ-HARN-HARNESSP5-002 | harness-commit-fidelity.md §Comparand Table | harness-p5 | | | |
 | REQ-LINT-HARNESSP5-001 | skill-lint-v5.md §Size Warn-Clean Baseline | harness-p5 | | | |
@@ -53,5 +53,5 @@ are **authoritative** for both requirements — a reader, `sdd-gc.py` and
 | REQ-TELEM-HARNESSP5-006 | telemetry-reader.md §Schema Lint | harness-p5 | | | |
 | REQ-TELEM-HARNESSP5-007 | telemetry-reader.md §Fixture-Based Test Contract | harness-p5 | | | |
 | REQ-TELEM-HARNESSP5-008 | telemetry-reader.md §Schema Lint | harness-p5 | | | |
-| REQ-WS-HARNESSP5-001 | ws-traceability.md §Legal `Verified` Cell Values | harness-p5 | | | |
+| REQ-WS-HARNESSP5-001 | ws-traceability.md §Legal `Verified` Cell Values | harness-p5 | Chunk 1 task 4: `python3 tools/sdd-skill-lint.py` exits 0; `python3 tools/sdd-gc.py --report` raises no new finding attributable to a `descoped` cell (`trace-empty` checks empty cells only, no value vocabulary) | docs/spec/ws-traceability.md §Legal `Verified` Cell Values; skills/sdd-verify/SKILL.md Step 3b/6 traceability block; skills/sdd-requirements/SKILL.md Step 5 | |
 | REQ-WS-HARNESSP5-002 | ws-traceability.md §Legal `Verified` Cell Values | harness-p5 | | | |
