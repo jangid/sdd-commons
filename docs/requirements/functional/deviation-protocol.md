@@ -78,15 +78,13 @@ sums to 6 across the three files (or the split files of REQ-LINT-HARNESSP5-003);
 nothing; `python3 tools/sdd-gc.py --report` raises no new finding.
 [Priority: must]
 
-### REQ-QIMPL-HARNESSP5-002: the four `[qimpl-broken-ref]` gc warnings are routed to zero
-The four pre-existing `tools/sdd-gc.py` `[qimpl-broken-ref]` warnings must be
+### REQ-QIMPL-HARNESSP5-002: the three `[qimpl-broken-ref]` gc warnings are routed to zero
+The three pre-existing `tools/sdd-gc.py` `[qimpl-broken-ref]` warnings must be
 resolved at source so the sweep's entry baseline reads `0 warn` for that rule:
-Q-IMPL-002 (`docs/spec/deviation-protocol.md`) gains its missing
-**Spec reference** line; Q-IMPL-009 (`ws-ids.md`), Q-IMPL-014
-(`ws-integration.md`) and Q-IMPL-072 (`ws-orchestration.md`) have their
-**Spec reference** re-pointed at a heading that exists in the named spec (or the
-named heading restored) — text edits only, entries never renumbered, no gc rule
-change and no allowlist. (workstream `harness-p5`; deferred twice —
+Q-IMPL-009 (`ws-ids.md`), Q-IMPL-014 (`ws-integration.md`) and Q-IMPL-072
+(`ws-orchestration.md`) have their **Spec reference** re-pointed at a heading
+that exists in the named spec (or the named heading restored) — text edits only,
+entries never renumbered, no gc rule change and no allowlist. (workstream `harness-p5`; deferred twice —
 `index.md` §Out of Scope RS-HARNESSP3-001 Q8-OUT row 6 and
 `docs/ws/harness-p4/verification.md` §Next Steps — and now in scope as
 housekeeping)
@@ -94,3 +92,14 @@ housekeeping)
 prints 0; `git diff --stat main -- tools/sdd-gc.py` is empty; the entry `GC:`
 line at the next orchestrated run shows the reduced warning count.
 [Priority: should]
+[Updated: 2026-09-19, specs-stage review] This requirement was Approved reading
+**four** warnings and counting Q-IMPL-002 (`docs/spec/deviation-protocol.md`)
+among them. That premise was false and is corrected to **three**:
+`tools/sdd-gc.py` blanks fenced lines before scanning, and the Q-IMPL-002 entry
+is an illustration inside a fenced block, so it was never a `[qimpl-broken-ref]`
+warning. The **Spec reference** line the fenced Q-IMPL-002 example gained is
+kept for illustration consistency with the three real entries — it closes no
+warning and is not one of the three. The acceptance grep (gc
+`[qimpl-broken-ref]` count → 0) is unaffected and still passes. Decision
+recorded as Q-REQ-P5-J; the spec-side statement is
+`docs/spec/deviation-protocol.md` §Spec-Reference Integrity.

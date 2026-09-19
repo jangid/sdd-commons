@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 requires:
   - REQ-LINT-001
   - REQ-LINT-002
@@ -11,6 +11,8 @@ requires:
   - REQ-LINT-007
   - REQ-LINT-HARNESSP4-001
   - REQ-LINT-HARNESSP4-002
+  - REQ-LINT-HARNESSP5-001
+  - REQ-LINT-HARNESSP5-002
 ---
 
 # Skill Lint v5
@@ -80,13 +82,66 @@ SIZE_FAIL_LINES = 1000  # project guideline (REQ-ORCH-019)
 only — `references/*.md` and `USAGE.md` are exempt. Over `SIZE_WARN_LINES` →
 `WARN [size] SKILL.md is N lines (> 400)`, `fix: move detail to references/ and
 leave a stub; the entry point should read as a table of contents`. Over
-`SIZE_FAIL_LINES` → `fail`. At the 2026-09-17 baseline this warns on exactly
-`sdd-orchestrate` (607) and `sdd-migrate` (464) and fails on none.
+`SIZE_FAIL_LINES` → `fail`. The baseline is **none** [Amended 2026-09-19,
+harness-p5 — REQ-LINT-HARNESSP5-002; the 2026-09-17 text named a two-file warn
+set, `sdd-orchestrate` (607) and `sdd-migrate` (464)]: the shipped skill set
+warns on no file and fails on none (§Size Warn-Clean Baseline).
 
 **Why 400 warn / 1000 fail**: 400 flags exactly the two files that absorbed
 gate prose while leaving the other eight untouched (RS-008 Q4 size table); 1000
 is the existing REQ-ORCH-019 guideline. Both are module constants so a later
 audit can retune without touching check logic.
+
+### Size Warn-Clean Baseline (REQ-LINT-HARNESSP5-001, REQ-LINT-HARNESSP5-002)
+
+[Added 2026-09-19, harness-p5 — decided at DISCUSS (kickoff §Scope item 3): the
+size target is **lint warn-clean**, not a raised constant. Evidence:
+RS-HARNESSP5-001 §Decided, measured 2026-09-19; the p4 accepted reds R7/R8
+(`docs/ws/harness-p4/verification.md` §Issues Found → Minor).]
+
+The shipped skill set must produce **no `[size]` warning**. Three entry points
+are over the threshold today and each moves detail to `references/*.md`:
+
+| File | Measured 2026-09-19 | Target | Mechanism |
+|---|---|---|---|
+| `skills/sdd-orchestrate/SKILL.md` | 551 | **< 400** | move to existing or new `references/*.md`; stubs stay |
+| `skills/sdd-migrate/SKILL.md` | 464 | **< 400** | same |
+| `skills/sdd-implement/SKILL.md` | 434 | **< 400** | same |
+
+**Invariants of every move** (the contract; which sections move and into which
+file is the implementer's choice):
+
+- each moved section leaves a **stub** carrying the marker-3 "behavior
+  UNCHANGED" sentence where one applies and a resolving link (REQ-LINT-004);
+- every `REQUIRED` marker row stays satisfied — a row **may be re-pointed** to
+  the new references file, **never dropped** (REQ-LINT-005/-006);
+- the `VERSION_GATED_SKILLS` `docs/.sdd-version` mention stays in `SKILL.md`;
+- the `[template-drift]` pair fences stay byte-identical — if a paired fence
+  moves, its pair-table row is re-pointed in the same commit
+  (REQ-LINT-HARNESSP4-001);
+- `python3 tools/sdd-skill-lint.py` exits 0 **and** its summary line reads
+  `0 warning(s)`.
+
+**Why warn-clean rather than a higher `SIZE_WARN_LINES`**: the constant encodes
+"the entry point reads as a table of contents"; retuning it would hide exactly
+the growth RS-008 Q4 sized, and the three files grew by absorbing gate prose
+that the references layer exists to hold.
+
+**Baseline restatements** (REQ-LINT-HARNESSP5-002): this spec's REQ-LINT-003
+restatement reads **none** (§SKILL.md Size Check) and its REQ-LINT-007 bound
+reads **under 400** (§Marker-4 Prose Move), matching the `[Updated]` notes on
+those two requirements. Q-IMPL-073 and Q-IMPL-084 record the historical
+figures and read as history; their bodies are unchanged, and Q-IMPL-073's
+**Spec reference** quote is re-aimed at the amended bound (the text-only
+re-point device of `deviation-protocol.md` §Spec-Reference Integrity). The R7/R8
+`reproduce:` commands — `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`
+→ `0`, `wc -l skills/sdd-orchestrate/SKILL.md` → a number below 400 — are the
+closing evidence `docs/ws/harness-p5/verification.md` `## Post-cycle Fixes`
+records.
+
+The sibling size item of the same kickoff scope, the `docs/spec/telemetry.md`
+split (REQ-LINT-HARNESSP5-003, Q-REQ-P5-G), is owned by `telemetry.md` §Moved
+Sections and `telemetry-reader.md`; the lint does not size-check specs.
 
 ### `references/` Path Resolution (REQ-LINT-004)
 
@@ -180,8 +235,10 @@ Two mandatory guards:
 
 `docs/.sdd-version` must remain mentioned in `SKILL.md` (`VERSION_GATED_SKILLS`
 check). Target size after the move plus the HARN stubs (pointers to
-`references/write-scope.md` and `references/return-contract.md`): ≤ ~450 lines —
-still a size warn, which is acceptable; a size fail is not.
+`references/write-scope.md` and `references/return-contract.md`): **under 400
+lines** [Amended 2026-09-19, harness-p5 — REQ-LINT-HARNESSP5-002; the earlier
+bound accepted a residual size warn] — warn-clean per §Size Warn-Clean Baseline;
+a size fail was never acceptable.
 
 ### `[template-drift]` — Fenced Leaf Bodies Restated in Specs Stay Byte-Identical (REQ-LINT-HARNESSP4-001)
 
@@ -193,7 +250,7 @@ the skill side, restatement on the spec side — hashes them and, on divergence,
 emits:
 
 ```
-[template-drift] <spec file>:<line>: fenced body diverges from dispatch-templates.md L<n>
+<spec file>:<line>: [template-drift] fenced body diverges from dispatch-templates.md L<n>
   fix: edit skills/sdd-orchestrate/references/dispatch-templates.md (source of record) — the spec side is Approved and stable; if the spec is the intended change, amend both in one commit
 ```
 
@@ -216,6 +273,22 @@ four rows above) are byte-identical today and nothing keeps them so; a divergenc
 as a leaf returning the wrong shape. Severity: **fail** (exit 1), with
 `--self-test` mutating one character inside the RED TEAM `RETURN:` block and
 asserting the finding names `adversarial-verify.md` and the fix.
+
+**Absent side and rendered order** [folded from Q-IMPL-HARNESSP4-008,
+2026-09-19 — REQ-QIMPL-HARNESSP5-001; the rendered shape above was amended in
+the same edit, the tag after the location as every other rule renders]: the
+pair table is the linter's `TEMPLATE_PAIRS` (four rows, each carrying its one
+`fix` string) with the source of record as the constant `TEMPLATE_SOURCE`, and
+the check runs with the other suite rows only. A restating **spec file absent**
+from the linted root **warns**, never fails — a consumer repo linted via
+`REPO_ROOT` has no `docs/spec/` (the F11 principle). A **present** spec that has
+lost its anchored fence, or a source of record that has lost its anchored fence
+while a spec still restates it, **fails** alone, naming the counterpart in the
+message. Anchors match by `startswith` on the fence's first line (the RED TEAM
+return-contract fence's first line carries a trailing `# one heading per spec
+examined` comment). The finding renders through the linter's common `flag()`
+shape, so `<line>` is the restating fence's opening line in the spec and the
+"no finding without a fix" guarantee holds for this rule as for every other.
 
 **Plan-ordering constraint** (carried from requirements): this rule
 (REQ-LINT-HARNESSP4-001) lands **before** the terminal-token column-0 edit
@@ -257,7 +330,8 @@ row fails when its marker is removed from a temp copy.
 - `python3 tools/sdd-skill-lint.py --self-test` exits 0 and exercises every
   new check.
 - `python3 tools/sdd-skill-lint.py` on the implemented skill set exits 0 and
-  prints `OK: N file(s) clean, K warning(s)` with `K` ≥ 1 only for size warns.
+  prints `OK: N file(s) clean, 0 warning(s)` — warn-clean since 2026-09-19
+  (REQ-LINT-HARNESSP5-001).
 - Mutation test: for each of the nine core rows, delete the marker in a temp
   copy → exit 1 and the row's `fix:` printed.
 - `grep -c '"fix"' tools/sdd-skill-lint.py` equals the number of rule rows;
@@ -266,19 +340,22 @@ row fails when its marker is removed from a temp copy.
 
 ### Manual
 - Run the linter before and after the marker-4 move: exit 0 both times; after
-  the move `wc -l skills/sdd-orchestrate/SKILL.md` ≤ ~450; every moved section
+  the move `wc -l skills/sdd-orchestrate/SKILL.md` < 400; every moved section
   has a stub containing "UNCHANGED" and a link that resolves;
   `ws-orchestration.md` has a new Q-IMPL entry citing Q-IMPL-016.
 
 ### Acceptance Criteria
 - [ ] Every finding prints `fix:`; `flag()` requires it; rule tables carry `fix` (REQ-LINT-001)
 - [ ] Warn tier exists; warn-only run exits 0 and prints the warning count; one fail still exits 1 (REQ-LINT-002)
-- [ ] Size check at 400 warn / 1000 fail as module constants; baseline warns on exactly `sdd-orchestrate` and `sdd-migrate` (REQ-LINT-003)
+- [ ] Size check at 400 warn / 1000 fail as module constants; baseline warns on none — the shipped skill set is `[size]`-clean (REQ-LINT-003; baseline amended 2026-09-19 by REQ-LINT-HARNESSP5-002)
 - [ ] Backtick `references/` and `skills/<skill>/references/` paths resolve (fail), `docs/spec/*.md` mentions resolve (warn); code fences ignored (REQ-LINT-004)
 - [ ] Nine core `REQUIRED` rows present with fix text; mutation of any one exits 1 (REQ-LINT-005)
 - [ ] Remaining `REQUIRED` rows present; lint exits 0 on the implemented skill set (REQ-LINT-006)
-- [ ] Marker-4 prose moved to `references/v4-workstreams.md` with stubs, `research_id` guard and superseding Q-IMPL; `SKILL.md` ≤ ~450 lines; lint exits 0 (REQ-LINT-007)
+- [ ] Marker-4 prose moved to `references/v4-workstreams.md` with stubs, `research_id` guard and superseding Q-IMPL; `SKILL.md` under 400 lines; lint exits 0 (REQ-LINT-007; bound amended 2026-09-19 by REQ-LINT-HARNESSP5-002)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
+- [ ] `python3 tools/sdd-skill-lint.py` exits 0 and its summary line reports `0 warning(s)`; `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'` prints 0; `wc -l skills/*/SKILL.md` shows every file < 400; every new `references/*.md` is linked from its stub and resolves; every `REQUIRED` row, the `VERSION_GATED_SKILLS` `docs/.sdd-version` mention and the `[template-drift]` fences stay satisfied (REQ-LINT-HARNESSP5-001)
+- [ ] REQ-LINT-HARNESSP5-002's file-wide grep for the two legacy baseline figures (the two-file warn set and the four-hundred-fifty bound) returns nothing in this spec; the R7/R8 `reproduce:` commands print 0 and a number < 400; `docs/ws/harness-p5/verification.md` `## Post-cycle Fixes` records both reds closed (REQ-LINT-HARNESSP5-002)
+- [ ] §`[template-drift]` states the absent-side behaviour (warn, never fail) and the rendered finding order (tag after the location); Q-IMPL-HARNESSP4-008 carries its fold-in status note and its body is unchanged (REQ-QIMPL-HARNESSP5-001, owned by `deviation-protocol.md`)
 - [ ] `[template-drift]` rule present with the four-row pair table; the shipped skill set exits 0; changing one character inside the RED TEAM `RETURN:` block of `dispatch-templates.md` exits 1 with a `[template-drift]` line naming `adversarial-verify.md` and the fix; `--self-test`'s mutation loop covers it; REQ-HARN-HARNESSP4-007's edit is made with the rule active and leaves exit 0 (REQ-LINT-HARNESSP4-001)
 - [ ] `REQUIRED` row for `COMMIT: COMPLETE | INCOMPLETE` in `loop-control.md` and `SKILL.md`; removing either line exits 1 with the row's fix (pointing at `write-scope.md` §7); a file containing only `SCOPE: CLEAN` does not satisfy it; `--self-test` covers it; shipped skill set exits 0 (REQ-LINT-HARNESSP4-002)
 
@@ -321,6 +398,16 @@ row fails when its marker is removed from a temp copy.
   layout-independence (F11) — `docs/spec/` mentions are warn-only.
 - **No unresolved contradictions.**
 
+**harness-p5 pass (2026-09-19).** No extractable type definitions in this spec
+(the two Python constants are module scalars, not types). `SIZE_WARN_LINES` /
+`SIZE_FAIL_LINES` keep their single definition here; the "under 400" bound is
+now stated once in §Size Warn-Clean Baseline and referenced from §SKILL.md Size
+Check and §Marker-4 Prose Move. `telemetry.md` §Moved Sections owns the spec
+split (REQ-LINT-HARNESSP5-003) and names this spec only as the domain owner;
+`deviation-protocol.md` §Fold-In Status Note defines the fold-in status-note
+device this spec's Q-IMPL-HARNESSP4-008 note uses. No unresolved
+contradictions.
+
 ## Open Questions
 
 1. **`Budget:` minimum count in `dispatch-templates.md`.** Default 3 (pipeline,
@@ -356,7 +443,7 @@ row fails when its marker is removed from a temp copy.
 
 ### Q-IMPL-073: a fourth references file (`loop-control.md`) is needed for the size target
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §Marker-4 Prose Move — size target "≤ ~450 lines (607 − ~160 moved)"
+**Spec reference**: §Marker-4 Prose Move — the size target as it then read (607 − ~160 moved; the bound was amended to under 400 on 2026-09-19, REQ-LINT-HARNESSP5-002)
 **Decision**: the move table listed only marker-4 prose; Chunks 2–4 added ~270 lines of loop-control procedure that no reference held, leaving `SKILL.md` at 720 after the move and dedup. A minor replan adds `skills/sdd-orchestrate/references/loop-control.md`; `SKILL.md` keeps marker stubs so REQUIRED rows a/b/d2/e2 still target it. The lint file count becomes 17.
 **Rationale**: the spec's arithmetic predates the loop-control prose; the progressive-disclosure goal is served by one more reference, not by relaxing the target.
 **Date**: 2026-09-17 (Chunk 5 replan)
@@ -383,3 +470,4 @@ row fails when its marker is removed from a temp copy.
 **Decision**: the pair table is `TEMPLATE_PAIRS` (four rows, each carrying the one `fix` string) with the source of record as the constant `TEMPLATE_SOURCE`; the check runs with the other suite rows only (`suite_rules=True`). A restating spec file absent from the linted root **warns** (never fails — a consumer repo linted via `REPO_ROOT` has no `docs/spec/`, the F11 principle); a present spec that has lost its anchored fence, or a source of record that has lost its anchored fence while the spec still restates it, **fails** alone with the counterpart named in the message. Anchors match by `startswith` on the fence's first line (the RED TEAM return-contract fence's first line carries a trailing `# one heading per spec examined` comment). The finding renders through the linter's common `flag()` shape — `<spec>:<line>: [template-drift] fenced body diverges from dispatch-templates.md L<n>` — the rule tag after the location, as every other rule renders; `<line>` is the restating fence's opening line in the spec.
 **Rationale**: the spec fixes the message, the fix string and the severity but not the absent-side behaviour or the tag position; reusing `flag()` keeps the "no finding without a fix" signature guarantee and the self-test's fix assertion for this rule.
 **Date**: 2026-09-19 (harness-p4 Chunk 6)
+**Status**: `[folded into §\`[template-drift]\` — Fenced Leaf Bodies Restated in Specs Stay Byte-Identical, 2026-09-19]` (REQ-QIMPL-HARNESSP5-001) — the entry body is unchanged; the section carries the decision as Approved text.

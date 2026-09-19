@@ -33,25 +33,25 @@ are **authoritative** for both requirements — a reader, `sdd-gc.py` and
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-ARB-HARNESSP3-001 | | harness-p5 | | | |
-| REQ-ARB-HARNESSP4-001 | | harness-p5 | | | |
-| REQ-ARB-HARNESSP5-001 | | harness-p5 | | | |
-| REQ-ARB-HARNESSP5-002 | | harness-p5 | | | |
-| REQ-ARB-HARNESSP5-003 | | harness-p5 | | | |
-| REQ-HARN-HARNESSP5-001 | | harness-p5 | | | |
-| REQ-HARN-HARNESSP5-002 | | harness-p5 | | | |
-| REQ-LINT-HARNESSP5-001 | | harness-p5 | | | |
-| REQ-LINT-HARNESSP5-002 | | harness-p5 | | | |
-| REQ-LINT-HARNESSP5-003 | | harness-p5 | | | |
-| REQ-QIMPL-HARNESSP5-001 | | harness-p5 | | | |
-| REQ-QIMPL-HARNESSP5-002 | | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-001 | | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-002 | | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-003 | | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-004 | | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-005 | | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-006 | | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-007 | | harness-p5 | | | |
-| REQ-TELEM-HARNESSP5-008 | | harness-p5 | | | |
-| REQ-WS-HARNESSP5-001 | | harness-p5 | | | |
-| REQ-WS-HARNESSP5-002 | | harness-p5 | | | |
+| REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
+| REQ-ARB-HARNESSP4-001 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
+| REQ-ARB-HARNESSP5-001 | arbitrated-handoff.md §W_N Includes Regeneration Writes | harness-p5 | | | |
+| REQ-ARB-HARNESSP5-002 | arbitrated-handoff.md §Offline Arbitration Fixture | harness-p5 | | | |
+| REQ-ARB-HARNESSP5-003 | arbitrated-handoff.md §Retained Per-Round State | harness-p5 | | | |
+| REQ-HARN-HARNESSP5-001 | harness-loop-control.md §Plan Completion Ownership Under Orchestration | harness-p5 | | | |
+| REQ-HARN-HARNESSP5-002 | harness-commit-fidelity.md §Comparand Table | harness-p5 | | | |
+| REQ-LINT-HARNESSP5-001 | skill-lint-v5.md §Size Warn-Clean Baseline | harness-p5 | | | |
+| REQ-LINT-HARNESSP5-002 | skill-lint-v5.md §Size Warn-Clean Baseline | harness-p5 | | | |
+| REQ-LINT-HARNESSP5-003 | telemetry.md §Moved Sections; telemetry-reader.md | harness-p5 | | | |
+| REQ-QIMPL-HARNESSP5-001 | deviation-protocol.md §Fold-In Status Note | harness-p5 | | | |
+| REQ-QIMPL-HARNESSP5-002 | deviation-protocol.md §Spec-Reference Integrity | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-001 | telemetry.md §Writer | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-002 | telemetry-reader.md §Implication-Derived `expected` | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-003 | telemetry-reader.md §Schema Lint | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-004 | telemetry-reader.md §Out-of-Loop Reader | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-005 | telemetry.md §Writer | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-006 | telemetry-reader.md §Schema Lint | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-007 | telemetry-reader.md §Fixture-Based Test Contract | harness-p5 | | | |
+| REQ-TELEM-HARNESSP5-008 | telemetry-reader.md §Schema Lint | harness-p5 | | | |
+| REQ-WS-HARNESSP5-001 | ws-traceability.md §Legal `Verified` Cell Values | harness-p5 | | | |
+| REQ-WS-HARNESSP5-002 | ws-traceability.md §Legal `Verified` Cell Values | harness-p5 | | | |

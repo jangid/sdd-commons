@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 requires:
   - REQ-HARN-001
   - REQ-HARN-002
@@ -11,6 +11,7 @@ requires:
   - REQ-HARN-007
   - REQ-HARN-008
   - REQ-HARN-027
+  - REQ-HARN-HARNESSP5-001
 ---
 
 # Harness Loop Control
@@ -346,6 +347,67 @@ dispatch templates:
 REQ-ORCH-004, -013, -014 hold verbatim; no `docs/reviews/`, `.sdd/` or
 telemetry file is created.
 
+### Plan Completion Ownership Under Orchestration (REQ-HARN-HARNESSP5-001)
+
+[Added 2026-09-19, harness-p5 — REQ-HARN-HARNESSP5-001, ratified as Q-REQ-P5-C.
+Owner decided at specs: this spec, because the gate order lives here
+(`ws-orchestration.md` was the alternative). Evidence: RS-HARNESSP5-001 §Q3 —
+the p4 implement round-1 review C1 showed the last-chunk leaf asserting a
+completion the stage review had not yet decided.]
+
+Under orchestrated per-chunk dispatch, `sdd-implement` Step 6.4's flip of
+`plan.md` `status:` to `complete` has one owner and one moment:
+
+| Actor | Writes `status:`? | Rule |
+|---|---|---|
+| chunk leaf (per-chunk PIPELINE dispatch) | **never** | ticks its tasks `[x]`; `dispatch-templates.md` §PIPELINE per-chunk says "tick tasks, never `status:`" — a leaf cannot know the stage review's verdict |
+| `sdd-verify` | **never** | never writes the plan; a verify-on-entry flip would widen its scope onto an upstream artifact and leave a resumed session reading `implementing` on a fully ticked plan |
+| **orchestrator** | **yes** — at the implement **stage gate** `proceed`, after the stage review's `VERDICT:`, never at the last per-chunk gate | edits `status:` only, in its own bookkeeping commit (`references/write-scope.md` §7 gains a second bookkeeping entry beside aggregate regeneration); the `research_id:` stamp is `sdd-plan`'s and is untouched (`cycle-identity.md`) |
+| `sdd-implement`, direct session (no orchestrator) | yes — Step 6.4 unchanged | one sentence there states the orchestrated exception |
+
+**Precondition — the completion parse.** At `proceed` the orchestrator parses
+the plan: every numbered chunk task must be `[x]`. Then the flip is signal 8b of
+§Gate Signal Order — after the `COMMIT:` closing line, because `HEAD_landed` is
+captured before any bookkeeping commit, so the flip is outside the `COMMIT:`
+range and never renders `landed, not observed`.
+
+**Else-branch.** When the parse shows an unticked task (for example one the
+stage review accepted as deferred), the flip is **withheld** and the gate
+**pauses** on the own-line `PLAN: INCOMPLETE (N of M ticked)` — signal 6b,
+rendered pre-decision after `REVIEW: CONTRADICTION` and before `TELEMETRY:`,
+because the tick state exists on the leaf's return — offering **`replan │ stop`
+only**. `proceed` is not offered, so verify is never dispatched while `plan.md`
+reads `implementing`, and phase detection (`cycle-identity.md`,
+REQ-CYCID-HARNESSP3-001) keeps reading the plan as incomplete until a replan
+closes the unticked tasks (descoped or removed, archived per plan archival) and
+the gate is re-rendered. `PLAN:` joins the **pause family** of
+`skills/sdd-orchestrate/references/loop-control.md` §6 as its **fifth** member
+(after the three originals and `REVIEW: CONTRADICTION`, which
+`arbitrated-handoff.md` registers there as the fourth) — and the only
+two-option one; it carries no finding text, only the two counts. REQUIRED:
+`references/loop-control.md` §6 lists `PLAN: INCOMPLETE (N of M ticked)` as
+member five with its `replan │ stop` option set and the precedence rule below.
+
+**Precedence when signals 6 and 6b fire at the same gate.** Both are
+pre-decision pauses and their option sets are disjoint — signal 6 offers
+`accept round N (proceed, note)`, signal 6b withholds `proceed` outright.
+**6b supersedes**: when `PLAN: INCOMPLETE` renders, the gate's option set is
+6b's `replan │ stop` and no option resolving to `proceed` is offered, whichever
+options signal 6 printed. Rationale: the withheld `proceed` is the stricter
+constraint, and a contradiction accepted "proceed, note" would otherwise
+dispatch verify against a plan that still reads `implementing` — exactly the
+state 6b exists to prevent. Signal 6's block still renders (its finding is real
+and the operator needs it when choosing `replan`); only its options are
+suppressed, and one `replan` closes both. No new
+artifact: the parse reads the plan the leaf already wrote, and the counts are
+gate text (REQ-HARN-027).
+
+**Why not the last-chunk leaf, why not verify.** The leaf would assert a
+completion the stage review has not decided (premature; p4 C1); verify would
+read the phase wrong on resumption and widen its write scope onto the plan. The
+orchestrator at `proceed` is the one actor that has seen the review verdict and
+already owns a post-gate bookkeeping commit.
+
 ### Gate Signal Order (REQ-ORCH-034 counterpart)
 
 [Added 2026-09-18, harness-p4 — REQ-HARN-HARNESSP4-001, REQ-HARN-HARNESSP4-003;
@@ -369,13 +431,16 @@ in `references/loop-control.md` §5 — the two must agree item for item.
 | 4 | the parsed review `VERDICT:` | stage gate | `harness-return-contract.md` |
 | 5 | loop counters — `iteration N of MAX`, derived replan re-entry count against `REPLAN_MAX` | stage gate | this spec |
 | 6 | `REVIEW: CONTRADICTION (round N vs round N+1, class b\|c[, file-level])` pause block | stage gate, after the counters | `arbitrated-handoff.md` |
+| 6b | **implement stage gate only**: the completion parse of `docs/ws/<id>/plan.md` — when any numbered chunk task is unticked, the own-line `PLAN: INCOMPLETE (N of M ticked)` pause offering `replan │ stop` **only** (`proceed` withheld, so verify is never dispatched while the plan reads `implementing`); when every task is `[x]` no line renders. **Supersedes signal 6's option set when both fire** — 6's block still renders, its options are suppressed, and the gate offers `replan \| stop` only | implement stage gate, after signal 6, before `TELEMETRY:` | this spec §Plan Completion Ownership |
 | 7 | the `TELEMETRY:` line — `rec <n> │ WRITE FAILED │ OFF │ .gitignore updated`, at most once each, immediately after the last counter-bearing line and **before the options** | every gate | `telemetry.md` |
 | — | the options (`proceed │ fix │ stop` per chunk; `proceed │ loop-back-to-fix │ stop` per stage; pause-family options where a pause fired) | every gate | `orchestration.md` §Gate Protocol |
 | 8 | **post-decision**: `COMMIT: COMPLETE \| INCOMPLETE` — rendered immediately after the orchestrator's own commit (sequential per-chunk and stage gates) or after the merge (fan-out merge step), as the **closing line of the same gate**, before the next dispatch; on `INCOMPLETE` it pauses with `amend \| accept (note) \| stop` and no next dispatch — including the implement-stage review after the last chunk — is issued until resolved | closing line of the gate that decided `proceed` | `harness-commit-fidelity.md` |
+| 8b | **implement stage gate `proceed` only, after item 8**: the orchestrator flips `docs/ws/<id>/plan.md` `status:` to `complete` in its **own bookkeeping commit** — the same post-gate slot as aggregate regeneration and the `pending-red → pass` flip; outside the `COMMIT:` range because `HEAD_landed` is captured before any bookkeeping commit, so it never renders `landed, not observed` | after the `COMMIT:` closing line, before the verify dispatch | this spec §Plan Completion Ownership |
 
 Two rules follow from "produced order": a signal whose data exists before the
-decision renders before the options (items 1–7 and 2b); a signal that is the
-*consequence* of the decision renders after them (item 8) and is **not**
+decision renders before the options (items 1–7, 2b and 6b — the plan's tick
+state exists on the leaf's return); a signal that is the
+*consequence* of the decision renders after them (items 8 and 8b) and is **not**
 deferred to the next gate — `TELEMETRY: rec <n>` is the one deferred signal,
 and it may be because telemetry is never load-bearing (`telemetry.md` §Writer).
 `COMMIT:` is load-bearing and therefore closes the gate it belongs to. No
@@ -421,6 +486,9 @@ and it may be because telemetry is never load-bearing (`telemetry.md` §Writer).
 - [ ] Checkpoint format and RETURN-field mapping are stated in `sdd-implement` and `sdd-replan`; `sdd-replan` Step 1 reads the checkpoint; fixture ≤ 15 lines, traceback-free (REQ-HARN-008)
 - [ ] After a full orchestrated cycle `git ls-files docs/` shows no new file type beyond `plan-history/` archives (REQ-HARN-027)
 - [ ] §Gate Signal Order is the only spec-side statement of the full order, lists item 8 "post-decision: `COMMIT:`" and position 2b, and agrees item for item with `references/loop-control.md` §5; `orchestration.md` §v5 points here rather than restating the list (REQ-ORCH-034; placement per REQ-HARN-HARNESSP4-001/-003, owned by `harness-commit-fidelity.md`)
+- [ ] `grep -n 'status: complete' skills/sdd-orchestrate/SKILL.md skills/sdd-orchestrate/references/loop-control.md skills/sdd-orchestrate/references/write-scope.md skills/sdd-implement/SKILL.md` shows the flip in §The gate, §1 and the §7 table, and the direct-session / orchestrated split in `sdd-implement` Step 6; the per-chunk PIPELINE template carries "tick tasks, never `status:`"; §Gate Signal Order lists 6b (`PLAN: INCOMPLETE (N of M ticked)`, `replan │ stop` only) and 8b (the flip after `COMMIT:`) and `references/loop-control.md` §5 agrees item for item (REQ-HARN-HARNESSP5-001)
+- [ ] `skills/sdd-orchestrate/references/loop-control.md` §6 lists `PLAN: INCOMPLETE (N of M ticked)` as the **fifth** pause-family member with `replan │ stop` as its whole option set; a walkthrough of an implement stage gate where a contradiction pause and an unticked task fire together renders signal 6's block and signal 6b's line but offers `replan │ stop` only — no `accept round N (proceed, note)` (REQ-HARN-HARNESSP5-001)
+- [ ] A walkthrough of an implement stage gate `proceed` shows the flip in a commit separate from the leaf's and `COMMIT: COMPLETE`; a second walkthrough with one unticked task shows the `PLAN: INCOMPLETE` pause, no flip and no verify dispatch; the `research_id:` line is byte-identical before and after the flip; `python3 tools/sdd-skill-lint.py` exits 0 (a `REQUIRED` row for the flip sentence is optional) (REQ-HARN-HARNESSP5-001)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
 
 ## Edge Cases
@@ -447,6 +515,14 @@ and it may be because telemetry is never load-bearing (`telemetry.md` §Writer).
   bound is per checkpoint.
 
 ## Cross-Spec Consistency (XSPEC)
+
+- [Added 2026-09-19, harness-p5] §Plan Completion Ownership: `cycle-identity.md`'s
+  `research_id:` stamp is untouched by the flip; `harness-commit-fidelity.md`
+  §Placement captures `HEAD_landed` before bookkeeping, which is what keeps 8b
+  outside the `COMMIT:` range; `ws-traceability.md` §Aggregate Regeneration
+  Ownership names the same post-gate bookkeeping slot; `orchestration.md`
+  §Resume and Phase Detection reads `status:` as before — the `PLAN:` pause
+  changes when the flip happens, not what phase detection reads.
 
 Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
 `chunk-close-review.md`, `deviation-protocol.md`, `plan-management.md`,

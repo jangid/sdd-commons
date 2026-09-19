@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-07-21
+last_updated: 2026-09-19
 requires:
   - REQ-WS-016
   - REQ-WS-017
@@ -120,6 +120,6 @@ workstream's own delta regardless of what else landed on `main` meanwhile.
 
 ### Q-IMPL-014: Retaining the sequential fallback while removing the boundary-error inference
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §Fan-out Worktrees Branch from the Workstream Branch (REQ-WS-017) — "the 'conflict-after-re-derivation = boundary error' inference tied to `main`-ownership is REMOVED"; `fan-out.md` §3c step 3
+**Spec reference**: §Fan-out Worktrees Branch from the Workstream Branch (REQ-WS-017) — "the 'conflict-after-re-derivation = boundary error' inference tied to `main`-ownership is REMOVED"; `references/fan-out.md` section 3c, step 3
 **Decision**: In `fan-out.md` §3c step 3, the pre-v4 text coupled *two* things: (a) the **inference** that a repeat conflict after re-derivation proves non-independence (a chunk-boundary error), and (b) the **guaranteed-termination sequential fallback** that path triggers. Under marker `4` I removed (a) — the labeling — but **retained (b)** unchanged, gated as a marker-`4` note: the affected groups are still re-run one at a time (each re-branched from the updated *workstream branch* and merged back into it), which cannot conflict by construction and guarantees termination. Rationale for keeping (b): the spec removes only the boundary-error *inference* ("main is not the fan-out integration point, so a conflict there no longer implies a chunk-boundary error") and states all other fan-out mechanics — including conflict abort-and-redo — are "otherwise unchanged". Without a terminating fallback the loop could spin, so the sequential collapse is preserved as a pure termination guarantee, just no longer justified by a non-independence claim (since `main` can now move under the workstream, a conflict is no longer diagnostic).
 **Rationale**: Faithful to REQ-WS-017 (drop the `main`-ownership inference) while preserving the guaranteed-termination property the fan-out design depends on; marker-`3` text keeps both (a) and (b) byte-unchanged.

@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 requires:
   - REQ-HARN-020
   - REQ-HARN-021
@@ -199,6 +199,35 @@ commands alone cannot catch it — hence the pre-persist match.
 | fan-out leaf (and its redo) | **leaf**, on its own branch with inline identity flags (REQ-ORCH-027); the orchestrator merges on `proceed` at the per-leaf gate | `commits` |
 | review | nobody | — |
 | chunk verifier | nobody | `files_written: []` |
+| **post-gate bookkeeping (orchestrator-only)** | **orchestrator**, in a **second** commit after the chunk/stage commit | nothing — no leaf returns these paths |
+
+**The second bookkeeping commit** [Added 2026-09-19, harness-p5]. After the
+chunk/stage commit of the row above, the orchestrator makes **one further**
+commit of its own for paths that are by construction outside **every** leaf's
+write scope and therefore never appear in a leaf's observed writes:
+
+| Bookkeeping write | When | Owning spec |
+|---|---|---|
+| `docs/requirements/traceability.md` — wholesale **regeneration** of the shared aggregate | after any gate whose leaf wrote a per-ws `traceability.md` | `ws-traceability.md`; `references/write-scope.md` §2, §7 |
+| a **`descoped`** `Verified` cell in a *previous* workstream's `docs/ws/<other>/traceability.md` — a cross-workstream edit no leaf may make (REQ-WS-HARNESSP5-001) | at the gate that carries the row forward | `ws-traceability.md` §Legal `Verified` Cell Values |
+| the `status: complete` flip in `docs/ws/<id>/plan.md` (REQ-HARN-HARNESSP5-001) | implement stage gate, on `proceed`, after the `COMMIT:` closing line | `harness-loop-control.md` §Plan Completion Ownership |
+
+Two properties follow and are required. **(1) Ordering**: the bookkeeping
+commit is made **after** `HEAD_landed` is captured, so its paths fall outside
+the `COMMIT:` comparand range and can never render `landed, not observed` —
+`harness-commit-fidelity.md` §Comparand Table states the same capture point
+("right after the orchestrator's commit and before any bookkeeping commit").
+**(2) Not a scope violation**: these paths are the orchestrator's own, not a
+leaf's, so §Observed Writes Are a Strict Set never sees them; a leaf that wrote
+any of them *would* be a `SCOPE: VIOLATION`, which is why the dispatch templates
+omit them.
+
+The comparand the `COMMIT:` line diffs is captured with the flags the tool
+actually runs — `git diff --name-only --no-renames -z HEAD_before HEAD_landed`
+(rename detection off so both sides name the same paths; NUL-separated, split
+on `\0`) — stated once in `harness-commit-fidelity.md` §Comparand Table and
+carried by the `references/write-scope.md` §7a table; this section does not
+restate the table and cannot diverge from it (REQ-HARN-HARNESSP5-002).
 
 **Per-chunk gate (implement stage).** After each chunk's implement dispatch
 returns, the orchestrator runs the write-scope check, dispatches the chunk
@@ -460,6 +489,7 @@ ambiguous set makes the `R` fixture fail. Fixture ids continue the F-series
 - [ ] `tools/sdd-scope-check-selftest.py --self-test` gains a fixture in which one path is observed by both the committed and the content delta and asserts the rendered `N` is `1` with provenance label `committed`; the shipped self-test exits 0; `references/write-scope.md` §3 states the de-duplication and label-precedence rule in one sentence (REQ-HARN-HARNESSP4-004)
 - [ ] The `R` (scoped → out-of-scope `git mv`, both paths in the ambiguous set) and space-path (`-z` keeps one record) fixtures exist and pass under `--self-test`; the newline-split mutation fails the space-path fixture and dropping the origin path fails the `R` fixture; the shipped self-test exits 0 (REQ-HARN-HARNESSP4-005)
 - [ ] §Commit Ownership carries the one-sentence pointer to `harness-commit-fidelity.md` for the `COMMIT:` closing line (REQ-HARN-HARNESSP4-001, owned there)
+- [ ] §Commit Ownership names the **second** orchestrator bookkeeping commit with its three writes (aggregate regeneration, a cross-workstream `descoped` cell, the plan `status: complete` flip), states that it lands **after** `HEAD_landed` is captured, and states that a leaf writing any of them is a `SCOPE: VIOLATION`; `grep -n 'no-renames -z' docs/spec/harness-write-scope.md` shows the flags quoted once, pointing at `harness-commit-fidelity.md` §Comparand Table and `references/write-scope.md` §7a rather than restating the table (REQ-HARN-HARNESSP5-001, REQ-WS-HARNESSP5-001, REQ-HARN-HARNESSP5-002, all owned elsewhere)
 
 ## Edge Cases
 

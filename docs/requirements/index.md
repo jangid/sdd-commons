@@ -452,6 +452,28 @@ requirements resolve without the findings file:
   (where `resolve_sections()` and the temp-repo harness live and which is
   already a verify gate); a separate `tools/sdd-arbitrate-selftest.py` is
   acceptable at plan time with identical assertions (REQ-ARB-HARNESSP5-002).
+- **Q-REQ-P5-I** (the split's residual size, raised at the specs review
+  2026-09-19): **amend the bound, do not cut further and do not re-split.**
+  REQ-LINT-HARNESSP5-003's ~600-line guide is amended to **~800 lines per
+  file**; the two-file split stands as written (748 / 697 lines). Accepted
+  residual and why: the schema table's worked examples stay with the writer
+  contract they illustrate, and the reader / lint / fixture contract stays
+  whole — a third file would split a contract to satisfy a proxy for cohesion.
+  `docs/spec/telemetry.md` and `docs/spec/telemetry-reader.md` §Acceptance
+  Criteria state the amended bound, so no spec adopts a criterion it
+  pre-declares unmet.
+- **Q-REQ-P5-J** (the `[qimpl-broken-ref]` count, raised at the specs review
+  2026-09-19): **correct the requirement's premise, do not change the gc rule
+  and do not add an allowlist.** REQ-QIMPL-HARNESSP5-002 was Approved asserting
+  **four** warnings, with Q-IMPL-002 (`docs/spec/deviation-protocol.md`) as one
+  of them. `tools/sdd-gc.py` blanks fenced lines before scanning, so the
+  in-fence Q-IMPL-002 illustration was never a warning and the real count was
+  always **three** (Q-IMPL-009, -014, -072). The requirement is amended in
+  place to three with a dated `[Updated: 2026-09-19 …]` note; the **Spec
+  reference** line added to the fenced Q-IMPL-002 example is kept for
+  illustration consistency, closing no warning. The acceptance grep (count → 0)
+  is unchanged and still passes, so the amendment is a premise correction, not
+  a scope change.
 
 Resolved during requirements gathering for RS-HARNESSP4-001 (harness hardening
 part 4, workstream `harness-p4`). The spike answered Q1 and Q2 with an

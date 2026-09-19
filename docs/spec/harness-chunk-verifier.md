@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 requires:
   - REQ-HARN-014
   - REQ-HARN-015
@@ -142,8 +142,14 @@ RETURN:
   verified_do_not_touch: []
   open_questions: []
   blocked_writes: []
-  CHUNK_VERDICT: FAIL                  # verifier-only key, last line
+CHUNK_VERDICT: FAIL                    # verifier-only key, last line, column 0
 ```
+
+[Amended 2026-09-19, harness-p5 — folded from Q-IMPL-HARNESSP4-009 under
+REQ-QIMPL-HARNESSP5-001: the example's token now sits at **column 0**, matching
+the fenced contract of §Terminal Token at Column 0 and the paired dispatch body;
+the example is illustrative and is not a `[template-drift]` pair, which is why
+the p4 chunk left it indented.]
 
 The verifier carries the **full** leaf key set (`harness-return-contract.md`
 §RETURN Block — every key present, empties allowed) plus `CHUNK_VERDICT`, which
@@ -194,13 +200,17 @@ with a repair packet; counts toward the per-chunk redo cap,
 recorded as gate text. Any unresolved `OUT` path must first be resolved by the
 scope options (`revert path | accept & widen scope`, `harness-write-scope.md`
 §Finding Format). The block is stated identically in `harness-write-scope.md`
-§Commit Ownership / §Snapshot Ordering and `orchestration.md` §v5:
+§Commit Ownership / §Snapshot Ordering and `orchestration.md` §v5 (those two
+copies keep the block's two-space gate indentation on the token line; here it is
+rendered at column 0 so that no indented `CHUNK_VERDICT:` remains anywhere in
+this file — REQ-QIMPL-HARNESSP5-001's file-wide criterion; the content is
+otherwise identical):
 
 ```
 Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: leaf wt-g1 / branch fanout-g1]
   RETURN.status  : COMPLETE    budget_consumed: {tool_calls: 22, test_runs: 3}  vs  Budget: 1 chunk, ≤ 25 tool calls, ≤ 3 test runs
   SCOPE: CLEAN                                    # full write-scope block above when VIOLATION
-  CHUNK_VERDICT: PASS                             # verifier findings (Check 1 / Check 3 / Gates) listed above when FAIL
+CHUNK_VERDICT: PASS                               # verifier findings (Check 1 / Check 3 / Gates) listed above when FAIL — the token as the verifier emitted it, column 0
   Files changed  : src/recon/engine.py M, tests/test_recon.py M, docs/plan.md M
   Redo           : 0 of 3 (per-chunk redo counter)
   Options: proceed (orchestrator commits the chunk) │ fix (re-dispatch Chunk 2 with a repair packet; counts toward the per-chunk redo cap) │ stop
@@ -351,6 +361,7 @@ here and is untouched.
 - [ ] Four-layer table in `sdd-review` and `CLAUDE.md` unchanged (REQ-HARN-014)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
 - [ ] The chunk-verifier template's fenced body contains the full literal `RETURN:` key list in contract order plus the own-line `CHUNK_VERDICT:` token, and the shape is not reachable only from prose outside the fence (REQ-HARN-HARNESSP3-002)
+- [ ] `grep -n '^  CHUNK_VERDICT:' docs/spec/harness-chunk-verifier.md` returns nothing — the §Verdict Rule example and the gate-text block both render the token at column 0; Q-IMPL-HARNESSP4-009 carries its fold-in status note with its body unchanged (REQ-QIMPL-HARNESSP5-001, owned by `deviation-protocol.md`)
 - [ ] `grep -n '^  CHUNK_VERDICT:' skills/sdd-orchestrate/references/dispatch-templates.md` returns nothing and `grep -c '^CHUNK_VERDICT:'` on that file is ≥ 2; `SKILL.md` §The gate states `^CHUNK_VERDICT:`; the fenced bodies of `dispatch-templates.md` and this spec are byte-identical after the edit (`python3 tools/sdd-skill-lint.py` exits 0 with `[template-drift]` active) (REQ-HARN-HARNESSP4-007)
 
 ## Edge Cases
@@ -452,3 +463,4 @@ there.
 **Decision**: the column-0 move is applied to the two `[template-drift]`-paired fences (the CHUNK VERIFIER dispatch body in `references/dispatch-templates.md` and this spec's §Verifier Dispatch Template restatement, byte-identical) and to the worked `yaml` return-shape example in `dispatch-templates.md` §Return contract, so the file-wide grep criterion holds. The twin `yaml` example under this spec's §Verdict Rule is **not** edited: it is not a lint pair, and the Chunk 7 write scope admits exactly one Approved-spec edit — the §Verifier Dispatch Template fence.
 **Rationale**: the contract is the dispatch body a leaf is pasted, which now shows the unindented token; the §Verdict Rule example is illustrative prose whose indentation the acceptance criteria do not constrain, and widening an Approved-spec edit beyond the operator's one-path widening would be a scope violation, not a fix. A later specs pass may align the example.
 **Date**: 2026-09-19 (harness-p4 Chunk 7)
+**Status**: `[folded into §Verdict Rule, 2026-09-19]` (REQ-QIMPL-HARNESSP5-001) — the example's token is now at column 0; the entry body is unchanged.
