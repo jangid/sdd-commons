@@ -234,9 +234,9 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-HARN-HARNESSP3-003 | harness-return-contract.md | harness-p3 | Chunk 2 task 8 replay: prose `budget_consumed` fixtures pause; missing-only-`ledger` fixture warns | `skills/sdd-orchestrate/references/return-contract.md` §1 Parsing and malformed returns | pass |
 | REQ-HARN-HARNESSP3-004 | harness-write-scope.md | harness-p3 | `tools/sdd-scope-check-selftest.py` F11 | `skills/sdd-orchestrate/references/write-scope.md` §2 (specs row) | pass |
 | REQ-HARN-HARNESSP3-005 | harness-return-contract.md | harness-p3 | Chunk 2 task 6 contract read (no executable fixture — packet-shape rule) | `skills/sdd-orchestrate/references/return-contract.md` §3 (Rules, out-of-fix-scope bullet) | pass |
-| REQ-HARN-HARNESSP4-001 | harness-commit-fidelity.md | harness-p4 |  |  |  |
-| REQ-HARN-HARNESSP4-002 | harness-commit-fidelity.md | harness-p4 |  |  |  |
-| REQ-HARN-HARNESSP4-003 | harness-commit-fidelity.md | harness-p4 |  |  |  |
+| REQ-HARN-HARNESSP4-001 | harness-commit-fidelity.md | harness-p4 | tools/sdd-skill-lint.py --self-test (COMMIT: row mutation); plan Chunk 0 task 8 walkthroughs (a),(c),(d) | skills/sdd-orchestrate/references/write-scope.md §7a; references/loop-control.md §5 items 2b/8; SKILL.md §The gate; USAGE.md §7b; CLAUDE.md §Gate vocabulary |  |
+| REQ-HARN-HARNESSP4-002 | harness-commit-fidelity.md | harness-p4 | plan Chunk 0 task 8 walkthrough (b) — drift warning, no COMMIT: term | skills/sdd-orchestrate/references/write-scope.md §7a (observed-writes-only expected); references/return-contract.md §1 return-drift warning |  |
+| REQ-HARN-HARNESSP4-003 | harness-commit-fidelity.md | harness-p4 | plan Chunk 0 task 8 walkthrough (d) — grep shows two members only; fixtures C3–C5 land in Chunk 1 | skills/sdd-orchestrate/references/fan-out.md §3a.v step a2, §3b merge-step clause |  |
 | REQ-HARN-HARNESSP4-004 | harness-write-scope.md | harness-p4 |  |  |  |
 | REQ-HARN-HARNESSP4-005 | harness-write-scope.md | harness-p4 |  |  |  |
 | REQ-HARN-HARNESSP4-006 | harness-commit-fidelity.md | harness-p4 |  |  |  |
@@ -244,7 +244,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-LINT-HARNESSP2-001 | adversarial-verify.md, arbitrated-handoff.md | harness-p2 | tools/sdd-skill-lint.py --self-test §7 (32-row mutation loop + d2 lookbehind asserts); live mutation of REVIEW: CONTRADICTION → exit 1 with row fix | tools/sdd-skill-lint.py REQUIRED rows a1/a2/b/c + d2 pattern | pass |
 | REQ-LINT-HARNESSP2-002 | telemetry.md | harness-p2 | tools/sdd-skill-lint.py --self-test §7b (fenced .sdd/ fixture fails; allowlisted paths pass) | tools/sdd-skill-lint.py FORBIDDEN `\.sdd/` row (allow_files) | pass |
 | REQ-LINT-HARNESSP4-001 | skill-lint-v5.md | harness-p4 |  |  |  |
-| REQ-LINT-HARNESSP4-002 | skill-lint-v5.md | harness-p4 |  |  |  |
+| REQ-LINT-HARNESSP4-002 | skill-lint-v5.md | harness-p4 | tools/sdd-skill-lint.py --self-test (COMMIT: rows stripped → exit 1 with fix; SCOPE:-only negative control) | tools/sdd-skill-lint.py REQUIRED rows for loop-control.md and SKILL.md |  |
 | REQ-REDB-HARNESSP2-001 | adversarial-verify.md | harness-p2 | lint exit 0; fixture walkthrough test_opt_in_default_off / test_one_red_per_verify_return | sdd-orchestrate/SKILL.md §The gate (Red team); dispatch-templates.md §RED TEAM | pass |
 | REQ-REDB-HARNESSP2-002 | adversarial-verify.md | harness-p2 | git diff c38922d -- sdd-review/SKILL.md empty; four-layer text unchanged | sdd-verify/SKILL.md §Verification Layers; dispatch-templates.md §RED TEAM | pass |
 | REQ-REDB-HARNESSP2-003 | adversarial-verify.md | harness-p2 | fixture walkthrough test_template_slots_verbatim / test_red_write_is_out_and_reverted | dispatch-templates.md §RED TEAM (template, write-revert rule) | pass |
