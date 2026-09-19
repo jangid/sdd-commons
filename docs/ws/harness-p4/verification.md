@@ -196,6 +196,10 @@ file:line read.
 | Criterion | Status | Evidence |
 |-----------|--------|----------|
 | The p4 paragraph points at `harness-loop-control.md` §Gate Signal Order as the canonical full order (incl. the post-decision `COMMIT:` line) and does not restate it (REQ-HARN-HARNESSP4-001 placement) | pass | `orchestration.md:612–618` — "This spec does not restate it; `COMMIT:` itself is owned by `harness-commit-fidelity.md`" (already cited under harness-commit-fidelity.md row 2) |
+- gc qimpl-broken-ref: docs/spec/deviation-protocol.md:108 — Q-IMPL-002 has no **Spec reference** line; add `**Spec reference**: §<section>` naming the section it resolves (pre-existing, recorded at DONE 2026-09-19)
+- gc qimpl-broken-ref: docs/spec/ws-ids.md:209 — Q-IMPL-009 **Spec reference** names no heading (§ID-Sorted Insertion); rename the § reference to an existing heading (pre-existing, recorded at DONE 2026-09-19)
+- gc qimpl-broken-ref: docs/spec/ws-integration.md:121 — Q-IMPL-014 **Spec reference** names no heading (§3c step 3); rename the § reference to an existing heading (pre-existing, recorded at DONE 2026-09-19)
+- gc qimpl-broken-ref: docs/spec/ws-orchestration.md:195 — Q-IMPL-072 **Spec reference** names no heading (§Marker-4 Prose Move guard 2); rename the § reference to an existing heading (pre-existing, recorded at DONE 2026-09-19)
 
 ## Verification Hand-off Items (plan §Verification Hand-off)
 
