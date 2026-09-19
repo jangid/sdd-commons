@@ -316,25 +316,25 @@ reads them.
 contract is asserted.
 **Depends on**: Chunk 4.
 **Tasks**:
-1. [implement] Add `--self-test` cases: (a) `commit.token` on a non-committing
+1. [x] [implement] Add `--self-test` cases: (a) `commit.token` on a non-committing
    kind other than `review` (`verifier` or `red`) → `[cross-field]`;
    (b) `dispatch.reason: RED_BREAK` (uppercase) → `[enum]`, so the canonical
    `red_break` spelling is tested and not merely stated;
    (c) a `migration.from` value outside the `chunk-string` enum → `[enum]` (the
    validator accepts any string today) — traces to
    `docs/spec/telemetry-reader.md` §Schema Lint (REQ-TELEM-HARNESSP5-008).
-2. [verify] Each of the three cases is named in `--self-test` output and fails
+2. [x] [verify] Each of the three cases is named in `--self-test` output and fails
    when its check is removed in a temp copy; the frozen fixtures' outputs are
    unchanged — traces to `docs/spec/telemetry-reader.md` §Automated
    (REQ-TELEM-HARNESSP5-008).
-3. [verify] Assert the fixture contract O1 produced (read-only; the cut itself
+3. [x] [verify] Assert the fixture contract O1 produced (read-only; the cut itself
    is O1's): `shasum -a 256 tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl`
    matches `tools/fixtures/README.md`; `wc -l` = 67;
    `git diff --stat main -- tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
    is empty; the p4 fixture's sha256 is asserted before and after every
    self-test case that reads it — traces to `docs/spec/telemetry-reader.md`
    §Fixture-Based Test Contract (REQ-TELEM-HARNESSP5-007).
-4. [verify] Fill `Test` and `Implementation` (never `Verified` — that column
+4. [x] [verify] Fill `Test` and `Implementation` (never `Verified` — that column
    is `sdd-verify`'s at DONE) for
    REQ-TELEM-HARNESSP5-001..008 in `docs/ws/harness-p5/traceability.md` —
    traces to `docs/spec/ws-traceability.md` §Per-Workstream File Shape.
