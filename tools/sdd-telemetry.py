@@ -1049,12 +1049,19 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
                     and (stage, d.get("chunk")) not in verifier_chunks:
                 add(seq, "cross-field", "verdict.chunk_verdict",
                     f"non-null on a {kind} record with no verifier record for chunk {d.get('chunk')!r} in the session")
+            # git.head_before / head_after are the write-scope snapshot pair (write-scope.md §3):
+            # HEAD_after is taken on the leaf's return, BEFORE the orchestrator commits, so a
+            # compliant sequential leaf always shows equal heads at `proceed`. Equal heads are a
+            # finding only when the record shows nothing landed: no landed commit group
+            # (`commit.token` null, or a v1 record with no `commit` group at all) while the leaf
+            # reports files written (Q-IMPL-HARNESSP4-005 item 2, Q-IMPL-HARNESSP4-007).
             hb, ha = _get(r, "git", "head_before"), _get(r, "git", "head_after")
             if stage == "implement" and kind in ("pipeline", "fix") and _get(r, "gate", "decision") == "proceed" \
                     and isinstance(hb, str) and SHA_RE.fullmatch(hb) and hb == ha \
-                    and _get(r, "return", "files_written_n", default=1) != 0:
+                    and _get(r, "return", "files_written_n", default=1) != 0 \
+                    and _get(r, "commit", "token") is None:
                 add(seq, "cross-field", "git.head_after",
-                    "proceed at implement with head_before == head_after (nothing was committed)")
+                    "proceed at implement with head_before == head_after and no landed commit group (nothing landed)")
             if kind in NON_COMMITTING_KINDS and _get(r, "commit", "token") is not None:
                 add(seq, "cross-field", "commit.token", f"non-null on a {kind} record, whose gate commits nothing")
     for s in reason_review_warnings(valid):
@@ -1567,6 +1574,23 @@ def self_test() -> int:
         check(classes([cv_only]).get("cross-field") == ["verdict.chunk_verdict"], f"chunk_verdict without verifier: {classes([cv_only])}")
         same_heads = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1}, git={"head_before": "c38922d", "head_after": "c38922d"})
         check(classes([same_heads]).get("cross-field") == ["git.head_after"], f"proceed implement with equal heads: {classes([same_heads])}")
+        # Q-IMPL-HARNESSP4-007: the heads are the snapshot pair (HEAD_after is taken before the
+        # orchestrator commits), so equal heads alone mean nothing; the rule fires only when the
+        # record shows nothing landed — a null `commit.token` (or a v1 record, which has no commit
+        # group) with files_written_n > 0. A COMPLETE / INCOMPLETE commit group exempts the record.
+        landed_same = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1},
+                               git={"head_before": "c38922d", "head_after": "c38922d"},
+                               commit={"token": "COMPLETE", "missing_n": 0, "extra_n": 0})
+        check(classes([landed_same]) == {}, f"equal heads with commit.token COMPLETE is exempt: {classes([landed_same])}")
+        landed_partial = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1},
+                                  git={"head_before": "c38922d", "head_after": "c38922d"},
+                                  commit={"token": "INCOMPLETE", "missing_n": 1, "extra_n": 0})
+        check(classes([landed_partial]) == {}, f"equal heads with commit.token INCOMPLETE is exempt: {classes([landed_partial])}")
+        v1_same = _record(dispatch={"seq": 1, "stage": "implement", "chunk": 1})
+        check(classes([v1_same]).get("cross-field") == ["git.head_after"], f"v1 proceed implement with equal heads (no commit group): {classes([v1_same])}")
+        nothing_written = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1},
+                                   git={"head_before": "c38922d", "head_after": "c38922d"}, **{"return": {"files_written_n": 0}})
+        check(classes([nothing_written]) == {}, f"equal heads, null token, files_written_n 0 is exempt: {classes([nothing_written])}")
         # gapless in-domain v2 fixture (the compliant redone chunk of C1 with real heads) exits 0
         def rec2(seq, kind, stage, chunk=None, redo=None, reason=None, cv=None, rv=None, red=None,
                  decision="proceed", gate_of=None, before="c38922d", after="c38922d", commit=None):

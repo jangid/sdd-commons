@@ -560,7 +560,11 @@ ISO-8601 UTC timestamps, `v ∈ {1, 2}`), the fixed key set per `v`
 (`key-undeclared`, `key-missing`, the optional `migration` marker only in its
 declared shape) and the cross-field rules (`[mistyped-fix]`, a `chunk_verdict`
 with no `verifier` record for the chunk, a `proceed` implement record with
-`head_before == head_after`, a non-null `commit.token` on a kind whose gate
+`head_before == head_after` **that shows nothing landed** — `commit.token`
+null, or a `v: 1` record with no `commit` group, while `files_written_n > 0`;
+the heads are the snapshot pair, taken before the orchestrator commits, so a
+record whose `commit.token` is `COMPLETE` or `INCOMPLETE` is exempt
+(Q-IMPL-HARNESSP4-007) — a non-null `commit.token` on a kind whose gate
 never commits). One line per finding, `seq <n>: [<class>] <group.key>:
 <message>`; `WARN seq <n>: [reason-review] …` is a warning and never affects
 the exit code. Exit 1 on any finding, 0 when clean. Like `summarize`, it is
