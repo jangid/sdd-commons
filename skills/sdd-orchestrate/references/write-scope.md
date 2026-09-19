@@ -541,7 +541,8 @@ position, token family, pause options and telemetry group are its own.
 **Comparands.**
 
 ```
-landed   := git diff --name-only --no-renames <HEAD_before> <HEAD_landed>
+landed   := git diff --name-only --no-renames -z <HEAD_before> <HEAD_landed>
+            # -z: NUL-separated output, split on \0, so a space in a path stays one path
             # a two-sha RANGE, captured right after the orchestrator's own commit
             # (or merge) and BEFORE any bookkeeping commit — never `git show HEAD`
 expected := <mode-specific path set — table below>
@@ -580,8 +581,8 @@ COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <p
 
 | Gate | `expected` | `landed` | When computable | Position in the gate |
 |---|---|---|---|---|
-| sequential per-chunk gate and stage gate, on `proceed` | **observed writes only** — `porcelain_delta ∪ committed_delta ∪ content_delta` (§3) | `git diff --name-only --no-renames HEAD_before HEAD_landed`, captured right after the orchestrator's commit and before any bookkeeping commit | post-decision | closing line of the same gate — item 8 of `loop-control.md` §5 |
-| fan-out **per-leaf** gate | the leaf's observed writes in its worktree | the leaf's committed delta `git diff --name-only --no-renames <base> <tip>` — the write-scope check's own term (b) | pre-decision | position **2b** of `loop-control.md` §5 — after `SCOPE:`, before `CHUNK_VERDICT:` (`fan-out.md` §3a.v) |
+| sequential per-chunk gate and stage gate, on `proceed` | **observed writes only** — `porcelain_delta ∪ committed_delta ∪ content_delta` (§3) | `git diff --name-only --no-renames -z HEAD_before HEAD_landed` (NUL-separated, split on `\0`), captured right after the orchestrator's commit and before any bookkeeping commit | post-decision | closing line of the same gate — item 8 of `loop-control.md` §5 |
+| fan-out **per-leaf** gate | the leaf's observed writes in its worktree | the leaf's committed delta `git diff --name-only --no-renames -z <base> <tip>` (split on `\0`) — the write-scope check's own term (b) | pre-decision | position **2b** of `loop-control.md` §5 — after `SCOPE:`, before `CHUNK_VERDICT:` (`fan-out.md` §3a.v) |
 | fan-out **merge step**, per branch | that leaf's committed delta `base..tip` | `git diff --name-only --no-renames PRE_MERGE HEAD` on the integration branch | post-`proceed`, at merge | closing line after the merge — item 8 (`fan-out.md` §3b) |
 
 `base`, `tip` and `PRE_MERGE` are the shas `fan-out.md` §3a.v / §3b already

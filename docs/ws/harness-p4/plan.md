@@ -1,6 +1,6 @@
 ---
 workstream: harness-p4
-status: active
+status: complete
 research_id: RS-HARNESSP4-001
 last_updated: 2026-09-19
 ---
@@ -667,7 +667,7 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   classes, no record text) for the hand-off. If the pre-migration `--lint`
   shows findings on the migrated records' **typed** fields beyond the 8
   `chunk` strings, do not migrate — raise the replan trigger below.
-- [ ] **O3 — Live `COMMIT:` observation** (REQ-HARN-HARNESSP4-001;
+- [x] **O3 — Live `COMMIT:` observation** (REQ-HARN-HARNESSP4-001;
   `harness-commit-fidelity.md` §Live Exercise Required). From the first
   implement gate that runs after Chunk 0 lands in the orchestrator's own loaded
   skill text, the operator notes each `COMMIT:` line as rendered (token, counts)
@@ -677,9 +677,18 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   orchestrator session predates Chunk 0 and never renders the line, the
   operator records that fact so `sdd-verify` descopes at replan rather than
   failing the row.
-- [ ] **O4 — Chunk 7 write scope**. When dispatching Chunk 7 the operator widens
+  Observed live 2026-09-19 at the Chunk 0 per-chunk gate: forced omission
+  rendered `COMMIT: INCOMPLETE (1 observed, not landed:
+  docs/ws/harness-p4/traceability.md)`; `amend` re-rendered `COMMIT: COMPLETE
+  (10 paths)` with no scope block re-rendered, before the next dispatch; every
+  later gate rendered `COMMIT: COMPLETE` (5, 6, 6, 5, 3, 3, 5, 8 paths for
+  Chunks 1, 2, 3, 4, 3-redo, 5, 6, 7).
+- [x] **O4 — Chunk 7 write scope**. When dispatching Chunk 7 the operator widens
   the leaf's write scope by exactly one path, `docs/spec/harness-chunk-verifier.md`
   (fence only), and expects `scope.widened: 1` on that record and `SCOPE: CLEAN`.
+  Observed live 2026-09-19: Chunk 7 dispatched with the default scope plus
+  exactly `docs/spec/harness-chunk-verifier.md`; record `scope.widened: 1`,
+  `SCOPE: CLEAN`.
 
 ## Replan Triggers
 
@@ -723,7 +732,15 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
 
 ## Completed
 
-(none yet)
+- Chunk 0 — `COMMIT:` signal — the harness contract text — committed
+- Chunk 1 — `COMMIT:` self-test helper, fixtures C1–C5 and the strict observed-writes set — committed
+- Chunk 2 — Telemetry P2 — one record per dispatch kind and implication-derived `expected` — committed
+- Chunk 3 — Telemetry P3 — whole-schema `--lint`, `v: 2`, `scope.widened` and the `commit` group — committed
+- Chunk 3 redo — equal-heads lint rule narrowed (Q-IMPL-HARNESSP4-007) — committed
+- Chunk 4 — Telemetry P1 — the `migrate` subcommand (code only; the live run is an operator task) — committed
+- Chunk 5 — Arbitration — §2a fixture repair and the `regen[N]` schema, ready for the live exercise — committed
+- Chunk 6 — Tooling housekeeping — `[template-drift]` lint rule and the `R`/`C` + `-z` scope fixtures — committed
+- Chunk 7 — Text housekeeping — column-0 terminal token, `research_id:` stamp order, `pending-red` wording, `CLAUDE.md` qualifier — committed
 
 ## Risks
 

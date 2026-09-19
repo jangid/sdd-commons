@@ -70,6 +70,9 @@ two path sets; ``landed`` is always the two-sha range ``HEAD_before..HEAD_landed
                                                    a later regeneration commit changes nothing
   C5  conflict -> abort -> redo                  -> the redo's own sets -> COMPLETE (1 path);
                                                    never a third token
+  C6  sequential commit, observed and landed     -> COMPLETE (2 paths), the space path
+      both hold ``docs/notes with space.md``        counted once (``-z``, split on ``\0``);
+                                                   whitespace split -> false INCOMPLETE
 
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
@@ -535,7 +538,7 @@ def observed_paths(obs: Observation) -> set[str]:
 
 
 def landed_paths(repo: str, head_before: str, head_landed: str) -> set[str]:
-    """``git diff --name-only --no-renames <HEAD_before> <HEAD_landed>`` as a set.
+    """``git diff --name-only --no-renames -z <HEAD_before> <HEAD_landed>`` as a set.
 
     The two-sha RANGE comparand of §7a: captured right after the orchestrator's
     own commit or merge and before any bookkeeping commit. The same command
@@ -543,16 +546,20 @@ def landed_paths(repo: str, head_before: str, head_landed: str) -> set[str]:
     is the fan-out ``expected``. ``--no-renames`` keeps a rename as two paths so
     both sides agree with §3's observation.
     """
-    return set(git(repo, "diff", "--name-only", "--no-renames", head_before, head_landed).stdout.split())
+    # ``-z`` NUL-separates the paths; split on ``\0`` and drop the empty trailing
+    # token so a path containing a space (F16 / C6) stays one path.
+    out = git(repo, "diff", "--name-only", "--no-renames", "-z", head_before, head_landed).stdout
+    return {p for p in out.split("\0") if p}
 
 
 def show_head_paths(repo: str, sha: str) -> set[str]:
-    """``git show --name-only --format= <sha>`` — the REJECTED comparand, kept as C3's negative control.
+    """``git show --name-only --format= -z <sha>`` — the REJECTED comparand, kept as C3's negative control.
 
     It names only that one commit's paths (empty for a merge commit), so after a
     fast-forward of a multi-commit leaf it renders a false ``INCOMPLETE``.
     """
-    return set(git(repo, "show", "--name-only", "--format=", sha).stdout.split())
+    out = git(repo, "show", "--name-only", "--format=", "-z", sha).stdout
+    return {p for p in out.split("\0") if p}
 
 
 def commit_check(expected: set[str], landed: set[str]) -> str:
@@ -1466,6 +1473,37 @@ def scenario_c5(repo: str) -> tuple[bool, str, list[str]]:
     return ok, line, [f"first attempt (aborted): {sorted(first_attempt)}", line]
 
 
+def scenario_c6(repo: str) -> tuple[bool, str, list[str]]:
+    """C6 sequential commit whose observed and landed sets hold ``docs/notes with space.md``.
+
+    ``git diff --name-only`` prints a path containing a space unquoted, so a
+    whitespace split of its output would break the landed operand into three
+    tokens and render a false ``COMMIT: INCOMPLETE`` for the F16 path. Both
+    comparands are parsed with ``-z`` and split on ``\0``, so the path is
+    counted once and the gate renders ``COMMIT: COMPLETE (2 paths)``. The
+    whitespace-split rendering is kept as the negative control.
+    """
+    head_before, before, content_before = _begin(repo)
+    write(repo, "a.txt", "a\n")
+    write(repo, "docs/notes with space.md", "# Notes\n")
+    expected = observed_paths(observe(repo, head_before, before, content_before=content_before))
+    git(repo, "add", "a.txt", "docs/notes with space.md")
+    git(repo, "commit", "-q", "-m", "chunk with a space path")
+    head_landed = head_sha(repo)
+    landed = landed_paths(repo, head_before, head_landed)
+    line = commit_check(expected, landed)
+    # Negative control: the pre-fix whitespace split of the non-``-z`` output.
+    naive = set(git(repo, "diff", "--name-only", "--no-renames", head_before, head_landed).stdout.split())
+    line_naive = commit_check(expected, naive)
+    ok = (
+        expected == {"a.txt", "docs/notes with space.md"}
+        and landed == expected
+        and line == "COMMIT: COMPLETE (2 paths)"
+        and line_naive.startswith("COMMIT: INCOMPLETE (1 observed, not landed: docs/notes with space.md;")
+    )
+    return ok, f"{line} (whitespace split would render: {line_naive})", [line, line_naive]
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -1488,6 +1526,7 @@ SCENARIOS = [
     ("C3", "COMMIT: fan-out fast-forward of a two-commit leaf (range vs git show)", scenario_c3),
     ("C4", "COMMIT: fan-out true merge after a bookkeeping commit", scenario_c4),
     ("C5", "COMMIT: conflict -> abort -> redo compares the redo's own sets", scenario_c5),
+    ("C6", "COMMIT: path with a space counted once (-z landed operand, NUL split)", scenario_c6),
 ]
 
 
