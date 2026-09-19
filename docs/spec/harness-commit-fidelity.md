@@ -399,3 +399,4 @@ Run per `sdd-specs` Step 4b against `harness-write-scope.md`,
 **Spec reference**: §Verification / Automated — `python3 tools/sdd-scope-check-selftest.py --self-test`
 **Decision**: `tools/sdd-scope-check-selftest.py` gains an accepted `--self-test` flag; it is a no-op selector because running the fixtures is the script's only mode (its argparse previously knew only `-v` / `--keep`, so the spec's command would have exited 2).
 **Rationale**: keeps the spec's and the plan's Close-out command literal and gives the tool the same invocation shape as `tools/sdd-skill-lint.py --self-test`, without adding a second mode. Bare invocation is unchanged.
+**Date**: 2026-09-19 (harness-p4 Chunk 1)

@@ -673,6 +673,7 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   shows findings on the migrated records' **typed** fields beyond the 8
   `chunk` strings, do not migrate — raise the replan trigger below.
   Pending: to be run by the operator in a closed-session window after the implement stage closes and before the verify dispatch; evidence recorded here when done.
+  Operator boxes O1–O4 are evidence records, not leaf tasks; the orchestrator's completion parse counts numbered chunk tasks only, and O2 is run by the operator between the implement-stage close and the verify dispatch, then ticked by hand.
 - [x] **O3 — Live `COMMIT:` observation** (REQ-HARN-HARNESSP4-001;
   `harness-commit-fidelity.md` §Live Exercise Required). From the first
   implement gate that runs after Chunk 0 lands in the orchestrator's own loaded
@@ -709,7 +710,9 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   needs a `dispatch-templates.md` change → replan Chunk 5 to add the slot text
   before O1 runs; do not improvise the instruction in the gate.
 - If no `APPROVE_WITH_FIXES` review occurs in the cycle before the verify stage
-  (O1 never fires), or the live `COMMIT:` line never renders (O3), or the
+  (O1 never fires), or O1 fires but does not demonstrate the union (the pause
+  renders on the regenerated file), or the live `COMMIT:` line never renders
+  (O3), or the
   running orchestrator session's loaded skill text predates Chunk 2 and never
   writes `verifier` / `fix` records (Verification Hand-off item 4) → descope
   REQ-ARB-HARNESSP4-001 / carried REQ-ARB-HARNESSP3-001,
@@ -783,10 +786,10 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   used instead. Cited contract: `arbitrated-handoff.md` §Live Exercise of the
   Union in harness-p4; authority rule for the duplicated aggregate row per
   Q-IMPL-HARNESSP4-001 (no code change).
-- **Q-PLAN-P4-2 — `--plan` floor (REQ-TELEM-HARNESSP4-008, `may`).** Built only
-  if Chunk 3's budget allows after tasks 1–5; otherwise queued under
-  `verification.md` §Next Steps as the spec permits. No operator decision is
-  fabricated here; the leaf reports `built | not built` in its `RETURN:`.
+- **Q-PLAN-P4-2 — `--plan` floor (REQ-TELEM-HARNESSP4-008, `may`).** Resolved:
+  Built (Chunk 3 task 6, self-tested; floor 8 / shortfall 0 on the p3
+  fixture). Was: built only if Chunk 3's budget allows after tasks 1–5,
+  otherwise queued under `verification.md` §Next Steps.
 - **Q-PLAN-P4-3 — `v: 2` writer surface.** The plan assumes the orchestrator's
   writer text in `SKILL.md` is the only place that needs the `v: 2` bump
   (Q-IMPL-HARNESSP4-002); if a dispatch template also embeds the record shape,
@@ -798,14 +801,24 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
 `research_id: RS-HARNESSP4-001` on the next line, per REQ-CYCID-HARNESSP4-001)
 must record, beyond the per-spec acceptance criteria:
 
-1. **Live arbitration exercise (O1)** — stage, review rounds N / N+1, the
-   regenerated paths, the retained `regen[N]` entry (with the `by: orchestrator`
-   aggregate where present) and the observed **absence** of a class (b)
-   `REVIEW: CONTRADICTION` line; on that evidence the carried
-   `REQ-ARB-HARNESSP3-001` row and `REQ-ARB-HARNESSP4-001` read `pass` in
-   `docs/ws/harness-p4/traceability.md`, and the regenerated aggregate shows
-   the `harness-p4` row as authoritative beside the `harness-p3` history row
-   (Q-IMPL-HARNESSP4-001).
+1. **Live arbitration exercise (O1) — exercised, not demonstrated.** The
+   live exercise ran at the implement stage (see §Operator Tasks O1): fix #1
+   regenerated `docs/ws/harness-p4/plan.md` wholesale, but the regenerated
+   deliverable was byte-identical outside its three changed sections, so
+   diff-based section resolution (`loop-control.md` §2a as written) added no
+   sections to `W_1`; round 2 then raised findings on the regenerated file's
+   untouched sections and on `SKILL.md`, and the gate rendered
+   `REVIEW: CONTRADICTION (round 1 vs round 2, class b)`. The union was
+   therefore **exercised but NOT demonstrated**. `sdd-verify` must record the
+   observed pause (stage, rounds 1 / 2, the regenerated path, the retained
+   `regen[1]` entry) and the two readings — diff-based, as §2a is written,
+   versus provenance-based `regen[N] = (file, *)` per Q-IMPL-HARNESSP3-010 —
+   and on that evidence the `REQ-ARB-HARNESSP4-001` row and the carried
+   `REQ-ARB-HARNESSP3-001` row are **descoped at replan under the DONE rule**
+   (listed under `verification.md` §Next Steps as a p5 spec question); they
+   are never closed `fail` and never written `pass` on this evidence. The
+   regenerated aggregate still shows the `harness-p4` row beside the
+   `harness-p3` history row (Q-IMPL-HARNESSP4-001).
 2. **Live `COMMIT:` rendering (O3)** — at least one gate's `COMMIT:` line as
    rendered (token and counts, no paths needed), its position after the commit
    and before the next dispatch, and, if forced, the `INCOMPLETE` → `amend` →

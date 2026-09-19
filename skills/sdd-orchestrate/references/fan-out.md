@@ -286,8 +286,9 @@ for each leaf, on return:
   a2. COMMIT-FIDELITY, per-leaf clause (position 2b of loop-control.md §5 — after
      SCOPE:, before CHUNK_VERDICT:; comparands and pause: write-scope.md §7a):
        expected := the leaf's observed writes in its worktree (a ∪ b ∪ content delta)
-       landed   := union of `git -C <worktree> diff --name-only --no-renames <base> <tip>`
+       landed   := union of `git -C <worktree> diff --name-only --no-renames -z <base> <tip>`
                    over `git rev-list <base>..<tip>` — i.e. the branch's committed delta
+                   (NUL-separated, split on `\0`, so a space in a path stays one path)
        COMMIT: COMPLETE (N paths) | COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <paths>])
      The comparison reduces to the leaf's UNCOMMITTED writes — exactly what
      teardown (§3d) would discard. Second clause on the SAME line, return side:
@@ -350,8 +351,9 @@ on the integration branch immediately before `git merge`, and after exit 0
 render the closing line **before** any §3e bookkeeping commit:
 
 ```
-expected := that leaf's committed delta   git diff --name-only --no-renames <base> <tip>
-landed   := git diff --name-only --no-renames PRE_MERGE HEAD          # two-sha range — never `git show HEAD`
+expected := that leaf's committed delta   git diff --name-only --no-renames -z <base> <tip>
+landed   := git diff --name-only --no-renames -z PRE_MERGE HEAD       # two-sha range — never `git show HEAD`
+# both NUL-separated, split on `\0`, so a space in a path stays one path
 COMMIT: COMPLETE (N paths) | COMMIT: INCOMPLETE (k observed, not landed: <paths>[; j landed, not observed: <paths>])
 ```
 
