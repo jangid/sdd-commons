@@ -245,6 +245,38 @@ REQUIRED = [
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
 # retune them without touching check logic. references/*.md and USAGE.md are
 # exempt — the entry point is what must read as a table of contents.
+# skill-lint-v5.md §`[template-drift]` (REQ-LINT-HARNESSP4-001): fenced leaf
+# bodies that a spec restates verbatim must stay byte-identical to their source
+# of record, `references/dispatch-templates.md`. One row per restated body.
+# `anchor` is the fence's FIRST line (so the rule survives a heading rename) and
+# is matched on both sides; the comparison is byte-for-byte on the fence body
+# with only the fence markers stripped — no whitespace normalisation, because
+# the column-0 token contract of REQ-HARN-HARNESSP4-007 is itself a whitespace
+# fact. Every row carries the one fix: the skill side is the source of record.
+TEMPLATE_SOURCE = "skills/sdd-orchestrate/references/dispatch-templates.md"
+TEMPLATE_DRIFT_FIX = (
+    "edit skills/sdd-orchestrate/references/dispatch-templates.md (source of record) — "
+    "the spec side is Approved and stable; if the spec is the intended change, amend both in one commit"
+)
+TEMPLATE_PAIRS = [
+    {"anchor": "You are a non-interactive chunk-close verifier. Do NOT ask questions.",
+     "body": "CHUNK VERIFIER dispatch prompt body (incl. the RETURN: block)",
+     "spec": "docs/spec/harness-chunk-verifier.md", "section": "§Verifier Dispatch Template",
+     "fix": TEMPLATE_DRIFT_FIX},
+    {"anchor": "CHUNK_VERDICT: PASS  iff  Check 1 has zero blocking findings",
+     "body": "CHUNK VERIFIER verdict rule",
+     "spec": "docs/spec/harness-chunk-verifier.md", "section": "§Verdict Rule",
+     "fix": TEMPLATE_DRIFT_FIX},
+    {"anchor": "You are a non-interactive RED TEAM subagent — the adversarial second executor of",
+     "body": "RED TEAM dispatch prompt body",
+     "spec": "docs/spec/adversarial-verify.md", "section": "§Red Dispatch Template",
+     "fix": TEMPLATE_DRIFT_FIX},
+    {"anchor": "## Red team — <spec.md> acceptance criteria",
+     "body": "RED TEAM RETURN: block (return-contract example)",
+     "spec": "docs/spec/adversarial-verify.md", "section": "§Return Contract and `RED_VERDICT:`",
+     "fix": TEMPLATE_DRIFT_FIX},
+]
+
 SIZE_WARN_LINES = 400   # entry point should read as a table of contents
 SIZE_FAIL_LINES = 1000  # project guideline (REQ-ORCH-019)
 SIZE_FIX = ("move detail to references/ and leave a stub; the entry point should "
@@ -424,6 +456,71 @@ class Linter:
                           "lost the collapsed v4 ownership summary (audit P1)",
                           "restore the `common v4 contract` ownership summary paragraph")
 
+    @staticmethod
+    def fences(text: str) -> list[tuple[int, str]]:
+        """Every ``` fence in `text` as (1-based line of the opening marker, body).
+
+        The body is the raw text strictly between the two marker lines — the
+        fence markers are stripped and nothing else is touched (no strip(), no
+        whitespace fold), so a comparison of two bodies is byte-for-byte.
+        """
+        lines = text.split("\n")
+        out: list[tuple[int, str]] = []
+        i = 0
+        while i < len(lines):
+            if lines[i].startswith("```"):
+                j = i + 1
+                while j < len(lines) and not lines[j].startswith("```"):
+                    j += 1
+                out.append((i + 1, "\n".join(lines[i + 1:j])))
+                i = j + 1
+            else:
+                i += 1
+        return out
+
+    def check_template_drift(self) -> None:
+        """[template-drift]: each TEMPLATE_PAIRS restatement equals its source fence.
+
+        Repo-specific (the rows name this repo's specs), so it runs with the
+        other suite rows only. A spec file absent from the root warns, never
+        fails (a consumer repo linted via REPO_ROOT has no docs/spec/ — the
+        F11 principle); a present file that lost its anchored fence fails
+        alone with the counterpart named (Q-IMPL-HARNESSP4-008).
+        """
+        if not self.suite_rules:
+            return
+        source = self.root / TEMPLATE_SOURCE
+        if not source.is_file():
+            return  # the REQUIRED rows already report a missing source of record
+        # newline="" keeps CR/LF bytes as written — the comparison is byte-for-byte.
+        src_fences = self.fences(source.read_text(encoding="utf-8", newline=""))
+        for pair in TEMPLATE_PAIRS:
+            anchor = pair["anchor"]
+            src = [(n, b) for n, b in src_fences if b.split("\n", 1)[0].startswith(anchor)]
+            spec_path = self.root / pair["spec"]
+            if not spec_path.is_file():
+                self.flag(spec_path, None, "template-drift",
+                          f"restating spec for the {pair['body']} is absent — pair not checked",
+                          pair["fix"], severity="warn")
+                continue
+            spec_fences = [(n, b) for n, b in self.fences(spec_path.read_text(encoding="utf-8", newline=""))
+                           if b.split("\n", 1)[0].startswith(anchor)]
+            if not src:
+                self.flag(source, None, "template-drift",
+                          f"no fence opens with `{anchor}` — the {pair['body']} source of record is gone "
+                          f"while {pair['spec']} {pair['section']} still restates it", pair["fix"])
+                continue
+            if not spec_fences:
+                self.flag(spec_path, None, "template-drift",
+                          f"no fence opens with `{anchor}` — {pair['section']} no longer restates the "
+                          f"{pair['body']} of dispatch-templates.md L{src[0][0]}", pair["fix"])
+                continue
+            src_line, src_body = src[0]
+            for spec_line, spec_body in spec_fences:
+                if spec_body != src_body:
+                    self.flag(spec_path, spec_line, "template-drift",
+                              f"fenced body diverges from dispatch-templates.md L{src_line}", pair["fix"])
+
     def check_ordinals(self) -> None:
         """Numbered-list ordinals outside code fences must increment by one.
 
@@ -536,6 +633,7 @@ class Linter:
         self.check_structure()
         self.check_forbidden()
         self.check_required()
+        self.check_template_drift()
         self.check_ordinals()
         self.check_links()
         self.check_size()
@@ -759,6 +857,48 @@ def self_test() -> int:
                     check(re.search(r["pattern"], good) is not None,
                           f"COMMIT: row pattern no longer matches `{good}`")
                 check("write-scope.md §7" in r["fix"], "COMMIT: row fix must point at write-scope.md §7")
+            # -- 7c. [template-drift] (REQ-LINT-HARNESSP4-001): the four pair rows
+            #       compare byte-identical on the shipped set (skills + docs/spec
+            #       copied to a temp root); one character changed inside the RED
+            #       TEAM `RETURN:` block of the temp dispatch-templates.md exits 1
+            #       with a finding naming adversarial-verify.md and the fix, and
+            #       fires no chunk-verifier row.
+            check(len(TEMPLATE_PAIRS) == 4, f"expected the four TEMPLATE_PAIRS rows, found {len(TEMPLATE_PAIRS)}")
+            check(all(r.get("fix") for r in TEMPLATE_PAIRS), "TEMPLATE_PAIRS row without fix")
+            real_spec = real_skills.parent / "docs" / "spec"
+            check(real_spec.is_dir(), "docs/spec/ missing beside the real skill suite")
+            if real_spec.is_dir():
+                drift_root = root / "drift"
+                shutil.copytree(real_skills, drift_root / "skills")
+                shutil.copytree(real_spec, drift_root / "docs" / "spec")
+                clean = Linter(drift_root)
+                clean.check_template_drift()
+                check(clean.findings == [],
+                      "shipped restated bodies are not byte-identical:\n" + "\n".join(t for _, t in clean.findings))
+                target = drift_root / TEMPLATE_SOURCE
+                text = target.read_text(encoding="utf-8", newline="")
+                red_return = next((b for _, b in Linter.fences(text)
+                                   if b.startswith("## Red team — <spec.md> acceptance criteria")), None)
+                check(red_return is not None and "RETURN:" in red_return,
+                      "RED TEAM RETURN: fence not found in dispatch-templates.md")
+                if red_return is not None and "RETURN:" in red_return:
+                    body_lines = red_return.split("\n")
+                    key_line = body_lines[body_lines.index("RETURN:") + 1]      # `  status: COMPLETE`
+                    flipped = key_line[:-1] + ("X" if key_line[-1] != "X" else "Y")
+                    target.write_text(text.replace(red_return, red_return.replace(key_line, flipped, 1), 1),
+                                      encoding="utf-8", newline="")
+                    buf = io.StringIO()
+                    with contextlib.redirect_stdout(buf):
+                        code = Linter(drift_root).run()
+                    out = buf.getvalue()
+                    drift_lines = [ln for ln in out.splitlines() if "[template-drift]" in ln]
+                    check(code == 1, f"RED TEAM RETURN: mutation did not fail the lint:\n{out}")
+                    check(len(drift_lines) == 1 and "adversarial-verify.md" in drift_lines[0]
+                          and "diverges from dispatch-templates.md L" in drift_lines[0],
+                          f"expected one [template-drift] line naming adversarial-verify.md:\n{out}")
+                    check(TEMPLATE_DRIFT_FIX in out, f"[template-drift] fix string not printed:\n{out}")
+                    check(not any("harness-chunk-verifier.md" in ln for ln in drift_lines),
+                          f"chunk-verifier pair fired on a RED TEAM mutation:\n{out}")
 
         # -- 7b. the shipped `\.sdd/` FORBIDDEN row (REQ-TELEM-HARNESSP2-007,
         #       REQ-LINT-HARNESSP2-002): fenced mention in a non-allowlisted skill

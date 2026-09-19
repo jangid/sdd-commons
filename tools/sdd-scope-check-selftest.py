@@ -10,7 +10,8 @@ write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
 §Specs Row Names the Per-Workstream Traceability Path (F11) and
 ``docs/spec/ws-traceability.md`` §Aggregate Regeneration Ownership (F12),
 ``docs/spec/harness-write-scope.md`` §`## Post-cycle Fixes` Is Inside the
-Implement / ``RED_BREAK`` Scope (F13) against the
+Implement / ``RED_BREAK`` Scope (F13) and §`R`/`C` Records and `-z` Parsing
+Are Fixture-Exercised (F15, F16) against the
 observation procedure defined in ``skills/sdd-orchestrate/references/write-scope.md``:
 
   §3  the three commands — porcelain delta, committed delta, ancestry check —
@@ -47,6 +48,12 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
   F14 strict set: a path already dirty, then    -> rendered once, labelled
       committed and dirtied again (committed       "committed <sha>",
       AND content delta)                           SCOPE: VIOLATION (1 path)
+  F15 rename across the scope boundary:         -> both paths in the ambiguous and
+      ``git mv src/a.py docs/moved.py``             observed sets (one ``R`` record),
+                                                   new path OUT, VIOLATION (1 path)
+  F16 path with a space, untracked              -> ``-z`` keeps ONE record; observed
+      ``docs/notes with space.md``                  and rendered as one path, VIOLATION
+                                                   (1 path)
 
 Commit-fidelity fixtures (``docs/spec/harness-commit-fidelity.md`` §Self-Test
 Helper and Fixtures, ``references/write-scope.md`` §7a) — the pure helper
@@ -1216,6 +1223,67 @@ def scenario_f14(repo: str) -> tuple[bool, str, list[str]]:
     return ok, f.token, f.lines
 
 
+def scenario_f15(repo: str) -> tuple[bool, str, list[str]]:
+    """Rename across the scope boundary: ``git mv`` a scoped path out of scope.
+
+    ``harness-write-scope.md`` §`R`/`C` Records and `-z` Parsing Are
+    Fixture-Exercised (REQ-HARN-HARNESSP4-005): the leaf runs
+    ``git mv src/a.py docs/moved.py`` during the dispatch. ``-z`` porcelain
+    emits ONE ``R`` record whose original path is a second NUL-separated field;
+    ``snapshot`` rejoins it and ``_porcelain_paths`` yields **both** paths, so
+    both enter the ambiguous set and the observed set, the new path tags ``OUT``
+    against ``src/**``, and the rename is observed rather than cancelling.
+    """
+    head, before, content_before = _begin(repo)
+    git(repo, "mv", "src/a.py", "docs/moved.py")
+    after = snapshot(repo)
+    r_records = [rec for rec in after if rec.startswith("R")]
+    ambiguous = ambiguous_set(after)                      # both sides of the R record
+    obs = observe(repo, head, before, content_before=content_before)
+    f = render(SEQ_SCOPE_SRC, obs, "F15")
+    observed = {w.path for w in obs.writes}
+    ok = (
+        len(r_records) == 1
+        and "\0" in r_records[0]                          # one record, two fields
+        and "src/a.py" in ambiguous
+        and "docs/moved.py" in ambiguous
+        and observed == {"src/a.py", "docs/moved.py"}      # observed, not cancelled
+        and all(w.letter == "R" for w in obs.writes)
+        and any(ln.startswith("    IN") and "src/a.py" in ln for ln in f.lines)
+        and any(ln.startswith("    OUT") and "docs/moved.py" in ln for ln in f.lines)
+        and f.out_paths == ["docs/moved.py"]
+        and f.token == "SCOPE: VIOLATION (1 path)"
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_f16(repo: str) -> tuple[bool, str, list[str]]:
+    """Path with a space: ``-z`` keeps ``docs/notes with space.md`` one record.
+
+    ``harness-write-scope.md`` §`R`/`C` Records and `-z` Parsing Are
+    Fixture-Exercised (REQ-HARN-HARNESSP4-005): the written path contains a
+    space, the condition under which newline/whitespace splitting of porcelain
+    output would mangle or quote it. With ``-z`` it stays one unquoted record,
+    is observed once and rendered as one ``OUT`` path.
+    """
+    head, before, content_before = _begin(repo)
+    write(repo, "docs/notes with space.md", "# Notes\n")
+    after = snapshot(repo)
+    note_records = [rec for rec in after if "notes" in rec]
+    obs = observe(repo, head, before, content_before=content_before)
+    f = render(SEQ_SCOPE_SRC, obs, "F16")
+    note_lines = [ln for ln in f.lines if ln.startswith("    ") and "notes" in ln]
+    ok = (
+        note_records == ["?? docs/notes with space.md"]  # one record, unquoted
+        and [w.path for w in obs.writes] == ["docs/notes with space.md"]
+        and len(note_lines) == 1
+        and note_lines[0].startswith("    OUT")
+        and f.out_paths == ["docs/notes with space.md"]
+        and f.token == "SCOPE: VIOLATION (1 path)"
+    )
+    return ok, f.token, f.lines
+
+
 # ---------------------------------------------------------------------------
 # commit-fidelity fixtures C1–C5 (harness-commit-fidelity.md §Self-Test Helper)
 # ---------------------------------------------------------------------------
@@ -1413,6 +1481,8 @@ SCENARIOS = [
     ("F12", "orchestrated marker-4 verify dispatch also writes the shared aggregate", scenario_f12),
     ("F13", "RED_BREAK fix with no open chunk: ## Post-cycle Fixes append only", scenario_f13),
     ("F14", "strict set: one path in committed AND content delta, counted once", scenario_f14),
+    ("F15", "rename across the scope boundary: one -z R record, both paths observed", scenario_f15),
+    ("F16", "path with a space: -z keeps one record, observed and rendered once", scenario_f16),
     ("C1", "COMMIT: sequential omission (2 of 3 staged), then amended", scenario_c1),
     ("C2", "COMMIT: sequential inverse (stray.txt landed, not observed)", scenario_c2),
     ("C3", "COMMIT: fan-out fast-forward of a two-commit leaf (range vs git show)", scenario_c3),

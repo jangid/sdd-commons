@@ -503,7 +503,7 @@ baseline (no new finding on `arbitrated-handoff.md`).
 **Depends on**: Chunk 0, Chunk 1.
 **Delivers**: REQ-LINT-HARNESSP4-001, REQ-HARN-HARNESSP4-005.
 **Tasks**:
-1. [ ] [implement] `tools/sdd-skill-lint.py`: the `[template-drift]` rule — a
+1. [x] [implement] `tools/sdd-skill-lint.py`: the `[template-drift]` rule — a
    pair table (source `references/dispatch-templates.md` fence → restatement in
    `docs/spec/harness-chunk-verifier.md` §Verifier Dispatch Template and
    §Verdict Rule; `docs/spec/adversarial-verify.md` §Red Dispatch Template and
@@ -515,13 +515,13 @@ baseline (no new finding on `arbitrated-handoff.md`).
    to `skill-lint-v5.md` §`[template-drift]` — Fenced Leaf Bodies Restated in
    Specs Stay Byte-Identical (REQ-LINT-HARNESSP4-001). Files:
    `tools/sdd-skill-lint.py`
-2. [ ] [implement] `--self-test`: mutate one character inside the RED TEAM
+2. [x] [implement] `--self-test`: mutate one character inside the RED TEAM
    `RETURN:` block of a temp copy of `dispatch-templates.md` and assert exit 1
    with a `[template-drift]` line naming `adversarial-verify.md` and the fix;
    the shipped skill set exits 0 — traces to `skill-lint-v5.md`
    §`[template-drift]`; §Self-Test Extension (REQ-LINT-HARNESSP4-001). Files:
    `tools/sdd-skill-lint.py`
-3. [ ] [implement] `tools/sdd-scope-check-selftest.py`: add the rename fixture
+3. [x] [implement] `tools/sdd-scope-check-selftest.py`: add the rename fixture
    (`git mv` a scoped path to an out-of-scope path during the dispatch — both
    paths enter the ambiguous and observed sets, the new path tags `OUT`, the
    rename is observed rather than cancelling) and the space-path fixture
@@ -529,16 +529,22 @@ baseline (no new finding on `arbitrated-handoff.md`).
    one path); next free F-ids — traces to `harness-write-scope.md` §`R`/`C`
    Records and `-z` Parsing Are Fixture-Exercised (REQ-HARN-HARNESSP4-005).
    Files: `tools/sdd-scope-check-selftest.py`
-4. [ ] [verify] Mutation contract: in a temp copy, split porcelain output on
+4. [x] [verify] Mutation contract: in a temp copy, split porcelain output on
    newline instead of NUL → the space-path fixture fails; drop the rename's
    origin path from the ambiguous set → the `R` fixture fails; shipped
    self-test exits 0 — traces to `harness-write-scope.md` §Acceptance Criteria
    (REQ-HARN-HARNESSP4-005)
-5. [ ] [verify] `python3 tools/sdd-skill-lint.py` exits 0 on the shipped set
+5. [x] [verify] `python3 tools/sdd-skill-lint.py` exits 0 on the shipped set
    with `[template-drift]` active — i.e. the four bodies are byte-identical
    **today**, before Chunk 7 touches them; `grep -c '"fix"'
    tools/sdd-skill-lint.py` equals the rule-row count — traces to
-   `skill-lint-v5.md` §Acceptance Criteria (REQ-LINT-HARNESSP4-001)
+   `skill-lint-v5.md` §Acceptance Criteria (REQ-LINT-HARNESSP4-001) — done
+   2026-09-19: shipped lint exit 0 with the rule active (four bodies
+   byte-identical); `grep -c '"fix"'` = 59 = 51 rule rows (13 FORBIDDEN +
+   34 REQUIRED + 4 TEMPLATE_PAIRS, every row carrying a fix — asserted by
+   `--self-test`) + 8 non-row occurrences: four `pair["fix"]` reads in
+   `check_template_drift`, three `["fix"]`/`.get("fix")` reads and the
+   synthetic allow_files row inside `--self-test`
 
 **Entry criteria**: Chunks 0 and 1 complete.
 **Exit criteria**: `[template-drift]` is active and green; both new scope
