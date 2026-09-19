@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-20
 requires:
   - REQ-GC-HARNESSP2-001
   - REQ-GC-HARNESSP2-002
@@ -11,6 +11,7 @@ requires:
   - REQ-GC-HARNESSP2-007
   - REQ-SKILL-HARNESSP2-004
   - REQ-GC-HARNESSP3-001
+  - REQ-GC-HARNESSP5-001
 ---
 
 # Drift Sweep (`tools/sdd-gc.py`)
@@ -85,7 +86,7 @@ rules are scoped to `docs/**`. `sdd-gc.py` never reads `.sdd/`
 | 9 | orphan Q-IMPL (ii) defined-never-referenced | gc | `qimpl-unreferenced` | info | `deviation-protocol.md` — not a defect |
 | 10 | orphan Q-IMPL (iii) `Spec reference` section missing / broken `[superseded by …]` chain | gc | `qimpl-broken-ref` | warn | `deviation-protocol.md` §Numbering |
 | 11 | empty traceability cells — Spec-empty rows; Implementation-filled/Test-empty rows only; an amendment row (Spec differs from the legacy row for the same id, `telemetry.md` §XSPEC) inherits the legacy Verified and is never a gap | gc | `trace-empty` | warn | `sdd-verify` Step 3b policy |
-| 12 | aggregate `docs/requirements/traceability.md` == `regenerate(per-ws files)` (marker `4`) | gc | `traceability-aggregate` | warn | `ws-traceability.md` §Aggregation Contract |
+| 12 | aggregate `docs/requirements/traceability.md` == `regenerate(per-ws files)` (marker `4`); **and** no per-ws row is dropped by the row parser | gc | `traceability-aggregate`; `traceability-rowdrop` | warn; `traceability-rowdrop` **fail** | `ws-traceability.md` §Aggregation Contract; §Row-Drop Safety |
 | 13 | index ↔ directory: `research/index.md` rows ↔ `RS-*` dirs; `requirements/index.md` Files table ↔ category files; spec approval | gc | `index-research`, `index-requirements`, `spec-approval` | **fail**; `spec-approval` **fail** with `--workstream` (every spec traced by that workstream's plan must be Approved when `docs/ws/<id>/plan.md` exists), **warn** unscoped (any non-Approved spec while any plan exists) | `sdd-specs` / `sdd-plan` Phase Detection; `ws-staleness.md` live plan-walk |
 | 14 | `plan-history` naming discipline (`-replan-` only from `sdd-replan`; date prefix) | gc | `plan-history-name` | **fail** | `harness-loop-control.md` §Replan Re-entry Cap (REQ-HARN-003) |
 | 15 | new drift of skill text from spec wording; semantic orphaning | **excluded** (not mechanical) | — | — | review / dogfooding; named in `--help` |
@@ -164,6 +165,8 @@ numbers:
 | one dead `(see ../spec/nope.md)` link; one `requires: [REQ-ZZ-999]` | `xlink-dead`, `id-missing` | one fail each |
 | a `plan-history/replan-foo.md` without date prefix | naming | one fail |
 | shared traceability that differs from regeneration | `traceability-aggregate` | one warn; equal → none |
+| a per-ws row whose `Test` cell holds `\|` | row-drop safety | row survives `--fix traceability-aggregate` byte-for-byte (escape re-emitted); no `traceability-rowdrop` finding |
+| a per-ws row with five cells and no escaped pipe | `traceability-rowdrop` | exactly one **fail** at `<file>:<line>`; the row is not silently dropped |
 | a Spec-empty traceability row; an Implementation-filled/Test-empty row; a prose-only row with empty Test | `trace-empty` | two warns, not three |
 | a clean copy of the tree | baseline | `--report` exits 0 with no fail; lint size warnings pass through |
 | `--fix traceability-aggregate` twice | idempotence | second diff empty |
@@ -220,6 +223,38 @@ Every fix prints the paths it changed and changes nothing on a second run;
 it would mask staleness) and never edits `docs/ws/<other-id>/` when
 `--workstream <id>` is given. Any other rule → exit 2, `not a fixable rule`.
 
+### Row-Drop Safety (REQ-GC-HARNESSP5-001)
+
+The aggregate sweeps must not be able to **lose** a row. Two rules govern the
+row parser (`table_cells()`) and the row filter (`trace_rows()`):
+
+1. **Split on unescaped pipes only.** A `\|` inside a cell is literal content,
+   not a cell boundary; the parser consumes the escape and the regenerator
+   **re-emits it unchanged**, so a round-trip through
+   `--fix traceability-aggregate` is byte-identical for that cell. An HTML
+   entity (`&#124;`) is ordinary text and was never a boundary. Raw-pipe
+   splitting is the defect: it turned a `Test` cell holding a grep alternation
+   into seven cells, and the six-cell filter then discarded the row.
+2. **A wrong cell count is a finding, never a discard.** When a row still does
+   not yield the expected cell count after rule 1, gc emits
+   `<file>:<line> [traceability-rowdrop] <message>` at **fail** severity, with
+   a `fix:` naming the escape (`write a literal pipe as \| or &#124;`). The row
+   is then excluded from the regenerated aggregate for that run — but loudly,
+   and the run exits 1, so `--fix traceability-aggregate` is never committed
+   over a silent loss.
+
+Scope: this is a rule **addition**. No existing rule id, severity, counting
+rule or `FIXABLE` entry changes, and no allowlist is introduced.
+`traceability-rowdrop` is **not** fixable (`--fix traceability-rowdrop` → exit
+2, `not a fixable rule`): the repair is an author edit to the offending cell.
+
+**Historical evidence.** Two rows of `docs/ws/harness-p4/traceability.md` —
+one whose `Test` cell held `'^status: pass | fail'`, one holding
+`` `by: leaf | orchestrator` `` — were dropped from
+`docs/requirements/traceability.md` at commit 3b50220 and stayed missing until
+2026-09-20, when they were recovered in commit 9c7cb9c by rewriting the pipes
+as `&#124;`.
+
 ### Skill Changes (REQ-SKILL-HARNESSP2-004, gc half)
 
 | Where | Change |
@@ -265,6 +300,10 @@ The whole change is one sentence in `CLAUDE.md` and one in
   summary line last; `WARN`/`INFO` prefixes.
 - `test_workstream_scoped_spec_approval`: fail only with `--workstream beta`;
   warn unscoped.
+- `test_row_drop_safety`: an escaped-pipe cell round-trips through
+  `--fix traceability-aggregate` byte-for-byte and raises no finding; a
+  five-cell row raises exactly one `[traceability-rowdrop]` fail naming
+  `<file>:<line>`; `--fix traceability-rowdrop` → exit 2.
 - `test_fix_idempotent`: `--fix traceability-aggregate` twice → empty second
   diff; `--fix` never changes a `last_updated`; never writes under another
   workstream.
@@ -286,7 +325,7 @@ The whole change is one sentence in `CLAUDE.md` and one in
 ### Acceptance Criteria
 
 - [ ] CLI flags, exit codes 0/1/2, stdlib-only, linter invoked not copied, rules scoped to `docs/**` (REQ-GC-HARNESSP2-001)
-- [ ] Fifteen-row sweep table with class, rule id and severity as specified; unscoped `spec-approval` warn, scoped fail (REQ-GC-HARNESSP2-002)
+- [ ] Fifteen-row sweep table with class, rule id and severity as specified; unscoped `spec-approval` warn, scoped fail (REQ-GC-HARNESSP2-002); row 12 carries the second rule id `traceability-rowdrop` at fail (REQ-GC-HARNESSP5-001)
 - [ ] Pinned counting rule with the four exclusion classes, in the docstring with the reference commands (REQ-GC-HARNESSP2-003)
 - [ ] Linter finding shape, `WARN`/`INFO` prefixes, required `fix`, summary line last (REQ-GC-HARNESSP2-004)
 - [ ] Entry and DONE cadence in `sdd-orchestrate`; `GC:` line; no scheduler cadence; never blocks a gate (REQ-GC-HARNESSP2-005)
@@ -296,6 +335,7 @@ The whole change is one sentence in `CLAUDE.md` and one in
 - [ ] `python3 tools/sdd-gc.py --self-test` exits 0; `python3 tools/sdd-skill-lint.py` exits 0
 - [ ] `references/drift-sweep.md` states the convention and records that the `qimpl-undefined` rule is unchanged; `CLAUDE.md` carries the same sentence (REQ-GC-HARNESSP3-001)
 - [ ] `python3 tools/sdd-gc.py --report` raises no new `qimpl-undefined` finding on the amended prose, and the rule still fires on a genuinely undefined local id (REQ-GC-HARNESSP3-001)
+- [ ] Row parser splits on unescaped pipes only (`\|` literal, re-emitted unchanged); a wrong cell count raises one `[traceability-rowdrop]` **fail** naming `<file>:<line>` instead of dropping the row; `traceability-rowdrop` is not in `FIXABLE`; `python3 tools/sdd-gc.py --report` on this repository raises none and `grep -c '&#124;' docs/requirements/traceability.md` prints `2` (REQ-GC-HARNESSP5-001)
 
 ## Edge Cases
 

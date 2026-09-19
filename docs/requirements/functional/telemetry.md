@@ -1,6 +1,6 @@
 ---
 domain: TELEM
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 status: Approved
 research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001]
 workstream: harness-p2
@@ -626,9 +626,15 @@ REQ-TELEM-HARNESSP5-003's acceptance uses).
 
 ### REQ-TELEM-HARNESSP5-007: a frozen p4 fixture is cut by the operator; the p3 fixture and the live file are untouched
 `tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl` — a copy of
-`.sdd/telemetry.jsonl` as it stood at harness-p4 DONE (61 lines: p3 migrated
-seq 1–20, p4 session 1 seq 1–13, p4 session 2 seq 1–28, per
-`docs/ws/harness-p4/plan.md` O2) — must be cut by the **operator** as a plan
+`.sdd/telemetry.jsonl` as it stood at harness-p4 DONE (**67 lines**, i.e.
+`head -67` of the live file: harness-p3 migrated at lines 1–20, harness-p4 at
+lines 21–67 — 47 records, session 1 = 20 records at `v: 1`, session 2 = 27
+records starting `v: 2` at seq 8; harness-p5 begins at line 68. [Corrected
+2026-09-20: the earlier figure — 61 lines, "p4 session 1 seq 1–13, p4 session 2
+seq 1–28" — was measured wrong. The correction is consequence-free: `--lint` on
+a 61-line and on a 67-line cut produce byte-identical output — 65 findings, 4
+warnings, the same three `[cross-field]` records at seq 21, 24, 27 — so no
+acceptance number below moves]) — must be cut by the **operator** as a plan
 operator task (leaves never read `.sdd/`), scheduled before the telemetry
 chunk, with its sha256 recorded in `tools/fixtures/README.md`; the `migrate`
 fixture guard covers it automatically (path under `tools/fixtures/`). Findings
@@ -636,7 +642,7 @@ fixture guard covers it automatically (path under `tools/fixtures/`). Findings
 `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` and the live file are
 never modified. (workstream `harness-p5`; see RS-HARNESSP5-001 §Q2 "Fixture")
 **Acceptance**: `shasum -a 256 tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl`
-matches the README; `wc -l` = 61; `git diff --stat main -- tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+matches the README; `wc -l` = 67; `git diff --stat main -- tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
 is empty; the p4 fixture's sha256 is asserted before and after every
 `--self-test` case that reads it.
 [Priority: must]

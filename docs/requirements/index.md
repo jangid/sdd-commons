@@ -1,7 +1,7 @@
 ---
-version: "16.0"
+version: "17.0"
 status: Approved
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 traceability: traceability.md
 ---
 
@@ -131,7 +131,7 @@ tools-skills-agents repository. Covers eleven scopes:
 | functional | [cycle-identity.md](functional/cycle-identity.md) | CYCID | REQ-CYCID-HARNESSP3-001..002, REQ-CYCID-HARNESSP4-001..002 | Approved | 2026-09-18 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
 | non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
-| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001 | Approved | 2026-09-18 |
+| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001 | Approved | 2026-09-20 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
 | integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003 | Approved | 2026-09-19 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
@@ -287,8 +287,10 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 > REQ-ARB-HARNESSP5-001..003, REQ-TELEM-HARNESSP5-001..008,
 > REQ-HARN-HARNESSP5-001..002 (001 in harness-loop-control.md, 002 in
 > harness-boundaries.md — one per-domain counter, as for `HARNESSP3`/`HARNESSP4`),
-> REQ-WS-HARNESSP5-001..002, REQ-QIMPL-HARNESSP5-001..002 and
-> REQ-LINT-HARNESSP5-001..003 are the RS-HARNESSP5-001 delta added at the
+> REQ-WS-HARNESSP5-001..002, REQ-QIMPL-HARNESSP5-001..002,
+> REQ-LINT-HARNESSP5-001..003 and REQ-GC-HARNESSP5-001 (added at replan on
+> 2026-09-20, see the harness-p5 item-coverage table) are the
+> RS-HARNESSP5-001 delta added at the
 > requirements phase on 2026-09-19 — 20 new requirements, no new domain, plus
 > three in-place amendments carrying `[Updated: 2026-09-19]` /
 > re-stated notes (REQ-ARB-HARNESSP4-001, REQ-LINT-003, REQ-LINT-007). Their
@@ -341,6 +343,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | (3) verifier advisory — `loop-control.md` §2a leading-ordinal strip rule absent from the spec table | REQ-ARB-HARNESSP5-003 |
 | (3) verifier advisory — arbitration §Automated test names prose-only | REQ-ARB-HARNESSP5-002 (§Automated names A1–A3) |
 | (3) route the four gc `[qimpl-broken-ref]` warnings (Q-IMPL-002, -009, -014, -072) | REQ-QIMPL-HARNESSP5-002 |
+| (3) gc's aggregate regeneration silently drops a row containing a pipe (found 2026-09-20 recovering two harness-p4 rows in commit 9c7cb9c; added at replan) | REQ-GC-HARNESSP5-001 |
 | (3) owner for `sdd-implement` Step 6.4 under per-chunk dispatch (Q3 recommendation) | REQ-HARN-HARNESSP5-001 (Q-REQ-P5-C) |
 | Decided: ARB closure by spec decision plus offline fixture, no live re-run | REQ-ARB-HARNESSP5-001, -002 |
 | Decided: size target lint warn-clean; REQ-LINT-003 baseline "none" | REQ-LINT-HARNESSP5-001, -002 |
