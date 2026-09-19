@@ -310,7 +310,7 @@ declared, written and linted.
 REQ-TELEM-HARNESSP4-006, REQ-TELEM-HARNESSP4-007, REQ-TELEM-HARNESSP4-008
 (optional, `may`).
 **Tasks**:
-1. [ ] [implement] `tools/sdd-telemetry.py`: make the domain table the single
+1. [x] [implement] `tools/sdd-telemetry.py`: make the domain table the single
    source of truth — every `group.key` with type / enum members / `[p4]` mark /
    `const` rows (`FIX_ONLY_REASONS = {red_break}`); admit `v ∈ {1, 2}` by
    membership (replacing the `v != SCHEMA_V` skip; `v: 3` still skipped and
@@ -318,7 +318,7 @@ REQ-TELEM-HARNESSP4-006, REQ-TELEM-HARNESSP4-007, REQ-TELEM-HARNESSP4-008
    constant — traces to `telemetry.md` §Schema Lint — `--lint` From One Domain
    Table; §`commit` Group (Q-IMPL-HARNESSP4-002) (REQ-TELEM-HARNESSP4-004).
    Files: `tools/sdd-telemetry.py`
-2. [ ] [implement] Same tool: the `--lint [--file <path>]` subcommand — enum,
+2. [x] [implement] Same tool: the `--lint [--file <path>]` subcommand — enum,
    type (`dispatch.chunk` int-or-null, counters int, shas `^[0-9a-f]{7,12}$`
    with `"HEAD"` and 40-char shas as findings, ISO-8601 UTC timestamps),
    fixed key set per `v` (`key-undeclared`, `key-missing`, the optional
@@ -329,14 +329,14 @@ REQ-TELEM-HARNESSP4-006, REQ-TELEM-HARNESSP4-007, REQ-TELEM-HARNESSP4-008
    [<class>] <group.key>: <message>`; exit 1 on any finding — traces to
    `telemetry.md` §Schema Lint — `--lint` From One Domain Table
    (REQ-TELEM-HARNESSP4-004). Files: `tools/sdd-telemetry.py`
-3. [ ] [implement] Declare `scope.widened` (int ≥ 0, default 0, `[p4]`) and the
+3. [x] [implement] Declare `scope.widened` (int ≥ 0, default 0, `[p4]`) and the
    `commit` group (`token: COMPLETE | INCOMPLETE | null`, `missing_n`, `extra_n`,
    `[p4]`); `summarize` prints `widened dispatches: N` and per-session `COMMIT:
    INCOMPLETE` counts; records carrying the groups are written `v: 2`; `v: 1`
    records lint clean against the `v: 1` key set — traces to `telemetry.md`
    §`scope.widened`; §`commit` Group (REQ-TELEM-HARNESSP4-006,
    REQ-TELEM-HARNESSP4-007). Files: `tools/sdd-telemetry.py`
-4. [ ] [implement] `skills/sdd-orchestrate/SKILL.md` telemetry step and
+4. [x] [implement] `skills/sdd-orchestrate/SKILL.md` telemetry step and
    `references/telemetry.md` §2: render the domain table rows for
    `scope.widened`, the `commit` group, the `const` row `FIX_ONLY_REASONS`, the
    `v: 2` note and the optional `migration` marker; name the writer sources —
@@ -347,7 +347,7 @@ REQ-TELEM-HARNESSP4-006, REQ-TELEM-HARNESSP4-007, REQ-TELEM-HARNESSP4-008
    `telemetry.md` §Writer; §Record Schema; §Out-of-Loop Reader
    (REQ-TELEM-HARNESSP4-004, -006, -007). Files: `skills/sdd-orchestrate/SKILL.md`,
    `skills/sdd-orchestrate/references/telemetry.md`
-5. [ ] [implement] `--self-test`: `test_schema_table_agrees` parses the `| Group
+5. [x] [implement] `--self-test`: `test_schema_table_agrees` parses the `| Group
    | Key | Type / domain |` rows of `docs/spec/telemetry.md` §Record Schema and
    `references/telemetry.md` §2 (multi-key cells, `\|`-separated enum members,
    leading scalar type word, `const` rows into a separate constant set) and
@@ -359,7 +359,7 @@ REQ-TELEM-HARNESSP4-006, REQ-TELEM-HARNESSP4-007, REQ-TELEM-HARNESSP4-008
    a row added on one side only fails — traces to `telemetry.md` §Schema Lint;
    §Fixture-Based Test Contract (REQ-TELEM-HARNESSP4-004, -006, -007). Files:
    `tools/sdd-telemetry.py`
-6. [ ] [implement] **Optional (`may`)** — `summarize --plan <path>`: implement
+6. [x] [implement] **Optional (`may`)** — `summarize --plan <path>`: implement
    floor = `chunk_count(plan)` pipeline dispatches, doubled when any chunk
    record carries a non-null `chunk_verdict`; print `implement floor: N pipeline
    (2N with verifier); recorded implement records: M; shortfall: max(0, floor −
@@ -369,7 +369,7 @@ REQ-TELEM-HARNESSP4-006, REQ-TELEM-HARNESSP4-007, REQ-TELEM-HARNESSP4-008
    `verification.md` §Next Steps — traces to `telemetry.md` §`--plan` Floor for
    Implement-Stage Expectations (REQ-TELEM-HARNESSP4-008). Files:
    `tools/sdd-telemetry.py`
-7. [ ] [verify] `--lint --file tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+7. [x] [verify] `--lint --file tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
    exits 1 reporting at minimum `kind: gate` (`seq` 20), header strings (`seq`
    6–13), `head_after: "HEAD"` (`seq` 5), null git heads (`seq` 6–14),
    40-character shas and undeclared `git.commit_n` (`seq` 15–20),

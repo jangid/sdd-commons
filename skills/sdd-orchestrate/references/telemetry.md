@@ -36,15 +36,25 @@ input (§6).
 
 ## 2. Record schema (REQ-TELEM-HARNESSP2-001, -002, -003)
 
-One JSON object per line. `v` is the schema version and is `1` for this
-reference. Every value is a **count, enum, sha, boolean, null or ISO-8601 UTC
-timestamp**; the record never contains a finding line, a path list, file
-content, reviewer reasoning, or any other prose (REQ-ORCH-012/013). The key
-set is fixed; null fields are written as `null`, never omitted.
+One JSON object per line. `v` is the schema version: `1` for every record
+written before harness-p4 and `2` for a record carrying the `[p4]` fields
+(Q-IMPL-HARNESSP4-002 — the admitted set is `{1, 2}`). Every value is a
+**count, enum, sha, boolean, null or ISO-8601 UTC timestamp**; the record never
+contains a finding line, a path list, file content, reviewer reasoning, or any
+other prose (REQ-ORCH-012/013). The key set is fixed; null fields are written
+as `null`, never omitted.
+
+**This table is a rendering of the domain table in `tools/sdd-telemetry.py`**,
+the schema's single source of truth (REQ-TELEM-HARNESSP4-004);
+`docs/spec/telemetry.md` §Record Schema is the other rendering. The tool's
+`--self-test` parses the `| Group | Key | Type / domain |` rows below and
+diffs them against the code table, so a row added here without a code row —
+or the reverse — fails it. Rows marked `[p4]` were added for harness-p4 and are
+written with `v: 2`; a `v: 1` record is validated against the unmarked rows only.
 
 | Group | Key | Type / domain | Source (gate signal) |
 |---|---|---|---|
-| — | `v` | int, `1` | constant |
+| — | `v` | int, `1` \| `2` — `2` for records carrying the `[p4]` fields; `1` records keep the pre-p4 key set (Q-IMPL-HARNESSP4-002) | constant per writer version |
 | — | `ts_dispatch` | timestamp | orchestrator clock, immediately before dispatch |
 | — | `ts_return` | timestamp | orchestrator clock, on return, before `snapshot(after)` |
 | — | `ts_gate` | timestamp | orchestrator clock, when the gate decision is taken |
@@ -58,16 +68,18 @@ set is fixed; null fields are written as `null`, never omitted.
 | | `chunk` | int or null — the **integer N parsed** from the `### Chunk N:` header, **never** the header string (`"Chunk 3"`, `"### Chunk 3: …"`) and never a quoted digit; `null` for every non-chunk dispatch | `### Chunk N:` number for per-chunk dispatches |
 | | `iteration` | int or null | fix-loop iteration this dispatch belongs to |
 | | `redo` | int or null | per-chunk redo count at dispatch |
-| | `reason` | repair-packet `reason` enum or null | `harness-return-contract.md` §Repair Packet (plus `RED_BREAK`, `adversarial-verify.md`) |
+| | `reason` | repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below | `harness-return-contract.md` §Repair Packet (plus `RED_BREAK`, `adversarial-verify.md`) |
+| `const` | `FIX_ONLY_REASONS` | subset of `dispatch.reason`: `red_break` `[p4]` — a **schema constant, not a record key**; no record carries it (`--lint` reports one that does as `key-undeclared`) | §7 implied-fix clause (b); `--lint` asserts the subset relation |
 | | `budget` | budget object (below) | parsed from the dispatched `Budget:` line |
 | | `write_scope_n` | int | number of declared scope globs |
 | `return` | `status` | `COMPLETE` \| `PARTIAL` \| `BLOCKED` \| `BUDGET_EXHAUSTED` \| `MALFORMED` | `RETURN.status`; `MALFORMED` when the block failed to parse |
 | | `budget_consumed` | budget object + `self_reported: true` | `RETURN.budget_consumed` |
 | | `files_written_n`, `commits_n`, `tasks_completed_n`, `failures_n`, `ledger_n`, `open_questions_n`, `blocked_writes_n` | int | lengths of the corresponding `RETURN` lists |
-| | `warnings` | list of enums ⊆ {`KEYS_MISSING`, `MULTIPLE_STATUS`, `FOREIGN_TOKEN`} | parser warnings (`return-contract.md` §1) |
+| | `warnings` | list of enums ⊆ {`KEYS_MISSING`, `MULTIPLE_STATUS`, `FOREIGN_TOKEN`, `RETURN_DRIFT` `[p4]`} | parser warnings (`return-contract.md` §1; `RETURN_DRIFT` = the return-drift warning of `harness-return-contract.md`) |
 | `scope` | `token` | `CLEAN` \| `VIOLATION` \| null | `SCOPE:` line (null for a dispatch with no scope check) |
 | | `in`, `advisory`, `out` | int | tag counts in the write-scope block |
 | | `history_rewrite` | bool | `HISTORY_REWRITE` finding present |
+| | `widened` | int, default 0 `[p4]` | count of dispatched scope globs minus the stage template's default glob count, from session state at dispatch — a count, never glob text (REQ-TELEM-HARNESSP4-006) |
 | `verdict` | `chunk_verdict` | `PASS` \| `FAIL` \| null | `CHUNK_VERDICT:` |
 | | `review_verdict` | `APPROVE` \| `APPROVE_WITH_FIXES` \| `REJECT` \| null | `VERDICT:` |
 | | `red_verdict` | `BROKEN` \| `HELD` \| null | `RED_VERDICT:` (`adversarial-verify.md`) |
@@ -80,7 +92,19 @@ set is fixed; null fields are written as `null`, never omitted.
 | | `redo_count` | int or null | `Redo: N of REDO_MAX` |
 | | `replan_count`, `replan_cap` | int | derived replan re-entry count and cap |
 | — | `replan_trigger` | enum or null | replan trigger class surfaced at this gate (`stuck`, `spike`, `verification`, `operator`) |
-| `git` | `head_before`, `head_after` | short sha | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) |
+| `git` | `head_before`, `head_after` | short sha (`^[0-9a-f]{7,12}$`) | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) — never the `HEAD` literal, never a 40-character sha |
+| `commit` | `token` | `COMPLETE` \| `INCOMPLETE` \| null `[p4]` | the gate's own `COMMIT:` closing line (`write-scope.md` §7a, `harness-commit-fidelity.md`), copied after it renders; null for a dispatch whose gate commits nothing (review, verifier, red) (REQ-TELEM-HARNESSP4-007) |
+| | `missing_n`, `extra_n` | int `[p4]` | that line's `observed, not landed` / `landed, not observed` counts — counts only, never paths |
+| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (`docs/spec/telemetry.md` §In-Place Migration); the writer never sets it |
+
+**Writer sources of the `[p4]` fields — no read of the telemetry file.**
+`scope.widened` is computed from session state the orchestrator already holds
+at dispatch: the dispatched scope's glob count minus the stage template's
+default glob count (0 when the operator widened nothing). `commit` is copied
+from the `COMMIT:` line the gate has just rendered from `git` — token and the
+two counts. Both are copies of what the operator already saw; neither consults
+`.sdd/telemetry.jsonl`, whose zero-reads rule (§3) is unchanged. A record
+carrying either group is stamped `v: 2`.
 
 **Resume-class keys are forbidden** (REQ-TELEM-HARNESSP2-003): no `next_stage`,
 `resume`, `current_phase`, `pending`, `position` or equivalent. `dispatch.stage`
@@ -514,6 +538,33 @@ so mis-typed, 0 missing. `reason: REVIEW` at `iteration ≥ 1` with no preceding
 `loop-back-to-fix` at the stage (`seq` 3–5) is the `--lint` **warning**
 `[reason-review]`, never a count. The `see --lint` pointer resolves when the
 `--lint` subcommand lands (P3); `summarize` renders the suffix already.
+
+After the per-kind lines each session prints `widened dispatches: N; COMMIT:
+INCOMPLETE: M` — the number of records with `scope.widened > 0` and the number
+whose `commit.token` is `INCOMPLETE` (§2; a `v: 1` record has neither key and
+counts 0). `summarize --plan <path>` adds an implement-stage **floor** from the
+plan's `### Chunk N:` headers: `implement floor: N pipeline (2N with verifier);
+recorded implement records: M; shortfall: max(0, N − M)`, `M` = implement
+`pipeline` records (REQ-TELEM-HARNESSP4-008; Q-IMPL-HARNESSP4-005).
+
+**Schema lint** (REQ-TELEM-HARNESSP4-004, `docs/spec/telemetry.md` §Schema Lint):
+
+```
+python3 tools/sdd-telemetry.py --lint [--file .sdd/telemetry.jsonl]
+```
+
+validates **every field of every record** against the domain table §2 renders
+— enum membership, types (`dispatch.chunk` int-or-null, counters int, shas
+`^[0-9a-f]{7,12}$` with the `HEAD` literal and 40-character shas as findings,
+ISO-8601 UTC timestamps, `v ∈ {1, 2}`), the fixed key set per `v`
+(`key-undeclared`, `key-missing`, the optional `migration` marker only in its
+declared shape) and the cross-field rules (`[mistyped-fix]`, a `chunk_verdict`
+with no `verifier` record for the chunk, a `proceed` implement record with
+`head_before == head_after`, a non-null `commit.token` on a kind whose gate
+never commits). One line per finding, `seq <n>: [<class>] <group.key>:
+<message>`; `WARN seq <n>: [reason-review] …` is a warning and never affects
+the exit code. Exit 1 on any finding, 0 when clean. Like `summarize`, it is
+post-cycle and out-of-loop: nothing in the orchestrator runs it.
 
 A missing or empty telemetry file is an empty run set: `summarize` prints `records: 0` and an empty table and exits 0 (the same
 `n_before := 0 if absent` rule the writer and `sdd-eval.py` follow), never an

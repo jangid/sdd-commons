@@ -1085,6 +1085,28 @@ clause's own comment states ("each such decision dispatches one fix"); no
 record key is added and the reader still reads nothing but the telemetry file.
 **Date**: 2026-09-19 (implement stage, Chunk 2)
 
+### Q-IMPL-HARNESSP4-005: `--lint` reason members, the `proceed`/equal-heads exemption and the `--plan` shortfall operands
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Record Schema (`dispatch.reason` row), §Schema Lint (cross-field row), §`--plan` Floor
+**Decision**: (1) The `dispatch.reason` cell only *names* the repair-packet enum, so the
+code table carries its members explicitly: `REVIEW`, `VERIFIER_FAIL`, `PARTIAL_CONTINUE`,
+`MERGE_CONFLICT` (`harness-return-contract.md` §Repair Packet), `THIRD_OPINION`
+(`arbitrated-handoff.md`) and `red_break` — the RED_BREAK packet as the record spells it and
+as the `const` row `FIX_ONLY_REASONS` lists it; the uppercase `RED_BREAK` is **not** admitted, so
+one spelling is canonical and the subset relation holds. `replan_trigger`'s members (`stuck`,
+`spike`, `verification`, `operator`) are likewise explicit. (2) The cross-field rule "`proceed`
+implement record with `head_before == head_after`" applies to `pipeline`/`fix` records at
+`implement` whose heads are valid short shas and whose `return.files_written_n` is non-zero — a
+leaf that wrote nothing legitimately leaves `HEAD` unchanged. (3) `--plan`'s `shortfall` is
+`max(0, chunk_count − recorded implement pipeline records)`; the "(2N with verifier)" figure
+is informational, because the verifier half is already reported by the implication line
+(`implied vs recorded — verifier`) and counting it twice would contradict §Fixture-Based Test
+Contract's "no shortfall against 8 recorded pipeline records" on the p3 fixture.
+**Rationale**: the table cells are Approved text and are parsed, not edited; members a cell only
+names must live in the code table (the `members` override), and both refinements make the
+lint's negative fixture and the fixture-contract expectations satisfiable without a contract change.
+**Date**: 2026-09-19 (implement stage, Chunk 3)
+
 ### Q-IMPL-HARNESSP3-018: `summarize` derives a session boundary from a `dispatch.seq` reset
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Records-vs-Expected in `summarize`

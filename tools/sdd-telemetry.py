@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
 """sdd-telemetry — out-of-loop reader for the orchestrator's telemetry transcript.
 
-Reads ``.sdd/telemetry.jsonl`` (one JSON record per dispatch, schema ``v: 1``,
-defined in ``skills/sdd-orchestrate/references/telemetry.md`` §2) and prints,
-per workstream, one row per ``dispatch.stage`` followed by a per-chunk block
-(RS-008 probe 1 as a query). Contract: ``docs/spec/telemetry.md``
-§Out-of-Loop Reader (REQ-TELEM-HARNESSP2-009).
+Reads ``.sdd/telemetry.jsonl`` (one JSON record per dispatch, schema ``v`` in
+the admitted set ``{1, 2}`` — Q-IMPL-HARNESSP4-002 — rendered in
+``skills/sdd-orchestrate/references/telemetry.md`` §2 and ``docs/spec/telemetry.md``
+§Record Schema from the ``DOMAIN_TABLE`` below, the schema's single source of
+truth) and prints, per workstream, one row per ``dispatch.stage`` followed by a
+per-chunk block (RS-008 probe 1 as a query). Contract: ``docs/spec/telemetry.md``
+§Out-of-Loop Reader (REQ-TELEM-HARNESSP2-009), §Schema Lint (REQ-TELEM-HARNESSP4-004).
 
 This tool is **never invoked inside the orchestration loop** and no skill
 reads the file it summarises; the file is gitignored, orchestrator-written and
 never a phase-detection or staleness input.
 
 Usage:
-  tools/sdd-telemetry.py summarize [--file .sdd/telemetry.jsonl] [--workstream ID] [--since ISO]
-  tools/sdd-telemetry.py --self-test      # six-record fixture in a temp dir
+  tools/sdd-telemetry.py summarize [--file .sdd/telemetry.jsonl] [--workstream ID] [--since ISO] [--plan docs/ws/<id>/plan.md]
+  tools/sdd-telemetry.py --lint [--file .sdd/telemetry.jsonl]   # every field against the domain table; exit 1 on a finding
+  tools/sdd-telemetry.py --self-test      # synthetic fixtures in a temp dir + the frozen p3 fixture (read-only)
   tools/sdd-telemetry.py --help
+
+``--lint`` reports ``seq <n>: [<class>] <group.key>: <message>`` per violation
+(classes enum / type / key-undeclared / key-missing / cross-field /
+mistyped-fix) and ``WARN … [reason-review]`` warnings that never affect the
+exit code. ``summarize`` adds per session ``widened dispatches: N; COMMIT:
+INCOMPLETE: M`` and, with ``--plan``, the implement-stage floor derived from
+the plan's ``### Chunk N:`` headers (REQ-TELEM-HARNESSP4-006, -007, -008).
 
 Records with an unknown ``v`` and lines that are not JSON are skipped and
 counted on a trailing ``skipped: N unknown-schema record(s)`` line. A sibling
@@ -48,10 +58,17 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime, timezone
 
-SCHEMA_V = 1
 DEFAULT_FILE = ".sdd/telemetry.jsonl"
 STAGES = ["research", "requirements", "specs", "plan", "implement", "verify", "replan"]
 KINDS = ["pipeline", "fix", "fanout_leaf", "verifier", "review", "red"]
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_REPO = os.path.dirname(_HERE)
+# The two human-readable renderings of the domain table (telemetry.md §Schema Lint).
+SPEC_DOC = os.path.join(_REPO, "docs", "spec", "telemetry.md")
+REF_DOC = os.path.join(_REPO, "skills", "sdd-orchestrate", "references", "telemetry.md")
+# The p3 plan the `--plan` floor is exercised against (telemetry.md §Fixture-Based Test Contract).
+P3_PLAN = os.path.join(_REPO, "docs", "ws", "harness-p3", "plan.md")
 
 # Frozen live-run evidence (tools/fixtures/README.md): every reader-side test reads
 # it read-only and asserts this sha256 before and after (telemetry.md
@@ -63,49 +80,236 @@ FIXTURE_SHA256 = "7e20b6307da09355f9aee504c451f0ed59e79ef9a33861cd72f370ea84af92
 # ---------------------------------------------------------------------------
 # Domain table (telemetry.md §Record Schema — the code table is the schema's
 # single source of truth; §Record Schema and references/telemetry.md §2 are its
-# renderings). Chunk 2 (harness-p4) lands the rows the implication formula reads
-# plus the `const` row; Chunk 3 completes the table and adds `--lint`, which
-# validates every record field against it and diffs it with the spec's table.
+# renderings). Every ``group.key`` of the record is a row: ``domain`` is the
+# **exact text** of the rendered ``Type / domain`` cell up to its first ` — `
+# (with markdown's ``\|`` unescaped), so `test_schema_table_agrees` can parse the
+# code cell and the document cell through one function and diff the results;
+# ``p4`` marks the rows added for harness-p4 (rendered as a trailing `[p4]`
+# token) and is the ONLY source of the per-``v`` key set — ``v: 1`` records are
+# validated against the unmarked rows, ``v: 2`` against all (Q-IMPL-HARNESSP4-002);
+# ``check`` names the validator ``--lint`` runs on the value; ``members`` overrides
+# the enum member set for a cell that only *names* an enum (``dispatch.reason``,
+# ``replan_trigger``) rather than listing it.
 #
-# A row whose group is the literal ``const`` declares a **schema constant**, not a
-# record key: its members are the backticked tokens after the colon of its domain
-# cell, and it is parsed into ``schema_constants()`` — never into the key set.
+# ``group`` is ``None`` for a top-level key, and the literal ``const`` declares a
+# **schema constant**, not a record key: its members are the backticked tokens
+# after the colon of its domain cell, and it is parsed into ``schema_constants()``
+# — never into the key set (a record carrying its name is ``key-undeclared``).
 # ---------------------------------------------------------------------------
 
+# Repair-packet `reason` enum (harness-return-contract.md §Repair Packet, plus
+# `red_break` — the RED_BREAK packet as the telemetry record spells it, the `const`
+# row's member — and `THIRD_OPINION`, arbitrated-handoff.md). Q-IMPL-HARNESSP4-005.
+REASON_MEMBERS = {"REVIEW", "VERIFIER_FAIL", "PARTIAL_CONTINUE", "MERGE_CONFLICT", "red_break", "THIRD_OPINION"}
+REPLAN_TRIGGER_MEMBERS = {"stuck", "spike", "verification", "operator"}
+
+
+def _row(group, key, domain, check, p4=False, members=None) -> dict:
+    return {"group": group, "key": key, "domain": domain, "check": check, "p4": p4, "members": members}
+
+
 DOMAIN_TABLE: list[dict] = [
-    {"group": "dispatch", "key": "kind", "domain": "`pipeline` | `fix` | `fanout_leaf` | `verifier` | `review` | `red`", "p4": False},
-    {"group": "dispatch", "key": "stage", "domain": "`research` | `requirements` | `specs` | `plan` | `implement` | `verify` | `replan`", "p4": False},
-    {"group": "dispatch", "key": "chunk", "domain": "int or null", "p4": False},
-    {"group": "dispatch", "key": "iteration", "domain": "int or null", "p4": False},
-    {"group": "dispatch", "key": "redo", "domain": "int or null", "p4": False},
-    {"group": "dispatch", "key": "reason", "domain": "repair-packet `reason` enum or null", "p4": False},
-    {"group": "const", "key": "FIX_ONLY_REASONS", "domain": "subset of `dispatch.reason`: `red_break`", "p4": True},
-    {"group": "verdict", "key": "chunk_verdict", "domain": "`PASS` | `FAIL` | null", "p4": False},
-    {"group": "verdict", "key": "review_verdict", "domain": "`APPROVE` | `APPROVE_WITH_FIXES` | `REJECT` | null", "p4": False},
-    {"group": "verdict", "key": "red_verdict", "domain": "`BROKEN` | `HELD` | null", "p4": False},
-    {"group": "gate", "key": "decision", "domain": "`proceed` | `fix` | `loop-back-to-fix` | `stop` | `redo` | `replan` | `revert` | `widen` | `accept` | `third-opinion` | `re-dispatch` | `override` | `other`", "p4": False},
+    # the cell reads as scalar `int` to the parser; the admitted set is explicit
+    _row(None, "v", "int, `1` | `2`", "v", members={"1", "2"}),
+    _row(None, "ts_dispatch", "timestamp", "timestamp"),
+    _row(None, "ts_return", "timestamp", "timestamp"),
+    _row(None, "ts_gate", "timestamp", "timestamp"),
+    _row("cycle", "workstream", "string id (`default` under marker `3`)", "string"),
+    _row("cycle", "research_id", "`RS-…` id or null", "string_or_null"),
+    _row("cycle", "kickoff_date", "date or null", "date_or_null"),
+    _row("cycle", "marker", '`"3"` | `"4"`', "enum"),
+    _row("dispatch", "seq", "int, **1-based per session**", "int"),
+    _row("dispatch", "kind", "`pipeline` | `fix` | `fanout_leaf` | `verifier` | `review` | `red`", "enum"),
+    _row("dispatch", "stage", "`research` | `requirements` | `specs` | `plan` | `implement` | `verify` | `replan`", "enum"),
+    _row("dispatch", "chunk", "int or null", "int_or_null"),
+    _row("dispatch", "iteration", "int or null", "int_or_null"),
+    _row("dispatch", "redo", "int or null", "int_or_null"),
+    _row("dispatch", "reason", "repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below",
+         "enum_or_null", members=REASON_MEMBERS),
+    _row("const", "FIX_ONLY_REASONS", "subset of `dispatch.reason`: `red_break` `[p4]`", "const", p4=True),
+    _row("dispatch", "budget", "budget object (below)", "budget"),
+    _row("dispatch", "write_scope_n", "int", "int"),
+    _row("return", "status", "`COMPLETE` | `PARTIAL` | `BLOCKED` | `BUDGET_EXHAUSTED` | `MALFORMED`", "enum"),
+    _row("return", "budget_consumed", "budget object + `self_reported: true`", "budget_consumed"),
+    _row("return", "files_written_n", "int", "int"),
+    _row("return", "commits_n", "int", "int"),
+    _row("return", "tasks_completed_n", "int", "int"),
+    _row("return", "failures_n", "int", "int"),
+    _row("return", "ledger_n", "int", "int"),
+    _row("return", "open_questions_n", "int", "int"),
+    _row("return", "blocked_writes_n", "int", "int"),
+    _row("return", "warnings", "list of enums ⊆ {`KEYS_MISSING`, `MULTIPLE_STATUS`, `FOREIGN_TOKEN`, `RETURN_DRIFT` `[p4]`}", "list_enum"),
+    _row("scope", "token", "`CLEAN` | `VIOLATION` | null", "enum_or_null"),
+    _row("scope", "in", "int", "int"),
+    _row("scope", "advisory", "int", "int"),
+    _row("scope", "out", "int", "int"),
+    _row("scope", "history_rewrite", "bool", "bool"),
+    _row("scope", "widened", "int, default 0 `[p4]`", "int_nonneg", p4=True),
+    _row("verdict", "chunk_verdict", "`PASS` | `FAIL` | null", "enum_or_null"),
+    _row("verdict", "review_verdict", "`APPROVE` | `APPROVE_WITH_FIXES` | `REJECT` | null", "enum_or_null"),
+    _row("verdict", "red_verdict", "`BROKEN` | `HELD` | null", "enum_or_null"),
+    _row("verdict", "findings", '`{"C": int, "M": int, "m": int}`', "findings"),
+    _row("verdict", "malformed", "bool", "bool"),
+    _row("verdict", "contradiction_class", "null | `b` | `c`", "enum_or_null"),
+    _row("gate", "decision", "`proceed` | `fix` | `loop-back-to-fix` | `stop` | `redo` | `replan` | `revert` | `widen` | `accept` | `third-opinion` | `re-dispatch` | `override` | `other`", "enum"),
+    _row("gate", "decision_by", "`operator` | `policy`", "enum"),
+    _row("gate", "fix_iteration", "int", "int"),
+    _row("gate", "fix_cap", "int", "int"),
+    _row("gate", "cap_raised", "int", "int"),
+    _row("gate", "redo_count", "int or null", "int_or_null"),
+    _row("gate", "replan_count", "int", "int"),
+    _row("gate", "replan_cap", "int", "int"),
+    _row(None, "replan_trigger", "enum or null", "enum_or_null", members=REPLAN_TRIGGER_MEMBERS),
+    _row("git", "head_before", "short sha (`^[0-9a-f]{7,12}$`)", "sha"),
+    _row("git", "head_after", "short sha (`^[0-9a-f]{7,12}$`)", "sha"),
+    _row("commit", "token", "`COMPLETE` | `INCOMPLETE` | null `[p4]`", "enum_or_null", p4=True),
+    _row("commit", "missing_n", "int `[p4]`", "int", p4=True),
+    _row("commit", "extra_n", "int `[p4]`", "int", p4=True),
+    _row(None, "migration", "optional `{from: chunk-string, at: date}` `[p4]`", "migration", p4=True),
 ]
 
+# Keys a record may omit: the `migration` marker is present only on migrated records.
+OPTIONAL_KEYS = {(None, "migration")}
+# Kinds whose gate commits nothing — a non-null `commit.token` on them is a
+# cross-field finding (telemetry.md §`commit` Group).
+NON_COMMITTING_KINDS = {"review", "verifier", "red"}
+SHA_RE = re.compile(r"^[0-9a-f]{7,12}$")
 _BACKTICK_RE = re.compile(r"`([^`]+)`")
+_P4_MARK = "`[p4]`"
+
+
+def parse_domain(cell: str) -> tuple[str, object]:
+    """Classify one ``Type / domain`` cell — the same function reads the code
+    table's string and a document's cell.
+
+    Returns ``("enum", frozenset(members))`` when the cell is two or more
+    backticked / ``null`` alternatives separated by ``|`` (``null`` is dropped
+    from the members and admits ``None``), ``("list", frozenset(members))`` for a
+    ``list of enums ⊆ {…}`` cell, and ``("scalar", <leading word>)`` otherwise
+    (``int``, ``bool``, ``timestamp``, ``short``, ``date``, ``string``, …). Markdown
+    ``\\|`` is unescaped, the trailing ``[p4]`` token is dropped and only the text
+    before the first ` — ` is read; the prose after it is not compared.
+    """
+    text = cell.replace("\\|", "|").split(" — ", 1)[0].strip()
+    text = text.replace(_P4_MARK, "").strip()
+    if text.startswith("list of enums"):
+        return "list", frozenset(t for t in _BACKTICK_RE.findall(text) if not t.startswith("["))
+    parts = [p.strip() for p in text.split("|")]
+    if len(parts) >= 2 and all(p == "null" or re.fullmatch(r"`[^`]+`", p) for p in parts):
+        return "enum", frozenset(p.strip("`").strip('"') for p in parts if p != "null")
+    return "scalar", text.split()[0].strip("`,") if text else ""
+
+
+def _is_p4(cell: str) -> bool:
+    """A row is ``[p4]`` when its cell (before any ` — ` prose) ends with the mark."""
+    return cell.replace("\\|", "|").split(" — ", 1)[0].strip().endswith(_P4_MARK)
+
+
+def parse_code_table(table: list[dict] | None = None) -> dict:
+    """The code table in the shape :func:`schema_diff` compares:
+    ``{"keys": {(group, key): (kind, members_or_type, p4)}, "constants": {name: members}}``."""
+    table = DOMAIN_TABLE if table is None else table
+    keys: dict[tuple, tuple] = {}
+    constants: dict[str, set[str]] = {}
+    for row in table:
+        if row["group"] == "const":
+            constants[row["key"]] = _const_members(row["domain"])
+            continue
+        kind, dom = parse_domain(row["domain"])
+        keys[(row["group"], row["key"])] = (kind, dom, bool(row["p4"]))
+    return {"keys": keys, "constants": constants}
+
+
+def _const_members(cell: str) -> set[str]:
+    """Members of a ``const`` cell: the backticked tokens **after the colon** (the
+    part before it names the superset, e.g. ``dispatch.reason``); ``[p4]`` is not a member."""
+    body = cell.split(" — ", 1)[0]  # the prose after the em-dash is not compared, as in parse_domain
+    body = body.split(":", 1)[1] if ":" in body else body
+    return {tok for tok in _BACKTICK_RE.findall(body) if not tok.startswith("[")}
+
+
+_ROW_SPLIT_RE = re.compile(r"(?<!\\)\|")
+
+
+def parse_doc_table(text: str, heading: str) -> dict:
+    """Parse the ``| Group | Key | Type / domain |`` table that follows ``heading``
+    in a rendering (docs/spec/telemetry.md §Record Schema, references/telemetry.md §2)
+    into the same shape as :func:`parse_code_table`.
+
+    Group cell ``—`` = top level, blank = the previous group continues, ``const`` = a
+    schema constant; a ``Key`` cell may list several backticked keys sharing one cell.
+    """
+    lines = text.splitlines()
+    start = next((i for i, ln in enumerate(lines) if ln.strip().startswith(heading)), None)
+    if start is None:
+        raise ValueError(f"heading not found: {heading}")
+    hdr = next((i for i in range(start, len(lines)) if lines[i].startswith("| Group | Key | Type / domain |")), None)
+    if hdr is None:
+        raise ValueError(f"no `| Group | Key | Type / domain |` table under {heading}")
+    keys: dict[tuple, tuple] = {}
+    constants: dict[str, set[str]] = {}
+    group: str | None = None
+    for ln in lines[hdr + 2:]:
+        if not ln.startswith("|"):
+            break
+        cells = [c.strip() for c in _ROW_SPLIT_RE.split(ln.strip().strip("|"))]
+        if len(cells) < 3:
+            continue
+        gcell, kcell, dcell = cells[0], cells[1], cells[2]
+        # `const` is a row-level marker, not a group: it never changes the running
+        # group, so the blank-group rows after it still continue the previous group.
+        is_const = gcell.strip("`") == "const"
+        if gcell == "—":
+            group = None
+        elif gcell and not is_const:
+            group = gcell.strip("`")
+        for key in _BACKTICK_RE.findall(kcell):
+            if is_const:
+                constants[key] = _const_members(dcell.replace("\\|", "|"))
+            else:
+                kind, dom = parse_domain(dcell)
+                keys[(group, key)] = (kind, dom, _is_p4(dcell))
+    return {"keys": keys, "constants": constants}
+
+
+def schema_diff(a: dict, b: dict) -> list[str]:
+    """Differences between two parsed tables (empty when they agree): key set,
+    enum/list member sets, scalar type word, ``[p4]`` mark and the constant set."""
+    out: list[str] = []
+    for k in sorted(set(a["keys"]) | set(b["keys"]), key=str):
+        if k not in a["keys"] or k not in b["keys"]:
+            out.append(f"{k[0] or '—'}.{k[1]}: present on one side only")
+        elif a["keys"][k] != b["keys"][k]:
+            out.append(f"{k[0] or '—'}.{k[1]}: {a['keys'][k]} != {b['keys'][k]}")
+    if a["constants"] != b["constants"]:
+        out.append(f"constants: {a['constants']} != {b['constants']}")
+    return out
 
 
 def schema_constants() -> dict[str, set[str]]:
-    """Parse every ``const`` row of the domain table into ``{name: member set}``.
+    """Every ``const`` row of the domain table as ``{name: member set}`` — kept apart
+    from the ``group.key`` set so a constant is never mistaken for a record key."""
+    return parse_code_table()["constants"]
 
-    Members are the backticked tokens **after the colon** of the domain cell (the
-    part before it names the superset, e.g. ``dispatch.reason``); a ``[p4]``-style
-    marker token is not a member. Kept separate from the ``group.key`` set so a
-    constant can never be mistaken for a record key (telemetry.md §Record Schema,
-    ``const`` rows).
-    """
-    out: dict[str, set[str]] = {}
-    for row in DOMAIN_TABLE:
-        if row["group"] != "const":
-            continue
-        members = row["domain"].split(":", 1)[1] if ":" in row["domain"] else row["domain"]
-        out[row["key"]] = {tok for tok in _BACKTICK_RE.findall(members) if not tok.startswith("[")}
-    return out
 
+def enum_members(group: str | None, key: str) -> frozenset:
+    """The admitted member set of an enum-typed row (explicit ``members`` override first)."""
+    row = next(r for r in DOMAIN_TABLE if r["group"] == group and r["key"] == key)
+    if row["members"] is not None:
+        return frozenset(row["members"])
+    kind, dom = parse_domain(row["domain"])
+    return dom if kind in ("enum", "list") else frozenset()
+
+
+def v_key_set(v: int) -> set[tuple]:
+    """The fixed key set a ``v`` record is validated against, derived from the
+    ``[p4]`` marks alone: ``v: 1`` → unmarked rows, ``v: 2`` → every row."""
+    return {(r["group"], r["key"]) for r in DOMAIN_TABLE
+            if r["group"] != "const" and (v >= 2 or not r["p4"])}
+
+
+SCHEMA_V_ADMITTED: frozenset = enum_members(None, "v")  # {"1", "2"} as rendered → ints below
+ADMITTED_V = {int(x) for x in SCHEMA_V_ADMITTED}
 
 # The fix-only reason subset — derived from the `const` row, never a bare code
 # constant, so adding a reason later is a schema (table) change.
@@ -171,7 +375,10 @@ def parse_budget_line(text: str) -> dict:
 
 
 def load(path: str) -> tuple[list[dict], int]:
-    """Return ``(records, skipped)``: parsed ``v == 1`` objects and the skipped count.
+    """Return ``(records, skipped)``: parsed objects whose ``v`` is in the admitted
+    set ``{1, 2}`` (the domain table's ``v`` row, Q-IMPL-HARNESSP4-002) and the
+    skipped count — a ``v`` outside the set (``3``) is skipped and counted exactly
+    as a torn line is (REQ-TELEM-HARNESSP2-009's unknown-``v`` tolerance).
 
     A missing file is an empty run set (``([], 0)``) — the same
     ``n_before := 0 if absent`` rule the writer follows — so ``summarize``
@@ -179,23 +386,30 @@ def load(path: str) -> tuple[list[dict], int]:
     """
     records: list[dict] = []
     skipped = 0
+    for rec in load_raw(path):
+        if not isinstance(rec, dict) or isinstance(rec.get("v"), bool) or rec.get("v") not in ADMITTED_V:
+            skipped += 1  # torn line, or unknown schema version
+            continue
+        records.append(rec)
+    return records, skipped
+
+
+def load_raw(path: str) -> list:
+    """Every non-blank line of ``path`` as a parsed JSON value, or ``None`` for a
+    torn / non-JSON line (``--lint`` reports those; ``load`` counts them as skipped)."""
+    out: list = []
     if not os.path.isfile(path):
-        return records, skipped
+        return out
     with open(path, encoding="utf-8", errors="replace") as fh:
         for line in fh:
             line = line.strip()
             if not line:
                 continue
             try:
-                rec = json.loads(line)
+                out.append(json.loads(line))
             except json.JSONDecodeError:
-                skipped += 1  # torn or non-JSON line
-                continue
-            if not isinstance(rec, dict) or rec.get("v") != SCHEMA_V:
-                skipped += 1  # unknown schema version
-                continue
-            records.append(rec)
-    return records, skipped
+                out.append(None)
+    return out
 
 
 def _ts(value) -> datetime | None:
@@ -600,8 +814,9 @@ def _implication_lines(row: dict, label: str) -> list[str]:
     return lines
 
 
-def summarize(records: list[dict], skipped: int) -> str:
-    """Full report text: one stage table + per-chunk block per workstream, then the skipped line."""
+def summarize(records: list[dict], skipped: int, plan_path: str | None = None) -> str:
+    """Full report text: one stage table + per-chunk block per workstream, then the
+    skipped line, the records-vs-expected block and (with ``--plan``) the floor line."""
     lines: list[str] = []
     by_ws: dict[str, list[dict]] = defaultdict(list)
     for r in records:
@@ -648,12 +863,237 @@ def summarize(records: list[dict], skipped: int) -> str:
     for s in sessions:
         label = f"   [{s['workstream']}/{s['run']} session {s['session']}]" if len(sessions) > 1 else ""
         lines += _implication_lines(s, label)
+        # scope.widened / commit group, per session (telemetry.md §scope.widened,
+        # §commit Group): counts only — a v: 1 record has neither key and counts 0.
+        widened = sum(1 for r in s["records"] if _int0(_get(r, "scope", "widened")) > 0)
+        incomplete = sum(1 for r in s["records"] if _get(r, "commit", "token") == "INCOMPLETE")
+        lines.append(f"  widened dispatches: {widened}; COMMIT: INCOMPLETE: {incomplete}")
+    if plan_path:
+        lines.append(plan_floor_line(plan_floor(records, plan_path)))
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# --lint: every field of every record against the domain table
+# (telemetry.md §Schema Lint — `--lint` From One Domain Table, REQ-TELEM-HARNESSP4-004)
+# ---------------------------------------------------------------------------
+
+
+def _is_int(v) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+def _check_value(check: str, value, members: frozenset) -> str | None:
+    """Return a one-line message when ``value`` violates ``check``; None when in domain."""
+    if check == "v":
+        return None if _is_int(value) and value in ADMITTED_V else f"{value!r} not in the admitted set {sorted(ADMITTED_V)}"
+    if check == "timestamp":
+        ok = isinstance(value, str) and _ts(value) is not None and (value.endswith("Z") or "+00:00" in value)
+        return None if ok else f"{value!r} is not an ISO-8601 UTC timestamp"
+    if check == "string":
+        return None if isinstance(value, str) and value else f"{value!r} is not a non-empty string"
+    if check == "string_or_null":
+        return None if value is None or isinstance(value, str) else f"{value!r} is not a string or null"
+    if check == "date_or_null":
+        ok = value is None or (isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value))
+        return None if ok else f"{value!r} is not a YYYY-MM-DD date or null"
+    if check == "enum":
+        return None if isinstance(value, str) and value in members else f"{value!r} not in {sorted(members)}"
+    if check == "enum_or_null":
+        return None if value is None or (isinstance(value, str) and value in members) else f"{value!r} not in {sorted(members)} or null"
+    if check == "list_enum":
+        if not isinstance(value, list) or any(v not in members for v in value):
+            return f"{value!r} is not a list of {sorted(members)}"
+        return None
+    if check == "int":
+        return None if _is_int(value) else f"{value!r} is not an int"
+    if check == "int_nonneg":
+        return None if _is_int(value) and value >= 0 else f"{value!r} is not an int ≥ 0"
+    if check == "int_or_null":
+        return None if value is None or _is_int(value) else f"{value!r} is not an int or null (a `### Chunk N:` header string is out of domain)"
+    if check == "bool":
+        return None if isinstance(value, bool) else f"{value!r} is not a bool"
+    if check == "sha":
+        if value == "HEAD":
+            return '"HEAD" literal is not a sha'
+        if isinstance(value, str) and len(value) == 40 and re.fullmatch(r"[0-9a-f]{40}", value):
+            return "40-character sha; the schema fixes a short sha ^[0-9a-f]{7,12}$"
+        return None if isinstance(value, str) and SHA_RE.fullmatch(value) else f"{value!r} does not match ^[0-9a-f]{{7,12}}$"
+    if check == "budget":
+        ok = isinstance(value, dict) and (value == {"unparsed": True} or
+                                          all(k in value for k in ("tool_calls", "test_runs", "prototypes", "read_only")))
+        return None if ok else f"{value!r} is not a budget object"
+    if check == "budget_consumed":
+        return None if isinstance(value, dict) and value.get("self_reported") is True else f"{value!r} lacks self_reported: true"
+    if check == "findings":
+        ok = isinstance(value, dict) and set(value) == {"C", "M", "m"} and all(_is_int(x) for x in value.values())
+        return None if ok else f'{value!r} is not {{"C": int, "M": int, "m": int}}'
+    if check == "migration":
+        ok = isinstance(value, dict) and set(value) == {"from", "at"} and isinstance(value["from"], str) \
+            and isinstance(value["at"], str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value["at"])
+        return None if ok else f"{value!r} is not the declared {{from: chunk-string, at: date}} shape"
+    return None
+
+
+def _fname(group, key) -> str:
+    return f"{group}.{key}" if group else key
+
+
+def lint_records(records: list, seqs: list | None = None) -> list[dict]:
+    """Lint findings for in-memory records (already-parsed JSON values; ``None`` = a
+    torn line). Each finding is ``{seq, class, field, message, warn}``; ``warn`` marks
+    the ``[reason-review]`` warning, which never counts toward the exit code.
+
+    Classes: ``enum``, ``type``, ``key-undeclared``, ``key-missing``, ``cross-field``,
+    ``mistyped-fix`` (telemetry.md §Schema Lint).
+    """
+    findings: list[dict] = []
+    valid: list[dict] = []
+
+    def add(seq, cls, field, msg, warn=False):
+        findings.append({"seq": seq, "class": cls, "field": field, "message": msg, "warn": warn})
+
+    for idx, rec in enumerate(records, start=1):
+        if not isinstance(rec, dict):
+            add(f"line {idx}", "type", "record", "not a JSON object")
+            continue
+        seq = _get(rec, "dispatch", "seq")
+        seq = seq if _is_int(seq) else f"line {idx}"
+        v = rec.get("v")
+        vmsg = _check_value("v", v, frozenset())
+        if vmsg:
+            add(seq, "type", "v", vmsg)
+            continue  # no key set to validate an unknown v against
+        declared = v_key_set(v)
+        groups = {g for (g, _k) in declared if g}
+        # fixed key set per v: undeclared / missing keys (nested one level, per group)
+        for k, val in rec.items():
+            if k in groups:
+                if not isinstance(val, dict):
+                    add(seq, "type", k, f"{val!r} is not an object")
+                    continue
+                for sub in val:
+                    if (k, sub) not in declared:
+                        add(seq, "key-undeclared", f"{k}.{sub}", f"not a declared key of a v: {v} record")
+            elif (None, k) not in declared:
+                add(seq, "key-undeclared", k, f"not a declared key of a v: {v} record"
+                    + (" (a schema constant, not a record key)" if k in schema_constants() else ""))
+        for (g, k) in sorted(declared, key=str):
+            if (g, k) in OPTIONAL_KEYS:
+                continue
+            holder = rec if g is None else rec.get(g)
+            if isinstance(holder, dict) and k not in holder:
+                add(seq, "key-missing", _fname(g, k), f"declared for v: {v} but absent")
+        # per-field domains
+        for row in DOMAIN_TABLE:
+            g, k = row["group"], row["key"]
+            if g == "const" or (g, k) not in declared:
+                continue
+            holder = rec if g is None else rec.get(g)
+            if not isinstance(holder, dict) or k not in holder:
+                continue
+            msg = _check_value(row["check"], holder[k], enum_members(g, k))
+            if msg:
+                cls = "enum" if row["check"] in ("enum", "enum_or_null", "list_enum") else "type"
+                add(seq, cls, _fname(g, k), msg)
+        valid.append(rec)
+
+    # cross-field (session-scoped)
+    for _ws, _run, _i, sess in _sessions(valid):
+        verifier_chunks = {(str(_get(r, "dispatch", "stage")), _get(r, "dispatch", "chunk"))
+                           for r in sess if _get(r, "dispatch", "kind") == "verifier"}
+        for s in mistyped_fix_seqs(sess):
+            add(s, "mistyped-fix", "dispatch.kind",
+                f"an implied fix recorded as kind {next((_get(r, 'dispatch', 'kind') for r in sess if _get(r, 'dispatch', 'seq') == s), None)!r}, not `fix`")
+        for r in sess:
+            d = r.get("dispatch") or {}
+            seq = d.get("seq") if _is_int(d.get("seq")) else "?"
+            kind, stage = d.get("kind"), str(d.get("stage"))
+            if kind != "verifier" and _get(r, "verdict", "chunk_verdict") is not None \
+                    and (stage, d.get("chunk")) not in verifier_chunks:
+                add(seq, "cross-field", "verdict.chunk_verdict",
+                    f"non-null on a {kind} record with no verifier record for chunk {d.get('chunk')!r} in the session")
+            hb, ha = _get(r, "git", "head_before"), _get(r, "git", "head_after")
+            if stage == "implement" and kind in ("pipeline", "fix") and _get(r, "gate", "decision") == "proceed" \
+                    and isinstance(hb, str) and SHA_RE.fullmatch(hb) and hb == ha \
+                    and _get(r, "return", "files_written_n", default=1) != 0:
+                add(seq, "cross-field", "git.head_after",
+                    "proceed at implement with head_before == head_after (nothing was committed)")
+            if kind in NON_COMMITTING_KINDS and _get(r, "commit", "token") is not None:
+                add(seq, "cross-field", "commit.token", f"non-null on a {kind} record, whose gate commits nothing")
+    for s in reason_review_warnings(valid):
+        stage = next((_get(r, "dispatch", "stage") for r in valid if _get(r, "dispatch", "seq") == s), "?")
+        add(s, "reason-review", "dispatch.reason",
+            f"REVIEW at iteration ≥ 1 with no preceding loop-back-to-fix at {stage}", warn=True)
+    return findings
+
+
+def lint(path: str) -> tuple[int, list[str]]:
+    """Run the lint on a file: ``(exit code, output lines)`` — exit 1 on any finding,
+    0 when clean (warnings alone stay 0)."""
+    findings = lint_records(load_raw(path))
+    lines: list[str] = []
+    for f in findings:
+        if f["warn"]:
+            lines.append(f"WARN seq {f['seq']}: [{f['class']}] {f['field']} {f['message']}")
+        else:
+            lines.append(f"seq {f['seq']}: [{f['class']}] {f['field']}: {f['message']}")
+    n_find = sum(1 for f in findings if not f["warn"])
+    n_warn = len(findings) - n_find
+    lines.append(f"lint: {n_find} finding(s), {n_warn} warning(s) — {path}")
+    return (1 if n_find else 0), lines
+
+
+# ---------------------------------------------------------------------------
+# --plan floor (telemetry.md §`--plan` Floor for Implement-Stage Expectations,
+# REQ-TELEM-HARNESSP4-008 [may]) — Q-IMPL-HARNESSP4-005 fixes the shortfall's operands.
+# ---------------------------------------------------------------------------
+
+_CHUNK_HDR_RE = re.compile(r"^### Chunk (\d+):", re.MULTILINE)
+
+
+def plan_floor(records: list[dict], plan_path: str) -> dict:
+    """Implement-stage floor from the plan's ``### Chunk N:`` headers.
+
+    ``chunks`` = header count = the pipeline floor; ``verifier_on`` when any
+    implement chunk record carries a non-null ``chunk_verdict`` (the floor doubles
+    with the verifier records); ``recorded`` = implement-stage ``pipeline``
+    records; ``shortfall`` = ``max(0, chunks − recorded)`` — the verifier half is
+    already reported by the implication line, so it is not counted twice.
+    """
+    with open(plan_path, encoding="utf-8") as fh:
+        chunks = len(set(_CHUNK_HDR_RE.findall(fh.read())))
+    impl = [r for r in records if _get(r, "dispatch", "stage") == "implement"]
+    verifier_on = any(_get(r, "verdict", "chunk_verdict") is not None and _get(r, "dispatch", "chunk") is not None
+                      for r in impl)
+    recorded = sum(1 for r in impl if _get(r, "dispatch", "kind") == "pipeline")
+    return {"chunks": chunks, "verifier_on": verifier_on, "recorded": recorded, "shortfall": max(0, chunks - recorded)}
+
+
+def plan_floor_line(floor: dict) -> str:
+    return (f"implement floor: {floor['chunks']} pipeline ({2 * floor['chunks']} with verifier); "
+            f"recorded implement records: {floor['recorded']}; shortfall: {floor['shortfall']}"
+            + ("" if floor["verifier_on"] else "   (no chunk_verdict recorded — verifier off or unrecorded)"))
 
 
 # ---------------------------------------------------------------------------
 # self-test
 # ---------------------------------------------------------------------------
+
+
+def _record2(**over) -> dict:
+    """A complete ``v: 2`` record: the v1 record plus the ``[p4]`` groups
+    (``scope.widened`` 0, ``commit`` ``{null, 0, 0}``) and distinct git heads."""
+    base = _record(git={"head_before": "c38922d", "head_after": "d49a33e"})
+    base["v"] = 2
+    base["scope"]["widened"] = 0
+    base["commit"] = {"token": None, "missing_n": 0, "extra_n": 0}
+    for group, vals in over.items():
+        if isinstance(vals, dict) and isinstance(base.get(group), dict):
+            base[group].update(vals)
+        else:
+            base[group] = vals
+    return base
 
 
 def _record(**over) -> dict:
@@ -704,7 +1144,7 @@ def _fixture_lines() -> list[str]:
                 verdict={"red_verdict": "BROKEN"}, **{"return": {"failures_n": 2}}),
     ]
     lines = [json.dumps(r, separators=(",", ":")) for r in recs]
-    lines.append(json.dumps({"v": 2, "ts_dispatch": "2026-09-17T11:00:00Z"}))  # unknown schema → skipped
+    lines.append(json.dumps({"v": 3, "ts_dispatch": "2026-09-17T11:00:00Z"}))  # unknown schema (v outside {1, 2}) → skipped
     lines.append("{this is not json")                                             # torn line → skipped
     return lines
 
@@ -928,6 +1368,145 @@ def self_test() -> int:
             rc = main(["summarize", "--file", absent])
         check(rc == 0 and "records: 0" in buf.getvalue(), f"summarize on missing file → exit {rc}")
 
+    # ------------------------------------------------------------------
+    # Chunk 3 (harness-p4): whole-schema --lint, v ∈ {1, 2}, scope.widened,
+    # the commit group and the schema-agreement diff (telemetry.md §Schema Lint,
+    # §scope.widened, §commit Group, §Fixture-Based Test Contract).
+    # ------------------------------------------------------------------
+    with tempfile.TemporaryDirectory() as tmp:
+        def classes(recs) -> dict[str, list[str]]:
+            """``{class: [<group.key> …]}`` of the lint findings on ``recs`` (in-memory)."""
+            out: dict[str, list[str]] = defaultdict(list)
+            for f in lint_records(recs):
+                out[f["class"]].append(f["field"])
+            return out
+
+        def lint_file(recs) -> tuple[int, str]:
+            p = os.path.join(tmp, f"lint-{len(os.listdir(tmp))}.jsonl")
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write("\n".join(json.dumps(r, separators=(",", ":")) for r in recs) + "\n")
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = main(["--lint", "--file", p])
+            return rc, buf.getvalue()
+
+        # test_schema_table_agrees: both renderings parse to the code table [M3].
+        code = parse_code_table()
+        for doc_path, heading in ((SPEC_DOC, "### Record Schema"), (REF_DOC, "## 2. Record schema")):
+            check(os.path.exists(doc_path), f"schema rendering missing: {doc_path}")
+            if os.path.exists(doc_path):
+                doc = parse_doc_table(open(doc_path, encoding="utf-8").read(), heading)
+                diff = schema_diff(code, doc)
+                check(not diff, f"test_schema_table_agrees {os.path.relpath(doc_path)}: {diff}")
+                check(doc["constants"] == {"FIX_ONLY_REASONS": {"red_break"}}, f"const set parsed from {doc_path}: {doc['constants']}")
+                check(("const", "FIX_ONLY_REASONS") not in doc["keys"], "const row leaked into group.key")
+        check(FIX_ONLY_REASONS <= enum_members("dispatch", "reason"), "FIX_ONLY_REASONS ⊆ dispatch.reason")
+        # a row added on one side only fails the diff (both directions)
+        extra = dict(code)
+        extra["keys"] = dict(code["keys"])
+        extra["keys"][("git", "commit_n")] = ("scalar", "int", False)
+        check(schema_diff(extra, code) and schema_diff(code, extra), "row added on one side only must fail")
+        # a `v: 1` record admitted, a `v: 2` record admitted, `v: 3` skipped and counted [M1]
+        mixed = [_record(dispatch={"seq": 1}), _record2(dispatch={"seq": 2}), {"v": 3, "dispatch": {"seq": 3}}]
+        mpath = os.path.join(tmp, "mixed.jsonl")
+        with open(mpath, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(json.dumps(r) for r in mixed) + "\n")
+        mrecs, mskipped = load(mpath)
+        check(len(mrecs) == 2 and mskipped == 1, f"mixed v fixture: {len(mrecs)} records, {mskipped} skipped")
+        check("skipped: 0 unknown-schema record(s)" in summarize(mixed[:2], 0), "mixed v1/v2 summarised with skipped: 0")
+        check(v_key_set(1) < v_key_set(2) and ("commit", "token") in v_key_set(2) and ("commit", "token") not in v_key_set(1),
+              "per-v key sets derive from the [p4] marks")
+        # a v: 1 record lints clean against the v: 1 key set; a v: 2 one against the full set
+        check(classes([_record(git={"head_before": "c38922d", "head_after": "d49a33e"})]) == {}, f"v1 record clean: {classes([_record()])}")
+        check(classes([_record2()]) == {}, f"v2 record clean: {classes([_record2()])}")
+        # one mutation per domain class
+        check(classes([_record(dispatch={"kind": "gate"})]).get("enum") == ["dispatch.kind"], "enum: kind gate")
+        check(classes([_record(dispatch={"chunk": "Chunk 0"})]).get("type") == ["dispatch.chunk"], "type: header string chunk")
+        check("git.head_after" in classes([_record(git={"head_before": "c38922d", "head_after": "HEAD"})]).get("type", []), "type: HEAD literal")
+        check("git.head_after" in classes([_record(git={"head_before": "c38922d", "head_after": "b0b69be0c5be814b9d138acdcabec45dbba6359a"})]).get("type", []), "type: 40-char sha")
+        check(classes([_record(ts_gate="yesterday")]).get("type") == ["ts_gate"], "type: timestamp")
+        check(classes([_record(git={"head_before": "c38922d", "head_after": "d49a33e", "commit_n": 0})]).get("key-undeclared") == ["git.commit_n"], "key-undeclared: git.commit_n")
+        no_token = _record()
+        del no_token["scope"]["token"]
+        check(classes([no_token]).get("key-missing") == ["scope.token"], "key-missing: scope.token")
+        check(classes([_record(FIX_ONLY_REASONS=["red_break"])]).get("key-undeclared") == ["FIX_ONLY_REASONS"], "const name as a key is key-undeclared [M3]")
+        # scope.widened in-domain vs string
+        check(classes([_record2(scope={"widened": 2})]) == {}, "scope.widened: 2 is in-domain")
+        check(classes([_record2(scope={"widened": "2"})]).get("type") == ["scope.widened"], "scope.widened string is a type finding")
+        check(classes([_record(scope={"widened": 0})]).get("key-undeclared") == ["scope.widened"], "a v1 record carrying a [p4] key is key-undeclared")
+        # commit group in-domain vs DROPPED; non-null token on a non-committing kind
+        check(classes([_record2(commit={"token": "INCOMPLETE", "missing_n": 1, "extra_n": 0})]) == {}, "commit INCOMPLETE,1,0 passes")
+        check(classes([_record2(commit={"token": "DROPPED", "missing_n": 1, "extra_n": 0})]).get("enum") == ["commit.token"], "commit token DROPPED fails")
+        check(classes([_record2(dispatch={"kind": "review"}, commit={"token": "COMPLETE"})]).get("cross-field") == ["commit.token"], "commit.token on a review record")
+        # cross-field: chunk_verdict with no verifier record; proceed implement with equal heads
+        cv_only = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1}, verdict={"chunk_verdict": "PASS"},
+                           git={"head_before": "c38922d", "head_after": "d49a33e"})
+        check(classes([cv_only]).get("cross-field") == ["verdict.chunk_verdict"], f"chunk_verdict without verifier: {classes([cv_only])}")
+        same_heads = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1}, git={"head_before": "c38922d", "head_after": "c38922d"})
+        check(classes([same_heads]).get("cross-field") == ["git.head_after"], f"proceed implement with equal heads: {classes([same_heads])}")
+        # gapless in-domain v2 fixture (the compliant redone chunk of C1 with real heads) exits 0
+        def rec2(seq, kind, stage, chunk=None, redo=None, reason=None, cv=None, rv=None, red=None,
+                 decision="proceed", gate_of=None, before="c38922d", after="c38922d", commit=None):
+            return _record2(dispatch={"seq": seq, "kind": kind, "stage": stage, "chunk": chunk, "redo": redo, "reason": reason},
+                            verdict={"chunk_verdict": cv, "review_verdict": rv, "red_verdict": red},
+                            gate={"decision": decision, "redo_count": redo},
+                            git={"head_before": before, "head_after": after},
+                            commit=commit or {"token": None, "missing_n": 0, "extra_n": 0},
+                            ts_dispatch=f"2026-09-19T10:{seq:02d}:00Z", ts_gate=f"2026-09-19T10:{(gate_of or seq):02d}:30Z")
+        clean2 = [rec2(1, "pipeline", "research", rv="APPROVE", after="d49a33e", commit={"token": "COMPLETE", "missing_n": 0, "extra_n": 0}),
+                  rec2(2, "review", "research", rv="APPROVE", gate_of=1),
+                  rec2(3, "pipeline", "implement", chunk=1, redo=0, cv="FAIL", decision="redo"),
+                  rec2(4, "verifier", "implement", chunk=1, cv="FAIL", decision="redo", gate_of=3),
+                  rec2(5, "fix", "implement", chunk=1, redo=1, reason="VERIFIER_FAIL", cv="PASS", after="e4f5a6b",
+                       commit={"token": "COMPLETE", "missing_n": 0, "extra_n": 0}),
+                  rec2(6, "verifier", "implement", chunk=1, cv="PASS", gate_of=5),
+                  rec2(7, "pipeline", "verify", red="HELD", after="f7a8b9c", commit={"token": "INCOMPLETE", "missing_n": 1, "extra_n": 0}),
+                  rec2(8, "red", "verify", red="HELD", gate_of=7)]
+        clean2[4]["scope"]["widened"] = 1
+        crc, cout = lint_file(clean2)
+        check(crc == 0 and "0 finding(s)" in cout, f"gapless in-domain fixture lints clean, got rc {crc}:\n{cout}")
+        creport = summarize(clean2, 0)
+        check("widened dispatches: 1" in creport and "COMMIT: INCOMPLETE: 1" in creport, f"summarize widened / COMMIT lines:\n{creport}")
+        check("records-vs-expected: 8 recorded, expected 8 (0 missing)" in creport, "v2 fixture gapless")
+        # the frozen fixture: exit 1 with at minimum the findings of §Fixture-Based Test Contract
+        if os.path.exists(FIXTURE_PATH):
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 before lint")
+            lbuf = io.StringIO()
+            with contextlib.redirect_stdout(lbuf):
+                lrc = main(["--lint", "--file", FIXTURE_PATH])
+            lout = lbuf.getvalue()
+            check(lrc == 1, f"fixture --lint exit {lrc}")
+            check("seq 20: [enum] dispatch.kind:" in lout, "fixture: kind gate on seq 20")
+            for s in range(6, 14):
+                check(f"seq {s}: [type] dispatch.chunk:" in lout, f"fixture: header string chunk on seq {s}")
+            check("seq 5: [type] git.head_after:" in lout and '"HEAD"' in lout, "fixture: head_after HEAD on seq 5")
+            for s in range(6, 15):
+                check(f"seq {s}: [type] git.head_before:" in lout and f"seq {s}: [type] git.head_after:" in lout, f"fixture: null git heads on seq {s}")
+            for s in range(15, 21):
+                check(f"seq {s}: [type] git.head_after:" in lout, f"fixture: 40-char sha on seq {s}")
+                check(f"seq {s}: [key-undeclared] git.commit_n:" in lout, f"fixture: undeclared git.commit_n on seq {s}")
+            for s in (2, 18):
+                check(f"seq {s}: [mistyped-fix] dispatch.kind:" in lout, f"fixture: [mistyped-fix] on seq {s}")
+            for s in (3, 4, 5):
+                check(f"WARN seq {s}: [reason-review] dispatch.reason" in lout, f"fixture: [reason-review] on seq {s}")
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after lint")
+        # --plan floor (REQ-TELEM-HARNESSP4-008): a plan with a chunk that has no record.
+        plan_path = os.path.join(tmp, "plan.md")
+        with open(plan_path, "w", encoding="utf-8") as fh:
+            fh.write("# Plan\n\n### Chunk 0: a\n\n### Chunk 1: b\n\n### Chunk 2: c\n")
+        floor = plan_floor(clean2, plan_path)
+        check(floor == {"chunks": 3, "verifier_on": True, "recorded": 1, "shortfall": 2}, f"plan floor: {floor}")
+        check("implement floor: 3 pipeline (6 with verifier); recorded implement records: 1; shortfall: 2" in plan_floor_line(floor),
+              f"plan floor line: {plan_floor_line(floor)}")
+        pbuf = io.StringIO()
+        with contextlib.redirect_stdout(pbuf):
+            prc = main(["summarize", "--plan", plan_path, "--file", mpath])
+        check(prc == 0 and "implement floor: 3 pipeline" in pbuf.getvalue(), f"summarize --plan → exit {prc}")
+        if os.path.exists(FIXTURE_PATH) and os.path.exists(P3_PLAN):
+            pf = plan_floor(load(FIXTURE_PATH)[0], P3_PLAN)
+            check(pf == {"chunks": 8, "verifier_on": True, "recorded": 8, "shortfall": 0}, f"p3 plan floor on the fixture: {pf}")
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after --plan")
+
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
@@ -935,7 +1514,9 @@ def self_test() -> int:
           "records-vs-expected (gapless + a seq gap), implication-derived expected (verifier, redo first attempt, "
           "review, red, clause (b), loop-back with no record, [reason-review] not counted, gapless compliant-redo "
           "fixture 2/1/0, frozen p3 fixture expected 39 with sha256 unchanged), out-of-domain dispatch.chunk "
-          "counted and folded to c?, missing file → records: 0")
+          "counted and folded to c?, missing file → records: 0, schema table agrees with both renderings, "
+          "v ∈ {1, 2} admitted (v: 3 skipped), --lint one mutation per class + frozen fixture findings + gapless "
+          "v2 fixture clean, scope.widened / commit group, --plan floor")
     return 0
 
 
@@ -950,18 +1531,30 @@ def main(argv: list[str] | None = None) -> int:
         description="Out-of-loop reader for .sdd/telemetry.jsonl (orchestrator-written, gitignored, "
                     "never read by phase detection). One table per workstream, one row per stage.",
     )
-    ap.add_argument("--self-test", action="store_true", help="run the built-in six-record fixture test")
+    ap.add_argument("--self-test", action="store_true", help="run the built-in fixture tests")
+    ap.add_argument("--lint", action="store_true",
+                    help="validate every field of every record against the domain table; exit 1 on any finding")
+    ap.add_argument("--file", default=DEFAULT_FILE, help=f"telemetry file for --lint (default: {DEFAULT_FILE})")
     sub = ap.add_subparsers(dest="command")
     sp = sub.add_parser("summarize", help="print per-workstream stage tables and the per-chunk block")
     sp.add_argument("--file", default=DEFAULT_FILE, help=f"telemetry file (default: {DEFAULT_FILE})")
     sp.add_argument("--workstream", default=None, help="only records of this cycle.workstream")
     sp.add_argument("--since", default=None, help="only records with ts_dispatch >= this ISO-8601 timestamp")
+    sp.add_argument("--plan", default=None, metavar="PATH",
+                    help="also print the implement-stage floor derived from this plan's `### Chunk N:` headers")
     args = ap.parse_args(argv)
 
     if args.self_test:
         return self_test()
+    if args.lint:
+        rc, lines = lint(args.file)
+        print("\n".join(lines))
+        return rc
     if args.command != "summarize":
         ap.print_help()
+        return 2
+    if args.plan and not os.path.isfile(args.plan):
+        print(f"error: --plan not found: {args.plan}", file=sys.stderr)
         return 2
     # A missing file is an empty run set: load() returns ([], 0) and summarize()
     # prints an empty table with ``records: 0`` (exit 0), matching sdd-eval.py.
@@ -971,7 +1564,7 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    print(summarize(records, skipped))
+    print(summarize(records, skipped, args.plan))
     return 0
 
 

@@ -235,7 +235,11 @@ record with `redo` incremented and `reason` set (REQ-TELEM-HARNESSP4-001). Count
 timestamps — never finding text — go to the gitignored `.sdd/telemetry.jsonl`; no leaf writes it,
 no skill reads it (**never read by phase detection**; `rm -rf .sdd/` is behaviour-neutral); if
 `git check-ignore -q .sdd/telemetry.jsonl` fails, append `.sdd/` to `.gitignore` as a bookkeeping
-commit outside any observed window. Reader: `python3 tools/sdd-telemetry.py summarize`. Schema,
+commit outside any observed window. A record also carries `scope.widened` (= dispatched scope
+globs − stage template default globs, from session state) and the `commit` group (token and two
+counts copied from the gate's own `COMMIT:` line) and is stamped `v: 2`; neither source reads the
+telemetry file. Readers (post-cycle only): `python3 tools/sdd-telemetry.py summarize` and `--lint`,
+which validates every field against the domain table `references/telemetry.md` §2 renders. Schema,
 writer rules, `TELEMETRY:` lines, third observation: [`references/telemetry.md`](references/telemetry.md) §2–§3.
 
 ### Per-stage dispatch model
