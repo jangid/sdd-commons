@@ -198,8 +198,8 @@ Skills then detect the current phase by checking which artifacts exist **and whe
 | `docs/requirements/index.md` (status: Approved) — shared | Requirements done |
 | `docs/spec/*.md` (all status: Approved) — shared | Specs done |
 | `docs/plan.md` → `docs/ws/<id>/plan.md` (exists, tasks incomplete) | Planning done, implementing |
-| `docs/plan.md` → `docs/ws/<id>/plan.md` (`status: complete`, all tasks done, **`research_id` matches the kickoff's**) | Implementation done |
-| `docs/verification.md` → `docs/ws/<id>/verification.md` (status: pass, **`research_id` matches the kickoff's**) | Verified, ready to ship |
+| `docs/plan.md` → `docs/ws/<id>/plan.md` (`status: complete`, all tasks done, **`research_id` matches the kickoff's — when a kickoff with one exists**) | Implementation done |
+| `docs/verification.md` → `docs/ws/<id>/verification.md` (status: pass, **`research_id` matches the kickoff's — when a kickoff with one exists**) | Verified, ready to ship |
 | `docs/verification.md` → `docs/ws/<id>/verification.md` (status: fail) | Needs replan |
 
 Under marker `4`, phase is resolved **per workstream** — two workstreams in the same repo can sit at different phases simultaneously. A skill under marker `3` never reads `docs/ws/`; a skill under marker `4` never reads flat `docs/plan.md` / `docs/verification.md`.

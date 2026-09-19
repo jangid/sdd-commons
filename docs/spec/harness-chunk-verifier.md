@@ -97,7 +97,7 @@ RETURN:
   verified_do_not_touch: []
   open_questions: []
   blocked_writes: []
-  CHUNK_VERDICT: PASS | FAIL
+CHUNK_VERDICT: PASS | FAIL           # column 0 — the only key of the block not indented
 ```
 
 [Amended 2026-09-18: template body synchronised with references/dispatch-templates.md per the spec's own byte-consistency clause]
@@ -445,3 +445,10 @@ there.
 **Decision**: the PIPELINE template carries `{implement_only}Chunk: Chunk {N} — implement THIS chunk's tasks only`, mirroring the existing `{on_fix_only}` convention; the spec names the parameter "Chunk N" without a slot token.
 **Rationale**: consistency with the template's existing conditional-slot style.
 **Date**: 2026-09-17 (Chunk 3)
+
+### Q-IMPL-HARNESSP4-009: The §Verdict Rule return-shape example keeps its indented token
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Terminal Token at Column 0 (REQ-HARN-HARNESSP4-007); §Acceptance Criteria (`grep -n '^  CHUNK_VERDICT:'` on `dispatch-templates.md` returns nothing)
+**Decision**: the column-0 move is applied to the two `[template-drift]`-paired fences (the CHUNK VERIFIER dispatch body in `references/dispatch-templates.md` and this spec's §Verifier Dispatch Template restatement, byte-identical) and to the worked `yaml` return-shape example in `dispatch-templates.md` §Return contract, so the file-wide grep criterion holds. The twin `yaml` example under this spec's §Verdict Rule is **not** edited: it is not a lint pair, and the Chunk 7 write scope admits exactly one Approved-spec edit — the §Verifier Dispatch Template fence.
+**Rationale**: the contract is the dispatch body a leaf is pasted, which now shows the unindented token; the §Verdict Rule example is illustrative prose whose indentation the acceptance criteria do not constrain, and widening an Approved-spec edit beyond the operator's one-path widening would be a scope violation, not a fix. A later specs pass may align the example.
+**Date**: 2026-09-19 (harness-p4 Chunk 7)

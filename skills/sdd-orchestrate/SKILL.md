@@ -320,6 +320,15 @@ occurrence wins; never classify from prose) — surface it with the review's
 return text and **wait** for an explicit decision. Never auto-advance. Choices
 per token and per `RETURN.status`: `references/return-contract.md` §6, §7.
 
+**Chunk verifier token (REQ-HARN-HARNESSP4-007).** At the per-chunk gate parse
+`^CHUNK_VERDICT:` on the **last non-blank line** of the verifier's return —
+`CHUNK_VERDICT: PASS | FAIL`, anchored at column 0 exactly as `^VERDICT:` and
+`^RED_VERDICT:` are (`docs/spec/harness-chunk-verifier.md` §Terminal Token at
+Column 0). The template emits the token unindented, the only key of the
+`RETURN:` block that is; a token that is missing, indented or not on the last
+non-blank line is a malformed return (`references/return-contract.md` §1) and
+is never classified from prose.
+
 | Decision | Action |
 |----------|--------|
 | **proceed** | Advance to the next stage. |

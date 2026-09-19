@@ -159,6 +159,15 @@ orchestrator's existing `pending-red → pass` flip at DONE turns exactly those
 cells back to `pass` and regenerates the aggregate in the same bookkeeping step
 — this skill never performs that flip.
 
+**gc criterion for these cells (REQ-REDB-HARNESSP4-001).** The check is that
+`python3 tools/sdd-gc.py --report` raises no new finding **on a `pending-red`
+cell**. The one `[traceability-aggregate]` warning that appears between this
+per-workstream write and the orchestrator's post-gate regeneration of the
+aggregate (`docs/spec/ws-traceability.md` §Aggregate Regeneration Ownership,
+REQ-WS-HARNESSP3-001) is the **designed handshake** — expected, and not a
+finding against any cell (`docs/spec/adversarial-verify.md` §`Verified` Reads
+`pending-red` While a Red Round Is Outstanding).
+
 **Per-workstream traceability (marker `4` only).** `docs/.sdd-version` is the sole gate.
 Under marker `3` or earlier, read and write the single shared
 `docs/requirements/traceability.md` directly, as above (unchanged). Under marker `4`,
@@ -212,9 +221,9 @@ Save to `docs/verification.md` (or `docs/ws/<ws>/verification.md` under marker `
 
 ```markdown
 ---
-last_updated: YYYY-MM-DD
 status: pass | fail
-research_id: RS-<WS>-NNN   # copied verbatim from the workstream's kickoff.md
+research_id: RS-<WS>-NNN   # copied verbatim from the workstream's kickoff.md; always the line after status:
+last_updated: YYYY-MM-DD
 plan_ref: docs/plan.md   # marker 4: docs/ws/<ws>/plan.md
 ---
 
@@ -276,7 +285,8 @@ plan_ref: docs/plan.md   # marker 4: docs/ws/<ws>/plan.md
 (`last_updated:` matches every other SDD artifact's staleness field; older reports may carry `date:` instead — treat the two as equivalent when reading.)
 
 **The `research_id:` stamp (REQ-CYCID-HARNESSP3-001).** Emit it on the line
-immediately after `status:` (Q-IMPL-HARNESSP3-014), copied **verbatim** from the
+immediately after `status:`, before `last_updated:` (Q-IMPL-HARNESSP3-014;
+`docs/spec/cycle-identity.md` §The Stamp), copied **verbatim** from the
 active workstream's `kickoff.md` (`docs/ws/<ws>/kickoff.md` under marker `4`,
 `docs/handoff/kickoff.md` under marker `3`) — never derived or invented. It is
 what lets a later reader tell **this** cycle's `status: pass` report from a
@@ -332,7 +342,10 @@ before its own commit — this skill **never** writes `pass` while red is
 pending and never performs the flip. Writing `pending-red` here also means
 writing `pending-red` into every would-be-`pass` `Verified` cell (Step 3b,
 REQ-REDB-HARNESSP3-003) — the durable matrix never asserts `pass` while a red
-round is outstanding. Every reader maps `pending-red` to
+round is outstanding. The gc criterion for those cells is Step 3b's qualified
+one — no new finding **on a `pending-red` cell**, with the
+`[traceability-aggregate]` handshake warning raised before the orchestrator's
+regeneration expected, not a finding. Every reader maps `pending-red` to
 "verification incomplete — re-enter the verify stage" (Phase Detection item 5;
 `sdd-replan` routes it back here; `sdd-orchestrate` resumes before the red
 dispatch).

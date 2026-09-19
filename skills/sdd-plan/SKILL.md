@@ -138,7 +138,7 @@ Decide whether to use per-milestone plan files:
 When activating per-milestone structure:
 1. Create `docs/plan.md` as the index (milestone table format — see Step 7)
 2. Create `docs/plan-{milestone-id}.md` for each active milestone
-3. Add `milestone:`, `last_updated:`, `status: planned`, and `research_id:` (immediately after `status:`) frontmatter to each milestone plan
+3. Add `milestone:`, `status: planned`, `research_id:` (immediately after `status:`, before `last_updated:`), and `last_updated:` frontmatter to each milestone plan
 
 **Marker `4`**: the same structure lives inside the workstream — `docs/ws/<ws>/plan.md` is the index and `docs/ws/<ws>/plan-{milestone-id}.md` the milestone plans, archiving to `docs/ws/<ws>/plan-history/`. Per-milestone activation is per-workstream; it never creates flat `docs/plan-*.md` files.
 
@@ -194,9 +194,9 @@ marker `4`) or create the index + per-milestone files (multi-milestone).
 
 ```markdown
 ---
-last_updated: YYYY-MM-DD
 status: planned   # planned → active (first task starts) → complete
-research_id: RS-<WS>-NNN   # copied verbatim from the workstream's kickoff.md
+research_id: RS-<WS>-NNN   # copied verbatim from the workstream's kickoff.md; always the line after status:
+last_updated: YYYY-MM-DD
 ---
 
 # Implementation Plan: [Project Name]
@@ -255,8 +255,8 @@ task list.)
 (The `research_id:` field is the **cycle identity** stamp (REQ-CYCID-HARNESSP3-002):
 copy it **verbatim** from the active workstream's `kickoff.md` (`docs/ws/<ws>/kickoff.md`
 under marker `4`, `docs/handoff/kickoff.md` under marker `3`) — never derive, shorten or
-invent one — and emit it on the line immediately after `status:`
-(Q-IMPL-HARNESSP3-014). It is what lets a reader tell **this** cycle's
+invent one — and emit it on the line immediately after `status:`, before
+`last_updated:` (Q-IMPL-HARNESSP3-014; `docs/spec/cycle-identity.md` §The Stamp). It is what lets a reader tell **this** cycle's
 `status: complete` plan from a previous cycle's (§Phase Detection). Omit the field when
 there is no kickoff or the kickoff carries no `research_id` — case 3, the comparison is
 skipped. Existing plans are **not** back-filled, and nothing under

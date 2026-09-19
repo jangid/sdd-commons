@@ -295,7 +295,7 @@ RETURN:
   verified_do_not_touch: []
   open_questions: []
   blocked_writes: []
-  CHUNK_VERDICT: PASS | FAIL
+CHUNK_VERDICT: PASS | FAIL           # column 0 — the only key of the block not indented
 ```
 
 ### Slot contract (chunk verifier)
@@ -361,7 +361,7 @@ RETURN:
   verified_do_not_touch: []
   open_questions: []
   blocked_writes: []
-  CHUNK_VERDICT: FAIL                  # verifier-only key, last line
+CHUNK_VERDICT: FAIL                    # verifier-only key, last line, column 0
 ```
 
 The verifier produces the token; only the orchestrator interprets it

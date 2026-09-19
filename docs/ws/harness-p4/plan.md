@@ -562,7 +562,7 @@ under the active `[template-drift]` rule on both sides in one commit.
 **Delivers**: REQ-HARN-HARNESSP4-007, REQ-CYCID-HARNESSP4-001,
 REQ-CYCID-HARNESSP4-002, REQ-REDB-HARNESSP4-001.
 **Tasks**:
-1. [ ] [implement] Move `CHUNK_VERDICT: PASS | FAIL` to **column 0** in the
+1. [x] [implement] Move `CHUNK_VERDICT: PASS | FAIL` to **column 0** in the
    CHUNK VERIFIER dispatch body and its `RETURN:` block of
    `references/dispatch-templates.md` **and, in the same commit,** in the
    byte-identical fence of `docs/spec/harness-chunk-verifier.md` §Verifier
@@ -573,26 +573,26 @@ REQ-CYCID-HARNESSP4-002, REQ-REDB-HARNESSP4-001.
    `harness-chunk-verifier.md` §Terminal Token at Column 0
    (REQ-HARN-HARNESSP4-007). Files: `skills/sdd-orchestrate/references/dispatch-templates.md`,
    `docs/spec/harness-chunk-verifier.md` (fence only), `skills/sdd-orchestrate/SKILL.md`
-2. [ ] [implement] `skills/sdd-plan/SKILL.md` and `skills/sdd-verify/SKILL.md`
+2. [x] [implement] `skills/sdd-plan/SKILL.md` and `skills/sdd-verify/SKILL.md`
    frontmatter templates and prose: emit `research_id:` on the line
    **immediately after `status:`** (the skills follow Q-IMPL-HARNESSP3-014, whose
    text is unchanged) — traces to `cycle-identity.md` §The Stamp
    (REQ-CYCID-HARNESSP4-001). Files: `skills/sdd-plan/SKILL.md`,
    `skills/sdd-verify/SKILL.md`
-3. [ ] [implement] `CLAUDE.md` §Phase Detection: both completion-signal rows
+3. [x] [implement] `CLAUDE.md` §Phase Detection: both completion-signal rows
    (plan `status: complete`, `verification.md` `status: pass`) gain the inline
    qualifier "when a kickoff with one exists"; the §Cycle identity paragraph's
    three cases stay unchanged — traces to `cycle-identity.md` §`CLAUDE.md`
    Completion-Signal Rows Carry the Case-3 Qualifier Inline
    (REQ-CYCID-HARNESSP4-002). Files: `CLAUDE.md`
-4. [ ] [implement] `skills/sdd-verify/SKILL.md` Step 3b / Step 6 gc criterion:
+4. [x] [implement] `skills/sdd-verify/SKILL.md` Step 3b / Step 6 gc criterion:
    qualify to "no new finding **on a `pending-red` cell**" and name the
    `[traceability-aggregate]` warning between the per-ws write and the
    orchestrator's regeneration as the designed handshake, expected and not a
    finding — traces to `adversarial-verify.md` §`Verified` Reads `pending-red`
    While a Red Round Is Outstanding, gc criterion wording
    (REQ-REDB-HARNESSP4-001). Files: `skills/sdd-verify/SKILL.md`
-5. [ ] [verify] `grep -n '^  CHUNK_VERDICT:' skills/sdd-orchestrate/references/dispatch-templates.md`
+5. [x] [verify] `grep -n '^  CHUNK_VERDICT:' skills/sdd-orchestrate/references/dispatch-templates.md`
    returns nothing and `grep -c '^CHUNK_VERDICT:'` on it is ≥ 2; `python3
    tools/sdd-skill-lint.py` exits 0 with `[template-drift]` active (both fences
    moved together); the frontmatter templates of the two skills show `status:`
@@ -603,7 +603,7 @@ REQ-CYCID-HARNESSP4-002, REQ-REDB-HARNESSP4-001.
    `harness-chunk-verifier.md`, `cycle-identity.md`, `adversarial-verify.md`
    §Acceptance Criteria (REQ-HARN-HARNESSP4-007, REQ-CYCID-HARNESSP4-001,
    REQ-REDB-HARNESSP4-001)
-6. [ ] [verify] Integration sweep across the whole cycle: run every gate in
+6. [x] [verify] Integration sweep across the whole cycle: run every gate in
    §Conventions (four self-tests, lint, gc); `grep -rn 'COMMIT: ' skills
    docs/spec CLAUDE.md` shows only `COMPLETE`/`INCOMPLETE`; the four-layer
    table text in `skills/sdd-review/SKILL.md` and `CLAUDE.md` is unchanged
@@ -612,6 +612,19 @@ REQ-CYCID-HARNESSP4-002, REQ-REDB-HARNESSP4-001.
    specs-stage commit — traces to `cycle-identity.md` §Acceptance Criteria
    (no back-fill); `harness-commit-fidelity.md` §Verification / Automated
    (REQ-CYCID-HARNESSP4-002, REQ-HARN-HARNESSP4-007)
+   - Observed 2026-09-19: `--self-test` × 4 (skill-lint, scope-check, telemetry,
+     gc) exit 0; `sdd-skill-lint.py` exit 0 (3 pre-existing `[size]` warnings,
+     `[template-drift]` clean); `sdd-gc.py --report` exit 0 at the 7-warning
+     baseline before the traceability fill. `COMMIT: ` grep: 30 `COMPLETE`, 19
+     `INCOMPLETE`, no third member (5 remaining hits are prose / regex mentions).
+     Four-layer text: `git diff 0182bf2 -- skills/sdd-review/SKILL.md` empty;
+     `CLAUDE.md` diff carries no layer line. Corpus vs specs-stage `1ca92e1`
+     (`git diff --stat 1ca92e1 -- docs/requirements docs/spec`): 5 files —
+     `docs/requirements/traceability.md` (orchestrator-regenerated aggregate),
+     `docs/spec/harness-chunk-verifier.md` (task 1 fence + Q-IMPL-HARNESSP4-009),
+     `harness-commit-fidelity.md`, `skill-lint-v5.md`, `telemetry.md` (added
+     lines under `## Implementation Questions` only). Removed lines in
+     `docs/spec`: 1 — the indented `CHUNK_VERDICT:` line inside the task 1 fence.
 
 **Entry criteria**: Chunks 0 and 6 complete (`CLAUDE.md`/`SKILL.md` already
 carry the `COMMIT:` sentence; `[template-drift]` is active).
