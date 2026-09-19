@@ -660,7 +660,7 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   `APPROVE_WITH_FIXES` occurs before the verify stage, the item is **descoped at
   replan** under the cycle's DONE rule — never closed `fail`.
   Exercised live 2026-09-19 at the implement stage: round 1 review `APPROVE_WITH_FIXES` (C1, M1, M2, M3); fix #1 was dispatched with a regenerate-wholesale `{deliverable_contract}` for `docs/ws/harness-p4/plan.md` and the leaf rewrote the file in full, but the rewrite was byte-identical outside three sections, so diff-based section resolution put only `§(frontmatter)`, `§Operator Tasks`, `§Completed` into `W_1` (`regen[1]` added no sections; no orchestrator-regenerated aggregate this round); round 2 `APPROVE_WITH_FIXES` raised new Critical/Material ground on `SKILL.md §Telemetry` and on the regenerated plan's untouched `§Conventions` / `§Verification Hand-off`, so the gate DID render `REVIEW: CONTRADICTION (round 1 vs round 2, class b)`; operator accepted round 2 (fix). Observation for verify: a byte-identical regeneration adds nothing to `W_N` under §2a as written; the provenance reading (Q-IMPL-HARNESSP3-010, `regen[N] = (file, *)`) is a p5 spec question.
-- [ ] **O2 — Telemetry migration of the live file** (REQ-TELEM-HARNESSP4-005;
+- [x] **O2 — Telemetry migration of the live file** (REQ-TELEM-HARNESSP4-005;
   `telemetry.md` §In-Place Migration). **After Chunk 4 lands and before the
   verify stage is dispatched, with no orchestrator session open**: `python3
   tools/sdd-telemetry.py --lint --file .sdd/telemetry.jsonl` (record the
@@ -672,7 +672,30 @@ the operator at the gates named, and their evidence is what `sdd-verify` records
   classes, no record text) for the hand-off. If the pre-migration `--lint`
   shows findings on the migrated records' **typed** fields beyond the 8
   `chunk` strings, do not migrate — raise the replan trigger below.
-  Pending: to be run by the operator in a closed-session window after the implement stage closes and before the verify dispatch; evidence recorded here when done.
+  Run by the operator 2026-09-19 with no orchestrator session open, on the
+  live file (61 lines, 3 sessions: p3 seq 1–20, p4 session 1 seq 1–13, p4
+  session 2 seq 1–28). Pre-migration `--lint`: 73 findings, 4 warnings
+  (classes: type 43 incl. the 8 `dispatch.chunk` header strings on seq 6–13
+  and null/`"HEAD"`/40-char git heads; enum 7; key-undeclared 6; cross-field
+  17; mistyped-fix 3; `[reason-review]` warnings on seq 1, 3–5). `migrate`:
+  8 records rewritten in place, marker `at: 2026-09-19`. Post-migration
+  `--lint`: 65 findings, 4 warnings — exactly the 8 `dispatch.chunk` findings
+  gone, no `migration` finding, every other finding identical. `summarize`
+  renders `partial — migrated from "Chunk N"` for p3 chunks 0–7 and the p3
+  block still reads 20 recorded / expected 39. Fixture sha256
+  `7e20b630…` unchanged; `git diff --stat main -- tools/fixtures/` empty.
+  **Replan-trigger note (accepted, for verify):** read literally, the
+  pre-migration lint did show typed-field findings on seq 6–13 beyond the
+  header string — the null `git.head_before` / `head_after` — but those are
+  the fixture README's documented failure mode and are listed by seq in
+  `telemetry.md` §Acceptance Criteria; the `partial` stamp asserts nothing
+  about them, so the operator migrated and records the condition here rather
+  than replanning. Post-migration lint also surfaced two p4-session-2
+  writer findings for verify/p5: stage-level `fix` records (seq 21, 24, 27)
+  carry `chunk_verdict` with `chunk: null` while their verifiers were recorded
+  under chunks 1/3/0; and the session's first three `v: 1` chunk records (seq
+  2, 4, 6) trip the narrowed equal-heads rule because they predate the
+  `commit` group (the v1 branch of Q-IMPL-HARNESSP4-007).
   Operator boxes O1–O4 are evidence records, not leaf tasks; the orchestrator's completion parse counts numbered chunk tasks only, and O2 is run by the operator between the implement-stage close and the verify dispatch, then ticked by hand.
 - [x] **O3 — Live `COMMIT:` observation** (REQ-HARN-HARNESSP4-001;
   `harness-commit-fidelity.md` §Live Exercise Required). From the first
