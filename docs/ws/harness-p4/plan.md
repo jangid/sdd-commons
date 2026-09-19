@@ -454,7 +454,7 @@ against.
 REQ-ARB-HARNESSP4-001 and the carried REQ-ARB-HARNESSP3-001 (delivered on run
 evidence by O1 + §Verification Hand-off).
 **Tasks**:
-1. [ ] [implement] `references/loop-control.md` §2a replay fixture: `regen[1]`
+1. [x] [implement] `references/loop-control.md` §2a replay fixture: `regen[1]`
    lists `docs/requirements/traceability.md §(matrix)` labelled `by:
    orchestrator`, distinct from the leaf-written `docs/ws/<id>/traceability.md`
    entry; finding `M3` names its path in full; no bare `traceability.md` remains
@@ -462,14 +462,14 @@ evidence by O1 + §Verification Hand-off).
    regenerated file, pause on an untouched one) is unchanged — traces to
    `arbitrated-handoff.md` §§2a Replay Fixture Demonstrates the Derived-Artifact
    Case (REQ-ARB-HARNESSP4-002). Files: `skills/sdd-orchestrate/references/loop-control.md`
-2. [ ] [verify] Side-by-side read: `references/loop-control.md` §2a's retained
+2. [x] [verify] Side-by-side read: `references/loop-control.md` §2a's retained
    state schema shows `round[N]`, `fix[N]` and `regen[N]` with the `W_N` union
    and agrees with `arbitrated-handoff.md` §Retained Per-Round State as amended
    (`regen[N]` a sibling set, not a rename of `fix[N]`); fix any divergence on
    the skill side only — traces to `arbitrated-handoff.md` §Retained Per-Round
    State (REQ-ARB-HARNESSP4-003). Files (only if divergent):
    `skills/sdd-orchestrate/references/loop-control.md`
-3. [ ] [verify] Confirm the fix-loop dispatch path can carry the
+3. [x] [verify] Confirm the fix-loop dispatch path can carry the
    regenerate-wholesale instruction without a template change: the
    `{deliverable_contract}` slot of the fix dispatch in
    `references/dispatch-templates.md` accepts free text, and `loop-control.md`
@@ -478,7 +478,13 @@ evidence by O1 + §Verification Hand-off).
    if a template change *is* needed, flag it as a replan trigger rather than
    editing the template here — traces to `arbitrated-handoff.md` §Live Exercise
    of the Union in harness-p4 (REQ-ARB-HARNESSP4-001, REQ-ARB-HARNESSP3-001)
-4. [ ] [verify] `grep -n 'docs/requirements/traceability.md'
+   **Finding (2026-09-19)**: dispatchable as-is — `{deliverable_contract}` is a
+   free-text slot (`dispatch-templates.md` §PIPELINE line "exact files to write
+   and their frontmatter"), so the regenerate-wholesale instruction rides in
+   it, and §2a's regenerated-not-patched rule resolves a wholesale rewrite's
+   diff to every section of the file (or `(file, *)`) inside `W_N`; no
+   template change needed, no replan trigger.
+4. [x] [verify] `grep -n 'docs/requirements/traceability.md'
    skills/sdd-orchestrate/references/loop-control.md` hits inside the §2a
    fixture's `regen[1]` block with the orchestrator label; `python3
    tools/sdd-skill-lint.py` exits 0 — traces to `arbitrated-handoff.md`

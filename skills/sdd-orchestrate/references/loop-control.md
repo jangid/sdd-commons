@@ -114,7 +114,13 @@ round[N]      = { verdict: APPROVE | APPROVE_WITH_FIXES | REJECT,
                              key: { file: <repo-relative path>, section: <§Name> | "?",
                                     affects: { REQ-… } } } ] }
 fix[N]        = { written: { (file, section) }, hunks: { (file, section): "L40-58, L120" } }
-regen[N]      = { written: { (file, section) }, hunks: { (file, section): "L1-240" } }
+regen[N]      = { written: { (file, section) }, hunks: { (file, section): "L1-240" }, by: leaf | orchestrator }
+                # every orchestrator-dispatched regeneration of the stage deliverable between round N and N+1
+                # (a pipeline re-dispatch of the same stage — Q-IMPL-HARNESSP3-010), PLUS derived artifacts the
+                # orchestrator itself regenerated in that window, e.g. docs/requirements/traceability.md
+                # (by: orchestrator — Q-IMPL-HARNESSP3-017)
+W_N           = sections(fix[N].written) UNION sections(regen[N].written)
+                # the set §Contradiction classes tests against; (file, *) only where section resolution is unavailable
 ```
 
 `regen[N]` is a **sibling** set beside `fix[N]`, not a rename of it
@@ -194,17 +200,22 @@ amended `W_N`:
 
 ```
 round 1 (APPROVE):             K_1 = ∅
-regen[1] (verify re-dispatch): docs/ws/<id>/verification.md §Criteria, §Issues Found, …
-                               docs/ws/<id>/traceability.md  §(matrix)
-round 2 (APPROVE_WITH_FIXES):  M1 — verification.md:§Criteria       -> in W_1, no pause
-                               M2 — verification.md:§Issues Found   -> in W_1, no pause
-                               M3 — traceability.md:§(matrix)       -> in W_1, no pause
-               synthetic M4 — docs/spec/telemetry.md:§Record Shape  -> k ∉ K_1, k ∉ W_1
-                                                                    -> REVIEW: CONTRADICTION (class b)
+regen[1] (verify re-dispatch): docs/ws/<id>/verification.md §Criteria, §Issues Found, …   by: leaf
+                               docs/ws/<id>/traceability.md  §(matrix)                        by: leaf
+                               docs/requirements/traceability.md §(matrix)                    by: orchestrator
+                                 # the shared aggregate, regenerated post-gate from the leaf-written
+                                 # per-ws file — a derived artifact (Q-IMPL-HARNESSP3-017)
+round 2 (APPROVE_WITH_FIXES):  M1 — docs/ws/<id>/verification.md:§Criteria        -> in W_1, no pause
+                               M2 — docs/ws/<id>/verification.md:§Issues Found    -> in W_1, no pause
+                               M3 — docs/requirements/traceability.md:§(matrix)   -> in W_1 (by: orchestrator), no pause
+               synthetic M4 — docs/spec/telemetry.md:§Record Shape                -> k ∉ K_1, k ∉ W_1
+                                                                                  -> REVIEW: CONTRADICTION (class b)
 ```
 
 All three observed findings named sections of files the loop itself had just
-regenerated, so the class (b) false positive is gone; the synthetic finding on a
+regenerated — `M3` on the **orchestrator**-regenerated aggregate, not the
+leaf-written per-ws file, and admitted through `regen[1]`'s `by: orchestrator`
+entry — so the class (b) false positive is gone; the synthetic finding on a
 file no loop dispatch touched still pauses, so the true positive is retained.
 Pre-amendment, `W_1 = fix[1].written = ∅` (there was no fix between the rounds)
 and all four fired.

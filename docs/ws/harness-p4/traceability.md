@@ -30,8 +30,8 @@ row reads as history — a reader, `sdd-gc.py` and `sdd-verify` consult the
 |-------------|------|------------|------|----------------|----------|
 | REQ-ARB-HARNESSP3-001 | arbitrated-handoff.md | harness-p4 | | | |
 | REQ-ARB-HARNESSP4-001 | arbitrated-handoff.md | harness-p4 | | | |
-| REQ-ARB-HARNESSP4-002 | arbitrated-handoff.md | harness-p4 | | | |
-| REQ-ARB-HARNESSP4-003 | arbitrated-handoff.md | harness-p4 | | | |
+| REQ-ARB-HARNESSP4-002 | arbitrated-handoff.md | harness-p4 | plan Chunk 5 task 4 — `grep -n 'docs/requirements/traceability.md' skills/sdd-orchestrate/references/loop-control.md` hits the §2a fixture's `regen[1]` block with `by: orchestrator` and the `M3` line; no bare `traceability.md` in the fixture's finding lines; `python3 tools/sdd-skill-lint.py` exit 0 | skills/sdd-orchestrate/references/loop-control.md §2a replay fixture (`regen[1]` aggregate entry `by: orchestrator`; `M1`–`M3` full paths) | |
+| REQ-ARB-HARNESSP4-003 | arbitrated-handoff.md | harness-p4 | plan Chunk 5 task 2 — side-by-side read of `arbitrated-handoff.md` §Retained Per-Round State against `loop-control.md` §2a schema block (`round[N]`, `fix[N]`, `regen[N]` with `by:`, `W_N` union); `python3 tools/sdd-gc.py --report` at the 7-warning baseline, none on arbitrated-handoff.md | skills/sdd-orchestrate/references/loop-control.md §2a retained-state schema (`regen[N] … by: leaf | orchestrator`, `W_N` line and provenance comments aligned to the spec) | |
 | REQ-CYCID-HARNESSP4-001 | cycle-identity.md | harness-p4 | | | |
 | REQ-CYCID-HARNESSP4-002 | cycle-identity.md | harness-p4 | | | |
 | REQ-HARN-HARNESSP4-001 | harness-commit-fidelity.md | harness-p4 | tools/sdd-skill-lint.py --self-test (COMMIT: row mutation); plan Chunk 0 task 8 walkthroughs (a),(c),(d) | skills/sdd-orchestrate/references/write-scope.md §7a; references/loop-control.md §5 items 2b/8; SKILL.md §The gate; USAGE.md §7b; CLAUDE.md §Gate vocabulary | |
