@@ -543,6 +543,39 @@ Staging Path.
 | aggregate regeneration (marker `4`, post-gate bookkeeping) | **orchestrator**, in its **own** commit, separate from any leaf's | — (not a dispatch; driven by the session dirty flag) |
 | plan `status: complete` flip (post-gate bookkeeping) | **orchestrator**, in its **own** commit at the implement **stage gate** on `proceed`, after the `COMMIT:` closing line | — (not a dispatch; no leaf returns this path) |
 
+### 7b. Commit message attribution — the driver adds none
+
+**The orchestrator adds no attribution trailer to any commit it makes, and
+instructs no leaf to add one.** No co-authorship trailer, no "generated with"
+footer, no tool-identifying line of any kind. This holds for every commit in
+the table above — stage, per-chunk, fix, bookkeeping, `status:` flip — and for
+any pull-request body the driver composes. (The trailer keys are deliberately
+not spelled out here: `tools/sdd-skill-lint.py` carries a `[forbidden]` rule
+against them appearing in committed content, and this file is committed
+content.)
+
+**This rule lives here, in the driver, on purpose.** It does **not** depend on
+a project-level `CLAUDE.md`, an `AGENTS.md`, or a harness-supplied attribution
+default being read, present, or correctly precedence-ordered. A driver that
+commits at every gate must carry its own commit conventions; relying on a file
+outside the skill is how the convention silently lapses in a repository whose
+`CLAUDE.md` is missing, unread, or overridden.
+
+**Recorded 2026-09-21**, after the driver added a co-authorship trailer to
+twenty consecutive commits in *this* repository — whose `CLAUDE.md` forbids it
+and whose own linter already rejects the same string in file content — having
+deferred to a harness-supplied default that itself stated the project's
+instructions take precedence. The convention was encoded in two places and the
+driver still missed it, because neither place is consulted at commit time. That
+is the gap this section closes.
+
+**Precedence, stated once so it needs no re-derivation.** If a project's own
+instructions specify an attribution format, follow them. If they forbid
+attribution, add none. If they are silent, add none — silence is not consent to
+a trailer, and a commit with no trailer is trivially amendable while twenty with
+one are not. A harness- or tool-supplied attribution default never overrides
+either the project's instructions or this rule.
+
 **Aggregate-regeneration bookkeeping commit (REQ-WS-HARNESSP3-001).** Under
 marker `4` the shared `docs/requirements/traceability.md` is regenerated
 wholesale from the per-ws files by the **orchestrator**, never by a leaf, and
