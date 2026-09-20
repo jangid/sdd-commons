@@ -466,7 +466,7 @@ conditions hold:
 **Key rule 1 — shared id (primary).** Two findings citing the same `REQ-*` id or
 the same deviation-entry id cluster, whatever their files and sections: a shared
 id is as strong a co-location claim as a shared heading, and in the spike's
-replay it was the **only** key that formed a cluster at all. It is the primary
+replay it was the **only** key that formed a cluster at all. The spike rated that single cluster **marginal** — in its own words, "0 that an operator would confidently call one root cause, 1 marginal … a topical adjacency rather than a demonstrated common cause". That is precisely why the signal is **informational** and never pauses a gate: its primary key rests on one cluster the spike itself would not confidently call a convergence. Key rule 2's justification is the stronger of the two — the cluster it recovers (red and blue on the same malformed records in a sectionless file) is the one the spike did rate genuine. It is the primary
 key of the shipped signal.
 
 **Key rule 2 — sectionless file.** The **file-level** key is itself a cluster key
@@ -582,6 +582,17 @@ plus the sectionless-file rule stated above, and the co-located
 exclusion with its measured evidence in `docs/requirements/index.md`
 §Out of Scope. The full replay, its input set and the caveats on that input set
 are in `docs/ws/harness-p6/plan.md` §Chunk 8 → Spike Findings.
+
+**[Resolved 2026-09-20 — this trigger FIRED and is no longer armed.** The
+paragraph below is retained as written before the spike, because it records what
+the cycle committed to do in advance of the measurement; read it in the past
+tense. The spike measured zero clusters, the replan ran **inside this cycle**,
+and L2 shipped at the floor described above — the **shared id** key primary (the
+term "secondary-id key" below is the pre-replan name for it), the sectionless-
+file rule, and `(file, section)` retained but demoted. The descope is recorded
+as a settled exclusion in `docs/requirements/index.md` §Out of Scope, and the
+replan is archived at `docs/ws/harness-p6/plan-history/2026-09-20-replan-l2-descope.md`.
+Nothing was carried to a successor workstream.**]
 
 It is this cycle's credible replan trigger. If it proves harder than the spike
 predicts, the handling is a **replan inside this cycle** that descopes L2 to its

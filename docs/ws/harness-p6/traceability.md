@@ -25,7 +25,7 @@ cycle. There are no carried rows from a previous workstream.
 (REQ-HARN-HARNESSP6-002, REQ-ORCH-HARNESSP6-001, REQ-ORCH-HARNESSP6-002) rest on
 the findings' **Medium**-confidence Q4: the cluster rule reuses an exercised
 parser but has never been replayed against a real finding set, and L2's firing
-rate is unmeasured. Their verification should not be treated as routine.
+rate is unmeasured. **[Updated: 2026-09-20 — the Chunk 8 resolving spike replayed the rule over the recorded finding sets of harness-p3, -p4 and -p5. This sentence is superseded: the rule HAS been replayed. What it measured is that the co-located `(file, section)` key formed zero clusters over three cycles and clusters none of the three on the harness-p3 §L2 origin case, which is why L2 shipped at a descoped floor. What remains unmeasured is the **live** firing rate of the shipped floor, not the replay.]** Their verification should not be treated as routine.
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|

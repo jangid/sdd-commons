@@ -684,6 +684,15 @@ Both probes were read-only: probe 1 enumerated `Q-IMPL` definition sites under
 `docs/spec/`; probe 2 ran a patched copy of `sdd-gc.py` from `$TMPDIR`. No
 mutating git command was run in the working directory.
 
+**[Pointer added 2026-09-20 — not an amendment.** This findings file is a
+point-in-time record and its Q4 text is left as written, including the 2-of-3
+recall figure. That figure was **refuted** by the Chunk 8 resolving spike, which
+replayed the cluster rule over three cycles and measured zero clusters and
+none-of-three on the origin case. The shipped design is the descoped floor
+recorded in `docs/spec/harness-loop-control.md` §Convergence Signal — L2 and in
+`docs/ws/harness-p6/plan.md` §Chunk 8 → Spike Findings. Read Q4 as the belief
+this cycle tested, not as the conclusion it reached.**]
+
 ## Recommended Next Step
 
 **Proceed to requirements.** All four questions have a recommendation, its

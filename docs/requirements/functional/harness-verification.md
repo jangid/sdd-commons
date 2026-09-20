@@ -375,5 +375,5 @@ different layers citing the same `REQ-*` id with different sections cluster
 parser finds no section cluster on the file alone; two from different layers in
 the same sectioned file with different sections do not; two from the **same**
 layer do not; two from different layers with equal `(file, section)` cluster
-(retained key); `python3 tools/sdd-skill-lint.py` exits 0.
+(retained key); `python3 tools/sdd-skill-lint.py` exits 0. **[Updated: 2026-09-20 — the Chunk 8 resolving spike replayed the rule over the recorded finding sets of harness-p3, -p4 and -p5. This sentence is superseded: the rule HAS been replayed. What it measured is that the co-located `(file, section)` key formed zero clusters over three cycles and clusters none of the three on the harness-p3 §L2 origin case, which is why L2 shipped at a descoped floor. What remains unmeasured is the **live** firing rate of the shipped floor, not the replay.]**
 [Priority: must]

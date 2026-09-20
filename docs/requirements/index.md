@@ -382,7 +382,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 > optional); REQ-HARN-HARNESSP6-002 and REQ-ORCH-HARNESSP6-001..002 (L2) are the
 > **weakest-evidenced** items in the delta (Confidence Medium — the cluster rule
 > reuses an exercised parser but has never been replayed against a real finding
-> set and its firing rate is unmeasured). L2 ships on explicit operator direction
+> set and its firing rate is unmeasured). **[Updated: 2026-09-20 — the Chunk 8 resolving spike replayed the rule over the recorded finding sets of harness-p3, -p4 and -p5. This sentence is superseded: the rule HAS been replayed. What it measured is that the co-located `(file, section)` key formed zero clusters over three cycles and clusters none of the three on the harness-p3 §L2 origin case, which is why L2 shipped at a descoped floor. What remains unmeasured is the **live** firing rate of the shipped floor, not the replay.]** L2 ships on explicit operator direction
 > recorded in the kickoff; it is the cycle's credible replan trigger, and a
 > replan descopes it **inside** this cycle rather than queueing it.
 

@@ -49,4 +49,18 @@ mechanical and decided at DISCUSS)
 **Acceptance**: `grep -c 'says 61' docs/ws/harness-p5/plan.md` (or the archived
 file that replaces it) prints `0`, and the struck entry is visible as a struck
 or dated-resolved line rather than deleted history.
+**[Updated: 2026-09-20, harness-p6 — REQ-PLAN-HARNESSP6-001.** The
+`grep -c … = 0` literal above is **unsatisfiable and self-contradictory**, and
+is superseded — do not run it. The strike rule this same requirement ships
+leaves the entry **visible** and never reworded in place, so the string
+necessarily survives: measured, the count is `1` before the strike and `1`
+after. The criterion also quotes its own search string, so the requirement file
+itself now contributes an occurrence. The governing form is
+`docs/spec/plan-management.md` §Acceptance Criteria — the archived file's entry
+count is unchanged by the strike (compared before and after in the same run),
+the struck entry carries an adjacent bracketed dated marker, and the stale claim
+no longer appears **unmarked**. `sdd-verify` walks that form, not this literal.
+Recorded here rather than by amending the text above, so the record that the
+criterion was once wrong is preserved — the same treatment REQ-LINT-007
+received.**]
 [Priority: must]

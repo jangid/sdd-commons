@@ -1,6 +1,6 @@
 ---
 workstream: harness-p6
-status: planned
+status: complete
 research_id: RS-HARNESSP6-001
 last_updated: 2026-09-20
 ---
@@ -703,6 +703,8 @@ asserted.
 
 #### Close-Out Record (2026-09-20, this chunk's own run)
 
+**[Record note, 2026-09-20.** The two headings below read "NOT ticked" and name the **pre-correction** criteria, which is what was true when the close-out ran. Both criteria were subsequently corrected at the gate — task 2 split across stages (CO-1), task 4 narrowed to the closed-workstream skip (CO-3) — and both tasks are now ticked against their corrected form. The headings are left as written so the record of what the close-out actually found is not rewritten after the fact.**]
+
 What each check actually returned. Both sides of every count below were derived
 in the run that produced it; no corpus-measured literal is pinned here.
 
@@ -721,7 +723,7 @@ The lint summary reads `OK: 25 file(s) clean` with **no warning clause**, exactl
 as this task predicted; the unsatisfiable `0 warning(s)` expectation was not
 restored. `41/41` agrees with `grep -c '^def scenario_'` = 41 in the same run.
 
-**Task 2 — mechanical liveness check over both scopes. NOT ticked: scope (ii)
+**Task 2 (as split at the close-out; heading retained as written at the time) — mechanical liveness check over both scopes. NOT ticked: scope (ii)
 does not exist.**
 
 - Scope (i) `docs/requirements/index.md` §Out of Scope (extracted heading-to-next-
@@ -774,7 +776,7 @@ cross-reference, then outside that dispatch's write scope). It has since landed 
 second consumer (+8 lines in this cycle's diff) — so the cell's disclaimer is now
 stale prose, not a missing deliverable. See Finding CO-2.
 
-**Task 4 — marker-3 behaviour unchanged. NOT ticked: limb 1 is falsified by a
+**Task 4 (as corrected at the close-out; heading retained as written at the time) — marker-3 behaviour unchanged. NOT ticked: limb 1 is falsified by a
 deliberate, requirement-backed change. See Finding CO-3.**
 
 - The Chunk 1 guard was verified **empirically**, not by reading. A throwaway

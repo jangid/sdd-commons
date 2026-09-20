@@ -662,7 +662,7 @@ conditions hold:
 
 **Key rule 1 — shared id (primary).** Two findings citing the same `REQ-*` id or
 the same deviation-entry id cluster, whatever their files and sections. In the
-Chunk 8 replay this was the **only** key that formed a cluster at all, so it is
+Chunk 8 replay this was the **only** key that formed a cluster at all, The spike rated that single cluster **marginal** — in its own words, "0 that an operator would confidently call one root cause, 1 marginal … a topical adjacency rather than a demonstrated common cause". That is precisely why the signal is **informational** and never pauses a gate: its primary key rests on one cluster the spike itself would not confidently call a convergence. Key rule 2's justification is the stronger of the two — the cluster it recovers (red and blue on the same malformed records in a sectionless file) is the one the spike did rate genuine. so it is
 the primary key of the shipped signal.
 
 **Key rule 2 — sectionless file.** The **file-level** key is itself the cluster
