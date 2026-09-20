@@ -174,13 +174,13 @@ behaviour is byte-unchanged apart from `--help` text.
 **Depends on**: Chunk 0.
 **Traces to**: docs/spec/skill-namespace-rename.md
 **Tasks**:
-1. [ ] [implement] Rename each directory under `skills/` that contains a
+1. [x] [implement] Rename each directory under `skills/` that contains a
    `SKILL.md` so its basename drops the retired prefix, using `git mv` so
    history follows; update each `SKILL.md` frontmatter `name` to string-equal
    its new basename — the repository's existing convention, unchanged — traces
    to `docs/spec/skill-namespace-rename.md` §The rename surfaces
    (REQ-NAME-MARKETPLACE-001).
-2. [ ] [implement] Rewrite every cross-skill reference inside `skills/` to name
+2. [x] [implement] Rewrite every cross-skill reference inside `skills/` to name
    the sibling by its **bare new name**. Two forms must not survive: any
    `skills/<other-skill>/…` path, and in particular the
    `skills/<other-skill>/references/<file>` form, which the linter treats as
@@ -188,14 +188,14 @@ behaviour is byte-unchanged apart from `--help` text.
    single-plugin decision safe — traces to
    `docs/spec/skill-namespace-rename.md` §Name coupling, not path coupling
    (REQ-NAME-MARKETPLACE-002).
-3. [ ] [implement] `git mv` each `tools/*.py` to its post-rename filename, and
+3. [x] [implement] `git mv` each `tools/*.py` to its post-rename filename, and
    edit each tool's **own source** so it contains no occurrence of its retired
    filename: `prog=`, the usage/`--help` block, and any user-facing hint
    string. This `--help` change is the **only** source edit permitted to a
    bundled tool anywhere in this cycle, and it happens here rather than in the
    packaging chunk — traces to `docs/spec/skill-namespace-rename.md` §The
    rename surfaces (REQ-NAME-MARKETPLACE-003).
-4. [ ] [verify] Derive both sides at run time: for every directory under
+4. [x] [verify] Derive both sides at run time: for every directory under
    `skills/` holding a `SKILL.md`, assert the basename does not match the
    retired-prefix pattern and the frontmatter `name` string-equals the
    basename, both read from disk in the same run; assert `ls tools/*.py` yields
@@ -203,7 +203,7 @@ behaviour is byte-unchanged apart from `--help` text.
    assert a grep of each renamed tool's source for its retired filename returns
    zero — traces to `docs/spec/skill-namespace-rename.md` §Acceptance Criteria
    (REQ-NAME-MARKETPLACE-001, -003).
-5. [ ] [verify] Assert `git log --follow` resolves each renamed tool and each
+5. [x] [verify] Assert `git log --follow` resolves each renamed tool and each
    renamed skill file to its pre-rename history, so the rename is a move and not
    a delete-plus-add — traces to `docs/spec/skill-namespace-rename.md`
    §Acceptance Criteria (REQ-NAME-MARKETPLACE-003).
