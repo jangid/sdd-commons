@@ -121,7 +121,12 @@ either:
   normalisation that touches those areas would list them.
 
 Both are satisfied by ordering plus the exclude set below, not by weakening
-either criterion. The plan must carry this ordering as an explicit chunk
+either criterion. One carve-out is needed on the first of the two windows and is
+recorded as Q-IMPL-MARKETPLACE-003 below: the acting workstream's own
+execution artifacts under `docs/ws/<ws>/` necessarily change after the
+rename-chunk-close sha, so the `--name-only` check excepts that one directory,
+exactly as `skill-namespace-rename.md` already excepts it for
+REQ-NAME-MARKETPLACE-005. The plan must carry this ordering as an explicit chunk
 constraint — it is not inferable from the chunk list alone. It is also why the
 YAML sample in §The two local hooks already spells the **post-rename** tool
 names: the config is authored inside the rename chunk, after the tool filenames
@@ -170,3 +175,33 @@ written-out list, and derive both sides at run time.
 - [ ] Every hook entry in the parsed config is either one of the two local tool hooks or one of the four upstream hygiene hooks, and no entry carries an `args` value other than the drift sweep's profile selector (REQ-PC-MARKETPLACE-006).
 - [ ] Every `exclude` pattern in the config is accompanied by a YAML comment stating its reason, checked by reading the file; the set of excluded areas parsed from the config equals the set in §Normalisation happens inside this cycle's exclude table, both sides derived by parsing rather than by a pasted list (REQ-PC-MARKETPLACE-005).
 - [ ] The plan places the config and the whole-repository normalisation inside the rename chunk, ahead of the rename-chunk-close sha, checkable by reading the plan's chunk order; and `git diff <rename-chunk-close sha> HEAD --name-only` lists no path under `docs/ws/`, `docs/research/` or `docs/superpowers/` and no bundled tool, so the normalisation cannot have landed inside the windows REQ-PKG-MARKETPLACE-007 and REQ-NAME-MARKETPLACE-005 measure (REQ-PC-MARKETPLACE-005).
+
+## Implementation Questions
+
+### Q-IMPL-MARKETPLACE-003: The `--name-only` window excepts the acting workstream's own directory
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Normalisation happens inside this cycle
+**Date**: 2026-09-21 (plan stage)
+
+**Context**: the last criterion of REQ-PC-MARKETPLACE-005 above requires
+`git diff <rename-chunk-close sha> HEAD --name-only` to list no path under
+`docs/ws/`, `docs/research/` or `docs/superpowers/` and no bundled tool. As
+literally written it is unsatisfiable: the cycle's own execution artifacts —
+`plan.md`, `traceability.md` and `verification.md` under the acting
+workstream's `docs/ws/<ws>/` — are necessarily written after the
+rename-chunk-close sha, by the stages that follow it.
+
+**Decision**: the criterion excepts paths under the **acting workstream's own**
+`docs/ws/<ws>/` directory, and the exception is applied by the checking script
+rather than by a pasted count or a hand-waved allowance. This mirrors the
+carve-out `skill-namespace-rename.md` already carries for
+REQ-NAME-MARKETPLACE-005, whose no-listed-path criterion excepts the same
+directory; the two criteria measure the same window and were always meant to
+read the same way.
+
+**Impact**: none on what the criterion protects. The point of the check is that
+the whole-repository normalisation cannot have landed after the
+rename-chunk-close sha — the historical execution records of *closed* cycles,
+the vendored corpus and the bundled tools all stay inside the check unchanged.
+Only the directory the running cycle owns and is expected to write is excepted,
+and no other workstream's directory is.
