@@ -406,7 +406,7 @@ dependency, since the spike replays the harness-p3/-p4/-p5 finding sets and
 needs nothing Chunk 7 produces. Recorded so the canonical graph does not hide
 why 6→7→8 is serial, plan-review M2).
 **Tasks**:
-1. [ ] [spike] Replay the cluster rule over the **recorded** findings of the
+1. [x] [spike] Replay the cluster rule over the **recorded** findings of the
    harness-p3, harness-p4 and harness-p5 cycles (their `verification.md`
    §Issues Found, review findings recorded in those cycles' artifacts, and red
    rounds where recorded). Count the clusters the three conditions produce —
@@ -418,12 +418,106 @@ why 6→7→8 is serial, plan-review M2).
    ~15 tool calls, no code written.** Record the outcome as a finding, not as a
    spec edit — traces to `docs/spec/harness-loop-control.md` §Convergence Signal
    — L2 → Uncertainty, spike and fallback (REQ-HARN-HARNESSP6-002).
-2. [ ] [spike] From the same replay, state explicitly whether the rule reproduces
+2. [x] [spike] From the same replay, state explicitly whether the rule reproduces
    the recorded **2-of-3 recall** against the harness-p3 §L2 origin case (blue's
    dropped `git add` in Chunk 7, review C1's unexercised requirement, red R4's
    aggregate-drift finding), and whether any cluster it forms is one an operator
    would reject — traces to `docs/spec/harness-loop-control.md` §Convergence
    Signal — L2 (REQ-ORCH-HARNESSP6-002).
+
+**Spike Findings (recorded 2026-09-20, this session, from the artifacts)**
+
+*Input set, stated honestly.* The replay covers only **durably recorded**
+findings: `docs/ws/harness-p3/verification.md` §Issues Found (11 Minor bullets),
+§Red Team R1 and §Verify-Stage Acceptance Obligations V1-V14;
+`docs/ws/harness-p4/verification.md` §Issues Found (2 Minor, both red);
+`docs/ws/harness-p5/verification.md` §Post-cycle Fixes (2) and §Issues Found
+(8 Minor). **What it necessarily omits**: every review finding and every chunk
+verifier finding, because reviews and `CHUNK_VERDICT:` are ephemeral by design
+and were never written to disk — the harness-p3 origin case's review C1 survives
+only as a paraphrase inside red R4's prose. Consequently, of the six
+layers/second-executors condition (i) requires to differ, the durable record
+contains only **two** in practice — red, and blue/verify (including the gc-routed
+items). Cross-layer clustering therefore had only a red x blue axis available.
+Live, the in-memory ledger would also see review and chunk-verifier entries, so
+the replayed rate is a **floor**, not the live rate. The origin-case result below
+is not subject to that caveat, and is what carries the verdict.
+
+*Task 1 — cluster counts derived this session.*
+
+| Cycle (`research_id`) | clusters by (iii) `(file, section)` | clusters by secondary id | cross-layer file-level-only matches (rule renders nothing) |
+|---|---|---|---|
+| harness-p3 / RS-HARNESSP3-001 | 0 | 0 | 2 |
+| harness-p4 / RS-HARNESSP4-001 | 0 | 0 | 0 (both findings are red — (i) fails first) |
+| harness-p5 / RS-HARNESSP5-001 | 0 | 1 | 0 |
+| **total** | **0** | **1** | **2** |
+
+- **Zero** clusters from the co-located `(file, section)` key over three real
+  cycles. No section-granular key appears twice at all, in any cycle: the
+  recorded section keys are singletons — `arbitrated-handoff.md` §Retained
+  Per-Round State (blue/V11), `references/loop-control.md` §2a (blue/V10),
+  `CLAUDE.md` §Phase Detection (blue/V13), `deviation-protocol.md` §Numbering
+  (red), `harness-write-scope.md` §criterion (red).
+- **One** cluster from the secondary id key, in harness-p5: red round 2 R1 (the
+  unreproducible lint-summary criterion) and the blue finding on
+  `docs/requirements/integration/skill-lint.md` both cite
+  **REQ-LINT-HARNESSP5-001**, in different files and different sections.
+  Operator split: **0 that an operator would confidently call one root cause,
+  1 marginal** — both are stale text left behind by the Chunk 9 rescope of
+  `skill-lint-v5.md`, but R1's criterion defect predates that rescope, so the
+  shared id is a topical adjacency rather than a demonstrated common cause. It
+  is contestable in both directions; it is not a clean win.
+- **Two** cross-layer file-level-only matches, both in harness-p3, both
+  correctly rendering nothing per the noise guard — and the guard scored 1-1 on
+  them: (a) `.sdd/telemetry.jsonl` — red R1 and the blue restatement of the same
+  8 malformed records: genuinely one root cause, **missed** (a JSONL data file
+  has no sections, so no section key can ever exist for it); (b)
+  `tools/sdd-telemetry.py` — red R1 (the reader hid a schema violation) and blue
+  (the summarize table is ~190 columns wide): unrelated, **correctly
+  suppressed**. On n=2 the section-granularity guard suppressed one true
+  convergence for every one false positive it prevented.
+
+*Task 2 — origin-case recall, and operator-rejectable clusters.*
+
+- **The rule does NOT reproduce the recorded 2-of-3 recall.** Against the
+  harness-p3 §L2 origin case it clusters **0 of 3**. Two of the three members'
+  locations are recoverable from the record and they differ at **file** level,
+  before section granularity is even consulted: blue's finding is the `CLAUDE.md`
+  path dropped from Chunk 7's `git add` (`docs/ws/harness-p3/verification.md`
+  §V14, repaired at `16e240b`); red R4's is the shared aggregate
+  `docs/requirements/traceability.md` differing from
+  `regenerate(docs/ws/*/traceability.md)`. Review C1 (a `docs/ws/harness-p3/`
+  per-ws `Verified` cell about to flip to `pass`) is a third file again, and is
+  not durably recorded at all. No pair shares a file, so no pair can share a
+  `(file, section)`; the secondary key does not save it either (the cited ids
+  differ). The 2-of-3 figure in `docs/spec/harness-loop-control.md` §Convergence
+  Signal — L2 is **not reproducible from the record**, and the two keys that are
+  recoverable actively contradict it.
+- **Why this is structural, not a sampling artefact.** Different layers describe
+  one defect at different granularities and from different directions — that is
+  precisely the property the harness pays for (harness-p3 §L1). Blue names the
+  path that did not land; red names the invariant that nothing enforces; review
+  names the cell about to be asserted. Co-location is the one thing a genuine
+  cross-layer convergence is least likely to exhibit. The ephemerality caveat
+  above does not rescue it: adding the missing review/chunk-verifier entries
+  supplies *more* findings in *more* files, not more co-located ones.
+- **Operator-rejectable clusters formed: 0 outright, 1 marginal** (the harness-p5
+  secondary-id cluster above). The rule's false-positive control works; it is the
+  true-positive rate that is absent.
+
+*Verdict.* **FIRE THE REPLAN TRIGGER** — the plan's first replan trigger, second
+disjunct, is satisfied exactly and literally: the `(file, section)` key **forms
+no cluster at all over the three replayed cycles** (0 of 3 cycles, 0 clusters
+total), and it additionally fails the origin case it was specified against
+(0-of-3, not 2-of-3). This is not the noise branch — the rule is not noisy, it is
+**silent**. Descope L2 inside this cycle to its honest floor, and specifically to
+**the secondary-id key alone**: it is the only key that fired at all over the
+replay (1 cluster / 3 cycles), while "the co-located key evaluated at DONE only"
+would still render zero — a DONE-only window cannot add a cluster that a
+whole-cycle window never formed. The descope, with this reasoning, is recorded as
+a settled exclusion in `docs/requirements/index.md` §Out of Scope, and Chunk 9's
+tasks 1, 3, 4 and 7 are rewritten to the secondary-id floor (tasks 2, 5, 6, 8, 9,
+10 stand). Next action: `sdd-replan`.
 
 **Entry criteria**: Chunk 7 complete. The spike reads only; it writes no spec,
 tool or skill file.
