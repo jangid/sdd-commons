@@ -342,3 +342,27 @@ is fixed or accepted. The active plan may be archived to
   `REQUIRED` row in `tools/sdd-skill-lint.py`, unlike `VERDICT:`,
   `CHUNK_VERDICT:`, `RED_VERDICT:` and `COMMIT:`, so deleting it from
   `loop-control.md` §6 is unguarded.
+
+### gc routing at DONE (2026-09-20, `record`)
+
+`python3 tools/sdd-gc.py --report --workstream harness-p5` → exit 0, **zero
+fail-class findings**, 14 warnings in workstream scope; repo-wide 63
+`[stale-chain]` warnings and 25 `[qimpl-unreferenced]` info. The operator routed
+every finding `record` rather than `--fix`: `[stale-chain]` is deliberately not
+auto-fixable (gc's own guidance is that dates move through the owning skill),
+and bumping a `last_updated:` purely to silence the sweep is how a staleness
+signal stops meaning anything. The rule itself is Next Step 2/4.
+
+- gc `[stale-chain]`: `docs/spec/telemetry.md` (42 warnings) — the spec's content
+  is current (the harness-p5 writer rules were Approved at the specs stage and
+  needed no edit), only its `last_updated:` lags its 2026-09-20 requirement file.
+  Fix: bump through `sdd-specs` in a cycle that actually edits it, or let Next
+  Step 2/4's rule change retire the class.
+- gc `[stale-chain]`: `docs/ws/harness-p3/plan.md` (13), `docs/ws/harness-p4/plan.md` (6)
+  — closed, `status: pass` workstreams flagged for being older than specs later
+  cycles amended. They *should* be older. Fix: Next Step 2/4 — teach the rule to
+  skip workstreams whose verification is `pass`.
+- gc `[stale-chain]`: `docs/spec/adversarial-verify.md` (2) — same class, against
+  a 2026-09-19 requirement file.
+- gc `[qimpl-unreferenced]`: 25 info lines — informational by design; entries live
+  in their spec and need no citation. No action.
