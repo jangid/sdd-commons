@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-07-21
+last_updated: 2026-09-19
 requires:
   - REQ-WS-024
   - REQ-WS-025
@@ -194,7 +194,7 @@ what makes done-vs-new-cycle a per-workstream decision rather than a global-inte
 
 ### Q-IMPL-072: Picker prose lives in `references/v4-workstreams.md`
 **Tier**: 1 (implementation choice)
-**Spec reference**: §Workstream Picker at Orchestration Entry; `skill-lint-v5.md` §Marker-4 Prose Move guard 2
+**Spec reference**: §Workstream Picker at Orchestration Entry; `skill-lint-v5.md` section Marker-4 Prose Move, guard 2
 **Decision**: The marker-`4` picker procedure (§Workstream Picker and its three
 subsections), the v4 version gate, the done-vs-new-cycle gate, the entry-points
 marker-4 scope, the kickoff path gate and the fan-out integration anchor live in

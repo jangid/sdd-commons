@@ -1,8 +1,8 @@
 ---
 domain: LINT
-last_updated: 2026-09-18
+last_updated: 2026-09-20
 status: Approved
-research_refs: [RS-008, RS-HARNESSP4-001]
+research_refs: [RS-008, RS-HARNESSP4-001, RS-HARNESSP5-001]
 ---
 
 # Requirements: Skill Lint (`tools/sdd-skill-lint.py`)
@@ -61,6 +61,11 @@ the defaults from RS-008 Q4 (operator decision, Q-REQ-B in `index.md`).
 REQ-LINT-007 move `sdd-orchestrate` is ≤ ~450 lines (still a warn unless a
 further pass is made — the warn is acceptable, the fail is not).
 [Priority: must]
+[Updated: 2026-09-19, RS-HARNESSP5-001] The acceptance baseline above is stale
+(`sdd-implement/SKILL.md` was already 434 lines at p4's base `0182bf2`; p4 red
+R7 accepted). The harness-p5 target is **warn-clean**: after
+REQ-LINT-HARNESSP5-001 the check warns on **none** and fails on none — see
+REQ-LINT-HARNESSP5-002 for the `skill-lint-v5.md` amendment.
 
 ### REQ-LINT-004: `references/` backtick paths and relative links resolve
 `check_links()` must, in addition to resolving `[text](relative.md)` Markdown
@@ -137,6 +142,10 @@ citing Q-IMPL-016; `sdd-orchestrate/SKILL.md` after this cycle — the marker-4
 move plus the HARN stubs pointing at `references/write-scope.md` and
 `references/return-contract.md` — is no larger than ~450 lines.
 [Priority: must]
+[Updated: 2026-09-19, RS-HARNESSP5-001] The "no larger than ~450 lines" clause
+is superseded: `sdd-orchestrate/SKILL.md` was 551 lines at p4 DONE (p4 red R8
+accepted); the p5 target for every `SKILL.md` is **under 400** — see
+REQ-LINT-HARNESSP5-001 / -002.
 
 <!-- REQ-LINT-HARNESSP2-NNN: workstream-prefixed additions for the harness-p2
      cycle (RS-HARNESSP2-001; marker 4, per docs/spec/ws-ids.md). -->
@@ -228,3 +237,75 @@ REQ-LINT-HARNESSP2-001)
 only `SCOPE: CLEAN` does not satisfy the row; `--self-test`'s mutation loop
 covers the row; the shipped skill set exits 0.
 [Priority: must]
+
+<!-- REQ-LINT-HARNESSP5-NNN: workstream-prefixed additions for the harness-p5
+     cycle (RS-HARNESSP5-001; marker 4, per docs/spec/ws-ids.md). The
+     docs/spec/telemetry.md split (-003) sits in this domain by the deliverable
+     contract — size housekeeping under one owner — not because the lint
+     size-checks specs; Q-REQ-P5-G. -->
+
+### REQ-LINT-HARNESSP5-001: every `SKILL.md` is under the 400-line warn threshold
+`skills/sdd-orchestrate/SKILL.md` (551), `skills/sdd-migrate/SKILL.md` (464) and
+`skills/sdd-implement/SKILL.md` (434) must each be brought **under 400 lines**
+by moving detail to `references/*.md` files, each moved section leaving a stub
+with the marker-3 "behavior UNCHANGED" sentence where one applies and a
+resolving link (REQ-LINT-004), with every `REQUIRED` marker row, the
+`VERSION_GATED_SKILLS` `docs/.sdd-version` mention and the `[template-drift]`
+fences kept satisfied (a row may be re-pointed to the new file, never dropped).
+The size evidence is RS-HARNESSP5-001 §Decided (measured 2026-09-19). Decided
+at DISCUSS: the target is lint warn-clean. (workstream `harness-p5`; kickoff
+§Scope item 3; p4 red R7/R8)
+**Acceptance**: `python3 tools/sdd-skill-lint.py` exits 0 and its summary line
+matches `OK: N file(s) clean` with **no** warning clause — the linter appends
+`, W warning(s)` only when `W > 0`, so a warn-clean run prints no count at all
+and a `0 warning(s)` expectation is unsatisfiable; do not "restore" that
+wording; `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`
+prints 0; `wc -l skills/*/SKILL.md` shows every file < 400; every new
+`references/*.md` is linked from its stub and resolves.
+[Priority: must]
+
+### REQ-LINT-HARNESSP5-002: `skill-lint-v5.md` REQ-LINT-003 / REQ-LINT-007 baselines read "none" and "under 400"
+`docs/spec/skill-lint-v5.md`'s restatements of REQ-LINT-003 ("baseline warns on
+exactly `sdd-orchestrate` and `sdd-migrate`") and REQ-LINT-007
+("`sdd-orchestrate/SKILL.md` ≤ ~450 lines") must be amended so the size
+baseline reads **none** (no `[size]` warning on the shipped skill set) and the
+`sdd-orchestrate` bound reads **under 400**, matching the `[Updated]` notes on
+those two requirements in this file; the p4 accepted reds R7 and R8 close on
+this edit. (workstream `harness-p5`; see `docs/ws/harness-p4/verification.md`
+§Issues Found → Minor R7, R8 — reproduce: `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`,
+`wc -l skills/sdd-orchestrate/SKILL.md`)
+**Acceptance**: `grep -n '450\|exactly .sdd-orchestrate. and .sdd-migrate' docs/spec/skill-lint-v5.md`
+returns nothing (file-wide); the R7/R8 `reproduce:` commands
+print 0 and a number < 400; `docs/ws/harness-p5/verification.md`
+`## Post-cycle Fixes` records both reds closed.
+[Priority: must]
+
+### REQ-LINT-HARNESSP5-003: `docs/spec/telemetry.md` (1137 lines) is split with its parsed tables intact
+`docs/spec/telemetry.md` must be split into cohesive files under the same
+`telemetry` topic (for example `telemetry.md` — schema, writer, lint — and
+`telemetry-reader.md` — `summarize`, `--plan`, migration, fixture contract),
+such that: the §Record Schema table that `tools/sdd-telemetry.py`
+`test_schema_table_agrees` parses stays at the path the tool reads (or the
+tool's path constant moves with it in the same change); every
+`## Implementation Questions` entry stays with the section it amends
+(append-only, never renumbered); every `research_refs`/spec reference from
+`docs/requirements/functional/telemetry.md`, the per-ws traceability `Spec`
+cells and skill text resolves; no file exceeds ~800 lines. The exact split is
+for specs to decide.
+[Updated: 2026-09-19 — the original guide read ~600 lines. The split landed at
+748 (`telemetry.md`) and 697 (`telemetry-reader.md`) lines and the bound is
+amended to **~800 lines per file**, an accepted residual rather than a silent
+overrun. Reason: the two remaining cuts both break a contract in half — the
+`| Group | Key | Type / domain |` table's three worked examples belong with the
+writer rules that produce them, and the reader / lint / fixture contract is one
+consumer-side whole. A further split to satisfy a line count would trade
+cohesion (the rule the number proxies for) for the number itself. Recorded as
+Q-REQ-P5-I in `docs/requirements/index.md` §Q-REQ Resolutions.] (workstream `harness-p5`; kickoff §Scope item 3; the
+requirements-side split of `functional/telemetry.md` proposed in `index.md`
+§Open Questions (p4) stays deferred — ids are unchanged either way)
+**Acceptance**: `wc -l docs/spec/telemetry*.md` shows no file over ~800 lines
+(amended bound, above);
+`python3 tools/sdd-telemetry.py --self-test` passes `test_schema_table_agrees`;
+`python3 tools/sdd-gc.py --report` raises no `qimpl-broken-ref` or broken-link
+finding on the split files; `python3 tools/sdd-skill-lint.py` exits 0.
+[Priority: should]

@@ -1,8 +1,8 @@
 ---
 domain: HARN
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 status: Approved
-research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001]
+research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001]
 ---
 
 # Requirements: Harness Hardening — Boundaries
@@ -449,4 +449,22 @@ with the five fixtures listed in its output; replacing the two-sha range in the
 fast-forward fixture with `git show --name-only --format= HEAD` makes that
 fixture fail with a false `INCOMPLETE`, demonstrating why the comparand is the
 range.
+[Priority: should]
+
+<!-- REQ-HARN-HARNESSP5-NNN (continued from harness-loop-control.md -001). -->
+
+### REQ-HARN-HARNESSP5-002: `harness-commit-fidelity.md` §Comparand Table states `--no-renames -z` and counts C6
+`docs/spec/harness-commit-fidelity.md` §Comparand Table must show the
+`git diff --name-only` comparands with the flags the tool actually runs —
+`--no-renames -z` (rename detection off so both sides agree; NUL-separated so
+paths with spaces are one record, REQ-HARN-HARNESSP4-005) — instead of naming
+`--no-renames` only in later prose, and its plan-text references to "five
+fixtures C1–C5" must read C1–C6, since `tools/sdd-scope-check-selftest.py`
+ships C6. Spec text only. (workstream `harness-p5`; see
+`docs/ws/harness-p4/verification.md` — the table omits the flags and the count
+is stale)
+**Acceptance**: `grep -n 'no-renames -z' docs/spec/harness-commit-fidelity.md`
+hits inside §Comparand Table; `grep -n 'C1–C5' docs/spec/harness-commit-fidelity.md`
+returns nothing; `python3 tools/sdd-scope-check-selftest.py --self-test` lists
+C1–C6; `python3 tools/sdd-gc.py --report` raises no new finding.
 [Priority: should]

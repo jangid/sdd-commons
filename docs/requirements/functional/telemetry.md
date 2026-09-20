@@ -1,8 +1,8 @@
 ---
 domain: TELEM
-last_updated: 2026-09-18
+last_updated: 2026-09-20
 status: Approved
-research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001]
+research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001]
 workstream: harness-p2
 ---
 
@@ -517,3 +517,146 @@ with verifier) and flags no shortfall against the 8 recorded pipeline records
 while REQ-TELEM-HARNESSP4-002's implication line still reports the 14 missing;
 `--self-test` covers a plan with a chunk that has no record at all.
 [Priority: may]
+
+<!-- REQ-TELEM-HARNESSP5-NNN: workstream-prefixed additions for the harness-p5
+     cycle (RS-HARNESSP5-001; marker 4, per docs/spec/ws-ids.md). Findings 1–6
+     are the p4 live-run findings of docs/ws/harness-p4/verification.md
+     §Next Steps; the seq numbers cited (21/24/27, 2/4/6) come from that report
+     and plan O2 until the p4 fixture of -007 is cut. -->
+
+### REQ-TELEM-HARNESSP5-001: a stage-level `fix` record carries no `chunk_verdict` (writer rule)
+`docs/spec/telemetry.md` §Writer rule (i), mirrored in
+`references/telemetry.md` §3, must copy a verifier's `CHUNK_VERDICT:` onto the
+dispatched record **only when that record is a per-chunk dispatch**
+(`dispatch.chunk != null`). A stage-level `fix` record (`iteration ≥ 1`,
+`redo: null`, `chunk: null` — the implement-stage `loop-back-to-fix` dispatch
+after the stage review) keeps `verdict.chunk_verdict: null`; its verifiers'
+verdicts live on their own `verifier` records. `dispatch.chunk` keeps its one
+meaning ("the `### Chunk N:` number for per-chunk dispatches") — the writer
+never stamps a chunk on a stage-level fix, which may touch several chunks and
+whose verifiers may run under several. The `--lint` cross-field rule is
+unchanged and becomes true by construction: a `chunk_verdict` on a record whose
+`(stage, chunk)` has no verifier is now always a writer defect. Ratified as
+Q-REQ-P5-B. (workstream `harness-p5`; see RS-HARNESSP5-001 §Q2 finding 2 — seq
+21, 24, 27 of p4 session 2 per `docs/ws/harness-p4/verification.md` §Next Steps)
+**Acceptance**: §Writer rule (i) and `references/telemetry.md` §3 state the
+per-chunk-only condition; `skills/sdd-orchestrate/SKILL.md` §Telemetry agrees;
+on the frozen p4 fixture (REQ-TELEM-HARNESSP5-007) `--lint` still lists the
+three records as `[cross-field]` findings by seq in §Fixture-Based Test
+Contract (historical fact, like the p3 `seq 20`); `python3 tools/sdd-skill-lint.py`
+exits 0.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP5-002: `summarize` implies a first-attempt pipeline only for chunk groups (reader)
+`tools/sdd-telemetry.py`'s `expected_rows()` must sum `implied.pipeline` over
+implement groups with `chunk != null` **only**; a `(implement, null)` group of
+stage-level `fix` records implies no pipeline dispatch. `attempts()` and
+`implied.verifier` are unchanged (a null group with null `chunk_verdict`
+implies nothing). (workstream `harness-p5`; see RS-HARNESSP5-001 §Q2 finding 1
+— the false "1 missing pipeline" on the p4 live file)
+**Acceptance**: `python3 tools/sdd-telemetry.py summarize --file tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl`
+reports no missing pipeline for the `(implement, chunk null)` group; the p3
+fixture's `expected 39` / 19 missing and every REQ-TELEM-HARNESSP4-002 number
+are unchanged (sha256 asserted before and after); `--self-test` covers a
+session with three stage-level fixes and no chunk record → 0 implied pipeline.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP5-003: `v: 1` records are exempt from the equal-heads rule — no migration marker
+The `--lint` cross-field equal-heads rule (Q-IMPL-HARNESSP4-007: a `proceed`
+implement record with `head_before == head_after`, `files_written_n > 0` and no
+landed commit group) must evaluate `v: 2` records **only**; a `v: 1` record is
+exempt because it carries no field that can prove landing. The `migration`
+marker is **not** stamped on such records — `migration.from` is the enum
+`chunk-string` for a rewrite `migrate` performed, and the p4 records carry no
+defect to rewrite. Documented in §Schema Lint's cross-field row — the fold-in
+of Q-IMPL-HARNESSP4-007 under REQ-QIMPL-HARNESSP5-001 carries the exemption into
+Approved text, so a separate Q-IMPL entry amending -007's v1 branch is optional
+(`may`, at specs' discretion) rather than a third statement of the same rule.
+Ratified as Q-REQ-P5-B.
+(workstream `harness-p5`; see RS-HARNESSP5-001 §Q2 finding 3 — seq 2, 4, 6 of
+p4 session 2; the branch has no true positive on record and one live false
+positive)
+**Acceptance**: `--self-test`: `v: 1` + equal heads + `files_written_n > 0` →
+no finding; the same shape as `v: 2` with null `commit.token` → finding; on the
+frozen p4 fixture `--lint` raises no equal-heads finding on seq 2/4/6; the
+frozen p3 fixture's `--lint` finding **set** is unchanged (order-insensitive,
+compared as REQ-TELEM-HARNESSP5-006 specifies — its `seq` sort may reorder the
+p3 findings).
+[Priority: must]
+
+### REQ-TELEM-HARNESSP5-004: `summarize` and `--lint` admit the same `v` — integer-typed
+Both entry points must admit a record's `v` through one shared helper that
+tests `_is_int(v) and v in ADMITTED_V`, so `v: 2.0` (a float, `2.0 in {1, 2}`
+is `True` today) is skipped and counted by `summarize` exactly as `--lint`
+rejects it with a `[type] v` finding. (workstream `harness-p5`; see
+RS-HARNESSP5-001 §Q2 finding 4 — `load()` membership test)
+**Acceptance**: `--self-test` feeds a synthetic record with `v: 2.0` — `summarize`
+reports it skipped and counted, `--lint` emits `[type] v`; `grep -c 'ADMITTED_V' tools/sdd-telemetry.py`
+shows the membership test in one helper called from both `load()` paths.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP5-005: the `commit` group records the gate's closing line; `summarize` labels it as accepted
+`docs/spec/telemetry.md` §Writer must state that the `commit` source records
+the **closing** `COMMIT:` line of the gate — an `amend` re-renders `COMPLETE`
+before the append, so an amended omission is recorded as `COMPLETE`, and only an
+`accept (note)` leaves `INCOMPLETE` on record. `summarize`'s label becomes
+`COMMIT: INCOMPLETE (accepted): N` (§Records-vs-Expected, §Fixture-Based Test
+Contract) so the count is not read as the number of omissions rendered. A
+`commit.amended` field is **deferred** (Q-REQ-P5-E): it would change the
+`v: 2` key set with no evidence anyone needs the count. (workstream
+`harness-p5`; see RS-HARNESSP5-001 §Q2 finding 5 — `COMMIT: INCOMPLETE: 0`
+although one `INCOMPLETE` was forced live; the O3 record carries `COMPLETE`)
+**Acceptance**: `summarize` on the frozen p4 fixture prints
+`COMMIT: INCOMPLETE (accepted): 0`; the §Writer sentence and
+`references/telemetry.md` §3 agree; `test_schema_table_agrees` still passes (no
+key added).
+[Priority: must]
+
+### REQ-TELEM-HARNESSP5-006: `--lint` findings are emitted in `seq` order
+`lint()` must stable-sort its findings by `(int seq ascending, then non-int seqs
+in insertion order)` before rendering, across its three passes (per-record
+type/enum/key, per-session mis-typed-fix + cross-field, reason-review).
+(workstream `harness-p5`; see RS-HARNESSP5-001 §Q2 finding 6)
+**Acceptance**: `--self-test` builds a type finding on seq 5 and a cross-field
+finding on seq 2 and asserts the rendered order 2, 5; the frozen p3 fixture's
+finding **set** is unchanged (sha256 asserted over the **sorted** finding
+lines, so the hash is order-insensitive — the same comparison
+REQ-TELEM-HARNESSP5-003's acceptance uses).
+[Priority: should]
+
+### REQ-TELEM-HARNESSP5-007: a frozen p4 fixture is cut by the operator; the p3 fixture and the live file are untouched
+`tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl` — a copy of
+`.sdd/telemetry.jsonl` as it stood at harness-p4 DONE (**67 lines**, i.e.
+`head -67` of the live file: harness-p3 migrated at lines 1–20, harness-p4 at
+lines 21–67 — 47 records, session 1 = 20 records at `v: 1`, session 2 = 27
+records starting `v: 2` at seq 8; harness-p5 begins at line 68. [Corrected
+2026-09-20: the earlier figure — 61 lines, "p4 session 1 seq 1–13, p4 session 2
+seq 1–28" — was measured wrong. The correction is consequence-free: `--lint` on
+a 61-line and on a 67-line cut produce byte-identical output — 65 findings, 4
+warnings, the same three `[cross-field]` records at seq 21, 24, 27 — so no
+acceptance number below moves. [Re-measured 2026-09-20 after Chunk 4's reader fixes: **62 findings, 4 warnings** — the `v: 2`-only equal-heads guard correctly removed the three findings at `seq` 2, 4 and 6. 65/4 is the figure as measured before those fixes; the equivalence claim is unchanged — both cuts still produce byte-identical output, with the same three `[cross-field]` records at `seq` 21, 24 and 27.]]) — must be cut by the **operator** as a plan
+operator task (leaves never read `.sdd/`), scheduled before the telemetry
+chunk, with its sha256 recorded in `tools/fixtures/README.md`; the `migrate`
+fixture guard covers it automatically (path under `tools/fixtures/`). Findings
+1, 2, 3 and 5 are reproduced on it; 4 and 6 are synthetic self-test cases.
+`tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` and the live file are
+never modified. (workstream `harness-p5`; see RS-HARNESSP5-001 §Q2 "Fixture")
+**Acceptance**: `shasum -a 256 tools/fixtures/telemetry-harness-p4-2026-09-19.jsonl`
+matches the README; `wc -l` = 67; `git diff --stat main -- tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+is empty; the p4 fixture's sha256 is asserted before and after every
+`--self-test` case that reads it.
+[Priority: must]
+
+### REQ-TELEM-HARNESSP5-008: verifier advisories — three `--lint` self-test cases
+`tools/sdd-telemetry.py --self-test` should gain: (a) a positive
+`commit.token`-on-non-committing-kind case for a kind **other than** `review`
+(`verifier` or `red`) → `[cross-field]`; (b) a record with `dispatch.reason:
+RED_BREAK` (uppercase) → `[enum]` finding, so the canonical `red_break`
+spelling of Q-IMPL-HARNESSP4-005 is tested, not only stated; (c) a
+`migration.from` value outside the `chunk-string` enum → `[enum]` finding (the
+validator accepts any string today). (workstream `harness-p5`; see
+`docs/ws/harness-p4/verification.md` verifier advisories)
+**Acceptance**: the three cases are named in `--self-test` output and each
+fails when its check is removed in a temp copy; the frozen fixtures' outputs
+are unchanged.
+[Priority: should]

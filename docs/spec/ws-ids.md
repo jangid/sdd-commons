@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-07-21
+last_updated: 2026-09-19
 requires:
   - REQ-WS-009
   - REQ-WS-010
@@ -208,7 +208,7 @@ deterministic sort (see Open Questions).
 
 ### Q-IMPL-009: Merge-safe write model is marker-`4`-gated (v3 append behavior retained)
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §Merge-Safe Shared Writes, §ID-Sorted Insertion, §Append Under a
+**Spec reference**: §Merge-Safe Shared Writes, §ID-Sorted, One-Row-Per-Line Insertion for `requirements/index.md`, §Append Under a
 Claimed Prefix (REQ-WS-010/013/015) — stated as the v4 contract without an explicit
 `.sdd-version` gate.
 **Decision**: The merge-safe shared-write rules (append-under-claimed-prefix,

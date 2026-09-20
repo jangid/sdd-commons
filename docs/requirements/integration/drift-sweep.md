@@ -1,8 +1,8 @@
 ---
 domain: GC
-last_updated: 2026-09-18
+last_updated: 2026-09-20
 status: Approved
-research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001]
+research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP5-001]
 workstream: harness-p2
 ---
 
@@ -178,3 +178,39 @@ that the `qimpl-undefined` rule is unchanged; `python3 tools/sdd-gc.py --report`
 raises no new `qimpl-undefined` finding on the amended prose, and the rule still
 fires on a genuinely undefined local id.
 [Priority: should]
+
+### REQ-GC-HARNESSP5-001: aggregate regeneration must never silently drop a row
+`tools/sdd-gc.py`'s `[traceability-aggregate]` sweep and its
+`--fix traceability-aggregate` rewrite must not be able to **lose** a
+per-workstream traceability row. Today `table_cells()` splits a row on **raw**
+`|` and `trace_rows()` keeps only rows yielding exactly six cells, so a row
+whose cell content contains a literal pipe — a grep alternation, a code-span
+alternation — is silently discarded from `docs/requirements/traceability.md`.
+Two rows of `docs/ws/harness-p4/traceability.md` were lost this way at commit
+3b50220 and stayed missing until they were recovered on 2026-09-20 (commit
+9c7cb9c) by rewriting the pipes as `&#124;`. Markdown-legal `\|` escaping does
+**not** save the row either (verified: gc drops those too). Two changes are
+required: (a) the row splitter must split on **unescaped** pipes only, treating
+`\|` as literal cell content and re-emitting it unchanged on regeneration; and
+(b) a row that still does not yield the expected cell count must raise a
+**fail** finding, rule id `traceability-rowdrop`, naming the file and the row
+(`<file>:<line>`), instead of being dropped. Data loss must be impossible
+without a visible finding. This is a rule **addition** scoped to the aggregate
+sweeps — no existing rule id, severity or counting rule changes, and no
+allowlist is introduced. (workstream `harness-p5`; see
+`docs/ws/harness-p5/traceability.md` recovery commit 9c7cb9c and
+`docs/spec/ws-traceability.md` §Aggregation Contract)
+**Acceptance**: `python3 tools/sdd-gc.py --self-test` exits 0 with three new
+fixture assertions — a per-ws row whose `Test` cell holds `\|` survives
+`--fix traceability-aggregate` byte-for-byte (the escape is re-emitted, the row
+is present in the regenerated aggregate), the same row raises **no**
+`traceability-rowdrop` finding, and a genuinely malformed row (five cells, no
+escaped pipe) raises exactly one `[traceability-rowdrop]` **fail** finding whose
+location is `<file>:<line>`; `python3 tools/sdd-gc.py --report` on this
+repository exits 0 with no `traceability-rowdrop` finding and
+`grep -c '^| REQ-ARB-HARNESSP4-003 \|^| REQ-CYCID-HARNESSP4-001 ' docs/requirements/traceability.md`
+prints `2` (both recovered harness-p4 rows are still present in the
+aggregate; a row-anchored presence assertion rather than a corpus-wide count of an
+escape sequence, which every future correctly-escaped cell would inflate);
+`python3 tools/sdd-skill-lint.py` exits 0.
+[Priority: must]

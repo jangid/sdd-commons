@@ -5,9 +5,10 @@ the v1 record schema and its gate-signal sources, the `Budget:` grammar, the
 writer sequence and rules, the `TELEMETRY:` gate-line family, the third
 (telemetry-specific) write-scope observation with its finding strings, the
 non-interference table of phase-detection inputs, the scorer derivation and
-the post-cycle reader. Contract: `docs/spec/telemetry.md`
+the post-cycle reader. Contracts: `docs/spec/telemetry.md`
 (REQ-TELEM-HARNESSP2-001..009, REQ-HARN-027 amendment,
-REQ-SKILL-HARNESSP2-001). Stub: `../SKILL.md` §LOOP; the KICKOFF opt-out is
+REQ-SKILL-HARNESSP2-001) and, for §6 (scorer derivation) and §7 (post-cycle
+reader), `docs/spec/telemetry-reader.md`. Stub: `../SKILL.md` §LOOP; the KICKOFF opt-out is
 at `../SKILL.md` §KICKOFF; the `TELEMETRY:` line position is named at
 `../SKILL.md` §The gate. Every token below is **defined here and nowhere
 else**: the four-member `TELEMETRY:` line family (`rec <n>` included) and the
@@ -95,7 +96,7 @@ written with `v: 2`; a `v: 1` record is validated against the unmarked rows only
 | `git` | `head_before`, `head_after` | short sha (`^[0-9a-f]{7,12}$`) | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) — never the `HEAD` literal, never a 40-character sha |
 | `commit` | `token` | `COMPLETE` \| `INCOMPLETE` \| null `[p4]` | the gate's own `COMMIT:` closing line (`write-scope.md` §7a, `harness-commit-fidelity.md`), copied after it renders; null for a dispatch whose gate commits nothing (review, verifier, red) (REQ-TELEM-HARNESSP4-007) |
 | | `missing_n`, `extra_n` | int `[p4]` | that line's `observed, not landed` / `landed, not observed` counts — counts only, never paths |
-| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (`docs/spec/telemetry.md` §In-Place Migration); the writer never sets it |
+| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (`docs/spec/telemetry-reader.md` §In-Place Migration); the writer never sets it |
 
 **Writer sources of the `[p4]` fields — no read of the telemetry file.**
 `scope.widened` is computed from session state the orchestrator already holds
@@ -255,8 +256,20 @@ Rules:
     "verifier"`, `chunk: N`, `verdict.chunk_verdict` = its `CHUNK_VERDICT:`,
     `gate.decision` = the per-chunk gate it fed); its `CHUNK_VERDICT:` is
     *also* copied onto the chunk's own `pipeline`/`fix` record's
-    `verdict.chunk_verdict` — the field the post-cycle reader's implication
-    reads (§7). Two appends per verified chunk attempt, not one.
+    `verdict.chunk_verdict` — **only when that record is a per-chunk dispatch
+    (`dispatch.chunk != null`)** — the field the post-cycle reader's
+    implication reads (§7). Two appends per verified chunk attempt, not one.
+    A **stage-level `fix` record** (`iteration ≥ 1`, `redo: null`,
+    `chunk: null` — the implement-stage `loop-back-to-fix` dispatch after the
+    stage review) keeps `verdict.chunk_verdict: null`; its verifiers' verdicts
+    live on their own `verifier` records. `dispatch.chunk` keeps its one
+    meaning (the `### Chunk N:` number of a per-chunk dispatch), so the writer
+    never stamps a chunk on a stage-level fix, which may touch several chunks
+    and whose verifiers may run under several. This makes the `--lint`
+    cross-field rule true by construction — a `chunk_verdict` on a record
+    whose `(stage, chunk)` has no verifier is always a writer defect
+    (REQ-TELEM-HARNESSP5-001; p4 session 2 `seq` 21, 24, 27 were the live
+    defect).
   - (ii) **every fix dispatch is a `fix` record, never `pipeline`** — a stage
     `loop-back-to-fix` (`iteration: N`, `reason: REVIEW`), a per-chunk `fix`
     (redo — `chunk: N`, `redo: N`, `reason: VERIFIER_FAIL`), or a `RED_BREAK`
@@ -269,6 +282,17 @@ Rules:
   p3 file held zero `verifier` and zero `fix` records across eight verifiers
   and three redos, and its one fix (`seq` 18) was typed `pipeline`, because
   the text above did not say where the verifier's record goes.
+- **`commit` source — the gate's closing `COMMIT:` line**
+  (REQ-TELEM-HARNESSP4-007; amended harness-p5, REQ-TELEM-HARNESSP5-005). The
+  record copies the `COMMIT:` line the gate rendered **last** for this
+  dispatch, from the orchestrator's own rendering state (token + the two
+  clause counts); `{null, 0, 0}` when the gate commits nothing. An `amend`
+  re-renders `COMPLETE` before the append, so an amended omission is recorded
+  as `COMPLETE`, and only an `accept (note)` leaves `INCOMPLETE` on record —
+  which is why `summarize` labels the per-session count
+  `COMMIT: INCOMPLETE (accepted): N` (§7) rather than counting omissions
+  rendered. No `commit.amended` key is added (deferred, Q-REQ-P5-E): the
+  `v: 2` key set is unchanged by this cycle.
 - **Append-only.** The orchestrator never rewrites or truncates the file, with
   the **single exception** of the leaf-write revert in §4.
 - **Never load-bearing.** On any write error (unwritable directory, disk full)
@@ -477,7 +501,7 @@ it is a backstop for a missed gate line, it never influences control flow, and i
 does not weaken the zero-reads rule — nothing inside the loop runs this tool.
 
 **Implication-derived `expected`** (REQ-TELEM-HARNESSP4-002, -003;
-`docs/spec/telemetry.md` §Implication-Derived `expected` and the Headline). The
+`docs/spec/telemetry-reader.md` §Implication-Derived `expected` and the Headline). The
 highest `seq` alone saw no gap on the p3 file, because a writer that never
 appends also never increments. `expected` therefore **starts** from the highest
 `seq` and adds every append implied by a cross-field value the writer *did*
@@ -547,7 +571,7 @@ plan's `### Chunk N:` headers: `implement floor: N pipeline (2N with verifier);
 recorded implement records: M; shortfall: max(0, N − M)`, `M` = implement
 `pipeline` records (REQ-TELEM-HARNESSP4-008; Q-IMPL-HARNESSP4-005).
 
-**Schema lint** (REQ-TELEM-HARNESSP4-004, `docs/spec/telemetry.md` §Schema Lint):
+**Schema lint** (REQ-TELEM-HARNESSP4-004, `docs/spec/telemetry-reader.md` §Schema Lint):
 
 ```
 python3 tools/sdd-telemetry.py --lint [--file .sdd/telemetry.jsonl]
@@ -571,7 +595,7 @@ the exit code. Exit 1 on any finding, 0 when clean. Like `summarize`, it is
 post-cycle and out-of-loop: nothing in the orchestrator runs it.
 
 **Migration of the 8 p3 records** (REQ-TELEM-HARNESSP4-005,
-`docs/spec/telemetry.md` §In-Place Migration of the 8 p3 Records, Stamped
+`docs/spec/telemetry-reader.md` §In-Place Migration of the 8 p3 Records, Stamped
 Partial):
 
 ```

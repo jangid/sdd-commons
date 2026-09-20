@@ -1,11 +1,13 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-19
 requires:
   - REQ-WS-007
   - REQ-WS-008
   - REQ-WS-HARNESSP3-001
   - REQ-REDB-HARNESSP3-003
+  - REQ-WS-HARNESSP5-001
+  - REQ-WS-HARNESSP5-002
 ---
 
 # Multi-Workstream Traceability Join
@@ -183,13 +185,15 @@ and `sdd-verify` (each states the unless-clause).
 ### Legal `Verified` Cell Values (REQ-REDB-HARNESSP3-003)
 
 The `Verified` column tracks the **report's** status, so its vocabulary is
-exactly three values:
+exactly **four** values [Amended 2026-09-19, harness-p5 — REQ-WS-HARNESSP5-001,
+Q-REQ-P5-D; was three]:
 
 | Value | Meaning |
 |-------|---------|
 | `pass` | the report covering this row is `status: pass` |
 | `fail` | the report covering this row is `status: fail` |
 | `pending-red` | the report is `status: pending-red` — a red round is outstanding |
+| `descoped` | this workstream did **not** exercise the requirement; a later workstream carries it — written only on a row **carried from a previous workstream** that the carrying cycle's DONE rule could not close (neither `pass` nor a deliberate `fail`) |
 
 `pending-red` is written by `sdd-verify` into every cell it would otherwise have
 marked `pass` (a `fail` row stays `fail`), and the orchestrator's existing
@@ -204,6 +208,29 @@ tools/sdd-gc.py --report` raises no new finding **on a `pending-red` cell**"; th
 `[traceability-aggregate]` warning raised between a per-workstream traceability
 write and the orchestrator's post-gate regeneration (§Aggregate Regeneration
 Ownership) is the **designed handshake** and is expected, not a finding.
+
+**`descoped` use limit** (REQ-WS-HARNESSP5-001): never written on a row the
+workstream itself minted; never a substitute for `fail`; never read as
+completion by phase detection or by the DONE rule — a workstream's own DONE rule
+still requires every row it minted, or carries for closure, to read `pass`. It
+is written by the **orchestrator** as bookkeeping (a cross-workstream edit,
+outside every leaf's write scope, `references/write-scope.md` §7), not by
+`sdd-verify`. `sdd-verify` Step 6, `sdd-requirements` Step 5, `tools/sdd-gc.py`
+(`trace-empty` has no legal-value check, so no gc rule changes) and the
+aggregate regeneration accept the value; the aggregate may then carry one id
+with `fail` (history), `descoped` (history) and `pass` (authoritative, newest
+workstream) rows. Why a fourth value rather than deleting the carried rows: a
+deleted row erases the record that the workstream descoped it.
+
+**The harness-p4 flip** (REQ-WS-HARNESSP5-002): once this value is legal, the
+orchestrator sets the `Verified` cells of `REQ-ARB-HARNESSP3-001` and
+`REQ-ARB-HARNESSP4-001` in `docs/ws/harness-p4/traceability.md` — left empty
+there because no legal value fit — to `descoped` in **one** bookkeeping commit
+of its own (subject `docs(traceability): …`, touching exactly that file and the
+regenerated aggregate). The `harness-p5` rows for the same ids
+(`arbitrated-handoff.md` §Offline Arbitration Fixture) are authoritative; the
+aggregate shows three rows for REQ-ARB-HARNESSP3-001 (`fail`, `descoped`,
+`pass`) and two for REQ-ARB-HARNESSP4-001 (`descoped`, `pass`).
 
 **Duplicate requirement id across per-workstream files** — see
 Q-IMPL-HARNESSP4-001 below: legal, aggregated as-is, newest-workstream row
@@ -244,7 +271,9 @@ authoritative.
 - [ ] The marker-4 traceability notes in `sdd-requirements`, `sdd-specs`, `sdd-implement` and `sdd-verify` state the unless-clause (REQ-WS-HARNESSP3-001)
 - [ ] A walkthrough of an orchestrated dispatch shows the aggregate regenerated in a separate orchestrator commit and the leaf's `files_written` containing no aggregate path; a standalone run of the same skill regenerates the aggregate itself (REQ-WS-HARNESSP3-001)
 - [ ] A walkthrough of a gate resolved `stop`, and one resolved `loop-back-to-fix`, each shows the aggregate regenerated and committed before the session ends (REQ-WS-HARNESSP3-001)
-- [ ] This spec lists `pass`, `fail` and `pending-red` as the legal `Verified` cell values (REQ-REDB-HARNESSP3-003)
+- [ ] This spec lists `pass`, `fail` and `pending-red` as the legal `Verified` cell values (REQ-REDB-HARNESSP3-003) — extended to four by `descoped` on 2026-09-19
+- [ ] §Legal `Verified` Cell Values lists `pass | fail | pending-red | descoped` with the use limit (carried rows only; never a `fail` substitute; never completion); `skills/sdd-verify/SKILL.md` Step 6 and `skills/sdd-requirements/SKILL.md` Step 5 name the four values; a per-ws traceability file containing a `descoped` cell passes `python3 tools/sdd-gc.py --report` with no new finding and regenerates into the aggregate unchanged; `python3 tools/sdd-skill-lint.py` exits 0 (REQ-WS-HARNESSP5-001)
+- [ ] `grep -n 'descoped' docs/ws/harness-p4/traceability.md` hits exactly the two ARB rows; the commit that last touched that file lists exactly it and `docs/requirements/traceability.md` and its subject starts `docs(traceability):`; the regenerated aggregate shows three rows for `REQ-ARB-HARNESSP3-001` (`fail`, `descoped`, `pass`) and two for `REQ-ARB-HARNESSP4-001` (`descoped`, `pass`) (REQ-WS-HARNESSP5-002)
 - [ ] §Legal `Verified` Cell Values states the qualified gc criterion ("no new finding on a `pending-red` cell") and names the `[traceability-aggregate]` handshake warning as expected (REQ-REDB-HARNESSP4-001, owned by `adversarial-verify.md`)
 - [ ] A requirement id present in two per-workstream files yields two adjacent aggregate rows; the newest-kickoff workstream's row is authoritative; `trace-empty` runs per file unchanged (Q-IMPL-HARNESSP4-001; REQ-ARB-HARNESSP4-001 cross-reference)
 
@@ -265,6 +294,16 @@ explicitly rather than passing silently. Checks:
 - `docs/spec/ws-layout.md`'s ownership model (per-ws file owned, aggregate
   regenerated wholesale) is untouched: only *who runs the regeneration* changed,
   never *how* it is produced.
+
+**harness-p5 pass (2026-09-19).** No extractable type definitions. The
+`Verified` vocabulary is defined once here; `arbitrated-handoff.md` §Offline
+Arbitration Fixture and `docs/ws/harness-p5/traceability.md` name `descoped`
+by reference to this section, `adversarial-verify.md`'s `pending-red → pass`
+flip is unchanged, and `sdd-verify` / `sdd-requirements` list the four values
+by name. The p4 bookkeeping flip reuses the post-gate slot of §Aggregate
+Regeneration Ownership and `harness-loop-control.md` §Plan Completion
+Ownership (same commit convention, `docs(traceability):`). No unresolved
+contradictions.
 
 ## Implementation Questions
 

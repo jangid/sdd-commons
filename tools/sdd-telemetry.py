@@ -6,7 +6,7 @@ the admitted set ``{1, 2}`` — Q-IMPL-HARNESSP4-002 — rendered in
 ``skills/sdd-orchestrate/references/telemetry.md`` §2 and ``docs/spec/telemetry.md``
 §Record Schema from the ``DOMAIN_TABLE`` below, the schema's single source of
 truth) and prints, per workstream, one row per ``dispatch.stage`` followed by a
-per-chunk block (RS-008 probe 1 as a query). Contract: ``docs/spec/telemetry.md``
+per-chunk block (RS-008 probe 1 as a query). Contract: ``docs/spec/telemetry-reader.md``
 §Out-of-Loop Reader (REQ-TELEM-HARNESSP2-009), §Schema Lint (REQ-TELEM-HARNESSP4-004).
 
 This tool is **never invoked inside the orchestration loop** and no skill
@@ -24,7 +24,7 @@ Usage:
 (classes enum / type / key-undeclared / key-missing / cross-field /
 mistyped-fix) and ``WARN … [reason-review]`` warnings that never affect the
 exit code. ``summarize`` adds per session ``widened dispatches: N; COMMIT:
-INCOMPLETE: M`` and, with ``--plan``, the implement-stage floor derived from
+INCOMPLETE (accepted): M`` and, with ``--plan``, the implement-stage floor derived from
 the plan's ``### Chunk N:`` headers (REQ-TELEM-HARNESSP4-006, -007, -008).
 
 Records with an unknown ``v`` and lines that are not JSON are skipped and
@@ -33,7 +33,7 @@ counted on a trailing ``skipped: N unknown-schema record(s)`` line. A sibling
 records imply versus how many are present — a post-cycle backstop for a missing
 gate append (REQ-TELEM-HARNESSP3-002). ``expected`` starts from the highest
 ``dispatch.seq`` and adds every append **implied by a cross-field value the
-writer did fill** (REQ-TELEM-HARNESSP4-002, -003; ``docs/spec/telemetry.md``
+writer did fill** (REQ-TELEM-HARNESSP4-002, -003; ``docs/spec/telemetry-reader.md``
 §Implication-Derived ``expected`` and the Headline): a ``chunk_verdict`` implies
 a ``verifier`` record, ``redo`` implies the first attempt, a carried review/red
 verdict implies its ``review``/``red`` record, and a fix-dispatching gate
@@ -41,8 +41,8 @@ decision or a fix-only ``reason`` implies a ``fix`` record. An implied fix that
 exists as a record of another kind is *mis-typed* (a ``--lint`` finding once
 that subcommand lands), never a missing append.
 
-``migrate`` (REQ-TELEM-HARNESSP4-005, ``docs/spec/telemetry.md`` §In-Place
-Migration) rewrites every ``dispatch.chunk`` header string ``"Chunk N"`` to the
+``migrate`` (REQ-TELEM-HARNESSP4-005, ``docs/spec/telemetry-reader.md``
+§In-Place Migration) rewrites every ``dispatch.chunk`` header string ``"Chunk N"`` to the
 int ``N`` and stamps the record ``"migration": {"from": "chunk-string", "at":
 <date>}``; ``summarize`` then renders those chunks **partial**, naming the
 verifier / fix / redo records that were never written and cannot be
@@ -70,6 +70,7 @@ import os
 import re
 import shutil
 import statistics
+import subprocess
 import sys
 import tempfile
 from collections import defaultdict
@@ -81,18 +82,28 @@ KINDS = ["pipeline", "fix", "fanout_leaf", "verifier", "review", "red"]
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.dirname(_HERE)
-# The two human-readable renderings of the domain table (telemetry.md §Schema Lint).
+# The two human-readable renderings of the domain table that `--lint`
+# (telemetry-reader.md §Schema Lint) checks itself against: the spec's
+# §Record Schema table stayed in telemetry.md across the split, so SPEC_DOC
+# is unchanged (telemetry.md §Moved Sections).
 SPEC_DOC = os.path.join(_REPO, "docs", "spec", "telemetry.md")
 REF_DOC = os.path.join(_REPO, "skills", "sdd-orchestrate", "references", "telemetry.md")
-# The p3 plan the `--plan` floor is exercised against (telemetry.md §Fixture-Based Test Contract).
+# The p3 plan the `--plan` floor is exercised against (telemetry-reader.md §Fixture-Based Test Contract).
 P3_PLAN = os.path.join(_REPO, "docs", "ws", "harness-p3", "plan.md")
 
 # Frozen live-run evidence (tools/fixtures/README.md): every reader-side test reads
-# it read-only and asserts this sha256 before and after (telemetry.md
+# it read-only and asserts this sha256 before and after (telemetry-reader.md
 # §Fixture-Based Test Contract).
 FIXTURE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures",
                             "telemetry-harness-p3-2026-09-18.jsonl")
 FIXTURE_SHA256 = "7e20b6307da09355f9aee504c451f0ed59e79ef9a33861cd72f370ea84af9237"
+P4_FIXTURE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures",
+                               "telemetry-harness-p4-2026-09-19.jsonl")
+P4_FIXTURE_SHA256 = "ff5cf2864abc74c2c05449b86e5117f5c4ed8851b6b5f96617859b8b061ef370"
+# The p3 fixture's `--lint` finding SET, order-insensitive: sha256 over the sorted
+# finding lines (the summary line excluded).  REQ-TELEM-HARNESSP5-006's sort may
+# reorder the rendering, so the set — never the sequence — is the invariant.
+FIXTURE_LINT_SORTED_SHA256 = "b1b8c072db2d826380d1120f4fbbf39c651de8bfde486d0251d94f4d0301243c"
 
 # ---------------------------------------------------------------------------
 # Domain table (telemetry.md §Record Schema — the code table is the schema's
@@ -194,7 +205,7 @@ SHA_RE = re.compile(r"^[0-9a-f]{7,12}$")
 _BACKTICK_RE = re.compile(r"`([^`]+)`")
 _P4_MARK = "`[p4]`"
 
-# `migrate` (telemetry.md §In-Place Migration, REQ-TELEM-HARNESSP4-005): the
+# `migrate` (telemetry-reader.md §In-Place Migration, REQ-TELEM-HARNESSP4-005): the
 # marker's only `from` member, the header-string shape it rewrites, and the
 # read-only fixture directory the guard refuses to read from or write to.
 MIGRATION_FROM = "chunk-string"
@@ -334,6 +345,24 @@ def v_key_set(v: int) -> set[tuple]:
 
 SCHEMA_V_ADMITTED: frozenset = enum_members(None, "v")  # {"1", "2"} as rendered → ints below
 ADMITTED_V = {int(x) for x in SCHEMA_V_ADMITTED}
+V_ADMITTED_TEXT = f"the admitted set {sorted(ADMITTED_V)}"
+
+
+def _is_int(v) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+def v_admitted(v) -> bool:
+    """The ONE admission test for a record's schema version (REQ-TELEM-HARNESSP5-004).
+
+    Called from **both** ``load()`` paths — ``load()`` (what ``summarize`` reads)
+    and ``_check_value``'s ``v`` branch (what ``--lint`` reads) — so the two agree
+    by construction: an inadmissible ``v`` is skipped-and-counted by ``summarize``
+    exactly as ``--lint`` rejects it with ``[type] v``.  The test is int-typed
+    because ``2.0 in {1, 2}`` is ``True`` in Python, so the bare membership test
+    admitted a float (telemetry-reader.md §Out-of-Loop Reader).
+    """
+    return _is_int(v) and v in ADMITTED_V
 
 # The fix-only reason subset — derived from the `const` row, never a bare code
 # constant, so adding a reason later is a schema (table) change.
@@ -411,7 +440,7 @@ def load(path: str) -> tuple[list[dict], int]:
     records: list[dict] = []
     skipped = 0
     for rec in load_raw(path):
-        if not isinstance(rec, dict) or isinstance(rec.get("v"), bool) or rec.get("v") not in ADMITTED_V:
+        if not isinstance(rec, dict) or not v_admitted(rec.get("v")):
             skipped += 1  # torn line, or unknown schema version
             continue
         records.append(rec)
@@ -587,7 +616,7 @@ PER_CHUNK_KINDS = ("pipeline", "fanout_leaf", "verifier", "fix")
 
 
 def partial_stamp(chunk: int) -> str:
-    """The `partial` stamp of a migrated chunk, verbatim from telemetry.md
+    """The `partial` stamp of a migrated chunk, verbatim from telemetry-reader.md
     §In-Place Migration "Stamped-partial block shape": the block cannot be read as
     a full per-chunk history because the kinds it names were never appended."""
     return (f'partial — migrated from "Chunk {chunk}"; verifier, fix and redo records '
@@ -689,7 +718,7 @@ def _group_key(r: dict) -> tuple[str, str]:
 def mistyped_fix_seqs(sess: list[dict]) -> list[int]:
     """``seq`` of every implied fix that exists as a record of another kind.
 
-    Mis-typed-fix rule (telemetry.md §Implication-Derived ``expected``): a non-``fix``
+    Mis-typed-fix rule (telemetry-reader.md §Implication-Derived ``expected``): a non-``fix``
     record whose ``dispatch.reason`` is fix-only (clause (b)), or one carrying
     ``iteration >= 1`` / ``redo >= 1`` whose predecessor **at the same stage** decided
     a fix-dispatching option (clause (a)). It counts 0 toward ``missing.fix`` and is
@@ -716,7 +745,7 @@ def reason_review_warnings(records: list[dict]) -> list[int]:
 
     A ``--lint`` **warning** ``[reason-review]``, never a count: the shape cannot
     distinguish a mis-recorded fix from a mis-labelled first dispatch (p3 ``seq`` 3–5;
-    telemetry.md §Implication-Derived ``expected``, mis-typed-fix rule).
+    telemetry-reader.md §Implication-Derived ``expected``, mis-typed-fix rule).
     """
     out: list[int] = []
     for _ws, _run, _i, sess in _sessions(records):
@@ -734,7 +763,7 @@ def reason_review_warnings(records: list[dict]) -> list[int]:
 def session_rows(records: list[dict]) -> list[dict]:
     """Per session: recorded vs implication-derived ``expected`` appends.
 
-    ``expected := highest dispatch.seq + Σ missing.<kind>`` (telemetry.md
+    ``expected := highest dispatch.seq + Σ missing.<kind>`` (telemetry-reader.md
     §Implication-Derived ``expected`` and the Headline; REQ-TELEM-HARNESSP4-002, -003).
     The chunk-shaped implications are computed **per ``(stage, chunk)`` group** —
     the ``pipeline``/``fix`` records sharing one stage and chunk — never by summing
@@ -786,13 +815,17 @@ def session_rows(records: list[dict]) -> list[dict]:
                 implied[(stage, "fix")] += 1                       # clause (b)
         for (stage, _gate) in fix_gates:
             implied[(stage, "fix")] += 1                           # clause (a): one fix per deciding gate
-        for (stage, _chunk), grecs in groups.items():
+        for (stage, chunk_key), grecs in groups.items():
             attempts = 1 + max(_int0(_get(r, "dispatch", "redo")) for r in grecs)
             if any(_get(r, "verdict", "chunk_verdict") is not None and _get(r, "dispatch", "kind") != "verifier"
                    for r in grecs):
                 implied[(stage, "verifier")] += attempts
-            if stage == "implement":
-                # the first attempt is always a pipeline dispatch; a redo recorded as
+            if stage == "implement" and chunk_key != "null":
+                # Chunk groups ONLY (REQ-TELEM-HARNESSP5-002): a `(implement, null)`
+                # group — the stage-level fix records of a `loop-back-to-fix` after the
+                # stage review — implies no pipeline dispatch, because its first attempt
+                # was the per-chunk pipeline records, not a null-chunk one.
+                # The first attempt is always a pipeline dispatch; a redo recorded as
                 # pipeline (the p3 collapsed shape) stands in for its own first attempt
                 implied[(stage, "pipeline")] += 1 + sum(
                     1 for r in grecs
@@ -830,7 +863,7 @@ def session_rows(records: list[dict]) -> list[dict]:
 
 def _implication_lines(row: dict, label: str) -> list[str]:
     """Render one session's headline and per-kind ``implied vs recorded`` lines exactly
-    as telemetry.md §Implication-Derived ``expected`` and the Headline shows them."""
+    as telemetry-reader.md §Implication-Derived ``expected`` and the Headline shows them."""
     lines = [f"records-vs-expected: {row['recorded']} recorded, expected {row['expected']} ({row['gap']} missing){label}"]
     for kind in ["verifier", "pipeline", "review", "red", "fix"]:
         k = row["kinds"][kind]
@@ -890,7 +923,7 @@ def summarize(records: list[dict], skipped: int, plan_path: str | None = None) -
     # Records-vs-expected: a sibling of the skipped line, so a cycle that lost an
     # append is visible post-cycle even if the absent gate line went unnoticed.
     # The headline is the TOTAL shortfall of every implied append, per session
-    # (telemetry.md §Implication-Derived `expected` and the Headline, Q-REQ-P4-D).
+    # (telemetry-reader.md §Implication-Derived `expected` and the Headline, Q-REQ-P4-D).
     sessions = session_rows(records)
     if not sessions:
         lines.append("records-vs-expected: 0 recorded, expected 0 (0 missing)")
@@ -901,7 +934,7 @@ def summarize(records: list[dict], skipped: int, plan_path: str | None = None) -
         # §commit Group): counts only — a v: 1 record has neither key and counts 0.
         widened = sum(1 for r in s["records"] if _int0(_get(r, "scope", "widened")) > 0)
         incomplete = sum(1 for r in s["records"] if _get(r, "commit", "token") == "INCOMPLETE")
-        lines.append(f"  widened dispatches: {widened}; COMMIT: INCOMPLETE: {incomplete}")
+        lines.append(f"  widened dispatches: {widened}; COMMIT: INCOMPLETE (accepted): {incomplete}")
     if plan_path:
         lines.append(plan_floor_line(plan_floor(records, plan_path)))
     return "\n".join(lines)
@@ -909,18 +942,14 @@ def summarize(records: list[dict], skipped: int, plan_path: str | None = None) -
 
 # ---------------------------------------------------------------------------
 # --lint: every field of every record against the domain table
-# (telemetry.md §Schema Lint — `--lint` From One Domain Table, REQ-TELEM-HARNESSP4-004)
+# (telemetry-reader.md §Schema Lint — `--lint` From One Domain Table, REQ-TELEM-HARNESSP4-004)
 # ---------------------------------------------------------------------------
-
-
-def _is_int(v) -> bool:
-    return isinstance(v, int) and not isinstance(v, bool)
 
 
 def _check_value(check: str, value, members: frozenset) -> str | None:
     """Return a one-line message when ``value`` violates ``check``; None when in domain."""
     if check == "v":
-        return None if _is_int(value) and value in ADMITTED_V else f"{value!r} not in the admitted set {sorted(ADMITTED_V)}"
+        return None if v_admitted(value) else f"{value!r} is not an int in {V_ADMITTED_TEXT}"
     if check == "timestamp":
         ok = isinstance(value, str) and _ts(value) is not None and (value.endswith("Z") or "+00:00" in value)
         return None if ok else f"{value!r} is not an ISO-8601 UTC timestamp"
@@ -979,7 +1008,7 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
     the ``[reason-review]`` warning, which never counts toward the exit code.
 
     Classes: ``enum``, ``type``, ``key-undeclared``, ``key-missing``, ``cross-field``,
-    ``mistyped-fix`` (telemetry.md §Schema Lint).
+    ``mistyped-fix`` (telemetry-reader.md §Schema Lint).
     """
     findings: list[dict] = []
     valid: list[dict] = []
@@ -1032,6 +1061,13 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
             if msg:
                 cls = "enum" if row["check"] in ("enum", "enum_or_null", "list_enum") else "type"
                 add(seq, cls, _fname(g, k), msg)
+        # `migration.from` is a ONE-MEMBER enum (`chunk-string`), and the shape check
+        # above admits any string: a malformed marker is `[type] migration`, a `from`
+        # outside the member set is `[enum] migration.from` (telemetry-reader.md
+        # §Schema Lint, fixed key set row; REQ-TELEM-HARNESSP5-008 case (c)).
+        mig = rec.get("migration")
+        if isinstance(mig, dict) and isinstance(mig.get("from"), str) and mig["from"] != MIGRATION_FROM:
+            add(seq, "enum", "migration.from", f"{mig['from']!r} not in {[MIGRATION_FROM]}")
         valid.append(rec)
 
     # cross-field (session-scoped)
@@ -1055,8 +1091,11 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
             # finding only when the record shows nothing landed: no landed commit group
             # (`commit.token` null, or a v1 record with no `commit` group at all) while the leaf
             # reports files written (Q-IMPL-HARNESSP4-005 item 2, Q-IMPL-HARNESSP4-007).
+            # A `v: 1` record is EXEMPT (REQ-TELEM-HARNESSP5-003): it carries no field
+            # that can prove landing (no `commit` group at all), so equal heads on it are
+            # unprovable, not a finding — and no `migration` marker is stamped to say so.
             hb, ha = _get(r, "git", "head_before"), _get(r, "git", "head_after")
-            if stage == "implement" and kind in ("pipeline", "fix") and _get(r, "gate", "decision") == "proceed" \
+            if r.get("v") == 2 and stage == "implement" and kind in ("pipeline", "fix") and _get(r, "gate", "decision") == "proceed" \
                     and isinstance(hb, str) and SHA_RE.fullmatch(hb) and hb == ha \
                     and _get(r, "return", "files_written_n", default=1) != 0 \
                     and _get(r, "commit", "token") is None:
@@ -1068,7 +1107,16 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
         stage = next((_get(r, "dispatch", "stage") for r in valid if _get(r, "dispatch", "seq") == s), "?")
         add(s, "reason-review", "dispatch.reason",
             f"REVIEW at iteration ≥ 1 with no preceding loop-back-to-fix at {stage}", warn=True)
-    return findings
+    return sort_findings(findings)
+
+
+def sort_findings(findings: list[dict]) -> list[dict]:
+    """Stable-sort by ``(int seq ascending, then non-int seqs in insertion order)``
+    across all three passes, so a cross-field finding on ``seq`` 2 renders before a
+    type finding on ``seq`` 5 (REQ-TELEM-HARNESSP5-006).  ``sorted`` is stable, so
+    non-int seqs (``line 3``, ``?``) keep their insertion order after the ints.
+    """
+    return sorted(findings, key=lambda f: (0, f["seq"]) if _is_int(f["seq"]) else (1, 0))
 
 
 def lint(path: str) -> tuple[int, list[str]]:
@@ -1088,7 +1136,7 @@ def lint(path: str) -> tuple[int, list[str]]:
 
 
 # ---------------------------------------------------------------------------
-# --plan floor (telemetry.md §`--plan` Floor for Implement-Stage Expectations,
+# --plan floor (telemetry-reader.md §`--plan` Floor for Implement-Stage Expectations,
 # REQ-TELEM-HARNESSP4-008 [may]) — Q-IMPL-HARNESSP4-005 fixes the shortfall's operands.
 # ---------------------------------------------------------------------------
 
@@ -1120,7 +1168,7 @@ def plan_floor_line(floor: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# migrate (telemetry.md §In-Place Migration of the 8 p3 Records, Stamped Partial,
+# migrate (telemetry-reader.md §In-Place Migration of the 8 p3 Records, Stamped Partial,
 # REQ-TELEM-HARNESSP4-005). Operator-run between sessions; never invoked by a
 # skill, a leaf or a dispatch template.
 # ---------------------------------------------------------------------------
@@ -1279,6 +1327,157 @@ def _fixture_lines() -> list[str]:
     return lines
 
 
+# --- spec-named self-test cases -------------------------------------------
+# The specs name these four cases by identifier (`telemetry-reader.md` §Automated,
+# §Fixture-Based Test Contract and `telemetry.md` §Automated), so a reader grepping
+# a spec-named test finds it here. Each takes the `self_test()` `check(cond, msg)`
+# collector and adds no output of its own.
+
+
+def _lint_classes(recs) -> dict:
+    """``{class: [<group.key> …]}`` of the lint findings on in-memory ``recs``."""
+    out: dict = defaultdict(list)
+    for f in lint_records(recs):
+        out[f["class"]].append(f["field"])
+    return out
+
+
+def test_advisory_cases(check) -> None:
+    """The three verifier-advisory cases of REQ-TELEM-HARNESSP5-008
+    (`telemetry-reader.md` §Schema Lint — Verifier-advisory self-test cases):
+    (a) `commit.token` non-null on a non-committing kind other than `review`;
+    (b) `dispatch.reason: RED_BREAK` (uppercase) — the canonical spelling is
+    `red_break`; (c) `migration.from` outside the one-member `chunk-string` enum.
+    """
+    # (a) verifier and red gates commit nothing, so a non-null commit.token is a
+    #     [cross-field] finding; a pipeline record with the same group is clean.
+    verifier = _record2(dispatch={"seq": 1, "kind": "verifier", "stage": "implement", "chunk": 1},
+                        verdict={"chunk_verdict": "PASS"},
+                        commit={"token": "COMPLETE", "missing_n": 0, "extra_n": 0})
+    red = _record2(dispatch={"seq": 1, "kind": "red", "stage": "verify"},
+                   verdict={"red_verdict": "HELD"},
+                   commit={"token": "INCOMPLETE", "missing_n": 1, "extra_n": 0})
+    for label, rec in (("verifier", verifier), ("red", red)):
+        check(_lint_classes([rec]).get("cross-field") == ["commit.token"],
+              f"advisory (a): commit.token on a {label} record is not a [cross-field] finding: {_lint_classes([rec])}")
+    committing = _record2(dispatch={"seq": 1, "kind": "pipeline", "stage": "implement", "chunk": 1},
+                          commit={"token": "COMPLETE", "missing_n": 0, "extra_n": 0})
+    check("commit.token" not in _lint_classes([committing]).get("cross-field", []),
+          f"advisory (a): a committing kind was flagged: {_lint_classes([committing])}")
+
+    # (b) the canonical spelling is `red_break`; the uppercase packet name is out of domain.
+    upper = _record2(dispatch={"seq": 1, "kind": "fix", "stage": "verify", "iteration": 1, "reason": "RED_BREAK"})
+    check(_lint_classes([upper]).get("enum") == ["dispatch.reason"],
+          f"advisory (b): reason RED_BREAK is not an [enum] finding: {_lint_classes([upper])}")
+    canonical = _record2(dispatch={"seq": 1, "kind": "fix", "stage": "verify", "iteration": 1, "reason": "red_break"})
+    check("dispatch.reason" not in _lint_classes([canonical]).get("enum", []),
+          f"advisory (b): the canonical red_break spelling was flagged: {_lint_classes([canonical])}")
+
+    # (c) migration.from is a one-member enum; the shape check admits any string.
+    other = {**_record(dispatch={"chunk": 3}), "migration": {"from": "other", "at": "2026-09-19"}}
+    check(_lint_classes([other]).get("enum") == ["migration.from"],
+          f"advisory (c): migration.from outside the enum is not an [enum] finding: {_lint_classes([other])}")
+    declared = {**_record(dispatch={"chunk": 3}), "migration": {"from": MIGRATION_FROM, "at": "2026-09-19"}}
+    check("migration.from" not in _lint_classes([declared]).get("enum", []),
+          f"advisory (c): the declared chunk-string value was flagged: {_lint_classes([declared])}")
+
+
+def test_p4_fixture_frozen(check) -> None:
+    """The frozen-fixture contract of REQ-TELEM-HARNESSP5-007
+    (`telemetry-reader.md` §Fixture-Based Test Contract): the p4 fixture's sha256
+    matches `tools/fixtures/README.md`, it is 67 lines, and the p3 fixture is
+    byte-identical to `main`. Read-only — nothing here opens a fixture for writing.
+    """
+    check(os.path.exists(P4_FIXTURE_PATH), f"frozen p4 fixture missing: {P4_FIXTURE_PATH}")
+    if not os.path.exists(P4_FIXTURE_PATH):
+        return
+    check(_sha256(P4_FIXTURE_PATH) == P4_FIXTURE_SHA256, "p4 fixture sha256 (contract) before")
+    with open(P4_FIXTURE_PATH, encoding="utf-8") as fh:
+        n_lines = sum(1 for _ in fh)
+    check(n_lines == 67, f"p4 fixture is {n_lines} lines, the contract fixes 67")
+    readme = os.path.join(FIXTURES_DIR, "README.md")
+    check(os.path.exists(readme), f"fixtures README missing: {readme}")
+    if os.path.exists(readme):
+        text = open(readme, encoding="utf-8").read()
+        check(P4_FIXTURE_SHA256 in text, "the p4 fixture sha256 is not recorded in tools/fixtures/README.md")
+        check(FIXTURE_SHA256 in text, "the p3 fixture sha256 is not recorded in tools/fixtures/README.md")
+    if os.path.exists(FIXTURE_PATH):
+        check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "p3 fixture sha256 (contract)")
+        # `git diff --stat main -- <p3 fixture>` is empty: the frozen p3 fixture is
+        # never touched by this branch. Skipped when `main` is unreachable (a shallow
+        # clone or a checkout without the branch), never failed on that account.
+        try:
+            have_main = subprocess.run(["git", "rev-parse", "--verify", "main"], cwd=_REPO,
+                                       capture_output=True, text=True).returncode == 0
+            if have_main:
+                diff = subprocess.run(["git", "diff", "--stat", "main", "--", FIXTURE_PATH], cwd=_REPO,
+                                      capture_output=True, text=True)
+                check(diff.returncode == 0 and diff.stdout.strip() == "",
+                      f"git diff --stat main -- <p3 fixture> is not empty: {diff.stdout.strip()!r}")
+        except OSError:
+            pass  # no git binary: the sha256 assertions above still hold the contract
+    check(_sha256(P4_FIXTURE_PATH) == P4_FIXTURE_SHA256, "p4 fixture sha256 (contract) after")
+
+
+def test_stage_level_fix_has_null_chunk_verdict(check) -> None:
+    """REQ-TELEM-HARNESSP5-001 (`telemetry.md` §Automated): an implement-stage
+    `loop-back-to-fix` (`chunk: null`, `iteration: 1`) whose two chunk verifiers both
+    returned PASS appends a `fix` record with `verdict.chunk_verdict: null` beside two
+    `verifier` records carrying PASS; a per-chunk redo still copies the verdict onto
+    its own record. Both shapes lint clean.
+    """
+    def rec(seq, kind, stage, chunk=None, iteration=None, redo=None, reason=None, cv=None, decision="proceed"):
+        return _record2(dispatch={"seq": seq, "kind": kind, "stage": stage, "chunk": chunk,
+                                  "iteration": iteration, "redo": redo, "reason": reason},
+                        verdict={"chunk_verdict": cv},
+                        gate={"decision": decision, "fix_iteration": iteration or 0, "redo_count": redo},
+                        ts_dispatch=f"2026-09-19T10:{seq:02d}:00Z", ts_gate=f"2026-09-19T10:{seq:02d}:30Z")
+    sess = [rec(1, "pipeline", "implement", chunk=1, redo=0, cv="PASS"),
+            rec(2, "verifier", "implement", chunk=1, cv="PASS"),
+            rec(3, "pipeline", "implement", chunk=2, redo=0, cv="PASS"),
+            rec(4, "verifier", "implement", chunk=2, cv="PASS"),
+            rec(5, "fix", "implement", chunk=None, iteration=1, reason="REVIEW", cv=None,
+                decision="loop-back-to-fix")]
+    stage_fix = sess[-1]
+    check(_get(stage_fix, "dispatch", "chunk") is None and _get(stage_fix, "verdict", "chunk_verdict") is None,
+          "the stage-level fix record must carry chunk null and chunk_verdict null")
+    check([_get(r, "verdict", "chunk_verdict") for r in sess if _get(r, "dispatch", "kind") == "verifier"] == ["PASS", "PASS"],
+          "both chunk verifiers must keep their PASS verdict")
+    check(_lint_classes(sess).get("cross-field") is None,
+          f"the stage-level fix shape raised a cross-field finding: {_lint_classes(sess)}")
+    # a per-chunk redo copies the verdict onto its own record and stays clean
+    redo = sess[:4] + [rec(5, "fix", "implement", chunk=2, iteration=1, redo=1, reason="VERIFIER_FAIL", cv="FAIL",
+                           decision="redo")]
+    check(_get(redo[-1], "verdict", "chunk_verdict") == "FAIL" and _get(redo[-1], "dispatch", "chunk") == 2,
+          "a per-chunk redo must copy its chunk verdict onto its own record")
+    check(_lint_classes(redo).get("cross-field") is None,
+          f"the per-chunk redo shape raised a cross-field finding: {_lint_classes(redo)}")
+
+
+def test_commit_group_records_closing_line(check) -> None:
+    """REQ-TELEM-HARNESSP5-005 (`telemetry.md` §Automated): a gate that renders
+    `COMMIT: INCOMPLETE`, is amended and re-renders `COMPLETE` appends
+    `commit.token: COMPLETE`; the same gate resolved `accept (note)` appends
+    `INCOMPLETE`, which `summarize` counts on its `COMMIT: INCOMPLETE (accepted)` line.
+    """
+    def rec(token, missing_n=0):
+        return _record2(dispatch={"seq": 1, "kind": "pipeline", "stage": "implement", "chunk": 1},
+                        commit={"token": token, "missing_n": missing_n, "extra_n": 0},
+                        git={"head_before": "c38922d", "head_after": "d49a33e"})
+    amended = rec("COMPLETE")
+    accepted = rec("INCOMPLETE", missing_n=1)
+    check(_get(amended, "commit", "token") == "COMPLETE", "an amended gate appends commit.token COMPLETE")
+    check(_get(accepted, "commit", "token") == "INCOMPLETE" and _get(accepted, "commit", "missing_n") == 1,
+          "an accepted (note) gate appends commit.token INCOMPLETE with the missing count")
+    for label, rec_ in (("amended", amended), ("accepted", accepted)):
+        check(_lint_classes([rec_]).get("cross-field") is None and _lint_classes([rec_]).get("enum") is None,
+              f"the {label} commit group does not lint clean: {_lint_classes([rec_])}")
+    check("COMMIT: INCOMPLETE (accepted): 1" in summarize([accepted], 0),
+          "summarize does not count the accepted INCOMPLETE gate")
+    check("COMMIT: INCOMPLETE (accepted): 0" in summarize([amended], 0),
+          "an amended (COMPLETE) gate must not be counted as accepted")
+
+
 def self_test() -> int:
     failures: list[str] = []
 
@@ -1358,7 +1557,7 @@ def self_test() -> int:
             grc = main(["summarize", "--file", gpath])
         check(grc == 0 and "(2 missing)" in gbuf.getvalue(), f"summarize on a gap fixture → exit {grc}, unchanged")
 
-        # Implication-derived expected (REQ-TELEM-HARNESSP4-002, -003; telemetry.md
+        # Implication-derived expected (REQ-TELEM-HARNESSP4-002, -003; telemetry-reader.md
         # §Implication-Derived `expected` and the Headline). Synthetic fixtures, one per
         # implication, built from the same complete-record helper.
         def imp(seq, kind, stage, chunk=None, iteration=None, redo=None, reason=None,
@@ -1441,7 +1640,7 @@ def self_test() -> int:
         check("records-vs-expected: 8 recorded, expected 8 (0 missing)" in nreport, f"C1 headline:\n{nreport}")
         check("verifier :  2 vs 2  (0 missing)" in nreport, "C1 verifier line")
 
-        # The frozen p3 fixture (telemetry.md §Fixture-Based Test Contract): read-only,
+        # The frozen p3 fixture (telemetry-reader.md §Fixture-Based Test Contract): read-only,
         # sha256 asserted before and after, exact headline and per-kind numbers.
         check(os.path.exists(FIXTURE_PATH), f"frozen fixture missing: {FIXTURE_PATH}")
         if os.path.exists(FIXTURE_PATH):
@@ -1464,6 +1663,98 @@ def self_test() -> int:
             check(frow["mistyped_fix_seqs"] == [2, 18], f"fixture mis-typed fix seqs: {frow['mistyped_fix_seqs']}")
             check(reason_review_warnings(frecs) == [3, 4, 5], f"fixture [reason-review] seqs: {reason_review_warnings(frecs)}")
             check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after")
+
+        # --- harness-p5 reader/lint findings (REQ-TELEM-HARNESSP5-002..004, -006) ---
+
+        # (1) Three stage-level fixes and NO chunk record: the `(implement, null)`
+        #     group implies no pipeline dispatch (REQ-TELEM-HARNESSP5-002, finding 1).
+        nullfix = [_record2(dispatch={"seq": i, "kind": "fix", "stage": "implement", "chunk": None,
+                                      "iteration": i, "redo": None},
+                            gate={"decision": "proceed", "fix_iteration": i})
+                   for i in (1, 2, 3)]
+        nrow = session_rows(nullfix)[0]
+        check(nrow["kinds"]["pipeline"] == {"implied": 0, "recorded": 0, "missing": 0, "mistyped": 0},
+              f"null-chunk group implied a pipeline dispatch: {nrow['kinds']['pipeline']}")
+        check(nrow["implement_missing"]["pipeline"] == 0,
+              f"null-chunk group reported a missing pipeline: {nrow['implement_missing']}")
+
+        # (2) equal heads: a v: 1 record is exempt, the same shape at v: 2 with a null
+        #     commit.token is a finding (REQ-TELEM-HARNESSP5-003, finding 3).
+        eq_dispatch = {"seq": 1, "kind": "pipeline", "stage": "implement", "chunk": 1}
+        eq_heads = {"head_before": "c38922d", "head_after": "c38922d"}
+        eq_v1 = _record(dispatch=dict(eq_dispatch), git=dict(eq_heads),
+                        **{"return": {"files_written_n": 3}})
+        eq_v2 = _record2(dispatch=dict(eq_dispatch), git=dict(eq_heads),
+                         commit={"token": None, "missing_n": 0, "extra_n": 0},
+                         **{"return": {"files_written_n": 3}})
+        def _equal_heads(recs):
+            return [f for f in lint_records(recs)
+                    if f["class"] == "cross-field" and f["field"] == "git.head_after"]
+        check(_equal_heads([eq_v1]) == [], f"v: 1 record not exempt from equal-heads: {_equal_heads([eq_v1])}")
+        check(len(_equal_heads([eq_v2])) == 1, f"v: 2 equal-heads finding lost: {_equal_heads([eq_v2])}")
+        check(not any("migration" in r for r in (eq_v1, eq_v2)), "a migration marker was stamped by the lint")
+
+        # (3) `v: 2.0` — an int-typed admission test, one helper, both load() paths
+        #     (REQ-TELEM-HARNESSP5-004, finding 4).
+        check(v_admitted(2) and not v_admitted(2.0) and not v_admitted(True) and not v_admitted("2"),
+              "v_admitted() is not the int-typed membership test")
+        float_v = _record2()
+        float_v["v"] = 2.0
+        fpath = os.path.join(tmp, "float-v.jsonl")
+        with open(fpath, "w", encoding="utf-8") as fh:
+            fh.write(json.dumps(float_v, separators=(",", ":")) + "\n")
+        frecs2, fskip2 = load(fpath)
+        check(frecs2 == [] and fskip2 == 1, f"v: 2.0 not skipped-and-counted by summarize: {len(frecs2)}, {fskip2}")
+        check("skipped: 1 unknown-schema record(s)" in summarize(frecs2, fskip2), "v: 2.0 missing from the skipped line")
+        vfind = [f for f in lint_records([float_v]) if f["class"] == "type" and f["field"] == "v"]
+        check(len(vfind) == 1, f"v: 2.0 raised no [type] v finding: {lint_records([float_v])}")
+
+        # (4) finding order: a type finding on seq 5 and a cross-field on seq 2 render
+        #     2, 5 although the passes emit 5 first (REQ-TELEM-HARNESSP5-006, finding 6).
+        type5 = _record2(dispatch={"seq": 5, "kind": "pipeline", "stage": "research"},
+                         scope={"widened": "two"})
+        cross2 = _record2(dispatch={"seq": 2, "kind": "pipeline", "stage": "implement", "chunk": 1},
+                          git=dict(eq_heads), commit={"token": None, "missing_n": 0, "extra_n": 0},
+                          **{"return": {"files_written_n": 3}})
+        ordered = lint_records([type5, cross2])
+        check([f["seq"] for f in ordered] == [2, 5],
+              f"findings not stable-sorted by seq: {[(f['seq'], f['class']) for f in ordered]}")
+        check(ordered[0]["class"] == "cross-field" and ordered[1]["class"] == "type",
+              f"sorted findings lost their classes: {[(f['seq'], f['class']) for f in ordered]}")
+
+        # (5) The frozen p3 fixture's `--lint` finding SET is unchanged under the sort
+        #     (order-insensitive: sha256 over the sorted lines) — REQ-TELEM-HARNESSP5-006.
+        if os.path.exists(FIXTURE_PATH):
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 before sorted-lint")
+            _rc3, _lines3 = lint(FIXTURE_PATH)
+            sorted_sha = hashlib.sha256("\n".join(sorted(_lines3[:-1])).encode()).hexdigest()
+            check(sorted_sha == FIXTURE_LINT_SORTED_SHA256,
+                  f"p3 fixture finding set changed: {sorted_sha} != {FIXTURE_LINT_SORTED_SHA256}")
+            check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after sorted-lint")
+
+        # (6) The frozen p4 fixture (telemetry-reader.md §Fixture-Based Test Contract):
+        #     no missing pipeline for the `(implement, chunk null)` group and no
+        #     equal-heads finding on session 2 `seq` 2/4/6 (v: 1).
+        check(os.path.exists(P4_FIXTURE_PATH), f"frozen p4 fixture missing: {P4_FIXTURE_PATH}")
+        if os.path.exists(P4_FIXTURE_PATH):
+            check(_sha256(P4_FIXTURE_PATH) == P4_FIXTURE_SHA256, "p4 fixture sha256 before")
+            p4recs, p4skipped = load(P4_FIXTURE_PATH)
+            check(len(p4recs) == 67 and p4skipped == 0, f"p4 fixture load: {len(p4recs)} records, {p4skipped} skipped")
+            p4rows = [r for r in session_rows(p4recs) if r["workstream"] == "harness-p4"]
+            check(p4rows and all(r["kinds"]["pipeline"]["missing"] == 0 for r in p4rows),
+                  f"p4 fixture reports a missing pipeline: {[r['kinds']['pipeline'] for r in p4rows]}")
+            check(all(r["gap"] == 0 for r in p4rows), f"p4 fixture session gap: {[r['gap'] for r in p4rows]}")
+            check(_equal_heads(load_raw(P4_FIXTURE_PATH)) == [],
+                  f"p4 fixture raised an equal-heads finding: {_equal_heads(load_raw(P4_FIXTURE_PATH))}")
+            check(_sha256(P4_FIXTURE_PATH) == P4_FIXTURE_SHA256, "p4 fixture sha256 after")
+
+        # (7) The spec-named cases: the frozen-fixture contract (REQ-TELEM-HARNESSP5-007),
+        #     the three verifier-advisory lint cases (REQ-TELEM-HARNESSP5-008) and the two
+        #     writer shapes the specs name (REQ-TELEM-HARNESSP5-001, -005).
+        test_p4_fixture_frozen(check)
+        test_advisory_cases(check)
+        test_stage_level_fix_has_null_chunk_verdict(check)
+        test_commit_group_records_closing_line(check)
 
         # Out-of-domain dispatch.chunk (the 2026-09-18 live break): a record whose
         # chunk is the "### Chunk N:" header STRING rather than the parsed int must
@@ -1500,7 +1791,7 @@ def self_test() -> int:
 
     # ------------------------------------------------------------------
     # Chunk 3 (harness-p4): whole-schema --lint, v ∈ {1, 2}, scope.widened,
-    # the commit group and the schema-agreement diff (telemetry.md §Schema Lint,
+    # the commit group and the schema-agreement diff (telemetry-reader.md §Schema Lint,
     # §scope.widened, §commit Group, §Fixture-Based Test Contract).
     # ------------------------------------------------------------------
     with tempfile.TemporaryDirectory() as tmp:
@@ -1586,8 +1877,14 @@ def self_test() -> int:
                                   git={"head_before": "c38922d", "head_after": "c38922d"},
                                   commit={"token": "INCOMPLETE", "missing_n": 1, "extra_n": 0})
         check(classes([landed_partial]) == {}, f"equal heads with commit.token INCOMPLETE is exempt: {classes([landed_partial])}")
+        # A v: 1 record is EXEMPT (REQ-TELEM-HARNESSP5-003): it carries no field that can
+        # prove landing, so the rule is evaluated on v: 2 records only.
         v1_same = _record(dispatch={"seq": 1, "stage": "implement", "chunk": 1})
-        check(classes([v1_same]).get("cross-field") == ["git.head_after"], f"v1 proceed implement with equal heads (no commit group): {classes([v1_same])}")
+        check(classes([v1_same]) == {}, f"v1 proceed implement with equal heads is exempt: {classes([v1_same])}")
+        v2_same = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1},
+                           git={"head_before": "c38922d", "head_after": "c38922d"})
+        check(classes([v2_same]).get("cross-field") == ["git.head_after"],
+              f"v2 proceed implement with equal heads and a null commit.token: {classes([v2_same])}")
         nothing_written = _record2(dispatch={"seq": 1, "stage": "implement", "chunk": 1},
                                    git={"head_before": "c38922d", "head_after": "c38922d"}, **{"return": {"files_written_n": 0}})
         check(classes([nothing_written]) == {}, f"equal heads, null token, files_written_n 0 is exempt: {classes([nothing_written])}")
@@ -1613,7 +1910,7 @@ def self_test() -> int:
         crc, cout = lint_file(clean2)
         check(crc == 0 and "0 finding(s)" in cout, f"gapless in-domain fixture lints clean, got rc {crc}:\n{cout}")
         creport = summarize(clean2, 0)
-        check("widened dispatches: 1" in creport and "COMMIT: INCOMPLETE: 1" in creport, f"summarize widened / COMMIT lines:\n{creport}")
+        check("widened dispatches: 1" in creport and "COMMIT: INCOMPLETE (accepted): 1" in creport, f"summarize widened / COMMIT lines:\n{creport}")
         check("records-vs-expected: 8 recorded, expected 8 (0 missing)" in creport, "v2 fixture gapless")
         # the frozen fixture: exit 1 with at minimum the findings of §Fixture-Based Test Contract
         if os.path.exists(FIXTURE_PATH):
@@ -1637,7 +1934,7 @@ def self_test() -> int:
             for s in (3, 4, 5):
                 check(f"WARN seq {s}: [reason-review] dispatch.reason" in lout, f"fixture: [reason-review] on seq {s}")
             check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after lint")
-        # migrate (REQ-TELEM-HARNESSP4-005 — telemetry.md §In-Place Migration, §Fixture-Based
+        # migrate (REQ-TELEM-HARNESSP4-005 — telemetry-reader.md §In-Place Migration, §Fixture-Based
         # Test Contract): the frozen fixture is copied to the temp dir first; the fixture
         # itself is only ever the *refused* input of the guard test.
         if os.path.exists(FIXTURE_PATH):
@@ -1727,7 +2024,14 @@ def self_test() -> int:
           "counted and folded to c?, missing file → records: 0, schema table agrees with both renderings, "
           "v ∈ {1, 2} admitted (v: 3 skipped), --lint one mutation per class + frozen fixture findings + gapless "
           "v2 fixture clean, scope.widened / commit group, --plan floor, migrate (--out, in place, idempotent, "
-          "partial stamp, fixture guard, fixture sha256 unchanged)")
+          "partial stamp, fixture guard, fixture sha256 unchanged); harness-p5: null-chunk group "
+          "implies no pipeline, v: 1 exempt from equal-heads, v: 2.0 skipped and [type] v from one "
+          "admission helper, findings sorted 2 before 5, frozen p3 finding set unchanged (sorted sha256) "
+          "and frozen p4 fixture clean (67 records, 0 missing pipeline, no equal-heads), "
+          "test_p4_fixture_frozen (67 lines, README sha256, p3 unchanged against main), "
+          "test_advisory_cases ((a) commit.token on verifier/red, (b) reason RED_BREAK, "
+          "(c) migration.from outside chunk-string), test_stage_level_fix_has_null_chunk_verdict, "
+          "test_commit_group_records_closing_line")
     return 0
 
 

@@ -1,0 +1,3 @@
+VERDICT: APPROVE_WITH_FIXES
+- M1: §Conventions does not say who owns the `status:` flip, so two actors may both claim it — [docs/ws/harness-p4/plan.md:§Conventions] — affects [REQ-HARN-HARNESSP4-002]
+- M2: the hand-off does not name the regression base the verify stage compares against — [docs/ws/harness-p4/plan.md:§Verification Hand-off] — affects —

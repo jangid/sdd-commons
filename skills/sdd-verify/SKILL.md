@@ -146,15 +146,21 @@ Read `docs/requirements/traceability.md` and verify:
 3. **Flag gaps** — list any requirements missing spec, test, or implementation coverage
 
 After verification, update the **Verified** column for each requirement with one
-of its three legal values — `pass`, `fail` or `pending-red` (the block below
-says which applies).
+of its **four** legal values — `pass`, `fail`, `pending-red` or `descoped` (the
+block below says which applies). `descoped` is **never** written by this skill:
+it is the orchestrator's bookkeeping value for a row **carried from a previous
+workstream** that the carrying cycle's DONE rule could not close, it is never a
+substitute for `fail`, and it is never read as completion
+(`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values,
+REQ-WS-HARNESSP5-001).
 
 **`pending-red` cells (REQ-REDB-HARNESSP3-003).** The `Verified` column tracks
 the **report's** status, so whenever Step 6 writes `status: pending-red` write
 `pending-red` — not `pass` — into the `Verified` cell of **every row you would
 otherwise have marked `pass`**; a `fail` row stays `fail`. `pending-red`,
-`pass` and `fail` are the three legal cell values
-(`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values). The
+`pass`, `fail` and `descoped` are the four legal cell values
+(`docs/spec/ws-traceability.md` §Legal `Verified` Cell Values) — of which this
+skill writes the first three. The
 orchestrator's existing `pending-red → pass` flip at DONE turns exactly those
 cells back to `pass` and regenerates the aggregate in the same bookkeeping step
 — this skill never performs that flip.

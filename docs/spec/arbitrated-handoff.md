@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-20
 requires:
   - REQ-ARB-HARNESSP2-001
   - REQ-ARB-HARNESSP2-002
@@ -17,6 +17,9 @@ requires:
   - REQ-ARB-HARNESSP4-001
   - REQ-ARB-HARNESSP4-002
   - REQ-ARB-HARNESSP4-003
+  - REQ-ARB-HARNESSP5-001
+  - REQ-ARB-HARNESSP5-002
+  - REQ-ARB-HARNESSP5-003
 ---
 
 # Arbitrated Handoff Between Contradicting Review Rounds
@@ -78,7 +81,7 @@ Key parsing from a review line `- C1: <what> — [file:section] — affects
 | Part | Rule |
 |---|---|
 | `file` | the text before the first `:` inside `[…]`, normalised to a repo-relative path (leading `./` stripped); an unresolvable path keeps the raw text |
-| `section` | the text after that `:`, with a leading `§` or `#`s stripped, whitespace collapsed, kept case-sensitive → stored as `§Name`; missing → `?` |
+| `section` | the text after that `:`, with a leading `§` or `#`s stripped, **then a leading ordinal `\d+[.)]?\s*` stripped** (`§3. Foo` ≡ `§Foo` — the rule `references/loop-control.md` §2a applies when computing `K_N`; added here 2026-09-19, REQ-ARB-HARNESSP5-003, closing Open Question 3), whitespace collapsed, kept case-sensitive → stored as `§Name`; missing → `?` |
 | `affects` | every `REQ-[A-Z]+(-[A-Z0-9]+)?-\d{3}` id in the `affects` clause; `affects —` or none → `∅` |
 
 A line whose `[file:section]` cannot be parsed at all is retained with
@@ -245,6 +248,25 @@ Granularity is **not** lost: section resolution (REQ-ARB-HARNESSP2-005) is a
 function of a diff, and it applies to a regeneration diff exactly as it applies
 to a fix's.
 
+[Amended 2026-09-19, harness-p5 — REQ-ARB-HARNESSP5-001, ratified as Q-REQ-P5-A]
+`W_N` is **diff-based**: a regeneration that re-emits a section
+**byte-identically adds nothing to `W_N`**, and a round-N+1 Critical/Material
+line keyed on such a section is on ground round N saw **unchanged** — the
+class (b) signal, not the false positive this section removed. The provenance
+reading `regen[N] = (file, *)` for a wholesale dispatch whose diff exists is
+**not** adopted: `(file, *)` remains reserved for a *missing* diff (an untracked
+or non-Markdown path, §Section Resolution / self-test F8). Why: under
+provenance a `regenerate-wholesale` deliverable contract would be blanket
+immunity for the whole file and the guarantee below ("cannot mask a
+contradiction") would break; the p4 O1 pause
+(`docs/ws/harness-p4/verification.md` §1 — two Material lines on the
+regenerated plan's unchanged §Conventions and §Verification Hand-off) was a
+**true positive** under this rule. `references/loop-control.md` §2a carries the
+same sentence; the fixture of §Offline Arbitration Fixture (scenario A1) is the
+evidence. Q-IMPL-HARNESSP3-010 is unaffected — it decides *which dispatches*
+feed `regen[N]`, not the granularity of their writes; no further Q-IMPL entry is
+added, since this Approved sentence is the record.
+
 The arbitration guarantee is **not** weakened. The pause exists to catch a
 reviewer raising new Critical/Material findings on ground the previous round
 approved **and the loop did not touch**; a wholesale-regenerated file *was*
@@ -278,6 +300,20 @@ rule consult. **DONE rule of the cycle**: every traced requirement reads `pass`;
 nothing closes as a deliberate `fail`; an item that cannot be exercised live is
 **descoped at replan**, not failed.
 
+[Re-stated 2026-09-19, harness-p5 — Q-REQ-P5-A; REQ-ARB-HARNESSP5-002. The p4
+exercise ran but was **non-discriminating**: the pause it produced keyed on
+sections of the regenerated file, which both the diff-based and the
+provenance reading could explain, and neither cell in
+`docs/ws/harness-p4/traceability.md` could be closed (`verification.md` §Open
+Questions). Its acceptance is therefore re-stated **in place**, not inherited
+silently: **no pause on findings in changed sections of the regenerated file;
+a pause on findings in unchanged sections of it** — closed on the deterministic
+offline fixture of §Offline Arbitration Fixture, never on a second live loop.
+The `harness-p4` `Verified` cells of REQ-ARB-HARNESSP3-001 and
+REQ-ARB-HARNESSP4-001 read `descoped` (REQ-WS-HARNESSP5-001/-002,
+`ws-traceability.md`); the `harness-p5` rows read `pass` on fixture evidence and
+are authoritative. The requirement text above is otherwise unchanged.]
+
 ### §2a Replay Fixture Demonstrates the Derived-Artifact Case (REQ-ARB-HARNESSP4-002)
 
 [Added 2026-09-18, harness-p4 — REQ-ARB-HARNESSP4-002; `docs/ws/harness-p3/verification.md` §V10]
@@ -297,16 +333,87 @@ Today `regen[1]` names only the per-workstream file and `M3` names
 ambiguity. The fixture's expected outcome (no pause on the regenerated file,
 pause on an untouched one) is unchanged.
 
+### Offline Arbitration Fixture — Scenarios A1–A3 (REQ-ARB-HARNESSP5-002, REQ-ARB-HARNESSP5-001, REQ-ARB-HARNESSP5-003)
+
+[Added 2026-09-19, harness-p5 — decided at DISCUSS (kickoff §Scope item 1): the
+carried ARB rows close by spec decision plus a frozen fixture, never a second
+live loop. Runner placement per Q-REQ-P5-H.]
+
+**Fixture** — `tools/fixtures/arbitration-harness-p4-regen-2026-09-19/`, a
+**git capture** of the p4 implement-stage regeneration: `before.md` and
+`after.md` are `git show 82d0af0:docs/ws/harness-p4/plan.md` and
+`git show 3772574:docs/ws/harness-p4/plan.md`, the real before/after images of
+the regenerated deliverable, not a hand reconstruction; the three round and
+dispatch files are authored from `docs/ws/harness-p4/verification.md` §1 and
+plan O1. `tools/fixtures/README.md` records the capture per fixture — naming
+**both shas** and the **sha256 of each file** — and the two shas are provenance
+only: the captured bytes live in the fixture, so it stands if they become
+unreachable:
+
+| File | Content |
+|---|---|
+| `before.md`, `after.md` | the plan before and after the wholesale regeneration, captured at `82d0af0` and `3772574` — a broad diff (35 hunks, `§(preamble)` through `§Replan Triggers`) that nonetheless discriminates because the two sections round 2 keys on, `§Conventions` and `§Verification Hand-off`, are **byte-identical** across the pair |
+| `round-1.txt` | `VERDICT: APPROVE_WITH_FIXES`; its C/M lines keyed on the two changed sections |
+| `round-2.txt` | two Material lines keyed on the plan's **unchanged** `§Conventions` and `§Verification Hand-off`, confined to the regenerated file |
+| `dispatch.txt` | observed writes `{docs/ws/harness-p4/plan.md}`, `regenerate: true`, `by: leaf` |
+
+**Runner** — three scenarios of `tools/sdd-scope-check-selftest.py --self-test`
+(default per Q-REQ-P5-H: it already holds `resolve_sections()` and the
+temp-repo harness and is a verify gate; a separate
+`tools/sdd-arbitrate-selftest.py` with identical assertions is acceptable at
+plan time). The runner parses both rounds with the key rule of §Retained
+Per-Round State (ordinal strip included), computes `W_1` from the
+`before.md → after.md` diff via `resolve_sections()`, and applies the class
+(b)/(c) table of §Contradiction Classes through one **pure** helper:
+
+```
+arbitrate(round_n, round_n1, w_n) -> (class | None, annotated_keys)
+    # no git, no I/O; annotated_keys = the round-N+1 keys with k ∉ K_N and k ∉ W_N (class b)
+```
+
+| Scenario | Builds | Diff-based `W_1` (this spec) | Provenance `(file, *)` (rejected) |
+|---|---|---|---|
+| **A1** p4 case — the discriminating one | round 2 on the two **unchanged** sections of the regenerated plan | `class b`, **two** annotated keys | no token |
+| **A2** B8 case | round 2 findings in **changed** sections only | no token | no token |
+| **A3** control | one round-2 key on an **untouched second file** | `class b`, one key | `class b`, one key |
+
+A1 prints the provenance column **alongside** the diff-based result so the
+rejected reading is visible in the same run; A2 shows the REQ-ARB-HARNESSP3-001
+false positive stays removed; A3 shows the rule stays armed for a file the loop
+left alone. The key parser resolves a round line with and without a `C1`/`M2`
+ordinal to the same key (REQ-ARB-HARNESSP5-003). Mutation checks: deleting one
+`round-2.txt` line, or flipping `§Conventions` to a changed section in a temp
+copy of `after.md`, makes A1 fail.
+
+**Closure** — this run is the evidence `verification.md` §Criteria records for
+both carried rows; `docs/ws/harness-p5/traceability.md` reads `pass` for
+REQ-ARB-HARNESSP3-001 and REQ-ARB-HARNESSP4-001 at DONE, and the regenerated
+aggregate carries their `harness-p3` `fail` / `harness-p4` `descoped` rows as
+history (`ws-traceability.md` §Legal `Verified` Cell Values). Sized at nine
+files (selftest, five fixture files, README, this spec, `loop-control.md`) plus
+the workstream's `traceability.md`.
+
 ## Verification
 
 ### Automated
 
 - `test_key_parse`: `- C1: x — [docs/spec/x.md:§A] — affects [REQ-X-001]` →
-  `(docs/spec/x.md, §A, {REQ-X-001})`; a Material line with `affects —` → `∅`;
+  `(docs/spec/x.md, §A, {REQ-X-001})`; `[x.md:§3. A]` and `[x.md:§A]` → the
+  same key (leading-ordinal strip, REQ-ARB-HARNESSP5-003); a Material line with `affects —` → `∅`;
   an unparsable ref → `(?, ∅)`.
 - `test_class_b_fires_on_untouched_section`: round 1 names §A; fix wrote only
   §A; round 2 raises C1 at §C → `REVIEW: CONTRADICTION (… class b)`; the same
   fixture with round 2 at §A → no token.
+- `test_class_b_regenerated_unchanged_section` — fixture scenario **A1**:
+  wholesale regeneration whose diff leaves `§Conventions` and `§Verification
+  Hand-off` byte-identical; round 2 keyed on them → `class b`, two annotated
+  keys; the provenance column prints no token (REQ-ARB-HARNESSP5-001, -002).
+- `test_class_b_not_raised_in_regenerated_changed_sections` — scenario **A2**:
+  round-2 findings only in changed sections → no token either way
+  (REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP5-002).
+- `test_class_b_untouched_second_file` — scenario **A3**: one key on a file
+  the loop never touched → `class b`, one key under both readings
+  (REQ-ARB-HARNESSP4-001 re-stated, REQ-ARB-HARNESSP5-002).
 - `test_class_b_file_level_degradation`: sections unresolved → fires at file
   level with `(file-level)` in the token line.
 - `test_class_c_regression`: `APPROVE_WITH_FIXES → fix touching only round-1
@@ -357,6 +464,9 @@ pause on an untouched one) is unchanged.
 - [ ] The same fixture with the findings in a file the loop never touched still pauses as class (b) (REQ-ARB-HARNESSP3-001)
 - [ ] The first `APPROVE_WITH_FIXES` fix dispatch of the harness-p4 cycle carries the regenerate-wholesale instruction in its `{deliverable_contract}`; the following review round's gate renders `VERDICT:` with no `REVIEW: CONTRADICTION` line although it raised findings in the regenerated file; `docs/ws/harness-p4/verification.md` §Criteria records stage, round numbers, regenerated paths and the retained `regen[N]`; the carried `REQ-ARB-HARNESSP3-001` row in `docs/ws/harness-p4/traceability.md` reads `pass` at DONE and the aggregate shows both rows with the `harness-p4` row authoritative (REQ-ARB-HARNESSP4-001, REQ-ARB-HARNESSP3-001)
 - [ ] `grep -n 'docs/requirements/traceability.md' skills/sdd-orchestrate/references/loop-control.md` hits inside the §2a fixture's `regen[1]` block with an orchestrator-regeneration label; no bare `traceability.md` remains in the fixture's finding lines; `python3 tools/sdd-skill-lint.py` exits 0 (REQ-ARB-HARNESSP4-002)
+- [ ] `grep -n 'byte-identical' docs/spec/arbitrated-handoff.md skills/sdd-orchestrate/references/loop-control.md` hits inside §`W_N` Includes Regeneration Writes and §2a respectively with matching wording; scenario A1 yields `class b` with two annotated keys under the diff-based rule and no token under provenance, printed side by side; no Q-IMPL-HARNESSP5-* entry is needed (the Approved sentence is the record); `python3 tools/sdd-skill-lint.py` exits 0 (REQ-ARB-HARNESSP5-001)
+- [ ] `python3 <runner> --self-test` — where `<runner>` is whichever of `tools/sdd-scope-check-selftest.py` (the Q-REQ-P5-H default) or `tools/sdd-arbitrate-selftest.py` the plan selects, named once in the plan and used verbatim by `verification.md` — exits 0 with A1–A3 listed and A1's provenance column printed alongside; deleting one `round-2.txt` line or flipping `§Conventions` to a changed section in a temp copy makes A1 fail; `tools/fixtures/README.md` labels the fixture a **git capture** naming both shas (`82d0af0`, `3772574`) with its files' sha256; `verification.md` §Criteria records the run as the evidence for both ARB rows, which read `pass` at DONE in `docs/ws/harness-p5/traceability.md` and in the regenerated aggregate (REQ-ARB-HARNESSP5-002, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001)
+- [ ] The key table's `section` row states the leading-ordinal strip rule and Open Question 3 reads closed, pointing at that row; `references/loop-control.md` §2a agrees; the A1–A3 key parser implements it and a round line with and without the ordinal resolves to the same key in `--self-test`; `python3 tools/sdd-gc.py --report` raises no new finding on this spec (REQ-ARB-HARNESSP5-003)
 - [ ] §Retained Per-Round State's fenced schema shows `round[N]`, `fix[N]` and `regen[N]` with the `W_N` union; its text and `references/loop-control.md` §2a agree on the definition (side-by-side read at specs); `python3 tools/sdd-gc.py --report` raises no new finding on this spec (REQ-ARB-HARNESSP4-003)
 
 ## Edge Cases
@@ -402,7 +512,19 @@ pause on an untouched one) is unchanged.
 - `harness-chunk-verifier.md`: the per-chunk gate cannot raise this pause —
   consistent with "no review verdict at the per-chunk gate".
 - `skill-lint-v5.md`: rows (b), (c) follow the `REQUIRED` row shape.
+- [Added 2026-09-19, harness-p5] `ws-traceability.md` §Legal `Verified` Cell
+  Values admits `descoped` for the carried p4 rows this spec closes; the
+  `harness-p5` rows are authoritative (Q-IMPL-HARNESSP4-001 authority rule
+  unchanged). `harness-write-scope.md` §Observation's `resolve_sections()` is the
+  function A1–A3 call; its `(path, *)` fallback keeps the missing-diff meaning.
 - **No unresolved contradictions.**
+
+**harness-p5 pass (2026-09-19).** No extractable type definitions;
+`arbitrate(round_n, round_n1, w_n)` is a pseudocode signature whose operands
+are the sets of §Retained Per-Round State. `class b`, `(file, *)` and `W_N` keep
+their single definitions; the fixture scenario ids A1–A3 do not collide with the
+scope self-test's F-series or the commit fixtures C1–C6
+(`harness-commit-fidelity.md`).
 
 **harness-p3 pass (2026-09-18).** No extractable type definitions in
 arbitrated-handoff.md — `W_N` is a set-valued definition in pseudocode, not a
@@ -421,8 +543,11 @@ defined in this spec and unchanged; `REVIEW: CONTRADICTION`, class `(b)` and
 2. **Use section resolution to automate the `ADVISORY` hint** (hunks under
    `## Implementation Questions` → `IN`)? Default: not this cycle; the hint text
    stays, the operator verifies.
-3. **Heading normalisation across `§Name` variants** (`§3. Foo` vs `§Foo`):
-   Default: strip a leading ordinal `\d+[.)]?\s*` before comparing.
+3. **Heading normalisation across `§Name` variants** (`§3. Foo` vs `§Foo`) —
+   **closed 2026-09-19** (REQ-ARB-HARNESSP5-003): the leading-ordinal strip
+   `\d+[.)]?\s*` is now a rule of the key table (§Retained Per-Round State,
+   `section` row), matching `references/loop-control.md` §2a; exercised by the
+   A1–A3 key parser.
 
 ## Implementation Questions
 

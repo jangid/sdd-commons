@@ -1,8 +1,8 @@
 ---
 domain: HARN
-last_updated: 2026-09-17
+last_updated: 2026-09-19
 status: Approved
-research_refs: [RS-008, RS-005, RS-006]
+research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP5-001]
 ---
 
 # Requirements: Harness Hardening — Loop Control
@@ -228,3 +228,44 @@ shas and timestamps, never finding text (REQ-ORCH-012/013 hold). The `docs/`
 invariant, the `docs/reviews/` prohibition and REQ-ORCH-004 are unchanged; the
 mirroring sentence at `docs/spec/harness-loop-control.md` §Constraints needs
 the same amendment at the specs stage. Same device as REQ-ORCH-034's note.
+
+<!-- REQ-HARN-HARNESSP5-NNN: workstream-prefixed additions for the harness-p5
+     cycle (RS-HARNESSP5-001; marker 4). One HARN counter across the three HARN
+     files: -001 here, -002 in harness-boundaries.md. -->
+
+### REQ-HARN-HARNESSP5-001: the orchestrator flips `plan.md` `status: complete` at the implement stage gate `proceed`
+Under orchestrated per-chunk dispatch the **orchestrator** must flip
+`docs/ws/<id>/plan.md` `status:` to `complete` at the implement **stage gate**
+`proceed` (after the stage review's verdict, never at the last per-chunk gate),
+in its own bookkeeping commit — the same post-gate slot as aggregate
+regeneration and the `pending-red → pass` flip (`write-scope.md` §7 gains a
+second bookkeeping entry) — after its completion parse shows every numbered
+chunk task `[x]`. The flip edits `status:` only; the `research_id:` stamp is
+`sdd-plan`'s and is untouched. A chunk leaf ticks tasks and **never** writes
+`status:` (`dispatch-templates.md` §PIPELINE per-chunk says so);
+`sdd-verify` never writes the plan. `sdd-implement` Step 6.4 keeps the flip for
+a **direct** session, with one sentence stating the orchestrated exception.
+Because `HEAD_landed` is captured before any bookkeeping commit, the flip is
+outside the `COMMIT:` range and never renders `landed, not observed`.
+**Else-branch.** When the completion parse at `proceed` does **not** show every
+numbered chunk task `[x]` (for example a task the stage review accepted as
+deferred), the flip is **withheld** and the stage gate **pauses** — rendered as
+one line `PLAN: INCOMPLETE (N of M ticked)` in the gate's signal order (exact
+placement at specs' discretion, `loop-control.md` §5) — offering `replan │ stop`
+only: `proceed` is not offered, so verify is never dispatched while `plan.md`
+reads `implementing`, and phase detection (REQ-CYCID-HARNESSP3-001) keeps
+reading the plan as incomplete until a replan closes the unticked tasks
+(descoped or removed, archived per plan archival) and the gate is re-rendered.
+Ratified as Q-REQ-P5-C. (workstream `harness-p5`; see RS-HARNESSP5-001 §Q3 — the
+last-chunk leaf would assert a completion the stage review has not decided (p4
+implement round 1 review C1); verify-on-entry would widen the verify leaf's
+scope and leave a resumed session reading "implementing" on a fully ticked plan)
+**Acceptance**: `grep -n 'status: complete' skills/sdd-orchestrate/SKILL.md skills/sdd-orchestrate/references/loop-control.md skills/sdd-orchestrate/references/write-scope.md skills/sdd-implement/SKILL.md`
+shows the flip in §The gate, §1 and the §7 table, and the direct-session /
+orchestrated split in `sdd-implement` Step 6; the per-chunk PIPELINE template
+carries "tick tasks, never `status:`"; a walkthrough of an implement stage gate
+`proceed` shows the flip in a commit separate from the leaf's and `COMMIT:
+COMPLETE`, and a second walkthrough with one unticked task shows the
+`PLAN: INCOMPLETE` pause, no flip and no verify dispatch; `python3 tools/sdd-skill-lint.py` exits 0 (a `REQUIRED` row for the
+flip sentence is optional, `may`).
+[Priority: must]

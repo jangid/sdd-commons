@@ -1,11 +1,12 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-20
 requires:
   - REQ-HARN-HARNESSP4-001
   - REQ-HARN-HARNESSP4-002
   - REQ-HARN-HARNESSP4-003
   - REQ-HARN-HARNESSP4-006
+  - REQ-HARN-HARNESSP5-002
 ---
 
 # Harness Commit Fidelity — the `COMMIT:` Gate Signal
@@ -112,11 +113,17 @@ leaf's delta in every probed case.
 
 | Gate | `expected` | `landed` | When computable | Position in the gate |
 |---|---|---|---|---|
-| sequential per-chunk gate and stage gate, on `proceed` | **observed writes only** — `porcelain_delta ∪ committed_delta ∪ content_delta` (`harness-write-scope.md` §Observation, §Content-Hash Observation) | `git diff --name-only HEAD_before HEAD_landed` (unconditional; `HEAD_before == HEAD_gate` whenever the leaf did not commit), captured right after the orchestrator's commit and before any bookkeeping commit | post-decision | closing line of the same gate — item 8 of `harness-loop-control.md` §Gate Signal Order |
-| fan-out **per-leaf** gate | the leaf's observed writes in its worktree | the leaf's committed delta `git diff --name-only <base> <tip>` — the write-scope check's own term (b) | pre-decision | position **2b** — after `SCOPE:`, before `CHUNK_VERDICT:` |
-| fan-out **merge step**, per branch | that leaf's committed delta `base..tip` | `git diff --name-only PRE_MERGE HEAD` on the integration branch | post-`proceed`, at merge | closing line after the merge — item 8 |
+| sequential per-chunk gate and stage gate, on `proceed` | **observed writes only** — `porcelain_delta ∪ committed_delta ∪ content_delta` (`harness-write-scope.md` §Observation, §Content-Hash Observation) | `git diff --name-only --no-renames -z HEAD_before HEAD_landed` (NUL-separated, split on `\0`; unconditional; `HEAD_before == HEAD_gate` whenever the leaf did not commit), captured right after the orchestrator's commit and before any bookkeeping commit | post-decision | closing line of the same gate — item 8 of `harness-loop-control.md` §Gate Signal Order |
+| fan-out **per-leaf** gate | the leaf's observed writes in its worktree | the leaf's committed delta `git diff --name-only --no-renames -z <base> <tip>` — the write-scope check's own term (b) | pre-decision | position **2b** — after `SCOPE:`, before `CHUNK_VERDICT:` |
+| fan-out **merge step**, per branch | that leaf's committed delta `base..tip` | `git diff --name-only --no-renames -z PRE_MERGE HEAD` on the integration branch | post-`proceed`, at merge | closing line after the merge — item 8 |
 
-`base`, `tip` and `PRE_MERGE` are the shas `references/fan-out.md` §3a.v / §3b
+[Amended 2026-09-19, harness-p5 — REQ-HARN-HARNESSP5-002] Every `landed`
+comparand runs with the flags the tool actually runs: `--no-renames` (rename
+detection off, so both sides list the old and the new path — §Edge Cases) and
+`-z` (NUL-separated, so a path containing a space is one record —
+REQ-HARN-HARNESSP4-005, fixture C6); `references/write-scope.md` §7a's table
+carries the same flags. `base`, `tip` and `PRE_MERGE` are the shas
+`references/fan-out.md` §3a.v / §3b
 already compute; no new git state is introduced. Every operand is a path set
 the harness already holds, so the check adds no leaf, no counter and no
 artifact.
@@ -219,7 +226,10 @@ token family in every file stays exactly `COMPLETE | INCOMPLETE`.
 
 ### Self-Test Helper and Fixtures (REQ-HARN-HARNESSP4-006)
 
-`tools/sdd-scope-check-selftest.py` gains a **pure** helper and five fixtures:
+`tools/sdd-scope-check-selftest.py` gains a **pure** helper and six fixtures
+[Amended 2026-09-19, harness-p5 — REQ-HARN-HARNESSP5-002: C6 shipped with
+REQ-HARN-HARNESSP4-005 while this sentence still counted the fixtures as one
+fewer; no stale fixture count remains in this file]:
 
 ```
 commit_check(expected: set[str], landed: set[str]) -> str
@@ -233,12 +243,13 @@ commit_check(expected: set[str], landed: set[str]) -> str
 | C3 fan-out fast-forward | leaf makes two commits (`a.txt`, then `b.txt`); merge fast-forwards | `COMMIT: COMPLETE (2 paths)` from the range; the same fixture computed with `git show --name-only --format= HEAD` renders a false `INCOMPLETE` — asserted as the negative control |
 | C4 fan-out true merge | integration branch takes a bookkeeping commit before the leaf merges | `COMPLETE` with the leaf's full delta; a regeneration commit *after* the range is captured leaves it `COMPLETE` |
 | C5 conflict → abort → redo | first leaf commits `a.txt b.txt`, conflicts on `a.txt`, merge aborted; redo leaf commits `b.txt` | the redo's own sets are compared → `COMPLETE (1 path)`; no third member is ever rendered; the first attempt's set does not enter |
+| C6 sequential commit, observed and landed (REQ-HARN-HARNESSP4-005) | observed and landed sets both hold `docs/notes with space.md` and one other path | `COMMIT: COMPLETE (2 paths)` — the space path is one record under `-z`, not two under whitespace splitting |
 
 Fixtures build throwaway repositories under a temporary directory exactly as
 the existing F-series does; nothing touches this repository's working tree.
 Fixture ids continue the tool's existing numbering scheme (a `C` prefix keeps
 them distinguishable from the scope fixtures `F1…`; the implementer may renumber
-if the tool's convention differs — the five scenarios are the contract).
+if the tool's convention differs — the six scenarios are the contract).
 
 ### Restatement Surfaces
 
@@ -280,7 +291,7 @@ at replan under the cycle's DONE rule, not closed `fail`.
 
 ### Automated
 - `python3 tools/sdd-scope-check-selftest.py --self-test` exits 0 and lists the
-  five `COMMIT:` fixtures C1–C5 in its output.
+  six `COMMIT:` fixtures C1–C6 in its output.
 - Mutation: replacing the two-sha range in C3 with `git show --name-only
   --format= HEAD` fails C3 with a false `INCOMPLETE`.
 - `commit_check({"a","b","c"}, {"a","b"})` → `COMMIT: INCOMPLETE (1 observed,
@@ -315,7 +326,8 @@ at replan under the cycle's DONE rule, not closed `fail`.
 - [ ] This cycle's `docs/ws/harness-p4/verification.md` records at least one live gate rendering the `COMMIT:` line (REQ-HARN-HARNESSP4-001)
 - [ ] The comparand table names observed writes as the sole sequential `expected` term and cross-references the return-drift warning; `references/return-contract.md` §1 or §3 and `harness-return-contract.md` §Return-Drift Warning define `RETURN.files_written − observed` as a warning, not a pause; the `docs/extra.md` walkthrough renders `COMPLETE` plus the warning (REQ-HARN-HARNESSP4-002)
 - [ ] `references/fan-out.md` §3a.v carries the per-leaf clause (incl. `RETURN.commits ⊆ rev-list`) and its 2b placement; §3b carries the merge-step comparand `PRE_MERGE..HEAD`; the two-commit fast-forward walkthrough renders `COMMIT: COMPLETE (2 paths)`; the true-merge-after-bookkeeping walkthrough renders `COMPLETE` with the leaf's full delta; a claimed sha absent from `rev-list` is reported on the per-leaf line; the token family everywhere is exactly `COMPLETE | INCOMPLETE` (REQ-HARN-HARNESSP4-003)
-- [ ] `tools/sdd-scope-check-selftest.py --self-test` exits 0 with the five fixtures C1–C5 listed; the `git show` mutation of C3 fails with a false `INCOMPLETE`; `commit_check(expected, landed)` is pure (REQ-HARN-HARNESSP4-006)
+- [ ] `grep -n 'no-renames -z' docs/spec/harness-commit-fidelity.md` hits inside §Comparand Table on every `landed` cell; no five-fixture count remains in this file; `python3 tools/sdd-scope-check-selftest.py --self-test` lists C1–C6; `python3 tools/sdd-gc.py --report` raises no new finding (REQ-HARN-HARNESSP5-002)
+- [ ] `tools/sdd-scope-check-selftest.py --self-test` exits 0 with the six fixtures C1–C6 listed; the `git show` mutation of C3 fails with a false `INCOMPLETE`; `commit_check(expected, landed)` is pure (REQ-HARN-HARNESSP4-006)
 - [ ] `python3 tools/sdd-skill-lint.py` exits 0; `python3 tools/sdd-gc.py --report` raises no new finding on this spec; Markdown well-formed
 
 ## Edge Cases
@@ -377,6 +389,16 @@ Run per `sdd-specs` Step 4b against `harness-write-scope.md`,
 - The gate order is stated **once** in `harness-loop-control.md` §Gate Signal
   Order; `orchestration.md` §v5 points there — no second statement.
 - **No unresolved contradictions.**
+
+**harness-p5 pass (2026-09-19).** No extractable type definitions;
+`commit_check(expected, landed)` is a pseudocode signature. The `--no-renames
+-z` flags now appear on every `landed` cell of §Comparand Table and in
+`references/write-scope.md` §7a; fixture ids C1–C6 do not collide with the
+scope self-test's F-series or the arbitration scenarios A1–A3
+(`arbitrated-handoff.md`). `harness-loop-control.md` §Gate Signal Order places
+the plan-status flip (8b) after item 8, consistent with §Placement's
+`HEAD_landed` capture before any bookkeeping commit. No unresolved
+contradictions.
 
 ## Open Questions
 

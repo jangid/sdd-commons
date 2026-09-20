@@ -113,7 +113,10 @@ Do not perform any stage other than sdd-{stage}.
   implement is dispatched **per chunk, in plan order** — one dispatch per
   chunk, each closed at the per-chunk gate (`../SKILL.md` §Per-chunk implement
   dispatch and per-chunk gate) before the next is issued; the chunk verifier
-  (§CHUNK VERIFIER below) runs against the same `{N}`. Fan-out leaves receive
+  (§CHUNK VERIFIER below) runs against the same `{N}`. A chunk leaf's plan write is
+  **"tick tasks, never `status:`"** — it cannot know the stage review's verdict, so
+  the plan's `status: complete` flip is the orchestrator's at the implement
+  stage gate (`../SKILL.md` §The gate signal 8b; `write-scope.md` §7). Fan-out leaves receive
   their chunk-group through `fan-out.md` §2 instead. **v2-vocabulary edge
   case**: a plan with no `### Chunk N:` headers has chunk-close inactive
   (`overview.md` §Plan Vocabulary) — omit this line, issue **one** implement
@@ -221,7 +224,10 @@ VERDICT: APPROVE │ APPROVE_WITH_FIXES │ REJECT
 
 ### Slot contract (review)
 - `{repo_root}` — absolute repository path.
-- `{deliverable_path}` — the artifact(s) the pipeline just wrote.
+- `{deliverable_path}` — the artifact(s) the pipeline just wrote. For the
+  **implement stage** this is the plan path plus the source/test files changed
+  during the stage (`git diff --name-only` against the stage-start commit) —
+  paths only, never a diff body or a summary of the work.
 - `{upstream_path_line}` — the upstream SDD artifact for the stage. **Omit
   entirely for the research stage.** For later stages supply requirements (for a
   specs review), specs (for a plan review), etc.

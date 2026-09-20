@@ -11,6 +11,37 @@ the fixture, not by editing it.
 
 ---
 
+## `telemetry-harness-p4-2026-09-19.jsonl`
+
+**Provenance.** A byte-identical copy of `.sdd/telemetry.jsonl` as it stood at
+the close of the `harness-p4` cycle — `head -67` of the live file, cut
+2026-09-20 by the orchestrator during the `harness-p5` cycle (operator task O1;
+leaves never read `.sdd/`). 67 records: `harness-p3` migrated at lines 1–20,
+`harness-p4` at lines 21–67 (session 1 is 20 records at `v: 1`; session 2 is 27
+records at `v: 2`, starting `seq` 8). The last record is `seq` 34,
+`kind: review`, `stage: verify` — p4's final verify review, which is the DONE
+boundary. `harness-p5` begins at line 68 of the live file and is excluded.
+
+    sha256  ff5cf2864abc74c2c05449b86e5117f5c4ed8851b6b5f96617859b8b061ef370
+
+**Correction (2026-09-20).** The `harness-p5` plan and
+`docs/requirements/functional/telemetry.md` originally specified this cut as
+**61 lines** with the composition "p4 session 1 seq 1–13, p4 session 2 seq
+1–28". Both were wrong; the measured boundary is 67. The correction is
+consequence-free: `python3 tools/sdd-telemetry.py --lint` produces
+byte-identical output on a 61-line and a 67-line cut — 65 findings, 4 warnings,
+the same three `[cross-field]` records at `seq` 21, 24 and 27 — so no acceptance
+number moved. [Re-measured 2026-09-20 after Chunk 4's reader fixes: **62 findings, 4 warnings** — the `v: 2`-only equal-heads guard correctly removed the three findings at `seq` 2, 4 and 6. 65/4 is the figure as measured before those fixes; the equivalence claim is unchanged — both cuts still produce byte-identical output, with the same three `[cross-field]` records at `seq` 21, 24 and 27.] The six extra records (`seq` 29–34: p4's verify stage, two red
+rounds, two reviews) add no lint finding, and the 67-line cut is the more
+faithful one because the 61-line cut silently truncated the verify stage.
+
+**Why it is here.** It is the evidence behind the six telemetry writer/reader
+findings in scope for `harness-p5` (see
+`docs/requirements/functional/telemetry.md` REQ-TELEM-HARNESSP5-001…008).
+Findings 1, 2, 3 and 5 are reproduced on it; 4 and 6 are synthetic self-test
+cases. It is a **snapshot**: the live file keeps growing, this one does not, and
+it is never edited to satisfy a code change.
+
 ## `telemetry-harness-p3-2026-09-18.jsonl`
 
 **Provenance.** A byte-identical copy of `.sdd/telemetry.jsonl` as it stood at
@@ -51,4 +82,48 @@ for r in map(json.loads, open(sys.argv[1])):
     d = r['dispatch']
     print(d['seq'], d['kind'], repr(d['chunk']))
 " tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl
+```
+
+---
+
+## `arbitration-harness-p4-regen-2026-09-19/`
+
+**Provenance — a git capture, not a reconstruction.** `before.md` and `after.md`
+are `git show` captures of `docs/ws/harness-p4/plan.md` at two commits of this
+repository, taken 2026-09-19:
+
+| File | Capture | sha256 |
+|---|---|---|
+| `before.md` | `git show 82d0af0:docs/ws/harness-p4/plan.md` | `ec1bc1bdc7cee4787dd209c9361a7d522b62ed072ac8deae0f546bf13a569e25` |
+| `after.md` | `git show 3772574:docs/ws/harness-p4/plan.md` | `2a5c40ac21e60ddd7f7464fa8bfab6d65f588ae23686d21dc0d3de002dbced6d` |
+| `round-1.txt` | authored — `VERDICT: APPROVE_WITH_FIXES`, C/M lines on two **changed** sections | `d7625fba849557433e41e500838279bcff10f029b29e6d31e58e709d315345d8` |
+| `round-2.txt` | authored — two Material lines on the plan's **unchanged** `§Conventions` and `§Verification Hand-off` | `ebd2c691a615e83159dd677f750416a074565784f602732f37b30b736dd3cca9` |
+| `dispatch.txt` | authored — observed writes `{docs/ws/harness-p4/plan.md}`, `regenerate: true`, `by: leaf` | `95b8e5a1039835feca64870e8bb83d841cb806e5149df4d15bbee3ad887b1a73` |
+
+The two shas are **provenance, not a runtime dependency**: the captured bytes
+live here, so the fixture stands even if the commits are ever unreachable.
+
+**Why it is here.** It is the deterministic evidence that closes the carried
+arbitration rows REQ-ARB-HARNESSP3-001 and REQ-ARB-HARNESSP4-001 — the p4 live
+exercise was non-discriminating — without a second live fix loop
+(`docs/spec/arbitrated-handoff.md` §Offline Arbitration Fixture). The pair's
+diff is broad (35 hunks, `§(preamble)` through `§Replan Triggers`), yet it
+discriminates because the two sections round 2 keys on, `§Conventions` and
+`§Verification Hand-off`, are **byte-identical** across the capture: under the
+Approved diff-based `W_N` those keys are new ground (`class b`, two annotated
+keys), while under the rejected provenance reading `regen[1] = (plan.md, *)`
+they would be immune (no token).
+
+**How it is used.** `tools/sdd-scope-check-selftest.py --self-test` replays it as
+scenarios `A1` (the discriminating case, both readings printed side by side),
+`A2` (round-2 findings in changed sections only → no token either way) and `A3`
+(a key on an untouched second file → `class b` under both readings), plus two
+mutation scenarios that prove A1 cannot pass vacuously: `A1m-i` deletes a
+`round-2.txt` line and `A1m-ii` flips `§Conventions` to a changed section. Both
+mutations operate on in-memory copies written into a throwaway repo — the files
+here are never modified.
+
+```bash
+python3 tools/sdd-scope-check-selftest.py --self-test -v
+shasum -a 256 tools/fixtures/arbitration-harness-p4-regen-2026-09-19/*
 ```

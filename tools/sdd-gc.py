@@ -21,7 +21,8 @@ Three sweep classes (rule ids in brackets):
                9  Q-IMPL defined, unreferenced    [qimpl-unreferenced] info
               10  Q-IMPL Spec reference / chain   [qimpl-broken-ref] warn
               11  empty traceability cells        [trace-empty] warn
-              12  aggregate == regenerate(per-ws) [traceability-aggregate] warn (marker 4)
+              12  aggregate == regenerate(per-ws) [traceability-aggregate] warn (marker 4),
+                                                  [traceability-rowdrop] fail (row parser)
               13  index <-> directory             [index-research] fail, [index-requirements] fail,
                                                   [spec-approval] fail scoped / warn unscoped
               14  plan-history naming             [plan-history-name] fail
@@ -124,7 +125,7 @@ DELEGATED_RULES = ["lint", "kickoff-fields"]   # kickoff-fields is gc-emitted un
 GC_RULES = [
     "xlink-dead", "id-missing", "stale-chain", "qimpl-undefined",
     "qimpl-unreferenced", "qimpl-broken-ref", "trace-empty",
-    "traceability-aggregate", "index-research", "index-requirements",
+    "traceability-aggregate", "traceability-rowdrop", "index-research", "index-requirements",
     "spec-approval", "plan-history-name",
 ]
 ALL_RULES = DELEGATED_RULES + GC_RULES
@@ -155,6 +156,8 @@ STALE_FIX = ("update the downstream artifact through its owning skill and bump i
              "there — dates are never auto-fixed (route: record | ignore at DONE)")
 TRACE_FIX = "fill the cell in the owning docs/ws/<id>/traceability.md (sdd-implement) and regenerate the aggregate"
 AGG_FIX = "run tools/sdd-gc.py --fix traceability-aggregate (regenerates from docs/ws/*/traceability.md)"
+ROWDROP_FIX = ("write a literal pipe inside a cell as \\| or &#124; (never a raw |), or restore the "
+               "missing cell — the row is excluded from the regenerated aggregate until it parses")
 KICKOFF_FIX = "add `date: YYYY-MM-DD` and `research_id: RS-…` to the kickoff frontmatter (sdd-orchestrate KICKOFF)"
 
 # Canonical aggregate table header (ws-traceability.md, Workstream = 3rd column).
@@ -325,9 +328,21 @@ def artifact_date(text: str) -> str | None:
     return None
 
 
+# A cell boundary is an UNESCAPED pipe: `\|` is literal cell content (Markdown's
+# own escape) and is re-emitted unchanged by render_row(), so a round-trip through
+# `--fix traceability-aggregate` is byte-identical (drift-sweep.md §Row-Drop Safety).
+# An HTML entity (`&#124;`) is ordinary text and was never a boundary.
+CELL_SPLIT_RE = re.compile(r"(?<!\\)\|")
+
+
 def table_cells(line: str) -> list[str]:
-    """Stripped cells of a `| a | b |` Markdown table row."""
-    return [c.strip() for c in line.strip().strip("|").split("|")]
+    """Stripped cells of a `| a | b |` Markdown table row, split on unescaped pipes."""
+    s = line.strip()
+    if s.startswith("|"):
+        s = s[1:]
+    if s.endswith("|") and not s.endswith("\\|"):
+        s = s[:-1]
+    return [c.strip() for c in CELL_SPLIT_RE.split(s)]
 
 
 def render_row(cells: list[str]) -> str:
@@ -335,18 +350,28 @@ def render_row(cells: list[str]) -> str:
     return "| " + " | ".join(cells) + " |"
 
 
-def trace_rows(text: str) -> list[tuple[int, list[str]]]:
+def trace_rows(text: str, bad: list | None = None) -> list[tuple[int, list[str]]]:
     """(line_no, [Requirement, Spec, Workstream, Test, Implementation, Verified])
     for every REQ row of a traceability table; a 5-column (pre-v4) row gains an
-    empty Workstream cell so callers see one shape."""
+    empty Workstream cell so callers see one shape.
+
+    A row that does not yield its table's expected cell count (the header row's,
+    defaulting to 6) is appended to `bad` as (line_no, got, want) — the caller
+    flags it `[traceability-rowdrop]`.  A wrong cell count is a FINDING, never a
+    silent discard (drift-sweep.md §Row-Drop Safety, REQ-GC-HARNESSP5-001)."""
     out = []
+    want = 6
     for no, line in enumerate(text.splitlines(), 1):
+        if line.startswith("| Requirement"):
+            want = len(table_cells(line))
         if re.match(r"^\|\s*REQ-", line):
             cells = table_cells(line)
-            if len(cells) == 5:
-                cells.insert(2, "")
+            if len(cells) == want == 5:
+                cells.insert(2, "")            # pre-v4 table: one shape for callers
             if len(cells) == 6:
                 out.append((no, cells))
+            elif bad is not None:
+                bad.append((no, len(cells), want))
     return out
 
 
@@ -806,11 +831,23 @@ class Gc:
         agg = self.docs / "requirements" / "traceability.md"
         return [cells for _, cells in trace_rows(read_text(agg) or "") if not cells[2]]
 
+    def checked_rows(self, f: Path) -> list[tuple[int, list[str]]]:
+        """`trace_rows()` with the row-drop guard: a row that does not parse is a loud
+        `[traceability-rowdrop]` **fail** naming `<file>:<line>`, never a silent
+        discard (drift-sweep.md §Row-Drop Safety, REQ-GC-HARNESSP5-001)."""
+        bad: list[tuple[int, int, int]] = []
+        rows = trace_rows(read_text(f) or "", bad)
+        for no, got, want in bad:
+            self.flag(f, no, "traceability-rowdrop",
+                      f"row yields {got} cells, not {want} — it would be dropped from the aggregate",
+                      ROWDROP_FIX)
+        return rows
+
     def sweep_trace_empty(self) -> None:
         self.sweeps_run.append("trace-empty")
         legacy_spec = {c[0]: c[1] for c in self.legacy_rows()} if self.marker == "4" else {}
         for f in self.trace_files():
-            for no, c in trace_rows(read_text(f) or ""):
+            for no, c in self.checked_rows(f):
                 req, spec, _ws, test, impl, _ver = c
                 # Amendment row (telemetry.md §XSPEC): Spec differs from the legacy
                 # row for the same id — inherits the legacy Verified, never a gap.
@@ -845,6 +882,9 @@ class Gc:
         if self.marker != "4":
             return  # no per-ws inputs under marker 3
         self.sweeps_run.append("aggregate")
+        # The aggregate's own rows are guarded here; the per-ws inputs were guarded by
+        # sweep 11, so no row is checked (or flagged) twice.
+        self.checked_rows(self.docs / "requirements" / "traceability.md")
         agg, want = self.regenerate_aggregate()
         if (read_text(agg) or "") != want:
             self.flag(agg, None, "traceability-aggregate",
@@ -1195,16 +1235,27 @@ last_updated: 2026-01-03
     # (3) Implementation-filled / Test-empty; (4) prose-only row with empty Test.
     beta_rows = [
         ["REQ-BB-ALPHA-001", "b.md", "beta", "", "gadget.py", ""],
-        ["REQ-AA-ALPHA-002", "a.md" if clean else "", "beta", "test_second", "second.py", ""],
+        # The Test cell carries a LITERAL pipe as `\|`: it is cell content, not a
+        # boundary, and must survive --fix traceability-aggregate byte-for-byte
+        # without a [traceability-rowdrop] finding (REQ-GC-HARNESSP5-001).
+        ["REQ-AA-ALPHA-002", "a.md" if clean else "", "beta", r"test_second \| alt", "second.py", ""],
         ["REQ-BB-ALPHA-002", "b.md", "beta", "test_gadget2" if clean else "", "gadget2.py", ""],
         ["REQ-AA-ALPHA-001", "a.md", "beta", "", "", ""],
     ]
     if not clean:
         warn["trace-empty"] += 2
+    # A five-cell row under a six-column header: the row parser must raise exactly one
+    # [traceability-rowdrop] fail naming <file>:<line> rather than drop it in silence.
+    # It is excluded from the regenerated aggregate (loudly), so `exp["aggregate"]`
+    # below is unchanged by it.
+    dropped = "| REQ-BB-ALPHA-002 | b.md | beta | test_gadget2 | gadget2.py |\n"
+    if not clean:
+        fail["traceability-rowdrop"] += 1
     for ws, ws_rows in (("alpha", alpha_rows), ("beta", beta_rows)):
         _w(root, f"docs/ws/{ws}/traceability.md",
            f"---\nworkstream: {ws}\nlast_updated: 2026-01-03\n---\n\n"
-           + "\n".join(AGG_HEADER) + "\n" + "".join(render_row(r) + "\n" for r in ws_rows))
+           + "\n".join(AGG_HEADER) + "\n" + "".join(render_row(r) + "\n" for r in ws_rows)
+           + (dropped if (ws == "beta" and not clean) else ""))
     # -- shared aggregate: legacy rows in shipped (unsorted) order, then per-ws
     #    rows stable-sorted by id.  Dirty drops the last row -> differs from
     #    regeneration; the expected text is also what `--fix` must produce.
@@ -1341,6 +1392,12 @@ def self_test() -> int:
         check(out.strip().splitlines()[-1].startswith(f"FAIL: {sum(efail.values())} finding(s), "),
               f"summary wrong: {out.strip().splitlines()[-1]}")
 
+        # row-drop: exactly one finding, located <file>:<line>, at fail severity
+        check(fails["traceability-rowdrop"] == 1,
+              f"row-drop findings: {fails['traceability-rowdrop']}, want 1")
+        check(re.search(r"docs/ws/beta/traceability\.md:\d+: \[traceability-rowdrop\]", out) is not None,
+              "row-drop finding does not name <file>:<line>")
+
         # -- 2. workstream scoping: alpha traces only Approved specs; beta traces the Draft one
         code, out = _run(["--report", "--root", str(dirty), "--workstream", "alpha"])
         fails, warns, _, _ = _parse(out)
@@ -1373,6 +1430,8 @@ def self_test() -> int:
         check(warns["size"] == 1, "clean run lost the lint size pass-through")
         check(warns["traceability-aggregate"] == 0 and warns["trace-empty"] == 0,
               f"clean aggregate / amendment row flagged: {dict(warns)}")
+        check(fails["traceability-rowdrop"] == 0,
+              f"an escaped pipe (\\|) in a Test cell was read as a dropped row: {dict(fails)}")
 
         # -- 5. exit code 2 paths
         code, out = _run(["--fix", "nonexistent-rule", "--root", str(clean)])
@@ -1381,6 +1440,9 @@ def self_test() -> int:
         check(code == 2 and "not a fixable rule" in out, f"--fix staleness: {code} {out!r}")
         code, out = _run(["--fix", "stale-chain", "--root", str(clean)])
         check(code == 2 and "not a fixable rule" in out, f"--fix stale-chain (dates never fixed): {code}")
+        code, out = _run(["--fix", "traceability-rowdrop", "--root", str(clean)])
+        check(code == 2 and "not a fixable rule" in out,
+              f"--fix traceability-rowdrop (the repair is an author edit): {code} {out!r}")
         code, out = _run(["--report", "--root", str(plain)])
         check(code == 2 and "not a git repository" in out, f"non-git root: {code} {out!r}")
         nodocs = tmp / "nodocs"
@@ -1444,6 +1506,8 @@ def self_test() -> int:
         check(code == 0 and "docs/requirements/traceability.md" in out, f"--fix traceability-aggregate: {code} {out!r}")
         check(read_text(agg) == exp["aggregate"],
               f"regenerated aggregate differs from the expected text:\n{read_text(agg)}\n--- want ---\n{exp['aggregate']}")
+        check(r"test_second \| alt" in (read_text(agg) or ""),
+              "the escaped pipe was not re-emitted unchanged by --fix traceability-aggregate")
         before = read_text(agg)
         code, out = _run(["--fix", "traceability-aggregate", "--root", str(dirty)])
         check(code == 0 and "no changes" in out and read_text(agg) == before,
@@ -1466,7 +1530,9 @@ def self_test() -> int:
         return 1
     print("SELF-TEST OK: sweeps 5-14 fire once each on the two-workstream fixture; counting rule "
           "D/B/D-B hold; exit codes 0/1/2; finding shape; lint pass-through; four --fix rules "
-          "idempotent with dates and other workstreams untouched")
+          "idempotent with dates and other workstreams untouched; row-drop safety: an escaped pipe "
+          "round-trips through --fix traceability-aggregate, a five-cell row raises one "
+          "[traceability-rowdrop] fail at <file>:<line>, --fix traceability-rowdrop exits 2")
     return 0
 
 
@@ -1496,6 +1562,9 @@ sweep classes and rule ids
       [qimpl-broken-ref] warn   **Spec reference** heading missing; [superseded by …] names an undefined id
       [trace-empty] warn        Spec-empty rows; Implementation-filled / Test-empty rows
       [traceability-aggregate] warn  aggregate != regenerate(per-ws files) (marker 4)
+      [traceability-rowdrop] fail    a REQ row that does not yield its table header's cell
+             count — a raw | inside a cell.  Never a silent discard: data loss is
+             impossible without a finding.  Not fixable (the repair is an author edit)
       [index-research] fail     research/index.md rows <-> RS-* directories
       [index-requirements] fail requirements/index.md Files table <-> category files
       [spec-approval]           fail with --workstream (specs traced by that plan), warn unscoped

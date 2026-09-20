@@ -31,6 +31,11 @@ for each `### Chunk N:` in plan order:
        stop    → halt; the chunk's writes stay uncommitted in the working tree
 after the last chunk: dispatch the implement-stage sdd-review ONCE on the merged state
                       → the single implement-stage review gate (proceed │ loop-back-to-fix │ stop)
+                      → proceed: after the COMMIT: closing line the ORCHESTRATOR (sole writer)
+                        flips plan.md `status: complete` in its own bookkeeping commit,
+                        `status:` only — signal 8b; a chunk leaf ticks tasks, never `status:`
+                      → any numbered chunk task still unticked → no flip: the gate pauses on
+                        `PLAN: INCOMPLETE (N of M ticked)` (signal 6b), `replan │ stop` only
 ```
 
 ### 1a. Gate defaults and per-chunk redo counter
@@ -170,6 +175,18 @@ Granularity is not lost: section resolution (`write-scope.md` §3) is a function
 of a diff and applies to a regeneration diff exactly as it applies to a fix's;
 the existing `(file, *)` fallback and its `(file-level)` pause label are
 unchanged.
+
+[Amended 2026-09-19, harness-p5 — REQ-ARB-HARNESSP5-001, ratified as Q-REQ-P5-A]
+`W_N` is **diff-based**: a regeneration that re-emits a section
+**byte-identically adds nothing to `W_N`**, and a round-N+1 Critical/Material
+line keyed on such a section is on ground round N saw **unchanged** — the
+class (b) signal, not the false positive this section removed. The provenance
+reading `regen[N] = (file, *)` for a wholesale dispatch whose diff exists is
+**not** adopted: `(file, *)` remains reserved for a *missing* diff (an untracked
+or non-Markdown path, §Section Resolution / self-test F8).
+`docs/spec/arbitrated-handoff.md` §`W_N` Includes Regeneration Writes carries
+this same sentence; scenario A1 of its §Offline Arbitration Fixture is the
+evidence.
 
 **Contradiction classes (REQ-ARB-HARNESSP2-002, -003, -004).** Let `K_N` =
 set of `(file, section)` keys of round N's C/M lines, `W_N` as defined just
@@ -534,10 +551,21 @@ only) `COMMIT:` at 2b → `CHUNK_VERDICT:` → `RED_VERDICT:` (with its derived
    round pair the counters name, and it restates `iteration N of MAX` on its own
    token line, so signal 7 is still immediately after the last counter-bearing
    line;
+6b. **implement stage gate only** — the completion parse of
+   `docs/ws/<id>/plan.md`: when any numbered chunk task is unticked, the
+   own-line `PLAN: INCOMPLETE (N of M ticked)` pause renders **after** signal 6
+   and **before** the `TELEMETRY:` line, offering `replan │ stop` **only**
+   (`proceed` withheld, so verify is never dispatched while the plan reads
+   `implementing`); when every task is `[x]` no line renders. It **supersedes
+   signal 6's option set** when both fire — 6's block still renders, its
+   options are suppressed, and one `replan` closes both. The tick state exists
+   on the leaf's return, so it renders before the options
+   (`docs/spec/harness-loop-control.md` §Plan Completion Ownership; §6 below);
 7. the `TELEMETRY:` line — the four-member family `rec <n> │ WRITE FAILED │ OFF
    │ .gitignore updated`, at most once each, rendered **last**, immediately
-   after the `iteration`/cap line (or, when the pause of signal 6 fired, after
-   its token line) and **before the options**
+   after the `iteration`/cap line (or, when the pause of signal 6 or of signal
+   6b fired, after that pause's token line — 6b renders between 6 and 7) and
+   **before the options**
    (`references/telemetry.md` §3). `TELEMETRY: rec <n>` is the positive member
    (REQ-TELEM-HARNESSP3-001): `<n>` is the count of **successful appends this
    session**, not `dispatch.seq`, so a gate whose append failed shows
@@ -559,14 +587,41 @@ only) `COMMIT:` at 2b → `CHUNK_VERDICT:` → `RED_VERDICT:` (with its derived
    chunk — is issued while the pause is unresolved**. `COMMIT:` joins the pause
    family beside `RETURN: MALFORMED`, `SCOPE: VIOLATION`, `REVIEW:
    CONTRADICTION` and budget exhaustion (§6). `COMPLETE` needs no
-   acknowledgement.
+   acknowledgement;
+8b. **post-decision, implement stage gate `proceed` only, after item 8**: the
+   orchestrator — the **sole** writer of the plan's `status:` under
+   orchestration — flips `docs/ws/<id>/plan.md` to `status: complete` in its
+   **own** bookkeeping commit, the same post-gate slot as aggregate
+   regeneration and the `pending-red → pass` flip (`references/write-scope.md`
+   §7). It edits `status:` only; `sdd-plan`'s `research_id:` stamp is
+   byte-identical before and after. `HEAD_landed` is captured **before** any
+   bookkeeping commit, so the flip falls outside the `COMMIT:` comparand range
+   and never renders `landed, not observed`. A chunk leaf ticks its tasks and
+   never writes `status:`, `sdd-verify` never writes the plan, and a direct
+   (unorchestrated) `sdd-implement` session keeps its own Step 6.4 flip
+   (`docs/spec/harness-loop-control.md` §Plan Completion Ownership).
 
 Two rules follow from "produced order": a signal whose data exists before the
-decision renders before the options (items 1–7 and 2b); a signal that is the
-*consequence* of the decision renders after them (item 8) and is **not**
+decision renders before the options (items 1–7, 2b and 6b); a signal that is the
+*consequence* of the decision renders after them (items 8 and 8b) and is **not**
 deferred to the next gate — `TELEMETRY: rec <n>` is the one deferred signal,
 and it may be because telemetry is never load-bearing. `COMMIT:` is
 load-bearing and therefore closes the gate it belongs to.
+
+### 5a. Presentation of the gate block — from §The gate
+
+Render the gate block **verbatim as text**: it is a fixture and its signal
+order is the contract. Then collect the decision through the host's option
+picker when the session has one, listing the gate's options as the choices, and
+fall back to plain text when it does not. The picker never replaces, summarizes
+or reorders the block above it, and never adds an option the gate does not
+offer. This binds nothing about the loop: the options, their meaning and the
+caps are unchanged.
+
+**Approve-with-fixes shortcut.** For `APPROVE_WITH_FIXES` (`sdd-review`: "fix
+the named findings, then proceed without re-review") `loop-back-to-fix` offers
+re-dispatch then re-review (the default) or skipping the re-review; a *Reject*
+never skips it.
 
 ## 6. Edge cases routed through the gate — from §The gate
 
@@ -604,6 +659,21 @@ load-bearing and therefore closes the gate it belongs to.
   wholesale-regenerated file *was* touched by the loop. Admitting regeneration
   writes removes false positives only; it cannot mask a contradiction about a
   file the loop left alone.
+- **`PLAN: INCOMPLETE (N of M ticked)`**: at the **implement stage gate**, when
+  the completion parse of `docs/ws/<id>/plan.md` finds any numbered chunk task
+  unticked, the `status: complete` flip is **withheld** and the gate **pauses**
+  with `replan │ stop` as its whole option set — `proceed` is not offered, so
+  verify is never dispatched while the plan reads `implementing` and phase
+  detection keeps reading the plan as incomplete until a replan closes the
+  unticked tasks. **Fifth** member of the pause family, after `REVIEW:
+  MALFORMED`, `RETURN: MALFORMED`, reject-with-no-actionable-findings and
+  `REVIEW: CONTRADICTION`, and the only two-option one; it carries no finding
+  text, only the two counts. **Precedence — 6b supersedes 6**: when both fire
+  at the same gate, signal 6's block still renders (the operator needs its
+  finding when choosing `replan`) but its options are suppressed, so no option
+  resolving to `proceed` — `accept round N (proceed, note)` included — is
+  offered, and one `replan` closes both
+  (`docs/spec/harness-loop-control.md` §Plan Completion Ownership).
 
 ## 7. Mid-pipeline entry: detect → confirm → validate (REQ-ORCH-031..033) — from §Entry Points
 
@@ -620,3 +690,17 @@ stage silently — confirmation is mandatory.
 the change*, the *entry stage*, and *which upstream is assumed approved* — not
 research questions. DISCUSS still runs first; from the entry stage on the LOOP
 is identical to a research-entry cycle.
+
+
+## 8. Driver rules (normative) — from §Rules
+
+- **Compose, never reimplement**: stage logic lives in the nine `sdd-*` skills
+  — dispatch them; never duplicate or modify them.
+- **Two dispatches per stage, always**, and **paths only to the reviewer** —
+  "helpful context" is exactly the leak the design prevents.
+- **Human gate at every stage**: never auto-advance.
+- **Reviews are ephemeral** and **artifacts are the source of truth for
+  resume** (no `docs/reviews/`, no loop-position marker, no loop log).
+- **Sequential by default**: fan-out only at the implement gate on operator
+  opt-in with ≥2 independent chunk branches; mid-pipeline entry only per §Entry
+  Points, never by guess.
