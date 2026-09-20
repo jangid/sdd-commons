@@ -1,8 +1,8 @@
 ---
 domain: HARN
-last_updated: 2026-09-18
+last_updated: 2026-09-20
 status: Approved
-research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001]
+research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP6-001]
 ---
 
 # Requirements: Harness Hardening — Decoupled Verification
@@ -319,3 +319,39 @@ returns nothing and `grep -c '^CHUNK_VERDICT:'` on the same file is ≥ 2;
 the edit (`python3 tools/sdd-skill-lint.py` exits 0 with the `[template-drift]`
 rule active).
 [Priority: should]
+
+### REQ-HARN-HARNESSP6-002: the L2 convergence cluster rule and its session-scoped finding ledger
+The orchestrator must derive cross-layer convergence (L2) from what the layers
+and second-executors **already return** — no field is added to any leaf's
+`RETURN:` shape and no root-cause field is introduced. Two or more findings form
+a **cluster** when (i) they come from **different** layers or second-executors
+(blue pipeline, chunk verifier, review, red); (ii) they belong to the **same
+cycle**, by the `research_id` stamp that cycle identity already uses; and (iii)
+their **arbitration finding keys are equal at section granularity** — same
+`file` **and** same `section`, reusing the existing `(file, section)` key with
+its ratified leading-ordinal strip and its existing parser. A file-level-only
+match must render **nothing**: two findings in one large file are not one root
+cause, and a rule that says they are makes the signal noise. A **secondary** key
+applies — two findings citing the same `REQ-*` or deviation-entry id cluster
+even when their sections differ. Convergence is computed over a **session-scoped,
+in-memory finding ledger** of the same class as the loop counters: per finding it
+holds only the arbitration key, the emitting layer and the gate at which the
+finding arrived — no finding text, nothing on disk, no durable artifact. The
+signal must be evaluated at **every** gate over everything recorded so far, and
+each cluster renders **once**, at the gate where its second member arrives, so it
+can and usually will fire mid-cycle rather than only at DONE; a cluster that
+completes only at DONE routes into `verification.md` §Issues Found, to be fixed
+or explicitly closed in-cycle, never into §Next Steps. (workstream `harness-p6`;
+kickoff §Scope item 8, shipping on explicit operator direction; RS-HARNESSP6-001
+Q4(a)/(b), Confidence **Medium** — the rule reuses an exercised parser but has
+never been replayed against a real finding set, and its firing rate is
+unmeasured; this requirement is deliberately carried at lower weight than the
+Q1-Q3 items and is the cycle's credible replan trigger)
+**Acceptance**: `docs/spec/harness-loop-control.md` §Convergence Signal states
+the three cluster conditions, the secondary id key, the file-level-only
+non-render and the ledger's contents; a self-test scenario group exercises the
+key parser across layers — two findings from different layers with equal
+`(file, section)` cluster; two from the **same** layer do not; two with the same
+file and different sections do not; two from different layers citing the same
+`REQ-*` id with different sections do; `python3 tools/sdd-skill-lint.py` exits 0.
+[Priority: must]

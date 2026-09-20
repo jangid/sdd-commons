@@ -1,8 +1,8 @@
 ---
 domain: ORCH
-last_updated: 2026-09-17
+last_updated: 2026-09-20
 status: Approved
-research_refs: [RS-005, RS-006, RS-008]
+research_refs: [RS-005, RS-006, RS-008, RS-HARNESSP6-001]
 ---
 
 # Requirements: SDD Orchestration Driver
@@ -361,4 +361,54 @@ stage gate after all chunks. See `docs/spec/harness-chunk-verifier.md` §Sequenc
 **Acceptance**: `sdd-orchestrate/SKILL.md` §The gate lists the five signals and
 links the two references files (REQ-LINT-004 resolves the links); a gate
 rendering fixture shows them in the stated order.
+[Priority: must]
+
+### REQ-ORCH-HARNESSP6-001: `CONVERGENCE:` renders as item 6c of the gate signal order, informational
+The L2 convergence signal must render as its own **own-line token** at the gate,
+`CONVERGENCE:`, placed at position **6c** of the REQ-ORCH-034 signal order —
+after 6b (`PLAN:`) and immediately before 7 (`TELEMETRY:`) — naming the cluster's
+file and section, the contributing layers, and the layer count, for example
+`CONVERGENCE: docs/spec/telemetry.md §Writer rule (review, red) — 2 layers`. It
+renders after every finding-bearing signal and after both derived pauses because
+it is derived from them; the "renders last" clause governing `TELEMETRY:` gains
+6c in the same enumeration. The signal is **informational**: it never pauses the
+gate, has no option set, and never withholds `proceed`. That is the decisive
+choice — with no root-cause field the cluster is a heuristic, and a pausing
+heuristic turns every false positive into an operator interruption, while an
+informational line costs one line when wrong and delivers its whole value when
+right, because the value is the operator noticing. (workstream `harness-p6`;
+RS-HARNESSP6-001 Q4(c), Confidence Medium; position chosen over a derived line
+under one producer because a convergence line spans producers)
+**Acceptance**: `skills/sdd-orchestrate/references/loop-control.md` §5 lists 6c
+between 6b and 7 and its §7 "renders last" clause names 6c;
+`skills/sdd-orchestrate/SKILL.md` §The gate names the token in its non-divergent
+summary; a gate rendering fixture shows the token in the stated position and
+shows `proceed` available while it is displayed; `python3
+tools/sdd-skill-lint.py` exits 0.
+[Priority: must]
+
+### REQ-ORCH-HARNESSP6-002: L2 ships as co-located convergence and is not a fifth verification layer
+The shipped scope of L2 must be stated explicitly as **co-located** convergence
+— clustering findings that already carry a location — and must not be described
+or verified as conceptual convergence. Conceptual convergence (findings sharing
+a root cause but no file and no section, as in the three-layer origin case the
+signal was named for) cannot be derived from what layers already return: it
+needs either a root-cause field on a leaf's `RETURN:` or a fifth layer whose job
+is correlation, and both are standing exclusions. Against that origin case the
+shipped form clusters **two of the three** layers, and that recall is the
+accepted, recorded cost. Three invariants bind: L2 adds **no durable artifact**
+under `docs/` (its ledger is session-scoped and its output is ephemeral gate
+text); it must **not influence phase detection** — no skill's entry check reads
+it and it is never written to a file a detector reads; and the **four-layer
+verification table stays byte-unchanged**, because L2 is an orchestrator-derived
+gate signal, not a layer. No telemetry record key is added for it. (workstream
+`harness-p6`; RS-HARNESSP6-001 Q4(d) and §Implications for Design — "requirements
+must state the co-located scope explicitly, or verification will be asked to
+prove a property the design does not deliver")
+**Acceptance**: `git diff` over the cycle shows the four-layer verification
+table byte-unchanged in `CLAUDE.md` and in every spec that restates it;
+`docs/spec/harness-loop-control.md` §Convergence Signal states the co-located
+scope and the 2-of-3 recall against the origin case; no file under `docs/` is
+created by L2 and no phase-detection rule in any `sdd-*` skill references
+`CONVERGENCE:`; `python3 tools/sdd-gc.py --report` reports no new artifact class.
 [Priority: must]

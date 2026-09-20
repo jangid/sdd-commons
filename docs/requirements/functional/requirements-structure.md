@@ -1,7 +1,8 @@
 ---
 domain: REQ
-last_updated: 2026-04-28
+last_updated: 2026-09-20
 status: Approved
+research_refs: [RS-HARNESSP6-001]
 ---
 
 # Requirements: Requirements Structure
@@ -65,4 +66,32 @@ mapping requirement IDs to spec files, test files, and implementation status.
 The format must be a markdown table. This file must be referenced from
 `index.md` and updated by `sdd-specs` (when specs are written), `sdd-implement`
 (when tests/code are written), and `sdd-verify` (when verification completes).
+[Priority: must]
+
+### REQ-REQ-HARNESSP6-001: §Out of Scope holds settled exclusions with reasoning, never deferrals
+`docs/requirements/index.md` §Out of Scope must record every won't-do as a
+**settled exclusion with its reasoning**, and must not hold an entry phrased as
+deferred, carried, or queued to a next or later cycle. An entry whose work has
+since been done or has become moot is marked closed with its date and evidence
+rather than deleted, so the closure stays auditable; an entry superseded by a
+shipped requirement is replaced by a pointer to that requirement. The same rule
+binds a cycle's `verification.md` §Next Steps, which must contain no item
+phrased as carried to a later cycle. A finding too large to fix inside the cycle
+triggers a **replan**, not a successor workstream. (workstream `harness-p6`;
+kickoff §Scope item 9 and §Decided at DISCUSS — "§Out of Scope is swept, not
+grown"; RS-HARNESSP6-001 §Deferral-Backlog Sweep)
+**Acceptance**: a case-insensitive grep for `deferred to`, `carried to`,
+`queued for`, `re-raise in that cycle` and `next cycle` over (i)
+`docs/requirements/index.md` §Out of Scope, (ii)
+`docs/ws/harness-p6/verification.md` §Next Steps once that file exists, and
+(iii) `docs/ws/harness-p5/verification.md` §Next Steps — the artifact this
+cycle's sweep actually edited — returns no **live** entry. "Live" is decidable
+mechanically, not by judgement: a match does not count when its own line, or
+the line immediately preceding it, carries a bracketed dated marker matching
+`\*\*\[(Superseded|Closed|Struck)[^]]*20[0-9]{2}-[0-9]{2}-[0-9]{2}[^]]*\]\*\*`.
+Every annotated item therefore carries its own adjacent marker; a block-level
+marker covering several items does not satisfy this clause. Prose in
+§Q-REQ Resolutions recording what a **closed** cycle decided is outside the
+grep's three scopes and is not examined. The three new settled exclusions named
+by RS-HARNESSP6-001 are each present with their reasoning.
 [Priority: must]
