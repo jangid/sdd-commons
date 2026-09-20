@@ -664,7 +664,7 @@ asserts the exact new `len(REQUIRED)`.
 asserted.
 **Depends on**: Chunk 9.
 **Tasks**:
-1. [ ] [verify] Run `python3 tools/sdd-gc.py --self-test`, `python3
+1. [x] [verify] Run `python3 tools/sdd-gc.py --self-test`, `python3
    tools/sdd-gc.py --report`, `python3 tools/sdd-skill-lint.py`,
    `python3 tools/sdd-skill-lint.py --self-test` and
    `python3 tools/sdd-scope-check-selftest.py`; all exit 0 / `OK`, and the lint
@@ -673,22 +673,159 @@ asserted.
    unsatisfiable and must not be restored) — traces to
    `docs/spec/skill-lint-v5.md` §Verification → Automated and
    `docs/spec/drift-sweep.md` §Acceptance Criteria.
-2. [ ] [verify] Re-run the mechanical liveness check of Chunk 7 task 4 over both
-   scopes after every other chunk has landed, so a deferral phrased by a later
-   chunk is caught: no live deferral in `docs/requirements/index.md`
-   §Out of Scope, none in this cycle's `verification.md` §Next Steps — traces to
+2. [x] [verify] Re-run the mechanical liveness check of Chunk 7 task 4 over
+   `docs/requirements/index.md` §Out of Scope after every other chunk has
+   landed, so a deferral phrased by a later chunk is caught: no live deferral
+   there. **[Split 2026-09-20 at the close-out — CO-1.** The original criterion
+   also named this cycle's `verification.md` §Next Steps, which is
+   **unrunnable at implement time by construction**: `sdd-verify` is what
+   creates that file. The §Next Steps half moves to the verify stage, where the
+   file exists; only the timing changed, not the check.**] — traces to
    `docs/spec/requirements-artifacts.md` §Acceptance Criteria
    (REQ-REQ-HARNESSP6-001).
-3. [ ] [verify] Walk every row of `docs/ws/harness-p6/traceability.md` and confirm
+3. [x] [verify] Walk every row of `docs/ws/harness-p6/traceability.md` and confirm
    each of the thirteen requirements has an exercised Test and Implementation
    reference; the DONE rule is that every row reads `pass`, nothing closes as a
    deliberate `fail`, and an item that cannot be exercised is descoped at
    replan — traces to `docs/spec/ws-traceability.md` and the kickoff §Decided at
    DISCUSS.
-4. [ ] [verify] Confirm marker-3 behaviour is unchanged: no code path added this
-   cycle is reachable without `docs/ws/`, and no marker-3 contract text was
-   edited — traces to `docs/spec/drift-sweep.md` §Closed-Workstream Skip and the
+4. [x] [verify] Confirm the **closed-workstream skip** is marker-gated — not
+   reachable without `docs/ws/`, demonstrated on a marker-3 flat fixture — and
+   that no marker-3 contract text was edited. **[Corrected 2026-09-20 at the
+   close-out — CO-3.** The original criterion read "no code path added this
+   cycle is reachable without `docs/ws/`", which the close-out **falsified**: the
+   shared-spec staleness fold and its `info` demotion are deliberately not
+   marker-gated, because the shared corpus they clean up is identical under both
+   markers. That is an intended marker-independent delta, recorded in the
+   kickoff's §Out of scope; the criterion was over-broad, not the code.**] —
+   traces to `docs/spec/drift-sweep.md` §Closed-Workstream Skip and the
    kickoff §Out of scope.
+
+#### Close-Out Record (2026-09-20, this chunk's own run)
+
+What each check actually returned. Both sides of every count below were derived
+in the run that produced it; no corpus-measured literal is pinned here.
+
+**Task 1 — the five gate commands. PASS (ticked).** Exit codes captured directly
+(not through a pipe), last line of each:
+
+| command | rc | last line |
+|---------|----|-----------|
+| `sdd-gc.py --self-test` | 0 | `SELF-TEST OK: sweeps 5-14 fire once each …` |
+| `sdd-gc.py --report` | 0 | `OK: 9 sweep(s) clean, 0 warning(s), 31 info` |
+| `sdd-skill-lint.py` | 0 | `OK: 25 file(s) clean` |
+| `sdd-skill-lint.py --self-test` | 0 | `SELF-TEST OK: all rule classes fire; …` |
+| `sdd-scope-check-selftest.py` | 0 | `OK: 41/41 scenarios passed` |
+
+The lint summary reads `OK: 25 file(s) clean` with **no warning clause**, exactly
+as this task predicted; the unsatisfiable `0 warning(s)` expectation was not
+restored. `41/41` agrees with `grep -c '^def scenario_'` = 41 in the same run.
+
+**Task 2 — mechanical liveness check over both scopes. NOT ticked: scope (ii)
+does not exist.**
+
+- Scope (i) `docs/requirements/index.md` §Out of Scope (extracted heading-to-next-
+  same-or-higher-heading, 178 lines): **0 matches** of any of the five phrases,
+  therefore **0 live**. The detector was shown non-vacuous against the whole file
+  in the same run — `deferred to` occurs exactly once in `index.md`, at line 798,
+  inside §Q-REQ Resolutions (`promoted from \`may\`/deferred to \`must\``), which is
+  outside the checked scope and is not a deferral; the other four phrases occur
+  zero times anywhere in the file.
+- Scope (ii) `docs/ws/harness-p6/verification.md` §Next Steps: **the file does not
+  exist** (the workstream directory holds `kickoff.md`, `plan.md`,
+  `plan-history/`, `traceability.md` only). The check over scope (ii) was not
+  run and did **not** pass vacuously. `sdd-verify` writes this artifact, so at
+  implement time the second half of this criterion is unrunnable by construction
+  — see Finding CO-1 below.
+
+**Task 3 — traceability walk. PASS (ticked).** `docs/ws/harness-p6/traceability.md`
+holds exactly **13** data rows: REQ-GC-HARNESSP6-001..004, REQ-HARN-HARNESSP6-001,
+-002, REQ-LINT-HARNESSP6-001..003, REQ-ORCH-HARNESSP6-001, -002,
+REQ-PLAN-HARNESSP6-001, REQ-REQ-HARNESSP6-001. Every row carries a non-empty
+Test and Implementation cell, and every named artefact was located in this run:
+
+- gc self-test sections 9 / 10-11 / 12 at `tools/sdd-gc.py:1590`, `:1634`, `:1687`
+  (`test_stale_chain_skips_closed_workstream`, `test_shared_spec_staleness_folds`
+  / `_severity`, `test_qimpl_definition_is_fence_symmetric`).
+- gc implementation: `visible_lines()` (:217), `sweep_qimpl()` (:622),
+  `ws_closed()` (:794), `_is_stale()` (:809), `_stale(..., severity)` (:813),
+  the `spec_stale` accumulator (:835, :862, :877).
+- scope-check scenarios `scenario_g1`..`g5` (:1831-:1949) and
+  `scenario_l1`..`l9` (:2107-:2243); `GitState` (:218), `git_state()` (:232),
+  `ConvFinding` (:2000), `parser_sections()` (:2016), `convergence_key()` (:2030),
+  `convergence_line()` (:2046), `ConvergenceLedger` (:2052), `render_gate()` (:2084).
+- lint: the `PLAN: INCOMPLETE` ×2, `GIT_STATE` ×2 and `CONVERGENCE:` ×2 `REQUIRED`
+  pairs (:248-:288) and the exact-total assertion at :886.
+- prose anchors: `loop-control.md` §5b (:641), `harness-write-scope.md`
+  §Git-State Observation (:450), the archival strike rule in `sdd-plan/SKILL.md`
+  (:209) and `sdd-replan/SKILL.md` (:170), `requirements-artifacts.md`
+  §`## Out of Scope` Discipline (:238), the REQ-LINT-HARNESSP6-002 qualification
+  note (`integration/skill-lint.md:149`), and the struck "says 61" entry in
+  `docs/ws/harness-p5/plan.md` (:619/:625).
+
+No row is thin enough to block and no named test was unlocatable. `Verified`
+cells are blank throughout, which is correct — they are `sdd-verify`'s. Nothing
+closes as a deliberate `fail`; nothing is descoped in the file. One residual
+noted at read time: REQ-ORCH-HARNESSP6-002's Implementation cell records a
+deliverable of Chunk 9 task 6 as **not** included (the `arbitrated-handoff.md`
+cross-reference, then outside that dispatch's write scope). It has since landed —
+`docs/spec/arbitrated-handoff.md` gained the dated
+`[2026-09-20, harness-p6 — REQ-ORCH-HARNESSP6-002]` paragraph naming the key's
+second consumer (+8 lines in this cycle's diff) — so the cell's disclaimer is now
+stale prose, not a missing deliverable. See Finding CO-2.
+
+**Task 4 — marker-3 behaviour unchanged. NOT ticked: limb 1 is falsified by a
+deliberate, requirement-backed change. See Finding CO-3.**
+
+- The Chunk 1 guard was verified **empirically**, not by reading. A throwaway
+  marker-3 flat fixture was built under `$TMPDIR` (flat `docs/plan.md`, a spec
+  and a category file dated to make it stale, plus a `docs/ws/alpha/verification.md`
+  carrying `status: pass` that a marker-4 run would treat as closed). Loading
+  the shipped `tools/sdd-gc.py` against it: `marker = '3'` →
+  `ws_closed('alpha') = False`; forcing `marker = '4'` on the **same** fixture →
+  `True`. Second limb of the guard: marker forced to `4` with `docs/ws/` removed
+  → `ws_closed('alpha') = False`. Both guards therefore hold.
+- No marker-3 contract text was edited: over the whole cycle diff
+  (`86819e9^..HEAD`), **zero** deleted lines mention marker `3`, `v3` or the flat
+  layout; the only additions that mention marker 3 re-state the exclusion.
+- **But** the same fixture, run through the pre-cycle `tools/sdd-gc.py`
+  (`git show 86819e9^:tools/sdd-gc.py`) and the shipped one, does **not** produce
+  identical output under marker 3: the spec-versus-requirement `[stale-chain]`
+  finding moves from `WARN … spec older than requirement REQ-A-001` to
+  `INFO … spec older than requirements it requires … (ids: REQ-A-001)`, and the
+  summary from `2 warning(s), 0 info` to `1 warning(s), 1 info`. That is
+  REQ-GC-HARNESSP6-002/-003 working as specified — but the fold and the severity
+  split are **not** gated on the marker, so new code added this cycle (`_is_stale`,
+  the `spec_stale` accumulator, the `severity` argument) *is* reachable without
+  `docs/ws/`.
+
+#### Close-Out Findings (for the orchestrator — not repaired here)
+
+- **CO-1 (task 2, criterion defect).** "none in this cycle's `verification.md`
+  §Next Steps" cannot be satisfied at implement time: `sdd-verify` creates that
+  file. As written the criterion is only half-runnable now, and the half that
+  cannot run is the half a later chunk's phrasing would land in. Suggested
+  repair: re-scope the implement-time obligation to scope (i) and move the
+  §Next Steps half to the verify stage (where Chunk 7 task 4 already ran it over
+  `docs/ws/*/verification.md` and observed 4 marker-satisfied occurrences in
+  `harness-p5`'s). This is the seventh false-acceptance-criterion candidate this
+  cycle has surfaced; it is a criterion-phrasing defect, not an implementation
+  defect.
+- **CO-2 (task 3, stale prose).** REQ-ORCH-HARNESSP6-002's Implementation cell
+  still says the `arbitrated-handoff.md` cross-reference is "NOT included". The
+  text landed after that cell was written. The traceability file is outside this
+  chunk's write scope, so the cell is left as-is.
+- **CO-3 (task 4, criterion vs. delivered scope).** "no code path added this
+  cycle is reachable without `docs/ws/`" is falsified by REQ-GC-HARNESSP6-002/-003,
+  whose fold and `info` severity apply corpus-wide. REQ-GC-HARNESSP6-003's text
+  motivates the split "under the v4 shared corpus" but imposes no marker gate,
+  and the shared corpus exists identically under marker 3 — so this reads as
+  intended behaviour with an over-broad close-out criterion, not as a marker-3
+  regression. The narrower claims both hold: the closed-workstream predicate is
+  unreachable under marker 3 (demonstrated above), and no marker-3 contract text
+  was edited. Suggested repair: qualify the criterion to the closed-workstream
+  predicate, or record the staleness-severity change as an intended
+  marker-independent delta.
 
 **Entry criteria**: Chunks 1–9 complete.
 **Exit criteria**: every command above green; no live deferral in either scope;

@@ -246,4 +246,16 @@ runs no mutating git command in this repository.
 - Any change that adds a durable artifact type under `docs/`, or that lets
   telemetry, reviews or red findings influence phase detection.
 - Changing the four-layer verification table, which stays byte-unchanged.
-- Marker-3 behaviour: unchanged this cycle.
+- Marker-3 behaviour: unchanged this cycle. **[Corrected 2026-09-20 at the
+  Chunk 10 close-out — REQ-GC-HARNESSP6-002/-003.** This exclusion held for the
+  **closed-workstream skip**, which is marker-gated (`ws_closed()` returns
+  `False` whenever the marker is not `4`), and was verified empirically against
+  a marker-3 flat fixture. It did **not** hold for the shared-spec staleness
+  **fold and `info` demotion**, which are deliberately not marker-gated: the
+  shared corpus those rules clean up — `docs/spec/` against
+  `docs/requirements/` — is identical under both markers, so the false-positive
+  class they retire exists identically under marker 3. Gating them would keep a
+  known-noisy finding class alive for marker-3 repositories for no benefit.
+  Recorded as an intended marker-independent delta rather than a regression;
+  the close-out criterion that asserted the broader claim is corrected with
+  it.**]
