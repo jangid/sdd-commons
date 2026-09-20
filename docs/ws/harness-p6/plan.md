@@ -60,7 +60,7 @@ for workstreams whose `verification.md` is `status: pass`, so the repo's warning
 count stops growing monotonically with every closed cycle.
 **Depends on**: None.
 **Tasks**:
-1. [ ] [implement] Add the closed-workstream predicate to `sweep_stale()`: a
+1. [x] [implement] Add the closed-workstream predicate to `sweep_stale()`: a
    workstream is closed when `docs/ws/<id>/verification.md` exists and its
    frontmatter `status:` is exactly `pass`; both plan-level sub-kinds (plan
    older than a traced spec, plan older than a traced requirement category
@@ -68,12 +68,12 @@ count stops growing monotonically with every closed cycle.
    allowlist, no file exempted by name; the predicate is evaluated per
    workstream, never per file, and is never consulted under marker `3` —
    traces to `docs/spec/drift-sweep.md` §Closed-Workstream Skip.
-2. [ ] [implement] Add the self-test case `test_stale_chain_skips_closed_workstream`:
+2. [x] [implement] Add the self-test case `test_stale_chain_skips_closed_workstream`:
    a fixture workstream at `status: pass` raises neither plan-level sub-kind;
    the same plan under `status: fail`, under `status: pending-red`, and with no
    `verification.md` at all raises both as before — traces to
    `docs/spec/drift-sweep.md` §Verification → Automated.
-3. [ ] [verify] Run `python3 tools/sdd-gc.py --report` and assert **zero**
+3. [x] [verify] Run `python3 tools/sdd-gc.py --report` and assert **zero**
    `[stale-chain]` findings whose location is under `docs/ws/harness-p3/` or
    `docs/ws/harness-p4/`, both of which are `status: pass` at run time (confirm
    that status from the file in the same run rather than assuming it); assert

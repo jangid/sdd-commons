@@ -767,6 +767,20 @@ class Gc:
                     out.setdefault(m.group(1), f)
         return out
 
+    def ws_closed(self, ws: str) -> bool:
+        """True when workstream `ws` is CLOSED (drift-sweep.md §Closed-Workstream
+        Skip): its `docs/ws/<id>/verification.md` exists and its frontmatter
+        `status:` is exactly `pass`.  Any other status (including `fail` and
+        `pending-red`) and an absent file read as OPEN.  The predicate is
+        per workstream, never per file, and is never consulted under marker 3 —
+        there is no `docs/ws/` there and no sibling verification to read."""
+        if self.marker != "4" or not ws or not self.ws_root.is_dir():
+            return False
+        ver = self.ws_root / ws / "verification.md"
+        if not ver.is_file():
+            return False
+        return str(frontmatter(read_text(ver) or "").get("status", "")).strip() == "pass"
+
     def _stale(self, downstream: Path, d_date: str | None, upstream: Path, u_date: str | None,
                what: str) -> None:
         if d_date and u_date and u_date > d_date:
@@ -790,6 +804,9 @@ class Gc:
         for ws, plan in sorted(plans.items()):
             p_text = read_text(plan) or ""
             p_date = artifact_date(p_text)
+            # Both plan-level sub-kinds are skipped together for a closed
+            # workstream; the shared-spec sub-kind below is unaffected.
+            closed = self.ws_closed(ws)
             spec_by_name = {f.name: f for f in self.spec_files()}
             reqs: set[str] = set()
             for name in sorted(self.traced_specs(plan)):
@@ -805,10 +822,12 @@ class Gc:
                     if cf:
                         self._stale(spec, s_date, cf, artifact_date(read_text(cf) or ""),
                                     f"spec older than requirement {rid}")
-                self._stale(plan, p_date, spec, s_date, "plan older than a traced spec")
-            for cf in sorted({cat_of[r] for r in reqs if r in cat_of}):
-                self._stale(plan, p_date, cf, artifact_date(read_text(cf) or ""),
-                            "plan older than a traced requirement category file")
+                if not closed:
+                    self._stale(plan, p_date, spec, s_date, "plan older than a traced spec")
+            if not closed:
+                for cf in sorted({cat_of[r] for r in reqs if r in cat_of}):
+                    self._stale(plan, p_date, cf, artifact_date(read_text(cf) or ""),
+                                "plan older than a traced requirement category file")
             ver = plan.parent / "verification.md"
             if ver.is_file():
                 v_text = read_text(ver) or ""
@@ -1521,6 +1540,50 @@ def self_test() -> int:
               f"fixed rules still fire: {dict(fails)} {dict(warns)}")
         check(fails["id-missing"] == 1 and fails["kickoff-fields"] == 1 and warns["stale-chain"] == ewarn["stale-chain"],
               f"--fix changed findings it does not own: {dict(fails)} {dict(warns)}")
+
+        # -- 9. test_stale_chain_skips_closed_workstream (REQ-GC-HARNESSP6-001)
+        #    A fresh fixture where BOTH plan-level sub-kinds fire on alpha's plan:
+        #    a.md (2026-01-04) and one.md, re-dated here, are newer than the plan
+        #    (2026-01-03).  Only alpha's verification status varies between runs.
+        closed_root = tmp / "closed"
+        build_fixture(closed_root, clean=False)
+        one_md = closed_root / "docs/requirements/functional/one.md"
+        _w(closed_root, "docs/requirements/functional/one.md",
+           (read_text(one_md) or "").replace("last_updated: 2026-01-01", "last_updated: 2026-01-05"))
+        alpha_ver = closed_root / "docs/ws/alpha/verification.md"
+        plan_line = re.compile(r"^(?:WARN |INFO )?docs/ws/alpha/plan\.md: \[stale-chain\] (.*)$")
+
+        def alpha_plan_kinds() -> set[str]:
+            """The plan-level sub-kinds reported on alpha's plan in one run."""
+            _, text = _run(["--report", "--root", str(closed_root), "--workstream", "alpha"])
+            kinds = set()
+            for ln in text.splitlines():
+                m = plan_line.match(ln)
+                if m and m.group(1).startswith("plan older than a traced spec"):
+                    kinds.add("spec")
+                elif m and m.group(1).startswith("plan older than a traced requirement"):
+                    kinds.add("category")
+            return kinds
+
+        both = {"spec", "category"}
+        for status in ("fail", "pending-red"):
+            _w(closed_root, "docs/ws/alpha/verification.md",
+               f"---\nlast_updated: 2026-01-02\nstatus: {status}\n---\n# V\n\n## Next Steps\n")
+            check(alpha_plan_kinds() == both,
+                  f"status: {status} is OPEN — want both plan-level sub-kinds, got {alpha_plan_kinds()}")
+        alpha_ver.unlink()
+        check(alpha_plan_kinds() == both,
+              f"absent verification.md is OPEN — want both sub-kinds, got {alpha_plan_kinds()}")
+        _w(closed_root, "docs/ws/alpha/verification.md",
+           "---\nlast_updated: 2026-01-02\nstatus: pass\n---\n# V\n\n## Next Steps\n")
+        check(alpha_plan_kinds() == set(),
+              f"status: pass is CLOSED — want no plan-level sub-kind, got {alpha_plan_kinds()}")
+        # the predicate is per workstream: beta (open, no verification.md) is untouched,
+        # and the shared-spec sub-kind is not a plan-level finding, so it survives the skip
+        _, closed_out = _run(["--report", "--root", str(closed_root)])
+        check(any(re.match(r"^(?:WARN |INFO )?docs/spec/a\.md: \[stale-chain\]", ln)
+                  for ln in closed_out.splitlines()),
+              "the closed-workstream skip swallowed the shared-spec sub-kind")
     finally:
         _LINT_SUITE_RULES = True
         shutil.rmtree(tmp, ignore_errors=True)
