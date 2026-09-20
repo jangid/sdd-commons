@@ -21,40 +21,40 @@ inside this cycle by replan.
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-AGENT-MARKETPLACE-001 | | marketplace | | | |
-| REQ-AGENT-MARKETPLACE-002 | | marketplace | | | |
-| REQ-AGENT-MARKETPLACE-003 | | marketplace | | | |
-| REQ-AGENT-MARKETPLACE-004 | | marketplace | | | |
-| REQ-AGENT-MARKETPLACE-005 | | marketplace | | | |
-| REQ-AGENT-MARKETPLACE-006 | | marketplace | | | |
-| REQ-DOCS-MARKETPLACE-001 | | marketplace | | | |
-| REQ-DOCS-MARKETPLACE-002 | | marketplace | | | |
-| REQ-DOCS-MARKETPLACE-003 | | marketplace | | | |
-| REQ-DOCS-MARKETPLACE-004 | | marketplace | | | |
-| REQ-DOCS-MARKETPLACE-005 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-001 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-002 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-003 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-004 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-005 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-006 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-007 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-008 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-009 | | marketplace | | | |
-| REQ-NAME-MARKETPLACE-010 | | marketplace | | | |
-| REQ-PC-MARKETPLACE-001 | | marketplace | | | |
-| REQ-PC-MARKETPLACE-002 | | marketplace | | | |
-| REQ-PC-MARKETPLACE-003 | | marketplace | | | |
-| REQ-PC-MARKETPLACE-004 | | marketplace | | | |
-| REQ-PC-MARKETPLACE-005 | | marketplace | | | |
-| REQ-PC-MARKETPLACE-006 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-001 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-002 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-003 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-004 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-005 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-006 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-007 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-008 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-009 | | marketplace | | | |
-| REQ-PKG-MARKETPLACE-010 | | marketplace | | | |
+| REQ-AGENT-MARKETPLACE-001 | harness-agents.md | marketplace | | | |
+| REQ-AGENT-MARKETPLACE-002 | harness-agents.md | marketplace | | | |
+| REQ-AGENT-MARKETPLACE-003 | harness-agents.md | marketplace | | | |
+| REQ-AGENT-MARKETPLACE-004 | harness-agents.md | marketplace | | | |
+| REQ-AGENT-MARKETPLACE-005 | harness-agents.md | marketplace | | | |
+| REQ-AGENT-MARKETPLACE-006 | harness-agents.md | marketplace | | | |
+| REQ-DOCS-MARKETPLACE-001 | project-docs.md | marketplace | | | |
+| REQ-DOCS-MARKETPLACE-002 | project-docs.md | marketplace | | | |
+| REQ-DOCS-MARKETPLACE-003 | project-docs.md | marketplace | | | |
+| REQ-DOCS-MARKETPLACE-004 | project-docs.md | marketplace | | | |
+| REQ-DOCS-MARKETPLACE-005 | project-docs.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-001 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-002 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-003 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-004 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-005 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-006 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-007 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-008 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-009 | skill-namespace-rename.md | marketplace | | | |
+| REQ-NAME-MARKETPLACE-010 | skill-namespace-rename.md | marketplace | | | |
+| REQ-PC-MARKETPLACE-001 | pre-commit.md | marketplace | | | |
+| REQ-PC-MARKETPLACE-002 | pre-commit.md | marketplace | | | |
+| REQ-PC-MARKETPLACE-003 | pre-commit.md | marketplace | | | |
+| REQ-PC-MARKETPLACE-004 | pre-commit.md | marketplace | | | |
+| REQ-PC-MARKETPLACE-005 | pre-commit.md | marketplace | | | |
+| REQ-PC-MARKETPLACE-006 | pre-commit.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-001 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-002 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-003 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-004 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-005 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-006 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-007 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-008 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-009 | marketplace-packaging.md | marketplace | | | |
+| REQ-PKG-MARKETPLACE-010 | marketplace-packaging.md | marketplace | | | |
