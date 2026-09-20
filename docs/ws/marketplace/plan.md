@@ -603,12 +603,12 @@ front door is `README.md`, and `README.org` is gone — visibly.
 **Depends on**: Chunk 5.
 **Traces to**: docs/spec/project-docs.md
 **Tasks**:
-1. [ ] [implement] Add an MIT `LICENSE` at the repository root with the correct
+1. [x] [implement] Add an MIT `LICENSE` at the repository root with the correct
    copyright holder and year, its first line identifying the MIT licence, so it
    agrees with the `license` value already in `.claude-plugin/plugin.json` —
    traces to `docs/spec/project-docs.md` §`LICENSE`
    (REQ-DOCS-MARKETPLACE-001).
-2. [ ] [implement] Write `README.md` with five identifiable sections: **What
+2. [x] [implement] Write `README.md` with five identifiable sections: **What
    this is** (the SDD workflow in a short paragraph), **Install** (the two
    commands — adding the marketplace, then installing the plugin),
    **Usage** (how an operator starts a full cycle through the driver and how to
@@ -617,7 +617,7 @@ front door is `README.md`, and `README.org` is gone — visibly.
    shipped skills and agents under their namespaced `sdd:<name>` form), and
    **Pointers** to `CONTRIBUTING.md` and `LICENSE` — traces to
    `docs/spec/project-docs.md` §`README.md` (REQ-DOCS-MARKETPLACE-002).
-3. [ ] [implement] Delete `README.org` with `git rm`, as **new content, not the
+3. [x] [implement] Delete `README.org` with `git rm`, as **new content, not the
    old file renamed into place carrying its old body**: two front doors that
    disagree is worse than either alone, and the deletion must be visible in
    history. Remove every running-prose reference to it from the live rename
@@ -626,7 +626,7 @@ front door is `README.md`, and `README.org` is gone — visibly.
    what a past cycle actually shipped — traces to
    `docs/spec/project-docs.md` §`README.org` is deleted, visibly
    (REQ-DOCS-MARKETPLACE-003).
-4. [ ] [implement] Write `CONTRIBUTING.md` carrying its four owed statements,
+4. [x] [implement] Write `CONTRIBUTING.md` carrying its four owed statements,
    each an identifiable section or paragraph: (1) the **naming boundary** —
    pre-marketplace artifacts keep the retired names, new work uses the
    namespaced form — plus the **symlink hazard** and the two operator actions at
@@ -641,14 +641,14 @@ front door is `README.md`, and `README.org` is gone — visibly.
    `docs/spec/project-docs.md` §`CONTRIBUTING.md` — the four things this cycle
    owes it (REQ-DOCS-MARKETPLACE-004, REQ-NAME-MARKETPLACE-006, -010,
    REQ-PKG-MARKETPLACE-009, REQ-PC-MARKETPLACE-004).
-5. [ ] [implement] Close out `CLAUDE.md`: §Repository Structure reflects the
+5. [x] [implement] Close out `CLAUDE.md`: §Repository Structure reflects the
    marketplace layout **including both manifest paths**, §Quality Checks names
    the renamed linter, and every component it names uses the post-rename form.
    Its description of the SDD phases, the driver, phase detection, the
    cycle-identity rules and the v4 layout stays **unchanged in substance** — a
    change to any of them is a defect, not scope — traces to
    `docs/spec/project-docs.md` §`CLAUDE.md` (REQ-DOCS-MARKETPLACE-005).
-6. [ ] [verify] Assert the two README↔manifest consistency contracts **by
+6. [x] [verify] Assert the two README↔manifest consistency contracts **by
    parsing**: the marketplace and plugin names in the README's install commands
    equal those parsed from `.claude-plugin/marketplace.json`; and the set of
    README component names, mapped by §The mapping rule (`sdd:<x>` maps to
@@ -663,7 +663,7 @@ front door is `README.md`, and `README.org` is gone — visibly.
    the reason the file is rewritten, so its presence is asserted, not merely
    written — traces to `docs/spec/project-docs.md` §`README.md`
    (REQ-DOCS-MARKETPLACE-002).
-7. [ ] [verify] Assert `test ! -e README.org` succeeds; run the retired-README
+7. [x] [verify] Assert `test ! -e README.org` succeeds; run the retired-README
    grep over the six live areas applying, in order, (1) the fenced-block and
    inline-backtick-span skip and (2) the single documented exception path — both
    applied by the checking script, never pasted as a count — and assert zero
@@ -671,7 +671,7 @@ front door is `README.md`, and `README.org` is gone — visibly.
    file as separate history, or that the deletion is otherwise visible in the
    commit — traces to `docs/spec/project-docs.md` §Acceptance Criteria
    (REQ-DOCS-MARKETPLACE-003).
-8. [ ] [verify] Assert `LICENSE` exists with an MIT first line and a named
+8. [x] [verify] Assert `LICENSE` exists with an MIT first line and a named
    holder, and that the `license` parsed from `.claude-plugin/plugin.json` is
    the MIT identifier; assert each of the four `CONTRIBUTING.md` items is
    present as an identifiable section or paragraph and that the
@@ -679,7 +679,7 @@ front door is `README.md`, and `README.org` is gone — visibly.
    REQ-NAME-MARKETPLACE-010, REQ-PKG-MARKETPLACE-009 and REQ-PC-MARKETPLACE-004
    all pass — traces to `docs/spec/project-docs.md` §Acceptance Criteria
    (REQ-DOCS-MARKETPLACE-001, -004).
-9. [ ] [verify] Assert a grep of `CLAUDE.md` for the retired prefix returns zero
+9. [x] [verify] Assert a grep of `CLAUDE.md` for the retired prefix returns zero
    outside the fenced-block and backtick-span skip set; assert `CLAUDE.md` names
    both manifest paths; and produce the `git diff` of `CLAUDE.md` across the
    cycle for reviewer confirmation that the phase-detection table, the
@@ -687,7 +687,7 @@ front door is `README.md`, and `README.org` is gone — visibly.
    substitution**. This is a reviewer-checkable diff, not a free-text claim —
    traces to `docs/spec/project-docs.md` §Acceptance Criteria
    (REQ-DOCS-MARKETPLACE-005).
-10. [ ] [verify] Assert the drift sweep and the skill linter both exit 0 after
+10. [x] [verify] Assert the drift sweep and the skill linter both exit 0 after
     these documents land, and that `pre-commit run --all-files` still exits 0
     and leaves the tree clean — traces to `docs/spec/project-docs.md`
     §Acceptance Criteria (REQ-PC-MARKETPLACE-005).

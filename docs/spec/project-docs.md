@@ -94,6 +94,15 @@ it describes — the same reasoning that excludes `docs/ws/`, `docs/research/` a
 area that is a record rather than a description. The exception is named by path
 in the checking script, not by a general allowlist, and it is the only one.
 
+**The sweep is over running prose.** The live areas include `tools/`, whose
+Python sources carry the retired filename as a *scope literal* rather than as a
+reference a reader would follow — the linter's own scope tuple must name the
+file it sweeps. The checking script therefore restricts the sweep to prose files
+(`.md`, `.org`) inside the six areas, which is what §`README.org` is deleted,
+visibly asks for when it says no file may reference it *in running prose*; the
+narrowing and the one code literal it leaves standing are recorded as
+Q-IMPL-MARKETPLACE-017.
+
 The deletion must be **visible in history** rather than disguised: `README.md`
 is new content, not the old file renamed into place carrying its old body. The
 check is that `git log --follow README.md` shows the two as separate history, or
@@ -126,6 +135,9 @@ Updated so that:
 - §Repository Structure reflects the marketplace layout, **including both
   manifest paths**;
 - §Quality Checks names the renamed linter;
+- §Quality Checks also points at the commit gate the same cycle introduces, so
+  the section does not describe a hand-run linter that a hook now runs — see
+  Q-IMPL-MARKETPLACE-018;
 - §Agents documents exactly the five-field list of `harness-agents.md`.
 
 **Unchanged in substance**: its description of the SDD phases, the driver, phase
@@ -151,3 +163,37 @@ component name is pinned as a literal in a check.
 - [ ] A run-time grep of `CLAUDE.md` for the retired prefix returns zero matches outside the skip set of REQ-NAME-MARKETPLACE-009 (fenced blocks and backtick spans); `CLAUDE.md` names both manifest paths; `git diff` of `CLAUDE.md` across the cycle shows no change to the phase-detection table, the cycle-identity rules or the v4 layout section beyond name substitution, confirmed by a reviewer against that diff (REQ-DOCS-MARKETPLACE-005).
 - [ ] The field list in `CLAUDE.md` §Agents, parsed from the section, equals the five-field list of `harness-agents.md`; the section names `color` and names neither dropped field (REQ-DOCS-MARKETPLACE-005, REQ-AGENT-MARKETPLACE-003).
 - [ ] The drift sweep and the skill linter both exit 0 after these documents land.
+
+## Implementation Questions
+
+### Q-IMPL-MARKETPLACE-017: The retired-README sweep is restricted to prose files
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`README.org` is deleted, visibly; §Acceptance Criteria
+**Decision**: the run-time sweep for the retired README filename covers the
+files with a `.md` or `.org` suffix inside the six live areas, after the
+fenced-block and backtick-span skip and the one documented exception path. One
+occurrence therefore remains and is deliberate: `tools/skill-lint.py` lists the
+filename in its `RETIRED_SCOPE_FILES` tuple, the set of root files the linter's
+own retired-prefix rule sweeps.
+**Rationale**: the design text states the contract as "no remaining file in the
+live rename scope may reference it **in running prose**", and a scope literal in
+a linter's rule table is not running prose — it is the rule naming its own
+inputs. Rewriting it would also be a source edit to a bundled tool, which
+`skill-namespace-rename.md` permits only for the `--help` change, and
+`tools/` is outside this chunk's write scope. Pruning the now-deleted filename
+from that tuple is a one-line follow-up whose absence changes no behaviour: the
+rule simply finds no such file.
+
+### Q-IMPL-MARKETPLACE-018: `CLAUDE.md` §Quality Checks also names the commit gate
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`CLAUDE.md`
+**Decision**: alongside the renamed-linter bullet the spec requires, §Quality
+Checks gained one bullet naming `pre-commit install`, `pre-commit run
+--all-files`, and the three heavier self-tests that stay outside the gate,
+pointing at `CONTRIBUTING.md` for their commands.
+**Rationale**: the spec's `CLAUDE.md` bullet list predates the pre-commit domain
+landing in the same cycle. Leaving the section describing only hand-run tools
+would have made the repository's own quality instructions disagree with the hook
+config a contributor installs — the drift this cycle's document work exists to
+close. The addition is additive and touches none of the sections the spec fences
+as unchanged in substance.
