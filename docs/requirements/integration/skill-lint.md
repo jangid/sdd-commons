@@ -146,6 +146,22 @@ move plus the HARN stubs pointing at `references/write-scope.md` and
 is superseded: `sdd-orchestrate/SKILL.md` was 551 lines at p4 DONE (p4 red R8
 accepted); the p5 target for every `SKILL.md` is **under 400** — see
 REQ-LINT-HARNESSP5-001 / -002.
+[Updated: 2026-09-20, harness-p6 — REQ-LINT-HARNESSP6-002] The "must **not**
+move" list above is **qualified, not amended**. Moving any of those sections out
+of `SKILL.md` for size reasons is an **authorised exception** to that list, and
+**REQ-LINT-HARNESSP5-001** — which requires every `SKILL.md` to be brought under
+400 lines by moving detail into `references/*.md` — is the authorising
+requirement; the harness-p5 move of §Isolation Discipline and §Orchestrator-Only
+Work into `references/isolation.md` is the instance. The two requirements
+conflict textually only: the `no` list scopes those sections out of *this*
+marker-4 prose move, it does not pin them to `SKILL.md` forever — see
+`docs/spec/skill-lint-v5.md` §Scope of the `no` row for the reconciling reading,
+and the moved-section invariants there (stub with the marker-3 sentence,
+`REQUIRED` rows re-pointed never dropped, fenced bodies kept paired) continue to
+apply. This requirement's id, its number and its original text above are
+deliberately left unchanged: amending them in place would break every artifact
+that cites REQ-LINT-007 and would erase the record that the two requirements
+once disagreed.
 
 <!-- REQ-LINT-HARNESSP2-NNN: workstream-prefixed additions for the harness-p2
      cycle (RS-HARNESSP2-001; marker 4, per docs/spec/ws-ids.md). -->

@@ -277,10 +277,13 @@ declares it here and notes the widening at the per-chunk gate, per
 `docs/requirements/integration/skill-lint.md` (task 1, named by
 REQ-LINT-HARNESSP6-002) and `docs/ws/harness-p5/plan.md` (task 4, named
 explicitly by REQ-PLAN-HARNESSP6-001 — a **cross-workstream** write into a
-closed workstream's owned artifact, annotation-only, no deletion). Without this
+closed workstream's owned artifact, annotation-only, no deletion) and
+`skills/sdd-plan/SKILL.md` + `skills/sdd-replan/SKILL.md` (task 3, the two
+archiving skills the strike rule is taught to — corrected 2026-09-20 at
+dispatch; the earlier line omitted them). Without this
 declaration all three render `OUT` and the per-chunk gate withholds `proceed`.
 **Tasks**:
-1. [ ] [implement] Add a bracketed dated `[Updated: 2026-09-20 …]` note to
+1. [x] [implement] Add a bracketed dated `[Updated: 2026-09-20 …]` note to
    REQ-LINT-007 in `docs/requirements/integration/skill-lint.md`, naming the
    authorised exception and **REQ-LINT-HARNESSP5-001** as the authorising
    requirement. The id, its number and its original text are **not** changed —
@@ -289,13 +292,13 @@ declaration all three render `OUT` and the per-chunk gate withholds `proceed`.
    or skill file changes for this item — traces to
    `docs/spec/skill-lint-v5.md` §Qualification of the "must not move" Row
    (REQ-LINT-HARNESSP6-002).
-2. [ ] [verify] A reader of REQ-LINT-007 and REQ-LINT-HARNESSP5-001 in sequence
+2. [x] [verify] A reader of REQ-LINT-007 and REQ-LINT-HARNESSP5-001 in sequence
    finds no contradiction (**manual criterion — judgement, not mechanism;
    plan-review m4**); the findings of `python3 tools/sdd-skill-lint.py`
    and `python3 tools/sdd-gc.py --report` **on that file** are unchanged from a
    baseline captured immediately before the edit — traces to
    `docs/spec/skill-lint-v5.md` §Acceptance Criteria (REQ-LINT-HARNESSP6-002).
-3. [ ] [implement] Teach `sdd-plan` and `sdd-replan` the archival strike rule: at
+3. [x] [implement] Teach `sdd-plan` and `sdd-replan` the archival strike rule: at
    archival, every `## Open Questions` entry the corpus has since answered is
    **struck** — left visible, marked with a bracketed dated resolution marker on
    its own line or the line immediately preceding it, naming the date and what
@@ -305,13 +308,13 @@ declaration all three render `OUT` and the per-chunk gate withholds `proceed`.
    archived copy under `plan-history/` only and adds no file, section or marker
    type — traces to `docs/spec/plan-management.md` §Resolved `## Open Questions`
    Entries Are Struck at Archival (REQ-PLAN-HARNESSP6-001).
-4. [ ] [implement] Close the concrete instance: strike the `telemetry-reader.md`
+4. [x] [implement] Close the concrete instance: strike the `telemetry-reader.md`
    "says 61" entry in `docs/ws/harness-p5/plan.md` §Open Questions / Assumptions with its date
    and the evidence that resolved it, so the stale claim no longer appears
    unmarked in that file or in the archive that replaces it — traces to
    `docs/spec/plan-management.md` §Acceptance Criteria
    (REQ-PLAN-HARNESSP6-001).
-5. [ ] [verify] The struck entry is still **present** — the archived file's entry
+5. [x] [verify] The struck entry is still **present** — the archived file's entry
    count is unchanged by the strike (compare entry counts before and after in
    the same run) — and carries an adjacent bracketed dated marker; a search for
    the stale claim finds no **unmarked** occurrence — traces to

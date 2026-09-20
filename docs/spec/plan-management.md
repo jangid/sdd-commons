@@ -151,10 +151,32 @@ question forever, and a later reader cannot tell a genuinely open item from one
 that was settled three cycles ago.
 
 **Struck, not deleted.** The entry stays visible, marked with a bracketed dated
-resolution marker on its own line or the line immediately preceding it — the
-same adjacent-marker shape the requirements corpus uses
-(`requirements-artifacts.md` §`## Out of Scope` Discipline) — naming the date
-and what resolved it:
+resolution marker on **a line of its own directly abutting the entry** —
+immediately after the entry's heading line, or immediately after its last line
+when the entry wraps — or appended to the entry's own line, naming the date and
+what resolved it. This uses the same marker **token** shape as the requirements
+corpus (`requirements-artifacts.md` §`## Out of Scope` Discipline), but not the
+same **adjacency**: there the anchor is a matched phrase and only at-or-above
+placement counts (the occurrence's own line or the one immediately preceding
+it); here the anchor is the **entry block**, and the marker normally sits
+*below* it. The two rules govern disjoint scopes — that corpus rule reads
+`requirements/index.md` §Out of Scope and `verification.md` §Next Steps for
+deferral phrasings; this one reads archived `plan-history/` §Open Questions for
+answered entries — and neither regex is ever applied to the other's scope.
+
+**[Clarified 2026-09-20 — REQ-PLAN-HARNESSP6-001.** The earlier wording read
+"on its own line or the line immediately preceding it", which the worked
+example below contradicts: the example places the marker on the line
+*following* the heading. Read entry-anchored, the spec's own example violated
+the spec. The ambiguity was found at the harness-p6 Chunk 6 verification, where
+a real struck entry wrapped across six lines and its marker landed below the
+entry rather than above the matched phrase.**]
+
+**Note for whoever implements §Verification → Automated.** That validator must
+anchor on the **entry block**, not on a matched phrase, and must accept a
+marker *below* the entry. Borrowing the requirements corpus's `L` / `L-1`
+at-or-above semantics would flag correctly-struck entries — including the one
+this cycle wrote — as live.
 
 ```
 ### 3. Does telemetry-reader.md still say 61?
