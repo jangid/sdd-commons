@@ -91,6 +91,21 @@ two path sets; ``landed`` is always the two-sha range ``HEAD_before..HEAD_landed
       both hold ``docs/notes with space.md``        counted once (``-z``, split on ``\0``);
                                                    whitespace split -> false INCOMPLETE
 
+
+Convergence scenarios added at red round 1 (``harness-loop-control.md``
+§Convergence Signal), each mutation-proven — reverting that one fix fails that
+one scenario and no other:
+
+  L10 red R3: key rule 2 is gated on a         -> the ``.py`` pair renders nothing;
+      genuinely STRUCTURELESS file, not on        the ``.jsonl`` control still clusters
+      "not Markdown"
+  L11 red R4: a path absent from the checkout  -> no cluster key at all, so two
+      is not evidence of structurelessness        findings on different sections of it
+                                                  render nothing
+  L12 red R5: ``_headings()`` is fence-aware,  -> a Markdown file whose only ``#`` is
+      so a ``#`` inside a fenced block is not     inside a fence parses to [] sections
+      a heading                                   and its cluster is not dropped
+
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
 
@@ -689,9 +704,37 @@ def section_name(heading: str) -> str:
     return "§" + " ".join(text.split())
 
 
+# A fenced code block opens and closes on a line whose first non-space run is
+# three or more backticks or tildes (CommonMark). Everything between the opening
+# fence and the next fence of the SAME character is literal text, so a ``#``
+# there is a shell comment or a Markdown example — never a heading.
+FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+
+
 def _headings(lines: list[str]) -> list[tuple[int, str]]:
-    """``(line number, §Name)`` for every ``#``-heading, 1-based, in file order."""
-    return [(i, section_name(ln)) for i, ln in enumerate(lines, start=1) if ln.startswith("#")]
+    """``(line number, §Name)`` for every ``#``-heading, 1-based, in file order.
+
+    **Fence-aware** (REQ-HARN-HARNESSP6-002, red R5). Lines inside a fenced code
+    block are skipped: a ``# comment`` in a fenced shell block is not a heading,
+    and counting it made a genuinely structureless Markdown file look sectioned,
+    which silently dropped a convergence that key rule 2 would have rendered.
+    This is the same fence-blindness class REQ-GC-HARNESSP6-004 closed in
+    ``tools/sdd-gc.py``; the sibling tool key rule 2 depends on had kept it.
+    """
+    out: list[tuple[int, str]] = []
+    fence: str | None = None  # the opening fence's character run, while open
+    for i, ln in enumerate(lines, start=1):
+        m = FENCE.match(ln)
+        if m:
+            token = m.group(1)[0]
+            if fence is None:
+                fence = token
+            elif token == fence:
+                fence = None  # a closing fence of the same character
+            continue
+        if fence is None and ln.startswith("#"):
+            out.append((i, section_name(ln)))
+    return out
 
 
 def _hunk_ranges(diff_text: str) -> list[tuple[int, int]]:
@@ -2013,12 +2056,22 @@ class ConvFinding:
     cited_id: str | None = None  # a REQ-* or deviation-entry id
 
 
+# Key rule 2's discriminator (harness-loop-control.md §Convergence Signal, red
+# R3): a **record/data file** — a flat sequence of records with no addressable
+# structure of any kind. These are the files for which "the whole file" is the
+# only key that exists, which is what makes the file-level key meaningful there.
+# A source file is deliberately NOT in this set: a ``.py`` module has functions
+# and classes, so the key parser finding no ``#``-headings in it is a limitation
+# of the parser, not a property of the file.
+DATA_SUFFIXES = (".jsonl", ".ndjson", ".csv", ".tsv", ".log", ".txt")
+
+
 def parser_sections(repo: str, path: str) -> list[str]:
     """Sections the arbitration key parser finds in ``path`` — empty when there are none.
 
-    A ``.jsonl``, ``.py`` or other non-Markdown file has no section structure to
-    key on, and a Markdown file with no headings has none either. This is the
-    input to key rule 2 (sectionless file).
+    Markdown only: headings are the only section structure the key parser reads.
+    A non-Markdown file yields ``[]`` here, which is **not** on its own a licence
+    to key on the file (see :func:`file_structure`).
     """
     full = os.path.join(repo, path)
     if not path.endswith(MARKDOWN_SUFFIXES) or not os.path.isfile(full):
@@ -2027,13 +2080,48 @@ def parser_sections(repo: str, path: str) -> list[str]:
         return [name for _, name in _headings(fh.read().splitlines())]
 
 
+# file_structure() return values.
+ABSENT_PATH = "absent"  # the path is not a file in the checkout — no key at all
+STRUCTURELESS = "structureless"  # a record/data file, or Markdown with no headings
+STRUCTURED = "structured"  # anything else: it has structure, whether or not we parse it
+
+
+def file_structure(repo: str, path: str) -> str:
+    """Classify ``path`` for key rule 2 (red R3, R4).
+
+    ``ABSENT_PATH``    — not a file in this checkout. A finding may name a path
+                         that is a typo, a rename, or a file living only in a
+                         fan-out worktree; absence must not silently discard the
+                         section discriminator and let two findings on DIFFERENT
+                         sections of it cluster (red R4).
+    ``STRUCTURELESS``  — a ``DATA_SUFFIXES`` record file, or a Markdown file in
+                         which the fence-aware parser finds no heading. The whole
+                         file is the only key that exists.
+    ``STRUCTURED``     — everything else, including source files. Two unrelated
+                         findings in a 1000-line module are not one root cause
+                         (red R3), so no file-level key is minted for them.
+    """
+    if not os.path.isfile(os.path.join(repo, path)):
+        return ABSENT_PATH
+    if path.endswith(DATA_SUFFIXES):
+        return STRUCTURELESS
+    if path.endswith(MARKDOWN_SUFFIXES) and not parser_sections(repo, path):
+        return STRUCTURELESS
+    return STRUCTURED
+
+
 def convergence_key(repo: str, f: ConvFinding) -> tuple[str, ...] | None:
     """The finding's cluster key under the three key rules, applied in order."""
     if f.cited_id:  # key rule 1 — shared id (primary), whatever the file and section
         return ("id", f.cited_id)
     if f.file is None:
         return None
-    if not parser_sections(repo, f.file):  # key rule 2 — sectionless file
+    structure = file_structure(repo, f.file)
+    if structure == ABSENT_PATH:
+        # red R4: a path absent from the checkout yields NO cluster key. It is
+        # not evidence of structurelessness, so it must not collapse to one.
+        return None
+    if structure == STRUCTURELESS:  # key rule 2 — structureless file
         return ("file", f.file)
     if f.section is None:
         # A sectioned file matched at file level only: the retained
@@ -2093,6 +2181,10 @@ def _conv_repo(repo: str) -> None:
           "# Telemetry\n\n## Writer rule\n\ntext\n\n## Reader rule\n\ntext\n")
     write(repo, "docs/ws/harness/notes.jsonl", '{"rec": 1}\n{"rec": 2}\n')
     write(repo, "tools/reader.py", "def summarize():\n    return 0\n")
+    # A Markdown file with NO real heading whose only ``#`` lines live inside a
+    # fenced shell block (red R5 fixture).
+    write(repo, "docs/ws/harness/fenced.md",
+          "Intro prose, no heading anywhere.\n\n```sh\n# run the sweep\npython3 tools/sdd-gc.py\n```\n\nmore prose\n")
 
 
 def _conv_run(repo: str, findings: list[ConvFinding], rid: str = "RS-HARNESSP6-001") -> list[str]:
@@ -2254,6 +2346,90 @@ def scenario_l9(repo: str) -> tuple[bool, str, list[str]]:
     return ok, second[0] if second else "no line", second + third
 
 
+def scenario_l10(repo: str) -> tuple[bool, str, list[str]]:
+    """Red R3: key rule 2 is gated on a structureless file, not on "not Markdown".
+
+    Two unrelated findings anywhere in a source module are not one root cause —
+    a ``.py`` file has functions and classes, so the key parser finding no
+    ``#``-headings in it is a limitation of the parser, not a property of the
+    file. Mutation control: reverting the gate to "not Markdown" makes the
+    ``.py`` pair cluster and this scenario fail, while the ``.jsonl`` control
+    below must keep clustering so the fix does not simply delete key rule 2.
+    """
+    _conv_repo(repo)
+    py_noise = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "implement", "tools/reader.py"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "tools/reader.py"),
+    ])
+    # the rule it exists for is preserved: red and blue on one record/data file
+    data_control = _conv_run(repo, [
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/ws/harness/notes.jsonl"),
+        ConvFinding("blue", "RS-HARNESSP6-001", "verify", "docs/ws/harness/notes.jsonl"),
+    ])
+    ok = (
+        file_structure(repo, "tools/reader.py") == STRUCTURED
+        and file_structure(repo, "docs/ws/harness/notes.jsonl") == STRUCTURELESS
+        and py_noise == []
+        and len(data_control) == 1
+    )
+    return ok, f"py-noise {len(py_noise)} cluster(s), data control {len(data_control)}", py_noise + data_control
+
+
+def scenario_l11(repo: str) -> tuple[bool, str, list[str]]:
+    """Red R4: a path absent from the checkout yields NO cluster key.
+
+    A finding may name a typo, a renamed path, or a file living only in a
+    fan-out worktree. Classifying it as structureless would cluster two findings
+    naming DIFFERENT sections of it — exactly the case L3 asserts must not
+    cluster. Mutation control: returning ``[]`` for a missing path makes both
+    runs below cluster.
+    """
+    _conv_repo(repo)
+    gone = "docs/spec/gone.md"
+    diff_sections = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", gone, "§A"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", gone, "§B"),
+    ])
+    no_sections = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", gone),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", gone),
+    ])
+    ok = (
+        file_structure(repo, gone) == ABSENT_PATH
+        and convergence_key(repo, ConvFinding("red", "RS-HARNESSP6-001", "verify", gone, "§A")) is None
+        and diff_sections == []
+        and no_sections == []
+    )
+    return ok, "no cluster (absent path)", diff_sections + no_sections
+
+
+def scenario_l12(repo: str) -> tuple[bool, str, list[str]]:
+    """Red R5: ``_headings()`` is fence-aware, so a fenced ``#`` is not a section.
+
+    A Markdown file whose only ``#`` line is a shell comment inside a fenced
+    block has no sections, so key rule 2 applies and a genuine two-layer
+    convergence on it renders. Mutation control: a fence-blind ``_headings``
+    reports ``['§run the sweep']``, the file reads as sectioned, and the cluster
+    is silently dropped.
+    """
+    _conv_repo(repo)
+    fenced = "docs/ws/harness/fenced.md"
+    lines = _conv_run(repo, [
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", fenced),
+        ConvFinding("blue", "RS-HARNESSP6-001", "verify", fenced),
+    ])
+    # and a file that has BOTH a fenced ``#`` and a real heading keeps only the real one
+    write(repo, "docs/ws/harness/mixed.md",
+          "# Real\n\n```\n# not a heading\n```\n\n## Second\n")
+    ok = (
+        parser_sections(repo, fenced) == []
+        and file_structure(repo, fenced) == STRUCTURELESS
+        and parser_sections(repo, "docs/ws/harness/mixed.md") == ["§Real", "§Second"]
+        and lines == [f"CONVERGENCE: {fenced} (red, blue) — 2 layers"]
+    )
+    return ok, lines[0] if lines else "no line", lines
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -2296,6 +2472,9 @@ SCENARIOS = [
     ("L7", "L2 rendering: CONVERGENCE: between PLAN: (6b) and TELEMETRY: (7), proceed available", scenario_l7),
     ("L8", "L2 invariant: a run in which a cluster fires adds no path under docs/", scenario_l8),
     ("L9", "L2 Q-IMPL-HARNESSP6-001: a third layer does not re-render the cluster", scenario_l9),
+    ("L10", "L2 red R3: key rule 2 is gated on a structureless file, not on non-Markdown", scenario_l10),
+    ("L11", "L2 red R4: a path absent from the checkout yields no cluster key", scenario_l11),
+    ("L12", "L2 red R5: _headings() is fence-aware, so a fenced # is not a section", scenario_l12),
 ]
 
 

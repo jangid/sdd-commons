@@ -665,13 +665,28 @@ the same deviation-entry id cluster, whatever their files and sections. In the
 Chunk 8 replay this was the **only** key that formed a cluster at all, The spike rated that single cluster **marginal** — in its own words, "0 that an operator would confidently call one root cause, 1 marginal … a topical adjacency rather than a demonstrated common cause". That is precisely why the signal is **informational** and never pauses a gate: its primary key rests on one cluster the spike itself would not confidently call a convergence. Key rule 2's justification is the stronger of the two — the cluster it recovers (red and blue on the same malformed records in a sectionless file) is the one the spike did rate genuine. so it is
 the primary key of the shipped signal.
 
-**Key rule 2 — sectionless file.** The **file-level** key is itself the cluster
-key when the arbitration key parser finds **no section** in the file — a `.jsonl`
-data file, a `.py` module, anything without section structure. Two findings from
-different layers naming such a file cluster on the file alone. This recovers the
-one genuine convergence a section-granular key structurally cannot catch (red
-and blue hitting the same malformed records in one JSONL data file, which can
-never carry a section key).
+**Key rule 2 — structureless file.** The **file-level** key is itself the
+cluster key when the file is genuinely **structureless** — a record/data file
+(`.jsonl`, `.ndjson`, `.csv`, `.tsv`, `.log`, `.txt`), or a Markdown file in
+which the fence-aware parser finds no heading. Two findings from different
+layers naming such a file cluster on the file alone. This recovers the one
+genuine convergence a section-granular key structurally cannot catch (red and
+blue hitting the same malformed records in one JSONL data file, which can never
+carry a section key).
+
+Three boundaries keep that rule from admitting noise (red R3/R4/R5;
+`harness-loop-control.md` §Convergence Signal):
+
+- a **source** file is not structureless — a `.py` module has functions and
+  classes, so the Markdown parser finding no heading in it is a limitation of
+  the parser, not a property of the file, and two unrelated findings in one
+  1000-line module must not cluster;
+- a path **absent** from the checkout yields **no** key at all — absence is not
+  evidence of structurelessness, and collapsing it to the file key would cluster
+  two findings naming different sections of a path nobody can see;
+- heading detection is **fence-aware** — a `#` inside a fenced block is a
+  comment or an example, and counting it made a structureless Markdown file read
+  as sectioned, silently dropping a real cluster.
 
 **Key rule 3 — equal `(file, section)` (retained, demoted).** Findings whose
 keys are equal at section granularity still cluster, reusing the existing

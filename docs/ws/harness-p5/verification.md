@@ -308,6 +308,7 @@ is fixed or accepted. The active plan may be archived to
 ## Next Steps
 
 - gc `[stale-chain]` (the dominant warn-class contributor): bump `docs/spec/telemetry.md`
+  **[Superseded 2026-09-20 — RS-HARNESSP6-001 Q1; the full note follows this entry. Marker repeated here on the line immediately above the phrase so the matched-phrase, at-or-above liveness rule resolves it (red R1/R2).]**
   `last_updated:` to `2026-09-20` through `sdd-specs` in a follow-up cycle — the
   content is already current. Routed `record` at the DONE gc step.
   **[Superseded 2026-09-20 by RS-HARNESSP6-001 Q1 — see REQ-GC-HARNESSP6-002 and
@@ -383,6 +384,7 @@ signal stops meaning anything. The rule itself is Next Step 2/4.
 - gc `[stale-chain]`: `docs/spec/telemetry.md` (42 warnings) — the spec's content
   is current (the harness-p5 writer rules were Approved at the specs stage and
   needed no edit), only its `last_updated:` lags its 2026-09-20 requirement file.
+  **[Superseded 2026-09-20 — RS-HARNESSP6-001 Q1; the full note follows this entry. Marker repeated above the phrase for the at-or-above liveness rule (red R1/R2).]**
   Fix: bump through `sdd-specs` in a cycle that actually edits it, or let Next
   Step 2/4's rule change retire the class.
   **[Superseded 2026-09-20 by RS-HARNESSP6-001 Q1 — the "bump through

@@ -743,15 +743,19 @@ R6); none of them invalidates a plan assumption.
   *differently* at the gate — which is the whole point of the distinction.
   Nothing carries forward from V1.
 - **R1 (fixed, not deferred)** — the reader now surfaces out-of-domain
+  **[Closed 2026-09-20 in harness-p6 — SATISFIED: `tools/sdd-telemetry.py` ships the `--lint` mode this entry asks for (`tools/sdd-telemetry.py:18`), validating every field against the domain table, so the writer contract is mechanically enforced. Half (a) — the 8 live records malformed by design — is a statement of fact, not work.]**
   `dispatch.chunk` values and the writer contract forbids them. Two follow-ups
   remain: (a) the 8 live records stay malformed by design, so this cycle's
   per-chunk block is permanently empty; (b) nothing *mechanically* enforces the
   writer contract — a `sdd-telemetry.py --lint` mode, or a check at append time,
+  **[Closed 2026-09-20 in harness-p6 — SATISFIED by the same evidence as the marker above: `--lint` exists and is exercised by `--self-test`. No successor cycle is required for it.]**
   is the harness-p4 candidate.
+**[Closed 2026-09-20 in harness-p6 — SATISFIED: both skills now emit `research_id:` immediately after `status:` (`skills/sdd-verify/SKILL.md:231`, `skills/sdd-plan/SKILL.md:141`), which is what Q-IMPL-HARNESSP3-014 pins. Nothing remains to reconcile.]**
 - **R4 (accepted at the verify gate — harness-p4 candidate)** — `sdd-verify`
   emits `research_id:` after `last_updated:` rather than immediately after
   `status:` as Q-IMPL-HARNESSP3-014 pins, and `sdd-plan`'s frontmatter template
   shows the same order. Reconcile the two skills with the Q-IMPL (or amend the
+  **[Closed 2026-09-20 in harness-p6 — covered by the marker introducing this entry; the two skills are already reconciled, so no cross-skill cycle is needed.]**
   Q-IMPL) in a cycle that can edit both. Cosmetic: string equality is
   order-independent.
 - **R6 (accepted at the verify gate)** — the V5 criterion's wording ("no new
@@ -759,6 +763,7 @@ R6); none of them invalidates a plan assumption.
   `[traceability-aggregate]` warning between a per-ws write and the
   orchestrator's regeneration is the designed handshake, not a finding. Needs a
   spec-amending cycle.
+**[Closed 2026-09-20 in harness-p6 — SATISFIED: `harness-p6` is the genuinely branched workstream this entry asked for. `docs/ws/harness-p6/verification.md` §Regressions resolves `merge-base(harness-p6, main)` to `0b0287ce` and takes its regression diff from that base, so the isolating property is now exercised on a real branch rather than degenerating to HEAD.]**
 - **Marker-4 merge-base regression rule — never exercised this cycle.** Step 5's
   `regression_base(<ws>) = merge-base(<ws>, main)` rule was not put under load:
   this workstream has no branch of its own, so the merge-base resolved to HEAD
@@ -766,6 +771,7 @@ R6); none of them invalidates a plan assumption.
   isolating property — a workstream's verification being unaffected by unrelated
   work merged to `main` meanwhile — remains unverified in practice and wants a
   genuinely branched workstream to exercise it.
+**[Closed 2026-09-20 in harness-p6 — SATISFIED in harness-p5: REQ-ARB-HARNESSP5-002 closes both ARB rows with a deterministic offline fixture (scenarios A1/A2/A3 plus the A1m-i / A1m-ii mutation controls in `tools/sdd-scope-check-selftest.py`), which was adopted precisely so that no second live fix loop had to be waited for.]**
 - **V3 (not exercised)** — REQ-ARB-HARNESSP3-001 is fixture-backed only; no live
   fix loop regenerated its deliverable between review rounds this cycle. Reason:
   every fix iteration this cycle patched rather than regenerated. If the red
@@ -781,10 +787,12 @@ R6); none of them invalidates a plan assumption.
   write scope, and `sdd-verify` does not fix during verify.
 - **V7** — collapse the observed-writes union to strict set semantics
   (de-duplicate by path at render, keeping the richest provenance label) so `N`
+  **[Closed 2026-09-20 in harness-p6 — SATISFIED in harness-p4: `Observation.collapse()` implements the strict-set collapse and scenario F14 proves a path in both the committed and content deltas is counted once.]**
   counts distinct paths. harness-p4.
 - **V8** — add a `tools/sdd-skill-lint.py` `[template-drift]` rule comparing the
   fenced bodies of `references/dispatch-templates.md` against
   `harness-chunk-verifier.md` and `adversarial-verify.md`; the five bodies are
+  **[Closed 2026-09-20 in harness-p6 — SATISFIED in harness-p4: `tools/sdd-skill-lint.py:296` ships the `[template-drift]` rule over `TEMPLATE_PAIRS`, with its own self-test section.]**
   byte-identical today but nothing keeps them so. harness-p4.
 - **V9** — unify the three leaf templates' terminal tokens at column 0; needs a
   cycle that can also amend the two Approved specs restating the bodies.
@@ -792,22 +800,29 @@ R6); none of them invalidates a plan assumption.
   `docs/requirements/traceability.md §(matrix)` to `regen[1]` labelled as an
   orchestrator regeneration, and write `M3`'s path in full.
 - **V11** — add the `regen[N]` line to `arbitrated-handoff.md` §Retained
+  **[Closed 2026-09-20 in harness-p6 — SATISFIED: `docs/spec/arbitrated-handoff.md:62` defines `regen[N]` and `:67` the `W_N` union that consumes it.]**
   Per-Round State; needs a cycle that can amend Approved specs.
 - **V12** — recorded baseline: 9 clean sweeps / 7 warnings / 25 info, with the
   three `[size]` warnings (434 / 464 / 535) accepted as intentional. Do not
+  **[Struck 2026-09-20 in harness-p6 — settled exclusion with its reasoning: the three `[size]` warnings stay accepted as intentional and the instruction not to raise the threshold and not to split on line count stands unchanged. The cohesion re-read is DECLINED, not postponed — `CLAUDE.md` §Conventions makes size a soft signal rather than a hard limit, so there is no threshold a re-read could test the three files against.]**
   raise the threshold and do not split on line count; revisit the three files on
+  **[Struck 2026-09-20 in harness-p6 — same settled exclusion as the marker two lines above: declined on the stated reasoning. The "any run above 7 warnings is a regression" half is a live baseline rule, not forward work, and stands as written.]**
   cohesion grounds in a later cycle. Any run above 7 warnings is a regression.
 - **V13** — qualify `CLAUDE.md` §Phase Detection's two completion-signal rows
+  **[Closed 2026-09-20 in harness-p6 — SATISFIED in harness-p4: `CLAUDE.md` §Phase Detection carries the inline qualification "when a kickoff with one exists" on both completion-signal rows.]**
   inline ("when a kickoff with one exists"). harness-p4.
+  **[Closed 2026-09-20 in harness-p6 — SATISFIED in harness-p4: the own-line `COMMIT: COMPLETE | INCOMPLETE` token (`skills/sdd-orchestrate/references/write-scope.md` §7a) implements exactly the proposed remedy, with fixtures C1-C6 and the rejected `git show` comparand kept as C3's negative control.]**
 - **V14 (harness-p4 lead)** — nothing verifies that the orchestrator committed
   what it observed; Chunk 7's `CLAUDE.md` edits were `IN` and `SCOPE: CLEAN` yet
   omitted from the commit (repaired at `16e240b`). Proposed remedy: at commit
   time compare the leaf's `files_written` plus the observed-writes set against
   `git show --name-only --format= HEAD` and surface a mismatch at the gate as
   `COMMIT: INCOMPLETE (…)`. No new artifact required.
+**[Closed 2026-09-20 in harness-p6 — SATISFIED: `python3 tools/sdd-gc.py --report` now reports **0** `qimpl-broken-ref` findings, so the accepted baseline this entry records is empty. Re-derive with `python3 tools/sdd-gc.py --report | grep -c qimpl-broken-ref`.]**
 - Four pre-existing `qimpl-broken-ref` warnings remain outside this cycle's
   scope (`deviation-protocol.md:108`, `ws-ids.md:209`, `ws-integration.md:121`,
   `ws-orchestration.md:195`) — unchanged, carried as the accepted baseline.
+**[Struck 2026-09-20 in harness-p6 — settled exclusion with its reasoning: stage-table column width is a presentation preference with no acceptance criterion behind it and no correctness consequence; narrowing it would change the reader's recorded output and the shas asserted against it for no verifiable gain. DECLINED, not postponed. The second sentence records a closure already made by R1 and needs nothing.]**
 - `tools/sdd-telemetry.py summarize` rendering: narrow the stage table (14
   columns, ~190 chars). The per-chunk/stage-table disagreement is closed by R1.
 

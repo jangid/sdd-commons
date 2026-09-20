@@ -230,6 +230,7 @@ compared against HEAD `2bac7ac` (`git diff --stat`: 23 files, all in `skills/`,
    Record the `OUT` findings per pipeline dispatch under the default table on the
    first real v5 run; recurring `OUT` on legitimate side-writes → widen
    `references/write-scope.md` §2 and fold into `harness-write-scope.md`
+   **[Closed 2026-09-20 as a settled exclusion — harness-p6 verify gate.** The spec-file `ADVISORY` class is **by design**, not noise to be tuned away: `docs/spec/*.md` is advisory in the implement row precisely so a leaf's spec edit is visible at the gate without being a violation. Re-opening REQ-HARN-026 to suppress it would remove the signal rather than the noise. harness-p6 did narrow that requirement — its §Recorded v1 Limitations lost the falsified "skills never stash" sentence when git-state observation shipped (REQ-HARN-HARNESSP6-001). Declined, not postponed; re-open only if a measured cycle shows the ADVISORY class hiding a real violation.]**
    §Default Scope Table; noisy spec-file `ADVISORY` → revisit REQ-HARN-026. Not
    measured this cycle (this verify dispatch's own writes — `docs/verification.md`,
    `docs/requirements/traceability.md` — fall inside the verify row).
@@ -252,6 +253,7 @@ compared against HEAD `2bac7ac` (`git diff --stat`: 23 files, all in `skills/`,
    returns `BUDGET_EXHAUSTED` + `budget_consumed` + a checkpoint under the task;
    a fan-out leaf with `CHUNK_VERDICT: FAIL` is absent from the integration
    branch's `git log`.
+**[Superseded 2026-09-20 by an operator decision at the harness-p6 specs gate.** The `references/` split of `sdd-implement/SKILL.md` under Q-IMPL-083 is **declined**, not queued: the 525-line warn is accepted permanently because that file's detail — attempt ledger, checkpoint, budget, leaf return contract — is cohesive with the contract it governs, and splitting it to satisfy a line-count proxy would divide a contract. Recorded in `docs/spec/harness-loop-control.md` Q-IMPL-083 and `skill-lint-v5.md`. `sdd-orchestrate/SKILL.md` sits at 399, under the threshold, so the optional trim is moot.]**
 5. **Follow-up (minor):** split `sdd-implement/SKILL.md` Step 3 detail and the
    leaf return contract into `references/` per Q-IMPL-083; optionally trim
    `sdd-orchestrate/SKILL.md` toward 450.

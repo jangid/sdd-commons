@@ -246,13 +246,13 @@ REQUIRED = [
     #    same way (skill-lint-v5.md §`REQUIRED` Rows — `PLAN:` and `GIT_STATE`).
     {"file": "skills/sdd-orchestrate/references/loop-control.md",
      "pattern": r"PLAN: INCOMPLETE", "min": 1,
-     "reason": "`PLAN: INCOMPLETE (N of M ticked)` pause producer — §6 pause family (REQ-HARN-HARNESSP6-001)",
+     "reason": "`PLAN: INCOMPLETE (N of M ticked)` pause producer — §6 pause family (REQ-LINT-HARNESSP6-001)",
      "fix": "keep the `PLAN: INCOMPLETE (N of M ticked)` pause in loop-control.md §6 — its defining "
             "section is docs/spec/harness-loop-control.md §Plan Completion Ownership; its consumer "
             "lives in skills/sdd-orchestrate/SKILL.md §The gate"},
     {"file": "skills/sdd-orchestrate/SKILL.md",
      "pattern": r"PLAN: INCOMPLETE", "min": 1,
-     "reason": "`PLAN: INCOMPLETE` one-line summary in §The gate signal order (REQ-HARN-HARNESSP6-001)",
+     "reason": "`PLAN: INCOMPLETE` one-line summary in §The gate signal order (REQ-LINT-HARNESSP6-001)",
      "fix": "keep the `PLAN: INCOMPLETE (N of M ticked)` line in SKILL.md §The gate — its defining "
             "section is docs/spec/harness-loop-control.md §Plan Completion Ownership; its producer "
             "lives in skills/sdd-orchestrate/references/loop-control.md"},

@@ -469,14 +469,43 @@ id is as strong a co-location claim as a shared heading, and in the spike's
 replay it was the **only** key that formed a cluster at all. The spike rated that single cluster **marginal** — in its own words, "0 that an operator would confidently call one root cause, 1 marginal … a topical adjacency rather than a demonstrated common cause". That is precisely why the signal is **informational** and never pauses a gate: its primary key rests on one cluster the spike itself would not confidently call a convergence. Key rule 2's justification is the stronger of the two — the cluster it recovers (red and blue on the same malformed records in a sectionless file) is the one the spike did rate genuine. It is the primary
 key of the shipped signal.
 
-**Key rule 2 — sectionless file.** The **file-level** key is itself a cluster key
-when the file has no section structure to key on — a data or code file such as
-`.jsonl` or `.py`, or any file in which the arbitration key parser finds no
-section. Two findings from different layers naming such a file cluster on the
-file alone. This rule is what recovers the one real convergence the spike found
-and that a section-granular rule structurally cannot catch: red R1 and blue both
-hitting the same 8 malformed records in `.sdd/telemetry.jsonl`, missed because a
-JSONL file has no sections for a `(file, section)` key to be equal on.
+**Key rule 2 — structureless file.** The **file-level** key is itself a cluster
+key when the file is genuinely **structureless**: it has no addressable
+structure of any kind, so "the whole file" is the only key that exists for it.
+Two findings from different layers naming such a file cluster on the file alone.
+This rule is what recovers the one real convergence the spike found and that a
+section-granular rule structurally cannot catch: red R1 and blue both hitting
+the same 8 malformed records in `.sdd/telemetry.jsonl`, missed because a JSONL
+file has no sections for a `(file, section)` key to be equal on.
+
+**"Structureless" is not "not Markdown" (red R3).** A file qualifies when it is
+a **record/data file** — `.jsonl`, `.ndjson`, `.csv`, `.tsv`, `.log`, `.txt` —
+or a Markdown file in which the key parser finds no heading. A **source** file
+does **not** qualify, however few `#`-headings a Markdown parser finds in it: a
+`.py` module has functions and classes, so the parser finding no section there
+is a limitation of the parser, not a property of the file. Keying on the file
+alone would make two unrelated findings anywhere in a 1000-line module read as
+one root cause — the very noise the false-positive control below exists to
+suppress, and it would be suppressed correctly in a sectioned spec and
+incorrectly here. The rule is narrowed, not deleted: the `.jsonl` case it was
+introduced for is preserved and is asserted alongside the source-file case in
+the same scenario.
+
+**A path absent from the checkout yields no key at all (red R4).** A finding may
+name a typo, a renamed path, or a file that exists only in a fan-out worktree.
+Absence is **not** evidence of structurelessness, so it must not collapse to the
+file-level key: two findings naming *different sections* of a path the
+orchestrator cannot see would then cluster, which is exactly the case the
+false-positive control forbids. Such a finding contributes nothing to the
+ledger's clustering and is silently dropped from convergence — the signal is
+informational, so dropping it costs a line, never a decision.
+
+**Section parsing is fence-aware (red R5).** A `#` inside a fenced code block is
+a shell comment or a Markdown example, never a heading. Counting it made a
+genuinely structureless Markdown file read as sectioned and silently dropped a
+convergence key rule 2 would have rendered. This is the same fence-blindness
+class REQ-GC-HARNESSP6-004 closed in `tools/sdd-gc.py`; it is now closed in the
+sibling parser key rule 2 depends on. _(Added 2026-09-20, red round.)_
 
 **Key rule 3 — equal `(file, section)` (retained, not relied on).** Two findings
 whose arbitration finding keys are equal at section granularity — same `file`

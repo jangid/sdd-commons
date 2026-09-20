@@ -256,18 +256,67 @@ boundary unfalsifiable and structurally guarantees a successor cycle.
 
 **The same rule binds `verification.md` §Next Steps.** A cycle's §Next Steps must
 contain no item phrased as carried to a later cycle. A finding too large to fix
-inside the cycle triggers a **replan**, not a successor workstream. The scope is
-the §Next Steps section of each workstream's `docs/ws/<id>/verification.md`
-(marker `3`: flat `docs/verification.md`), delimited by its heading and the next
-heading at the same or higher level — the same delimitation §Out of Scope uses,
-so one extractor serves both scopes.
+inside the cycle triggers a **replan**, not a successor workstream.
 
-**Liveness is decidable mechanically, not by judgement.** A case-insensitive
-search for the deferral phrasings (`deferred to`, `carried to`, `queued for`,
-`re-raise in that cycle`, `next cycle`) over the two scopes above reports every
-occurrence **live** unless a bracketed dated marker of the form below sits
-**at or above** it — on the occurrence's own line `L`, or on the line `L-1`
-immediately preceding it, and nowhere else:
+**The scope is an enumeration, not a hand-list (REQ-REQ-HARNESSP6-001, red R2).**
+The §Next Steps half binds the §Next Steps section of **every**
+`docs/ws/*/verification.md` the glob returns — the glob is the scope, evaluated
+at run time, and a run that walks a hand-picked subset of workstreams has not
+run the check. (Marker `3`: the flat `docs/verification.md`, which is the same
+enumeration over a one-element set.) Each section is delimited by its heading
+and the next heading at the same or higher level — the same delimitation
+§Out of Scope uses, so one extractor serves both scopes. A conforming run
+reports **one row per path the glob returned**, including the rows that return
+zero; the count of rows walked must equal the count of paths the glob returned,
+and both sides of that equality are derived from the same run.
+
+**Marker adjacency is decided exactly; phrase coverage is a screen
+(red R1).** The mechanism has two halves and they carry different weight, so
+the spec states them separately rather than claiming one guarantee for both.
+
+*Half one — exact.* Given an occurrence at line `L`, whether a bracketed dated
+marker sits **at or above** it is decided mechanically and completely: only `L`
+itself and the line `L-1` immediately preceding it are examined, and nothing
+else. There is no judgement in this half and no case it cannot decide.
+
+*Half two — best effort.* Whether a line *is* a deferral is decided by a
+case-insensitive search for the phrasings below. That list is a **screen over
+observed backlog vocabulary**, not an oracle: it was widened to the shapes real
+§Next Steps backlogs in this repo actually use, measured against the corpus, and
+a deferral written in vocabulary no cycle has used yet will pass it. A reviewer
+still reads the section; the screen is what makes a *regression* cheap to catch,
+not what makes the section provably clean.
+
+| # | Phrase (case-insensitive) | Shape it catches |
+|---|---|---|
+| 1 | `deferred to` | explicit deferral |
+| 2 | `carried to` | explicit carry |
+| 3 | `queued for` | explicit queue |
+| 4 | `re-raise in that cycle` | re-raise instruction |
+| 5 | `next cycle` | named successor, generic |
+| 6 | `a later cycle` | named successor, generic |
+| 7 | `successor` (covers `successor workstream`, `successor cycle`) | the spec's own forbidden-outcome vocabulary |
+| 8 | `candidate` | "is the harness-p4 candidate" |
+| 9 | `revisit` | "revisit … on cohesion grounds" |
+| 10 | `follow-up` / `follow-ups` | "two follow-ups remain" |
+| 11 | `in a cycle that` | "in a cycle that can edit both" |
+| 12 | `(needs\|wants) a …(cycle\|workstream)` — `(?:needs\|wants) a\b[^.\n]{0,60}\b(?:cycle\|workstream)\b` | "needs a cycle that can amend Approved specs" |
+| 13 | `owner:` | an item assigned to a later owner |
+| 14 | a §Next Steps bullet **opening** with a cycle name — `^\s*[-*]\s+(?:harness-)?p[0-9]+\b` | "- p5 telemetry (reader): …" |
+| 15 | a sentence whose whole content is a cycle name — `\.\s+(?:harness-)?p[0-9]+\s*\.` | "…nothing keeps them so. harness-p4." |
+| 16 | a cycle name used as an assignment — `(?:harness-)?p[0-9]+\s+(?:candidate\|lead\|owner)` | "**V14 (harness-p4 lead)**" |
+
+**Rows 14–16 are deliberately narrow.** A bare `harness-p<N>` token is *not* a
+phrase: measured over the two scopes it fires 11 times in
+`docs/requirements/index.md` §Out of Scope alone, every one of them a citation —
+a file path, a workstream name, an evidence reference. Rows 14–16 therefore
+match a cycle name only where it is used as a **destination or an owner**, which
+is the shape a deferral takes. That narrowing is the reason the screen can be
+widened this far without the section's own prose reading as live.
+
+Every occurrence the screen finds is reported **live** unless a bracketed dated
+marker of the form below sits **at or above** it — on the occurrence's own line
+`L`, or on the line `L-1` immediately preceding it, and nowhere else:
 
 ```
 (\*\*\[|_\()(?i:superseded|closed|struck)[^\]\)]*20[0-9]{2}-[0-9]{2}-[0-9]{2}

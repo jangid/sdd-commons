@@ -80,18 +80,39 @@ phrased as carried to a later cycle. A finding too large to fix inside the cycle
 triggers a **replan**, not a successor workstream. (workstream `harness-p6`;
 kickoff §Scope item 9 and §Decided at DISCUSS — "§Out of Scope is swept, not
 grown"; RS-HARNESSP6-001 §Deferral-Backlog Sweep)
-**Acceptance**: a case-insensitive grep for `deferred to`, `carried to`,
-`queued for`, `re-raise in that cycle` and `next cycle` over (i)
-`docs/requirements/index.md` §Out of Scope, (ii)
-`docs/ws/harness-p6/verification.md` §Next Steps once that file exists, and
-(iii) `docs/ws/harness-p5/verification.md` §Next Steps — the artifact this
-cycle's sweep actually edited — returns no **live** entry. "Live" is decidable
-mechanically, not by judgement: a match does not count when its own line, or
-the line immediately preceding it, carries a bracketed dated marker matching
-`(\*\*\[|_\()(?i:superseded|closed|struck)[^\]\)]*20[0-9]{2}-[0-9]{2}-[0-9]{2}`.
-Every annotated item therefore carries its own adjacent marker; a block-level
-marker covering several items does not satisfy this clause. Prose in
-§Q-REQ Resolutions recording what a **closed** cycle decided is outside the
-grep's three scopes and is not examined. The three new settled exclusions named
-by RS-HARNESSP6-001 are each present with their reasoning.
+**Acceptance** (widened at the red round, R1/R2; the spec's
+§`## Out of Scope` Discipline carries the normative table): a case-insensitive
+search over (i) `docs/requirements/index.md` §Out of Scope and (ii) the
+§Next Steps section of **every** path the glob `docs/ws/*/verification.md`
+returns — the glob is the scope, enumerated at run time; a run that walks a
+hand-picked subset has not run the check, and a conforming run reports one row
+per returned path, rows-walked equal to paths-returned, both derived from the
+same run.
+
+The search covers sixteen phrasings: `deferred to`, `carried to`, `queued for`,
+`re-raise in that cycle`, `next cycle`, `a later cycle`, `successor`,
+`candidate`, `revisit`, `follow-up`/`follow-ups`, `in a cycle that`,
+`(?:needs|wants) a\b[^.\n]{0,60}\b(?:cycle|workstream)\b`, `owner:`, and
+three narrow cycle-name-as-destination forms —
+`^\s*[-*]\s+(?:harness-)?p[0-9]+\b`, `\.\s+(?:harness-)?p[0-9]+\s*\.` and
+`(?:harness-)?p[0-9]+\s+(?:candidate|lead|owner)`. A bare `harness-p<N>` token
+is deliberately **not** a phrase: measured, it fires 11 times in scope (i) alone,
+every one a citation rather than a deferral.
+
+The two halves of the check carry different weight and the acceptance states
+both honestly. **Marker adjacency is exact**: a match does not count as live
+when its own line `L`, or the line `L-1` immediately preceding it, carries a
+bracketed dated marker matching
+`(\*\*\[|_\()(?i:superseded|closed|struck)[^\]\)]*20[0-9]{2}-[0-9]{2}-[0-9]{2}`;
+only `L` and `L-1` are examined and nothing else. Every annotated item therefore
+carries its own adjacent marker; a block-level marker covering several items
+does not satisfy this clause. **Phrase coverage is a best-effort screen** over
+the backlog vocabulary observed in this corpus, not an oracle — a deferral
+written in vocabulary no cycle has used yet passes it, and a reviewer still
+reads the section.
+
+Prose in §Q-REQ Resolutions recording what a **closed** cycle decided is outside
+the scopes and is not examined; so is this requirement's own text and the spec's,
+neither of which is a checked scope. The three new settled exclusions named by
+RS-HARNESSP6-001 are each present with their reasoning.
 [Priority: must]
