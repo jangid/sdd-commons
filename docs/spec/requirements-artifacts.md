@@ -256,17 +256,41 @@ boundary unfalsifiable and structurally guarantees a successor cycle.
 
 **The same rule binds `verification.md` §Next Steps.** A cycle's §Next Steps must
 contain no item phrased as carried to a later cycle. A finding too large to fix
-inside the cycle triggers a **replan**, not a successor workstream.
+inside the cycle triggers a **replan**, not a successor workstream. The scope is
+the §Next Steps section of each workstream's `docs/ws/<id>/verification.md`
+(marker `3`: flat `docs/verification.md`), delimited by its heading and the next
+heading at the same or higher level — the same delimitation §Out of Scope uses,
+so one extractor serves both scopes.
 
 **Liveness is decidable mechanically, not by judgement.** A case-insensitive
 search for the deferral phrasings (`deferred to`, `carried to`, `queued for`,
-`re-raise in that cycle`, `next cycle`) over the two scopes above reports a
-**live** entry unless its own line, or the line immediately preceding it,
-carries a bracketed dated marker of the form
+`re-raise in that cycle`, `next cycle`) over the two scopes above reports every
+occurrence **live** unless a bracketed dated marker of the form below sits
+**at or above** it — on the occurrence's own line `L`, or on the line `L-1`
+immediately preceding it, and nowhere else:
 
 ```
 (\*\*\[|_\()(?i:superseded|closed|struck)[^\]\)]*20[0-9]{2}-[0-9]{2}-[0-9]{2}
 ```
+
+**The anchor is the matched phrase, not the entry block.** Liveness is
+evaluated per *occurrence*: the checker finds a phrase at line `L` and looks
+only at `L` and `L-1`. A marker anywhere below the occurrence, or further above
+it than `L-1`, does not count, however plainly a human reader would attach it to
+the same entry. The cost is that an entry wrapping over several lines must carry
+its marker on or above the wrapped line that holds the phrase; the benefit is
+that attribution needs no block parser and no judgement about where an entry
+begins and ends.
+
+**Not the plan-archival strike rule.** `docs/spec/plan-management.md`
+§Resolved `## Open Questions` Entries Are Struck at Archival defines a superficially
+similar marker rule with a deliberately **different** anchor: it is anchored on
+the **entry block** and accepts a marker *below* the entry. The two govern
+disjoint scopes — this rule reads `docs/requirements/index.md` §Out of Scope and
+`verification.md` §Next Steps for deferral phrasings; that one reads archived
+`plan-history/` §Open Questions for answered entries — and neither regex is ever
+applied to the other's scope. An implementer must not borrow that rule's
+below-the-entry placement here, nor this rule's `L` / `L-1` semantics there.
 
 Two consequences follow, and both are deliberate. First, **every** annotated
 item carries its **own adjacent** marker — a block-level marker introducing
@@ -292,6 +316,12 @@ When a category file approaches 300 lines, the skill should:
 ## Verification
 
 ### Automated
+
+*These bullets state mechanically checkable obligations, as §Automated does
+throughout this corpus; they do not assert that a `tools/` implementation
+exists. Several bullets below have backing gc rules and several do not. The
+durable artifact for a bullet without one is this spec, which pins both sides
+of the check verbatim so an independent reader can reproduce it.*
 - Validate that no entry in `index.md` §Out of Scope, and no item in a
   `verification.md` §Next Steps, matches a deferral phrasing without an adjacent
   bracketed dated `Superseded | Closed | Struck` marker on its own or the
@@ -299,6 +329,10 @@ When a category file approaches 300 lines, the skill should:
 - Validate that a block-level marker introducing several items does **not**
   satisfy the rule for those items (REQ-REQ-HARNESSP6-001).
 - Validate that §Q-REQ Resolutions prose is outside the checked scopes
+  (REQ-REQ-HARNESSP6-001).
+- The validator derives **both sides** of every assertion from the run it is
+  reporting on — it pins no corpus-measured count as a literal — and proves its
+  own non-vacuity on a fixture, so it cannot pass by matching nothing
   (REQ-REQ-HARNESSP6-001).
 - Validate that `index.md` lists every category file that exists on disk
 - Validate that every requirement ID matches its file's `domain` frontmatter
@@ -323,6 +357,7 @@ When a category file approaches 300 lines, the skill should:
 - [ ] The same rule binds `verification.md` §Next Steps; a finding too large to fix in-cycle triggers a replan, never a successor workstream (REQ-REQ-HARNESSP6-001)
 - [ ] Liveness is decided by the adjacent-marker rule: own line or immediately preceding line, per item, block-level markers excluded; §Q-REQ Resolutions prose is outside the checked scopes (REQ-REQ-HARNESSP6-001)
 - [ ] The three settled exclusions named by RS-HARNESSP6-001 are each present in §Out of Scope with their reasoning (REQ-REQ-HARNESSP6-001)
+- [ ] Liveness is anchored on the **matched phrase** (lines `L` and `L-1`), not on the entry block, and is stated as distinct from the entry-anchored, marker-below plan-archival strike rule in `plan-management.md` (REQ-REQ-HARNESSP6-001)
 
 
 **[Updated: 2026-09-20 — the rule originally accepted only the bold-bracket

@@ -353,7 +353,7 @@ this sweep annotates entries.
 `docs/spec/requirements-artifacts.md`. Without this declaration task 3 renders
 `OUT` and the per-chunk gate withholds `proceed`.
 **Tasks**:
-1. [ ] [implement] State the four dispositions (settled exclusion with reasoning /
+1. [x] [implement] State the four dispositions (settled exclusion with reasoning /
    closed with date and evidence / superseded by a pointer / in scope) and the
    adjacent-marker liveness rule in the requirements corpus contract, including
    both deliberate consequences: every annotated item carries its **own
@@ -362,11 +362,11 @@ this sweep annotates entries.
    cycle decided is outside the checked scopes — traces to
    `docs/spec/requirements-artifacts.md` §`## Out of Scope` Discipline
    (REQ-REQ-HARNESSP6-001).
-2. [ ] [implement] Bind the same rule to `verification.md` §Next Steps: a finding
+2. [x] [implement] Bind the same rule to `verification.md` §Next Steps: a finding
    too large to fix inside the cycle triggers a **replan**, never a successor
    workstream — traces to `docs/spec/requirements-artifacts.md` §`## Out of
    Scope` Discipline (REQ-REQ-HARNESSP6-001).
-3. [ ] [implement] Sweep `docs/requirements/index.md` §Out of Scope: every live
+3. [x] [implement] Sweep `docs/requirements/index.md` §Out of Scope: every live
    deferral entry becomes a settled exclusion with reasoning, a closed entry
    with date and evidence, a pointer to the superseding requirement, or is
    removed because a requirement now carries it. **Already satisfied at the
@@ -381,7 +381,7 @@ this sweep annotates entries.
    `sdd-review`'s own output — are each present with their reasoning — traces to
    `docs/spec/requirements-artifacts.md` §Acceptance Criteria
    (REQ-REQ-HARNESSP6-001).
-4. [ ] [verify] Run the mechanical liveness check — a case-insensitive search for
+4. [x] [verify] Run the mechanical liveness check — a case-insensitive search for
    the deferral phrasings over the two scopes, accepting only an adjacent
    bracketed dated `Superseded | Closed | Struck` marker on the entry's own or
    immediately preceding line — and assert it reports **no live entry**; assert
