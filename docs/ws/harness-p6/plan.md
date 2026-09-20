@@ -195,7 +195,7 @@ the reads, the line and the options; no new gate token exists anywhere;
 gets one, and the new `GIT_STATE` finding name does not ship equally unguarded.
 **Depends on**: Chunk 3.
 **Tasks**:
-1. [ ] [implement] Add four `REQUIRED` rows to `tools/sdd-skill-lint.py`:
+1. [x] [implement] Add four `REQUIRED` rows to `tools/sdd-skill-lint.py`:
    `PLAN: INCOMPLETE` in `references/loop-control.md` (producer) and in
    `SKILL.md` (consumer); `GIT_STATE` in `references/write-scope.md` (producer)
    and in `SKILL.md` (consumer). `GIT_STATE` is a finding name inside the
@@ -204,14 +204,14 @@ gets one, and the new `GIT_STATE` finding name does not ship equally unguarded.
    Ownership and `harness-write-scope.md` §Git-State Observation respectively —
    traces to `docs/spec/skill-lint-v5.md` §`REQUIRED` Rows — `PLAN:` and
    `GIT_STATE` (REQ-LINT-HARNESSP6-001).
-2. [ ] [implement] Add `SKILL.md` §The gate's one-line summary mention of
+2. [x] [implement] Add `SKILL.md` §The gate's one-line summary mention of
    `GIT_STATE` if it is not already present, so the consumer row is satisfied
    without divergence from the canonical statement — traces to
    `docs/spec/skill-lint-v5.md` §`REQUIRED` Rows — `PLAN:` and `GIT_STATE`
    (REQ-LINT-HARNESSP6-001).
-3. [ ] [implement] Extend `--self-test`'s mutation loop to cover these four rows —
+3. [x] [implement] Extend `--self-test`'s mutation loop to cover these four rows —
    traces to `docs/spec/skill-lint-v5.md` §Self-Test Extension.
-4. [ ] [verify] `python3 tools/sdd-skill-lint.py` exits 0 on the corpus as it
+4. [x] [verify] `python3 tools/sdd-skill-lint.py` exits 0 on the corpus as it
    stands, and exits non-zero naming the respective row when the guarded line is
    removed from a temp copy of each of the three files
    (`references/loop-control.md`, `references/write-scope.md`, `SKILL.md`) —

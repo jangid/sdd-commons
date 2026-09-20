@@ -275,7 +275,7 @@ ephemeral (REQ-ORCH-013):
 | # | Signal | Where |
 |---|--------|-------|
 | 1 | `RETURN.status` + `budget_consumed` vs the dispatched `Budget:` | per-chunk gate |
-| 2 | the own-line `SCOPE:` token | per-chunk gate |
+| 2 | the own-line `SCOPE:` token; a `VIOLATION` block renders each finding by name — `HISTORY_REWRITE`, and `GIT_STATE` for git-state mutation by a read-only leaf | per-chunk gate |
 | 3 | per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` | per-chunk gate |
 | 3b | verify only: `RED_VERDICT:` with its `Rn` lines verbatim, then — on a red round N >= 2 — the derived `RED: Rn new-ground \| regression` lines, before the exit rule and before (4) | stage gate |
 | 4 | the review `VERDICT:` | stage gate |
