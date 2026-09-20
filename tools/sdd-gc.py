@@ -34,6 +34,10 @@ Q-IMPL counting rule (pinned; RS-HARNESSP2-001 Q4, `drift-sweep.md`
 §Q-IMPL Counting Rule):
 
   * definition — a line matching `^### Q-IMPL-[A-Z0-9-]+` under docs/spec/**
+    that lies OUTSIDE a fenced code block — collected through the same
+    visible_lines() filter the reference side uses (REQ-GC-HARNESSP6-004): a
+    heading inside a fence defines nothing, exactly as a reference inside a
+    fence references nothing.
   * reference  — any other occurrence of `Q-IMPL-[A-Z0-9]+(-\\d+)?` under docs/,
     skills/, agents/, tools/ EXCLUDING
       - docs/research/** (research cites foreign-repo ids);
@@ -67,6 +71,14 @@ with the fence/backtick and <WS>-token exclusions:
 Reference values on 2026-09-17 at commit 5e6142b (not pins): 28 definitions,
 20 both, 8 defined-only, 0 referenced-only; template-example ids
 `Q-IMPL-003` / `Q-IMPL-007` / `Q-IMPL-021` skipped.
+
+Countability obligation (REQ-GC-HARNESSP6-004) — an AUTHORING obligation, not
+an allowlist: because the two sides are now fence-symmetric, an id used inside
+a fenced format illustration must be either (a) an id that a real, unfenced
+`### Q-IMPL-…` entry defines elsewhere in the corpus, or (b) one of the
+id-format placeholders listed above. No marker, info-string language tag or
+whitelist exists or may be added; a fence can no longer accidentally DEFINE a
+foreign id either.
 
 Finding shape is the linter's, verbatim — `<file>:<line>: [<rule>] <msg>` plus
 an indented `fix:` line; `WARN ` / `INFO ` prefixes for the lower tiers; the
@@ -614,7 +626,13 @@ class Gc:
         for f in self.spec_files():
             text = read_text(f) or ""
             lines = text.splitlines()
-            for no, line in enumerate(lines, 1):
+            # Fence symmetry (REQ-GC-HARNESSP6-004): definitions are collected
+            # through the SAME visible_lines() filter the reference side uses,
+            # so a `### Q-IMPL-…` heading inside a fenced illustration defines
+            # nothing — exactly as a reference inside a fence references
+            # nothing.  Bodies are still read from the raw lines, so an entry's
+            # `**Spec reference**` line is unaffected by span blanking.
+            for no, line in visible_lines(text):
                 m = QIMPL_DEF_RE.match(line)
                 if not m:
                     continue
@@ -639,6 +657,7 @@ class Gc:
         both = sorted(set(defs) & set(refs))
         defined_only = sorted(set(defs) - set(refs))
         referenced_only = sorted(set(refs) - set(defs))
+        self.qimpl_defs = set(defs)     # ids the fence-symmetric scan accepted
         self.qimpl_counts = {"definitions": len(defs), "both": len(both),
                              "defined_only": len(defined_only),
                              "referenced_only": len(referenced_only)}
@@ -1665,6 +1684,53 @@ def self_test() -> int:
         plan_findings = stale_lines("docs/ws/alpha/plan.md")
         check(bool(plan_findings) and all(sev == "WARN" for sev, _ in plan_findings),
               f"plan-level finding on an open workstream is not warn: {plan_findings}")
+        # -- 12. test_qimpl_definition_is_fence_symmetric (REQ-GC-HARNESSP6-004)
+        #    Definitions run through the same visible_lines() filter as
+        #    references: a fenced `### Q-IMPL-…` heading defines nothing, an
+        #    unfenced one still does, and a genuinely undefined unfenced
+        #    reference still fails.
+        fence_root = tmp / "fence"
+        build_fixture(fence_root, clean=True)
+        fid, uid, gid = qid("ALPHA", 5), qid("ALPHA", 6), qid("ALPHA", 7)
+        b_rel, fence = "docs/spec/b.md", "```"
+
+        def qimpl_defs(root_: Path) -> set[str]:
+            g_ = Gc(root_, lint_suite_rules=False)
+            g_.sweep_qimpl()
+            return set(g_.qimpl_defs)
+
+        base_defs = qimpl_defs(fence_root)
+        b_text = read_text(fence_root / b_rel) or ""
+        # (a) a fenced format illustration: heading + a reference to the same id,
+        #     both inside the fence.  Neither side may count.
+        _w(fence_root, b_rel, b_text + "\n## Illustration\n\nAn entry looks like:\n\n"
+           + fence + "\n### " + fid + ": illustrative only\n**Tier**: 2\n"
+           "**Spec reference**: §Gadget\n**Decision**: none — " + fid + " is a format example\n"
+           + fence + "\n")
+        check(qimpl_defs(fence_root) == base_defs,
+              f"a fenced heading defined {qimpl_defs(fence_root) - base_defs}, want nothing")
+        _, fence_out = _run(["--report", "--root", str(fence_root)])
+        check(fid not in fence_out,
+              f"the fenced illustration id surfaced as a finding:\n{fence_out}")
+        # (b) an unfenced heading still defines (and, unreferenced, is info (ii))
+        _w(fence_root, b_rel, (read_text(fence_root / b_rel) or "")
+           + "\n### " + uid + ": unfenced entry\n**Tier**: 2\n**Spec reference**: §Gadget\n"
+           "**Decision**: counts\n")
+        check(qimpl_defs(fence_root) == base_defs | {uid},
+              f"an unfenced heading did not define {uid}: {qimpl_defs(fence_root) - base_defs}")
+        _, fence_out = _run(["--report", "--root", str(fence_root)])
+        f2, w2, i2, _ = _parse(fence_out)
+        check(f2["qimpl-undefined"] == 0 and i2["qimpl-unreferenced"] == einfo["qimpl-unreferenced"] + 1,
+              f"unfenced definition not counted defined-only:\n{fence_out}")
+        # (c) a genuinely undefined reference, unfenced and unquoted, still fails
+        plan_rel = "docs/ws/alpha/plan.md"
+        _w(fence_root, plan_rel, (read_text(fence_root / plan_rel) or "")
+           + "\nResolved earlier by " + gid + " during the widget work.\n")
+        code, fence_out = _run(["--report", "--root", str(fence_root)])
+        f3, _, _, _ = _parse(fence_out)
+        check(code == 1 and f3["qimpl-undefined"] == 1 and gid in fence_out,
+              f"an undefined unfenced reference no longer fails (exit {code}):\n{fence_out}")
+
     finally:
         _LINT_SUITE_RULES = True
         shutil.rmtree(tmp, ignore_errors=True)
@@ -1676,7 +1742,9 @@ def self_test() -> int:
           "D/B/D-B hold; exit codes 0/1/2; finding shape; lint pass-through; four --fix rules "
           "idempotent with dates and other workstreams untouched; row-drop safety: an escaped pipe "
           "round-trips through --fix traceability-aggregate, a five-cell row raises one "
-          "[traceability-rowdrop] fail at <file>:<line>, --fix traceability-rowdrop exits 2")
+          "[traceability-rowdrop] fail at <file>:<line>, --fix traceability-rowdrop exits 2; "
+          "Q-IMPL definitions are fence-symmetric: a fenced heading defines nothing, an unfenced "
+          "one still does, an undefined unfenced reference still fails")
     return 0
 
 
@@ -1721,11 +1789,23 @@ sweep classes and rule ids
   excluded (review / dogfooding territory, not mechanical):
       new drift of skill text from spec wording; semantic orphaning
 
-Q-IMPL counting rule: a definition is `### Q-IMPL-…` under docs/spec/**; a
-reference is any other occurrence under docs/, skills/, agents/, tools/
-excluding docs/research/**, the placeholders (Q-IMPL-NNN, Q-IMPL-1,
-Q-IMPL-ISSUE42*, Q-IMPL-ISSUE57-001, unknown <WS> tokens), and anything inside
-fenced code or inline backticks.  Full text: the module docstring.
+Q-IMPL counting rule: a definition is `### Q-IMPL-…` under docs/spec/** that
+lies OUTSIDE a fenced code block; a reference is any other occurrence under
+docs/, skills/, agents/, tools/ excluding docs/research/**, the placeholders
+(Q-IMPL-NNN, Q-IMPL-1, Q-IMPL-ISSUE42*, Q-IMPL-ISSUE57-001, unknown <WS>
+tokens), and anything inside fenced code or inline backticks.  Both sides run
+through the same visible_lines() filter, so a heading inside a fence defines
+nothing just as a reference inside a fence references nothing.
+Countability obligation (an AUTHORING obligation, NOT an allowlist): an id used
+inside a fenced format illustration must be either an id that a real, unfenced
+`### Q-IMPL-…` entry defines elsewhere in the corpus, or one of the id-format
+placeholders listed above.  No marker, language tag or whitelist exists or may
+be added.  Full text: the module docstring.
+
+Reference commands (raw counts, refined by the exclusions above):
+  grep -rhoE '^### Q-IMPL-[A-Z0-9-]+' docs/spec | sed 's/^### //' | sort -u
+  grep -rHnE 'Q-IMPL-[A-Z0-9]+(-[0-9]+)?' docs skills agents tools --exclude-dir=research \\
+    | grep -vE ':[0-9]+:### Q-IMPL-' | grep -oE 'Q-IMPL-[A-Z0-9]+(-[0-9]+)?' | sort -u
 
 --fix whitelist (exactly these; each prints changed paths, is a no-op when
 re-run, never touches last_updated, never writes under another workstream):

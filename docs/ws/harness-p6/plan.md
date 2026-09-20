@@ -231,16 +231,16 @@ reference inside a fence references nothing, without introducing a marker, an
 info-string tag or an allowlist.
 **Depends on**: None (independent of Chunks 1–4).
 **Tasks**:
-1. [ ] [verify] Capture the pre-change baseline in the same session: run
+1. [x] [verify] Capture the pre-change baseline in the same session: run
    `python3 tools/sdd-gc.py --report` and record the `qimpl-undefined` and
    `qimpl-broken-ref` counts. This baseline is the comparand for task 5 — it is
    derived, never quoted from an earlier document — traces to
    `docs/spec/drift-sweep.md` §Q-IMPL Counting Rule (REQ-GC-HARNESSP6-004).
-2. [ ] [implement] In `sweep_qimpl()`, build the visible-line set per spec file and
+2. [x] [implement] In `sweep_qimpl()`, build the visible-line set per spec file and
    collect `^### Q-IMPL-[A-Z0-9-]+` definitions through the same
    `visible_lines()` filter the reference side already uses — traces to
    `docs/spec/drift-sweep.md` §Q-IMPL Counting Rule (REQ-GC-HARNESSP6-004).
-3. [ ] [implement] State the countability obligation in the module docstring and in
+3. [x] [implement] State the countability obligation in the module docstring and in
    `--help` alongside the reference commands: an id used inside a fenced format
    illustration must be either an id a real unfenced `### Q-IMPL-…` entry
    defines elsewhere, or one of the id-format placeholders the tool already
@@ -248,12 +248,12 @@ info-string tag or an allowlist.
    `CLAUDE.md` §Quality Checks' "there is no allowlist" sentence stays true and
    is not edited — traces to `docs/spec/drift-sweep.md` §Fence symmetry and the
    countability obligation (REQ-GC-HARNESSP6-004).
-4. [ ] [implement] Add `test_qimpl_definition_is_fence_symmetric`: a fenced heading
+4. [x] [implement] Add `test_qimpl_definition_is_fence_symmetric`: a fenced heading
    contributes no definition; a reference to an otherwise-undefined id occurring
    only inside that fence raises no `qimpl-undefined`; an unfenced heading still
    defines; a genuinely undefined unfenced reference still fails — traces to
    `docs/spec/drift-sweep.md` §Verification → Automated.
-5. [ ] [verify] Re-run `--report` and assert the `qimpl-undefined` and
+5. [x] [verify] Re-run `--report` and assert the `qimpl-undefined` and
    `qimpl-broken-ref` counts **equal the baseline captured in task 1** — both
    sides from runs in this session, neither pinned as a literal — traces to
    `docs/spec/drift-sweep.md` §Acceptance Criteria (REQ-GC-HARNESSP6-004).
