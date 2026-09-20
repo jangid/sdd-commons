@@ -166,7 +166,7 @@ cells back to `pass` and regenerates the aggregate in the same bookkeeping step
 — this skill never performs that flip.
 
 **gc criterion for these cells (REQ-REDB-HARNESSP4-001).** The check is that
-`python3 tools/gc.py --report` raises no new finding **on a `pending-red`
+`python3 tools/gc.py --report --root .` raises no new finding **on a `pending-red`
 cell**. The one `[traceability-aggregate]` warning that appears between this
 per-workstream write and the orchestrator's post-gate regeneration of the
 aggregate (`docs/spec/ws-traceability.md` §Aggregate Regeneration Ownership,

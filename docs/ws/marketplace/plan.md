@@ -478,20 +478,20 @@ moved**.
 **Depends on**: Chunk 4.
 **Traces to**: docs/spec/marketplace-packaging.md
 **Tasks**:
-1. [ ] [verify] Capture this chunk's own immediate baseline by command: the
+1. [x] [verify] Capture this chunk's own immediate baseline by command: the
    count of `docs/spec/*.md` citations inside `skills/`, and the count of
    `tools/*.py`. Both are compared against the same command run after the
    packaging change; the "before" side is re-derivable from
    `git show <this chunk's entry sha>:…` — traces to
    `docs/spec/marketplace-packaging.md` §Dangling spec citations
    (REQ-PKG-MARKETPLACE-009, -006).
-2. [ ] [implement] Write `.claude-plugin/marketplace.json` in a **top-level**
+2. [x] [implement] Write `.claude-plugin/marketplace.json` in a **top-level**
    `.claude-plugin/` directory: `name` `sdd-commons`, an `owner` object, and
    exactly one `plugins` entry whose `name` is `sdd` and whose `source` is
    `./`. The repository must **not** grow a `plugins/` directory — traces to
    `docs/spec/marketplace-packaging.md` §The manifest pair
    (REQ-PKG-MARKETPLACE-001, -002).
-3. [ ] [implement] Write `.claude-plugin/plugin.json` in the same top-level
+3. [x] [implement] Write `.claude-plugin/plugin.json` in the same top-level
    directory, carrying `name`, `description`, `version`, `author` and
    `license`, the `license` value being the MIT identifier so it cannot drift
    from the `LICENSE` file landed in Chunk 6. **Ordering consequence, stated
@@ -503,16 +503,17 @@ moved**.
    as a defect — traces to
    `docs/spec/marketplace-packaging.md` §The manifest pair
    (REQ-PKG-MARKETPLACE-002, REQ-DOCS-MARKETPLACE-001).
-4. [ ] [implement] Populate the **explicit** component list in the plugin entry:
+4. [x] [implement] Populate the **explicit** component list in the plugin entry:
    every shipped skill directory and every shipped agent file named
    individually. It is not a wildcard, because the `docs/` and
    contributor-tool exclusions are expressed by **absence from it**. No listed
    path begins with `docs/`, and none of the three contributor tools — the
-   skill linter, the scope-check self-test, the evaluation tool — appears
-   anywhere in it — traces to
+   scope-check self-test, the telemetry tool's self-test, the evaluation tool,
+   read from `docs/spec/pre-commit.md` §What stays out of the commit path rather
+   than restated here — appears anywhere in it — traces to
    `docs/spec/marketplace-packaging.md` §The component list and its derivation
    rule (REQ-PKG-MARKETPLACE-003, -004, -005).
-5. [ ] [implement] Duplicate the drift sweep and the telemetry tool into the
+5. [x] [implement] Duplicate the drift sweep and the telemetry tool into the
    driver skill's own `tools/` subdirectory as **regular files byte-identical
    to their repository-root originals** — duplicated, never symlinked: a plugin
    install may be materialised from a git archive, which does not reliably
@@ -520,7 +521,7 @@ moved**.
    source or behavioural change to either tool — traces to
    `docs/spec/marketplace-packaging.md` §Tools: root stays
    (REQ-PKG-MARKETPLACE-006).
-6. [ ] [implement] Make every skill-side invocation resolve to the **operator's**
+6. [x] [implement] Make every skill-side invocation resolve to the **operator's**
    repository: each drift-sweep invocation found in `skills/` carries an
    explicit root argument naming the current directory, and no telemetry
    invocation passes a file path beginning with a skill or plugin directory.
@@ -528,14 +529,14 @@ moved**.
    would return a false green about the plugin's copy — traces to
    `docs/spec/marketplace-packaging.md` §Root resolution for skill-side
    invocations (REQ-PKG-MARKETPLACE-007).
-7. [ ] [implement] Ensure no skill body depends on the plugin-root variable: the
+7. [x] [implement] Ensure no skill body depends on the plugin-root variable: the
    only permitted occurrence of its name under `skills/` is inside a fenced code
    block explicitly documenting its manifest-only scope. Every `docs/…` citation
    inside a skill body stays a **bare relative path**, so it resolves against
    the operator's own project working directory — traces to
    `docs/spec/marketplace-packaging.md` §No skill body depends on the
    plugin-root variable (REQ-PKG-MARKETPLACE-008, -004).
-8. [ ] [verify] Assert by parsing, never by comparing against a written-out
+8. [x] [verify] Assert by parsing, never by comparing against a written-out
    list: both JSON files parse; `.claude-plugin/plugin.json` carries a non-empty
    `name`, a non-empty `description` and a non-empty `version`, each read from
    the parsed object — the criterion requires the file to parse **and** to carry
@@ -550,7 +551,7 @@ moved**.
    contains no `SKILL.md`, so the derivation already excludes it — traces to
    `docs/spec/marketplace-packaging.md` §Acceptance Criteria
    (REQ-PKG-MARKETPLACE-001, -002, -003).
-9. [ ] [verify] Assert the exclusion greps: the absolute/home-rooted/plugin-root
+9. [x] [verify] Assert the exclusion greps: the absolute/home-rooted/plugin-root
    `docs/` citation grep over `skills/` returns no match; a grep over `skills/`
    for an invocation prefix (`python3 ` or `./`) of any of the three
    contributor tools returns zero; a grep for the plugin-root variable name over
@@ -558,7 +559,7 @@ moved**.
    traces to `docs/spec/marketplace-packaging.md` §Acceptance Criteria
    (REQ-PKG-MARKETPLACE-004, REQ-PKG-MARKETPLACE-005,
    REQ-PKG-MARKETPLACE-008).
-10. [ ] [verify] Assert the bundled-tool invariants: for each of the two copies,
+10. [x] [verify] Assert the bundled-tool invariants: for each of the two copies,
     `cmp` against the repository-root file exits 0 and `test ! -L` succeeds;
     `git diff <rename-chunk-close sha> HEAD -- <drift sweep> <telemetry tool>`
     is **empty**, which is what the §Ordering Constraints 2 placement of the
@@ -566,7 +567,7 @@ moved**.
     explicit root — traces to
     `docs/spec/marketplace-packaging.md` §Acceptance Criteria
     (REQ-PKG-MARKETPLACE-006, -007).
-11. [ ] [verify] Assert the **loss check by identity, not by name** — a name-set
+11. [x] [verify] Assert the **loss check by identity, not by name** — a name-set
     comparison against git history would fail by construction, because the
     rename changed every tool's filename: `git log --follow` resolves each
     post-change `tools/*.py` to its pre-change history, and `ls tools/*.py | wc -l`
@@ -574,14 +575,14 @@ moved**.
     sides derived by command — traces to
     `docs/spec/marketplace-packaging.md` §Tools: root stays
     (REQ-PKG-MARKETPLACE-006).
-12. [ ] [verify] Assert the citation-count invariant: the same `docs/spec/*.md`
+12. [x] [verify] Assert the citation-count invariant: the same `docs/spec/*.md`
     citation grep over `skills/` yields the **same count** before and after the
     packaging change, both sides from the same command, the before side from
     this chunk's entry sha. Dangling spec citations are an accepted, documented
     gap closed by `CONTRIBUTING.md` in Chunk 6, not by rewriting them — traces
     to `docs/spec/marketplace-packaging.md` §Dangling spec citations
     (REQ-PKG-MARKETPLACE-009).
-13. [ ] [verify] Assert the skill linter exits 0, its `--self-test` passes, and
+13. [x] [verify] Assert the skill linter exits 0, its `--self-test` passes, and
     the drift sweep's report raises no finding absent from Chunk 0's recorded
     entry sweep — traces to `docs/spec/marketplace-packaging.md` §Acceptance
     Criteria.

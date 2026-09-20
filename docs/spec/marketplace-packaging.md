@@ -80,7 +80,10 @@ marketplaces observed by RS-MARKETPLACE-001 Q3):
 ```
 
 The `license` value is the MIT identifier and must agree with the `LICENSE`
-file (`project-docs.md`, REQ-DOCS-MARKETPLACE-001).
+file (`project-docs.md`, REQ-DOCS-MARKETPLACE-001). The spec fixes the shape of
+`version` (a semver string) but not its opening value; the first published
+version is recorded as Q-IMPL-MARKETPLACE-015 rather than left to be inferred
+from the file.
 
 **Why `"source": "./"` and one plugin, not a split or a subdirectory.** The
 driver dispatches its sibling phase skills **by name**, not by path. A split
@@ -176,6 +179,11 @@ Every invocation of a bundled tool from a skill body must reach the
   and is **not** given a plugin-relative path, because the telemetry file is
   written into and read from the operator's repository.
 
+What counts as an *invocation* for that grep is the same test this spec already
+applies to the contributor tools — an occurrence carrying a shell invocation
+prefix (`python3 ` or `./`) — and not a bare prose or gate-line mention of the
+tool's path; that reading is recorded as Q-IMPL-MARKETPLACE-014.
+
 Neither tool's source is edited to satisfy this. The packaging step makes **no**
 behavioural and no source change to either tool; the only permitted source edit
 to them in this cycle is the rename of their self-referential name strings,
@@ -206,7 +214,10 @@ contracts live in the repository and not in the install, so a reader who
 follows a citation from an installed skill knows where to look. The design
 invariant is that the **count of such citations is unchanged** across the
 packaging change — measured by running the same grep before and after, never
-against a pinned number.
+against a pinned number. The counted population is the **skill bodies**
+(`*.md` under `skills/`), not every file that happens to sit under `skills/`;
+the bundled tool sources carry their own `docs/spec/…` strings and are outside
+this invariant, as Q-IMPL-MARKETPLACE-016 records.
 
 ### Install verification
 
@@ -247,3 +258,46 @@ root with any nested `.worktrees/` path excluded from tree walks.
 - [ ] `CONTRIBUTING.md` contains a paragraph stating that spec citations inside skills resolve in the repository, not in an installed plugin; the same `docs/spec/*.md` citation grep over `skills/` yields the same count before and after the packaging change (REQ-PKG-MARKETPLACE-009).
 - [ ] The verification report records, as observations with their commands: the install command run, the namespaced skill names the session listed, and the name of the `references/*.md` file read from the installed copy (REQ-PKG-MARKETPLACE-010).
 - [ ] The skill linter exits 0 and its `--self-test` passes after the packaging change; the drift sweep's report raises no finding absent from the cycle's entry sweep, compared against that sweep's recorded output.
+
+## Implementation Questions
+
+### Q-IMPL-MARKETPLACE-014: "Invocation" for the root-argument grep means a shell invocation prefix
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Root resolution for skill-side invocations; §Acceptance Criteria, the REQ-PKG-MARKETPLACE-007 criterion
+**Decision**: An occurrence of the drift sweep under `skills/` is an
+*invocation* — and so must carry an explicit `--root .` — when it is prefixed by
+`python3 ` or `./`. A bare mention of the tool's path in prose, in a table cell
+describing it, or inside the rendered `GC:` gate-line token is a *reference*,
+not an invocation, and is left alone.
+**Rationale**: The spec already uses exactly this prefix test to define an
+invocation of a contributor tool (REQ-PKG-MARKETPLACE-005), so reusing it keeps
+one definition rather than two. The alternative — treating every textual
+occurrence as an invocation — would rewrite the fixed `GC: F fail, W warn — run
+tools/gc.py --report` gate-line token, which `harness-loop-control.md` pins as a
+verbatim rendered string; changing it to satisfy a packaging grep would be a
+behavioural contract change, which this cycle explicitly forbids.
+
+### Q-IMPL-MARKETPLACE-015: The plugin manifest opens at version 0.1.0
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The manifest pair, the plugin manifest shape
+**Decision**: `.claude-plugin/plugin.json` carries `"version": "0.1.0"`.
+**Rationale**: The spec requires a semver string but names no opening value. The
+cycle's terminal state is an open PR, not a release, and the install has not yet
+been observed in a real session (§Install verification), so a `0.x` line states
+"published, not yet stabilised" honestly. `1.0.0` would assert a stability
+commitment no criterion of this cycle establishes.
+
+### Q-IMPL-MARKETPLACE-016: The citation-count invariant is scoped to skill bodies
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Dangling spec citations; §Acceptance Criteria, the REQ-PKG-MARKETPLACE-009 criterion
+**Decision**: The before/after `docs/spec/*.md` citation grep over `skills/` is
+run with `--include='*.md'`, so it counts citations in skill **bodies** only.
+Measured that way the count is unchanged across the packaging change.
+**Rationale**: The invariant exists because a skill body's citation must keep
+resolving the same way for a reader. The unscoped grep is not stable across this
+chunk by construction: bundling the drift sweep and the telemetry tool into the
+driver skill's `tools/` subdirectory copies their own `docs/spec/…` strings under
+`skills/`, and those are tool source, not citations a skill body offers a reader
+to follow. The two populations were measured separately to confirm the whole
+difference is exactly the bundled copies' own strings and nothing in any skill
+body moved.
