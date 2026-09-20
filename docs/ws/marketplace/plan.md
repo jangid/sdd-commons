@@ -134,19 +134,19 @@ recorded sha, so no chunk has to carry a number forward.
 **Depends on**: None.
 **Traces to**: docs/spec/skill-namespace-rename.md §Acceptance Criteria
 **Tasks**:
-1. [ ] [verify] Record the **cycle entry sha** (`git rev-parse HEAD` on
+1. [x] [verify] Record the **cycle entry sha** (`git rev-parse HEAD` on
    `marketplace`) in the chunk return. It is the reference for
    `git diff <cycle entry sha> HEAD -- tools/fixtures/`
    (REQ-PC-MARKETPLACE-005) and for the `ls tools/*.py | wc -l` loss check
    (REQ-PKG-MARKETPLACE-006) — traces to `docs/spec/pre-commit.md`
    §Acceptance Criteria.
-2. [ ] [verify] Run `python3 tools/<pre-rename drift sweep> --report` from the
+2. [x] [verify] Run `python3 tools/<pre-rename drift sweep> --report` from the
    repository root with nested `.worktrees/` excluded, and record its **full
    output** to a `$TMPDIR` file plus the finding-class summary in the chunk
    return. This is the **entry sweep** every later chunk compares against —
    the invariant is "no finding absent from the entry sweep", never a number —
    traces to `docs/spec/skill-namespace-rename.md` §Ordering.
-3. [ ] [verify] Run the pre-rename skill linter and its `--self-test`; both must
+3. [x] [verify] Run the pre-rename skill linter and its `--self-test`; both must
    exit 0 before anything is touched. A red tool at entry means the baseline is
    not a baseline. **Response if either is red**: stop Chunk 0 without starting
    Chunk 1, record the failing rule and its full output in the chunk return, and
@@ -155,7 +155,7 @@ recorded sha, so no chunk has to carry a number forward.
    diff unreadable and destroys the entry sweep's value as a comparison base —
    traces to `docs/spec/skill-namespace-rename.md` §The linter
    follows the rename.
-4. [ ] [verify] Confirm the worktree exclusion is real: run one representative
+4. [x] [verify] Confirm the worktree exclusion is real: run one representative
    tree-walking grep twice, once naively and once with nested `.worktrees/`
    pruned, and record that the pruned form is used everywhere below — traces to
    `docs/ws/marketplace/kickoff.md` §Budget (nested-checkout warning).
