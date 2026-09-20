@@ -15,6 +15,7 @@ requires:
   - REQ-WS-HARNESSP3-001
   - REQ-HARN-HARNESSP4-004
   - REQ-HARN-HARNESSP4-005
+  - REQ-HARN-HARNESSP6-001
 ---
 
 # Harness Write Scope
@@ -153,8 +154,8 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
 ```
 
 - The token line is `SCOPE: CLEAN` or `SCOPE: VIOLATION (N paths)` on its own;
-  `N` counts `OUT` paths plus a `HISTORY_REWRITE` finding; `ADVISORY` paths do
-  not count.
+  `N` counts `OUT` paths plus a `HISTORY_REWRITE` finding plus a `GIT_STATE`
+  finding (§Git-State Observation); `ADVISORY` paths do not count.
 - The orchestrator branches on the token, not on prose. `VIOLATION` → the
   gate offers, per `OUT` path, `revert path | accept & widen scope | stop`
   **before the per-chunk gate's commit** (sequential) or the leaf's merge
@@ -296,8 +297,15 @@ not fixed in this cycle:
 - **(b) Ignored paths.** Paths matched by `.gitignore` are not observed
   (`--ignored` is not used) — they are not project content.
 - Writes outside the repository (scratchpad, `$TMPDIR`) are the sandbox's
-  concern, not this check's. The shared stash stack is out of scope (skills
-  never stash).
+  concern, not this check's. ~~The shared stash stack is out of scope (skills
+  never stash).~~ **[Retired 2026-09-20 — REQ-HARN-HARNESSP6-001.** The claim
+  was falsified by the harness-p5 incident, in which a read-only verifier leaf
+  ran `git stash` with nine files of uncommitted work in the tree. The stash
+  stack is now observed: §Git-State Observation reads `git stash list | wc -l`
+  inside the existing snapshot window, and a leaf that stashes renders a
+  `GIT_STATE` line counting into `SCOPE: VIOLATION (N paths)`. Left visible
+  rather than deleted, per the strike convention this cycle ships
+  (REQ-PLAN-HARNESSP6-001).**]
 
 ### Marker-4 Rooting
 
@@ -439,6 +447,97 @@ makes the space-path fixture fail; dropping the rename's origin path from the
 ambiguous set makes the `R` fixture fail. Fixture ids continue the F-series
 (next free ids).
 
+### Git-State Observation (REQ-HARN-HARNESSP6-001)
+
+[Added 2026-09-20, harness-p6 — REQ-HARN-HARNESSP6-001; the harness-p5 incident
+in which a read-only chunk verifier ran `git stash` over nine files of
+uncommitted work and the gate still rendered `SCOPE: CLEAN`]
+
+**Why the existing three commands cannot see it.** (a) is a *one-directional*
+porcelain delta — lines in `after` not in `before` — so an operation that
+**removes** porcelain lines is invisible to it. (b) sees nothing because `git
+stash` leaves `HEAD` untouched. (c) passes for the same reason. The write scope
+therefore constrained file writes but said nothing about mutation of **git
+state**, which a read-only leaf could perform freely.
+
+**Extra reads, same window.** No second observation window is introduced. The
+existing `snapshot(before)` / `snapshot(after)` calls each record three extra
+values alongside the `git status --porcelain` read they already take:
+
+```bash
+stash_count=$(git stash list | wc -l)
+branch=$(git rev-parse --abbrev-ref HEAD)
+orig_head=$(git rev-parse --verify --quiet ORIG_HEAD || echo "")
+```
+
+`ORIG_HEAD` is read with `--verify --quiet`; its **absence** is a legal value
+(the empty string) and absent-in-both compares equal. For a fan-out leaf the
+three reads run in the leaf's worktree, as the existing commands do.
+
+**The comparand.** A `GIT_STATE` finding is raised when either clause holds:
+
+| Clause | Condition |
+|---|---|
+| (i) state drift | `stash_count`, `branch` or `orig_head` differs between the two snapshots |
+| (ii) reverse porcelain delta | the set of paths dirty in `before` and **not** dirty in `after`, **minus** the paths of the committed delta (b), is non-empty — a path stopped being dirty with no commit explaining it |
+
+Clause (ii) is the general form: it catches `git stash`, `git checkout --
+<path>`, `git restore` and `git clean` on a path the leaf did not commit, none
+of which clause (i) alone would see (a `stash` followed by `stash pop` restores
+the count but not, in general, the same instant; a `stash drop` changes it).
+Clause (i) is the cheap form and catches a branch switch and a reset that leaves
+the tree clean.
+
+**Why it does not fire on a legitimate dispatch** — the discriminating property,
+stated so an implementer can test it:
+
+- A **normal implement leaf** only *adds* porcelain lines; any path it commits
+  leaves the dirty set, and clause (ii) subtracts exactly the committed delta,
+  so the reverse delta is empty. It does not stash, does not switch branch, and
+  does not set `ORIG_HEAD`.
+- A **fan-out merge** is an orchestrator step that runs **outside** any leaf's
+  observation window, so no snapshot pair spans it; and a merge commit is a
+  descendant, so the existing ancestry check (c) still passes.
+- The orchestrator's **own bookkeeping commit** also lands after
+  `snapshot(after)` (§Snapshot Ordering), outside the window.
+
+**Rendering (Q-REQ-P6-A).** The finding renders as a **line inside the existing
+write-scope block**, exactly parallel to the `HISTORY_REWRITE` line, above the
+path list, and counts into `SCOPE: VIOLATION (N paths)`. **No new gate token is
+introduced** and the REQ-ORCH-034 signal order is unchanged — a new own-line
+token would have to be placed in that order and guarded by its own lint rows for
+no gain. Shape:
+
+```
+  GIT_STATE  stash count 0 -> 1; 9 path(s) dirty before and clean after with no
+             commit (docs/plan.md, docs/spec/telemetry.md, …)
+```
+
+**Options.** Because a stash is recoverable, the gate offers
+`restore │ accept (note) │ stop` for the finding, and `proceed` is unavailable
+while it is unresolved — the same withholding rule an unresolved `OUT` path
+already carries. `restore` is `git stash pop` for the stash case and
+`git checkout -- <path>` for a reverted path; `accept (note)` records the
+operator's acceptance in ephemeral gate text only.
+
+**Skill-side text.** `skills/sdd-orchestrate/references/write-scope.md` states
+the three extra plumbing reads and the reverse-delta subtraction in §3, the
+`GIT_STATE` line in §5, and its option set in §8. The `GIT_STATE` name is
+guarded by a lint `REQUIRED` row (`skill-lint-v5.md`
+§`REQUIRED` Rows — `PLAN:` and `GIT_STATE`).
+
+**Self-test scenarios.** Four new `tools/sdd-scope-check-selftest.py` fixtures
+close the Confidence gap that this design being derived from contract text
+rather than from a replayed dispatch leaves open; they are required work, not
+optional colour:
+
+| Scenario | Expected |
+|---|---|
+| read-only leaf runs `git stash` then `git stash pop` | `GIT_STATE` finding, `SCOPE: VIOLATION` |
+| read-only leaf runs `git stash` then `git stash drop` | `GIT_STATE` finding, `SCOPE: VIOLATION` |
+| implement leaf commits a path that was already dirty at `snapshot(before)` | `SCOPE: CLEAN` — clause (ii) subtracts the committed delta |
+| fan-out merge performed by the orchestrator between two dispatches | `SCOPE: CLEAN` — the merge lies outside any leaf's window |
+
 ## Verification
 
 ### Automated
@@ -460,6 +559,11 @@ ambiguous set makes the `R` fixture fail. Fixture ids continue the F-series
   `SCOPE: CLEAN`.
 - Fixture: `blocked_writes: [{path: docs/plan.md, …}]` from a fan-out leaf →
   not persisted, listed as `OUT … refused`.
+- Fixtures: the four §Git-State Observation scenarios, each asserting the
+  `GIT_STATE` finding's presence or absence and the resulting `SCOPE:` token
+  (REQ-HARN-HARNESSP6-001).
+- Fixture: `ORIG_HEAD` absent in both snapshots compares equal and raises
+  nothing; present in `after` only raises `GIT_STATE` (REQ-HARN-HARNESSP6-001).
 - Fixture: `HEAD_after` not descending from `HEAD_before` → `HISTORY_REWRITE`,
   `VIOLATION`.
 
@@ -489,6 +593,11 @@ ambiguous set makes the `R` fixture fail. Fixture ids continue the F-series
 - [ ] `tools/sdd-scope-check-selftest.py --self-test` gains a fixture in which one path is observed by both the committed and the content delta and asserts the rendered `N` is `1` with provenance label `committed`; the shipped self-test exits 0; `references/write-scope.md` §3 states the de-duplication and label-precedence rule in one sentence (REQ-HARN-HARNESSP4-004)
 - [ ] The `R` (scoped → out-of-scope `git mv`, both paths in the ambiguous set) and space-path (`-z` keeps one record) fixtures exist and pass under `--self-test`; the newline-split mutation fails the space-path fixture and dropping the origin path fails the `R` fixture; the shipped self-test exits 0 (REQ-HARN-HARNESSP4-005)
 - [ ] §Commit Ownership carries the one-sentence pointer to `harness-commit-fidelity.md` for the `COMMIT:` closing line (REQ-HARN-HARNESSP4-001, owned there)
+- [ ] `snapshot(before)` and `snapshot(after)` each record stash count, current branch and `ORIG_HEAD` alongside the existing porcelain read, within the **existing** window — no second window is introduced (REQ-HARN-HARNESSP6-001)
+- [ ] A `GIT_STATE` finding is raised on clause (i) state drift or clause (ii) a non-empty reverse porcelain delta after subtracting the committed delta; it renders as a line inside the write-scope block parallel to `HISTORY_REWRITE`, counts into `SCOPE: VIOLATION (N paths)`, and introduces no new gate token (REQ-HARN-HARNESSP6-001)
+- [ ] The finding's options are `restore │ accept (note) │ stop` with `proceed` withheld while unresolved (REQ-HARN-HARNESSP6-001)
+- [ ] `python3 tools/sdd-scope-check-selftest.py` exits 0 with the four new scenarios: stash-with-pop and stash-and-drop each violate; an implement leaf committing an already-dirty path and an orchestrator fan-out merge are each `SCOPE: CLEAN` (REQ-HARN-HARNESSP6-001)
+- [ ] `skills/sdd-orchestrate/references/write-scope.md` §3 states the three extra plumbing reads and the reverse-delta subtraction, §5 the `GIT_STATE` line, §8 its options; `python3 tools/sdd-skill-lint.py` exits 0 (REQ-HARN-HARNESSP6-001)
 - [ ] §Commit Ownership names the **second** orchestrator bookkeeping commit with its three writes (aggregate regeneration, a cross-workstream `descoped` cell, the plan `status: complete` flip), states that it lands **after** `HEAD_landed` is captured, and states that a leaf writing any of them is a `SCOPE: VIOLATION`; `grep -cE '^actually runs — .git diff --name-only --no-renames -z' docs/spec/harness-write-scope.md` prints 1 — the `^` anchor matches only the §Comparand quotation, which begins its own line, and never this criterion, which begins `- [ ]`, so the check is not self-matching (the earlier corpus-wide `grep -n 'no-renames…'` form counted itself and could never print 1) — pointing at `harness-commit-fidelity.md` §Comparand Table and `references/write-scope.md` §7a rather than restating the table (REQ-HARN-HARNESSP5-001, REQ-WS-HARNESSP5-001, REQ-HARN-HARNESSP5-002, all owned elsewhere)
 
 ## Edge Cases
@@ -539,6 +648,15 @@ tokens were checked instead:
 
 - `SCOPE:`, `IN` / `ADVISORY` / `OUT`, `HISTORY_REWRITE`, `CATCH-UP` — unchanged
   here and consistent with `docs/spec/harness-return-contract.md`.
+
+**harness-p6 pass (2026-09-20).** `GIT_STATE` is defined once, here, as a
+**member of the `SCOPE:` finding family** — not an own-line token — and is
+referenced by `docs/spec/skill-lint-v5.md` (the `REQUIRED` row that guards its
+name) and by `skills/sdd-orchestrate/references/write-scope.md`. It appears in
+no gate-signal-order table, which is the property that keeps
+`docs/spec/harness-loop-control.md` §Gate Signal Order unchanged by this cycle's
+write-scope work. No type definitions are introduced; the extraction step again
+reports "no extractable type definitions in harness-write-scope.md".
 - The specs write-scope row is repeated in `docs/spec/ws-traceability.md`
   (Q-IMPL-011) and both now read `docs/ws/<id>/traceability.md` for marker `4`.
 - `## Post-cycle Fixes` is defined once, in `docs/spec/adversarial-verify.md`,

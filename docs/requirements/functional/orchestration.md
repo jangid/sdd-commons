@@ -1,8 +1,8 @@
 ---
 domain: ORCH
-last_updated: 2026-09-17
+last_updated: 2026-09-20
 status: Approved
-research_refs: [RS-005, RS-006, RS-008]
+research_refs: [RS-005, RS-006, RS-008, RS-HARNESSP6-001]
 ---
 
 # Requirements: SDD Orchestration Driver
@@ -361,4 +361,74 @@ stage gate after all chunks. See `docs/spec/harness-chunk-verifier.md` §Sequenc
 **Acceptance**: `sdd-orchestrate/SKILL.md` §The gate lists the five signals and
 links the two references files (REQ-LINT-004 resolves the links); a gate
 rendering fixture shows them in the stated order.
+[Priority: must]
+
+### REQ-ORCH-HARNESSP6-001: `CONVERGENCE:` renders as item 6c of the gate signal order, informational
+The L2 convergence signal must render as its own **own-line token** at the gate,
+`CONVERGENCE:`, placed at position **6c** of the REQ-ORCH-034 signal order —
+after 6b (`PLAN:`) and immediately before 7 (`TELEMETRY:`) — naming the cluster's
+key (the shared id, the file alone for a sectionless file, or file and section),
+the contributing layers, and the layer count, for example
+`CONVERGENCE: docs/spec/telemetry.md §Writer rule (review, red) — 2 layers`. It
+renders after every finding-bearing signal and after both derived pauses because
+it is derived from them; the "renders last" clause governing `TELEMETRY:` gains
+6c in the same enumeration. The signal is **informational**: it never pauses the
+gate, has no option set, and never withholds `proceed`. That is the decisive
+choice — with no root-cause field the cluster is a heuristic, and a pausing
+heuristic turns every false positive into an operator interruption, while an
+informational line costs one line when wrong and delivers its whole value when
+right, because the value is the operator noticing. (workstream `harness-p6`;
+RS-HARNESSP6-001 Q4(c), Confidence Medium; position chosen over a derived line
+under one producer because a convergence line spans producers)
+
+**[Updated: 2026-09-20 — amended at replan, caused by the Chunk 8 resolving
+spike. The token, its position 6c and its informational status are unchanged;
+only what a cluster can be keyed on changed, so the rendered line now names the
+cluster's key in the three shapes the amended cluster rule admits
+(REQ-HARN-HARNESSP6-002). Requirement id and number unchanged.]**
+
+**Acceptance**: `skills/sdd-orchestrate/references/loop-control.md` §5 lists 6c
+between 6b and 7 and its §7 "renders last" clause names 6c;
+`skills/sdd-orchestrate/SKILL.md` §The gate names the token in its non-divergent
+summary; a gate rendering fixture shows the token in the stated position and
+shows `proceed` available while it is displayed; `python3
+tools/sdd-skill-lint.py` exits 0.
+[Priority: must]
+
+### REQ-ORCH-HARNESSP6-002: L2 ships as co-located convergence and is not a fifth verification layer
+The shipped scope of L2 must be stated explicitly as **co-located** convergence
+— clustering findings that already carry a location — and must not be described
+or verified as conceptual convergence. Conceptual convergence (findings sharing
+a root cause but no file and no section, as in the three-layer origin case the
+signal was named for) cannot be derived from what layers already return: it
+needs either a root-cause field on a leaf's `RETURN:` or a fifth layer whose job
+is correlation, and both are standing exclusions. Against that origin case the
+shipped form clusters **none** of the three layers: replayed over the record,
+the two members whose locations survive differ at file level and cite different
+ids, and the third was never durably recorded. That measured result — and not a
+recall figure the record does not reproduce — is what must be stated. Three invariants bind: L2 adds **no durable artifact**
+under `docs/` (its ledger is session-scoped and its output is ephemeral gate
+text); it must **not influence phase detection** — no skill's entry check reads
+it and it is never written to a file a detector reads; and the **four-layer
+verification table stays byte-unchanged**, because L2 is an orchestrator-derived
+gate signal, not a layer. No telemetry record key is added for it. (workstream
+`harness-p6`; RS-HARNESSP6-001 Q4(d) and §Implications for Design — "requirements
+must state the co-located scope explicitly, or verification will be asked to
+prove a property the design does not deliver")
+
+**[Updated: 2026-09-20 — amended at replan, caused by the Chunk 8 resolving
+spike: the co-located `(file, section)` key formed zero clusters over three
+replayed cycles and zero of three on the origin case, so the previously stated
+2-of-3 recall is refuted and withdrawn here. The shipped scope is now the
+shared-id key as primary plus the sectionless-file rule; the three invariants
+(no durable artifact, no influence on phase detection, four-layer table
+byte-unchanged) and the no-telemetry-key rule are unchanged. Requirement id and
+number unchanged.]**
+**Acceptance**: `git diff` over the cycle shows the four-layer verification
+table byte-unchanged in `CLAUDE.md` and in every spec that restates it;
+`docs/spec/harness-loop-control.md` §Convergence Signal states the shipped scope
+(shared id primary, sectionless file, retained `(file, section)`) and states the
+origin-case recall as the Chunk 8 replay measured it, with no recall figure the
+replay does not reproduce; no file under `docs/` is created by L2 and no phase-detection rule in any `sdd-*` skill references
+`CONVERGENCE:`; `python3 tools/sdd-gc.py --report` reports no new artifact class.
 [Priority: must]

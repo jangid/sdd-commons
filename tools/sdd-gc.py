@@ -16,7 +16,8 @@ Three sweep classes (rule ids in brackets):
              seen at sdd-orchestrate entry / DONE, the two cadence moments
   gc         sweeps 6-14, scoped to docs/**:
                6  cross-links + id existence      [xlink-dead] fail, [id-missing] fail
-               7  staleness chain                 [stale-chain] warn
+               7  staleness chain                 [stale-chain] plan-level warn,
+                                                  shared-spec info (folded per pair)
                8  Q-IMPL referenced, undefined    [qimpl-undefined] fail
                9  Q-IMPL defined, unreferenced    [qimpl-unreferenced] info
               10  Q-IMPL Spec reference / chain   [qimpl-broken-ref] warn
@@ -33,6 +34,10 @@ Q-IMPL counting rule (pinned; RS-HARNESSP2-001 Q4, `drift-sweep.md`
 §Q-IMPL Counting Rule):
 
   * definition — a line matching `^### Q-IMPL-[A-Z0-9-]+` under docs/spec/**
+    that lies OUTSIDE a fenced code block — collected through the same
+    visible_lines() filter the reference side uses (REQ-GC-HARNESSP6-004): a
+    heading inside a fence defines nothing, exactly as a reference inside a
+    fence references nothing.
   * reference  — any other occurrence of `Q-IMPL-[A-Z0-9]+(-\\d+)?` under docs/,
     skills/, agents/, tools/ EXCLUDING
       - docs/research/** (research cites foreign-repo ids);
@@ -66,6 +71,14 @@ with the fence/backtick and <WS>-token exclusions:
 Reference values on 2026-09-17 at commit 5e6142b (not pins): 28 definitions,
 20 both, 8 defined-only, 0 referenced-only; template-example ids
 `Q-IMPL-003` / `Q-IMPL-007` / `Q-IMPL-021` skipped.
+
+Countability obligation (REQ-GC-HARNESSP6-004) — an AUTHORING obligation, not
+an allowlist: because the two sides are now fence-symmetric, an id used inside
+a fenced format illustration must be either (a) an id that a real, unfenced
+`### Q-IMPL-…` entry defines elsewhere in the corpus, or (b) one of the
+id-format placeholders listed above. No marker, info-string language tag or
+whitelist exists or may be added; a fence can no longer accidentally DEFINE a
+foreign id either.
 
 Finding shape is the linter's, verbatim — `<file>:<line>: [<rule>] <msg>` plus
 an indented `fix:` line; `WARN ` / `INFO ` prefixes for the lower tiers; the
@@ -154,6 +167,10 @@ ARCHIVE_FIX = ("rename to {YYYY-MM-DD}-{reason}.md (date from last_updated or th
                "`-replan-` is reserved for sdd-replan archives")
 STALE_FIX = ("update the downstream artifact through its owning skill and bump its last_updated "
              "there — dates are never auto-fixed (route: record | ignore at DONE)")
+# The folded shared-spec sub-kind is informational and routes nowhere at DONE
+# (drift-sweep.md §Routing at DONE), so it carries its own fix text.
+SPEC_STALE_FIX = ("review the spec against those requirements; bump last_updated via sdd-specs "
+                  "if it actually needs a change (informational — not routed at DONE)")
 TRACE_FIX = "fill the cell in the owning docs/ws/<id>/traceability.md (sdd-implement) and regenerate the aggregate"
 AGG_FIX = "run tools/sdd-gc.py --fix traceability-aggregate (regenerates from docs/ws/*/traceability.md)"
 ROWDROP_FIX = ("write a literal pipe inside a cell as \\| or &#124; (never a raw |), or restore the "
@@ -609,7 +626,13 @@ class Gc:
         for f in self.spec_files():
             text = read_text(f) or ""
             lines = text.splitlines()
-            for no, line in enumerate(lines, 1):
+            # Fence symmetry (REQ-GC-HARNESSP6-004): definitions are collected
+            # through the SAME visible_lines() filter the reference side uses,
+            # so a `### Q-IMPL-…` heading inside a fenced illustration defines
+            # nothing — exactly as a reference inside a fence references
+            # nothing.  Bodies are still read from the raw lines, so an entry's
+            # `**Spec reference**` line is unaffected by span blanking.
+            for no, line in visible_lines(text):
                 m = QIMPL_DEF_RE.match(line)
                 if not m:
                     continue
@@ -634,6 +657,7 @@ class Gc:
         both = sorted(set(defs) & set(refs))
         defined_only = sorted(set(defs) - set(refs))
         referenced_only = sorted(set(refs) - set(defs))
+        self.qimpl_defs = set(defs)     # ids the fence-symmetric scan accepted
         self.qimpl_counts = {"definitions": len(defs), "both": len(both),
                              "defined_only": len(defined_only),
                              "referenced_only": len(referenced_only)}
@@ -767,12 +791,31 @@ class Gc:
                     out.setdefault(m.group(1), f)
         return out
 
+    def ws_closed(self, ws: str) -> bool:
+        """True when workstream `ws` is CLOSED (drift-sweep.md §Closed-Workstream
+        Skip): its `docs/ws/<id>/verification.md` exists and its frontmatter
+        `status:` is exactly `pass`.  Any other status (including `fail` and
+        `pending-red`) and an absent file read as OPEN.  The predicate is
+        per workstream, never per file, and is never consulted under marker 3 —
+        there is no `docs/ws/` there and no sibling verification to read."""
+        if self.marker != "4" or not ws or not self.ws_root.is_dir():
+            return False
+        ver = self.ws_root / ws / "verification.md"
+        if not ver.is_file():
+            return False
+        return str(frontmatter(read_text(ver) or "").get("status", "")).strip() == "pass"
+
+    @staticmethod
+    def _is_stale(d_date: str | None, u_date: str | None) -> bool:
+        """Strict date comparison shared by every staleness sub-kind."""
+        return bool(d_date and u_date and u_date > d_date)
+
     def _stale(self, downstream: Path, d_date: str | None, upstream: Path, u_date: str | None,
-               what: str) -> None:
-        if d_date and u_date and u_date > d_date:
+               what: str, severity: str = "warn") -> None:
+        if self._is_stale(d_date, u_date):
             self.flag(downstream, None, "stale-chain",
                       f"{what}: {upstream.relative_to(self.root)} ({u_date}) is newer than "
-                      f"{downstream.name} ({d_date})", STALE_FIX, "warn")
+                      f"{downstream.name} ({d_date})", STALE_FIX, severity)
 
     def sweep_stale(self) -> None:
         """research → requirements (shared, workstream-independent) → specs →
@@ -784,12 +827,21 @@ class Gc:
             self._stale(q_idx, artifact_date(read_text(q_idx) or ""), r_idx,
                         artifact_date(read_text(r_idx) or ""), "requirements older than research")
         cat_of = self.category_file_of()
+        # The shared-spec sub-kind is FOLDED (drift-sweep.md §Shared-Spec
+        # Staleness): every (spec, requirement id) pair is still evaluated, but
+        # the triggering ids accumulate here keyed by (downstream spec, upstream
+        # category file) and one `info` finding per pair is emitted after the
+        # walk — a spec traced by several workstreams still yields one finding.
+        spec_stale: dict[tuple[Path, Path], tuple[str, str, set[str]]] = {}
         plans = self.plan_paths()
         if self.workstream:
             plans = {ws: p for ws, p in plans.items() if ws == self.workstream}
         for ws, plan in sorted(plans.items()):
             p_text = read_text(plan) or ""
             p_date = artifact_date(p_text)
+            # Both plan-level sub-kinds are skipped together for a closed
+            # workstream; the shared-spec sub-kind below is unaffected.
+            closed = self.ws_closed(ws)
             spec_by_name = {f.name: f for f in self.spec_files()}
             reqs: set[str] = set()
             for name in sorted(self.traced_specs(plan)):
@@ -802,19 +854,32 @@ class Gc:
                 reqs.update(s_reqs)
                 for rid in s_reqs:
                     cf = cat_of.get(rid)
-                    if cf:
-                        self._stale(spec, s_date, cf, artifact_date(read_text(cf) or ""),
-                                    f"spec older than requirement {rid}")
-                self._stale(plan, p_date, spec, s_date, "plan older than a traced spec")
-            for cf in sorted({cat_of[r] for r in reqs if r in cat_of}):
-                self._stale(plan, p_date, cf, artifact_date(read_text(cf) or ""),
-                            "plan older than a traced requirement category file")
+                    if cf is None:
+                        continue
+                    c_date = artifact_date(read_text(cf) or "")
+                    if self._is_stale(s_date, c_date):
+                        assert s_date and c_date  # narrowed by _is_stale
+                        spec_stale.setdefault((spec, cf), (s_date, c_date, set()))[2].add(rid)
+                if not closed:
+                    self._stale(plan, p_date, spec, s_date, "plan older than a traced spec")
+            if not closed:
+                for cf in sorted({cat_of[r] for r in reqs if r in cat_of}):
+                    self._stale(plan, p_date, cf, artifact_date(read_text(cf) or ""),
+                                "plan older than a traced requirement category file")
             ver = plan.parent / "verification.md"
             if ver.is_file():
                 v_text = read_text(ver) or ""
                 status = str(frontmatter(v_text).get("status", ""))
                 note = " (status: pending-red — verification exists, not passed)" if status == "pending-red" else ""
                 self._stale(ver, artifact_date(v_text), plan, p_date, "verification older than the plan" + note)
+        # One `info` finding per (spec, category file) pair, naming every id that
+        # triggered it — the fold drops no comparison, only the fan-out.
+        for (spec, cf), (s_date, c_date, ids) in sorted(spec_stale.items()):
+            id_list = ", ".join(sorted(ids))
+            self.flag(spec, None, "stale-chain",
+                      f"spec older than requirements it requires: {cf.relative_to(self.root)} "
+                      f"({c_date}) is newer than {spec.name} ({s_date}) "
+                      f"(ids: {id_list})", SPEC_STALE_FIX, "info")
 
     # -- sweep 11: empty traceability cells (sdd-verify Step 3b policy) --------
 
@@ -1521,6 +1586,151 @@ def self_test() -> int:
               f"fixed rules still fire: {dict(fails)} {dict(warns)}")
         check(fails["id-missing"] == 1 and fails["kickoff-fields"] == 1 and warns["stale-chain"] == ewarn["stale-chain"],
               f"--fix changed findings it does not own: {dict(fails)} {dict(warns)}")
+
+        # -- 9. test_stale_chain_skips_closed_workstream (REQ-GC-HARNESSP6-001)
+        #    A fresh fixture where BOTH plan-level sub-kinds fire on alpha's plan:
+        #    a.md (2026-01-04) and one.md, re-dated here, are newer than the plan
+        #    (2026-01-03).  Only alpha's verification status varies between runs.
+        closed_root = tmp / "closed"
+        build_fixture(closed_root, clean=False)
+        one_md = closed_root / "docs/requirements/functional/one.md"
+        _w(closed_root, "docs/requirements/functional/one.md",
+           (read_text(one_md) or "").replace("last_updated: 2026-01-01", "last_updated: 2026-01-05"))
+        alpha_ver = closed_root / "docs/ws/alpha/verification.md"
+        plan_line = re.compile(r"^(?:WARN |INFO )?docs/ws/alpha/plan\.md: \[stale-chain\] (.*)$")
+
+        def alpha_plan_kinds() -> set[str]:
+            """The plan-level sub-kinds reported on alpha's plan in one run."""
+            _, text = _run(["--report", "--root", str(closed_root), "--workstream", "alpha"])
+            kinds = set()
+            for ln in text.splitlines():
+                m = plan_line.match(ln)
+                if m and m.group(1).startswith("plan older than a traced spec"):
+                    kinds.add("spec")
+                elif m and m.group(1).startswith("plan older than a traced requirement"):
+                    kinds.add("category")
+            return kinds
+
+        both = {"spec", "category"}
+        for status in ("fail", "pending-red"):
+            _w(closed_root, "docs/ws/alpha/verification.md",
+               f"---\nlast_updated: 2026-01-02\nstatus: {status}\n---\n# V\n\n## Next Steps\n")
+            check(alpha_plan_kinds() == both,
+                  f"status: {status} is OPEN — want both plan-level sub-kinds, got {alpha_plan_kinds()}")
+        alpha_ver.unlink()
+        check(alpha_plan_kinds() == both,
+              f"absent verification.md is OPEN — want both sub-kinds, got {alpha_plan_kinds()}")
+        _w(closed_root, "docs/ws/alpha/verification.md",
+           "---\nlast_updated: 2026-01-02\nstatus: pass\n---\n# V\n\n## Next Steps\n")
+        check(alpha_plan_kinds() == set(),
+              f"status: pass is CLOSED — want no plan-level sub-kind, got {alpha_plan_kinds()}")
+        # the predicate is per workstream: beta (open, no verification.md) is untouched,
+        # and the shared-spec sub-kind is not a plan-level finding, so it survives the skip
+        _, closed_out = _run(["--report", "--root", str(closed_root)])
+        check(any(re.match(r"^(?:WARN |INFO )?docs/spec/a\.md: \[stale-chain\]", ln)
+                  for ln in closed_out.splitlines()),
+              "the closed-workstream skip swallowed the shared-spec sub-kind")
+
+        # -- 10./11. test_shared_spec_staleness_folds / _severity
+        #    (REQ-GC-HARNESSP6-002, REQ-GC-HARNESSP6-003).  One fixture: a.md
+        #    (2026-01-02) requires three ids from one.md, re-dated newer here, and
+        #    alpha is OPEN so a plan-level finding is emitted alongside.
+        fold_root = tmp / "fold"
+        build_fixture(fold_root, clean=True)
+        _w(fold_root, "docs/ws/alpha/verification.md",
+           "---\nlast_updated: 2026-01-02\nstatus: fail\n---\n# V\n\n## Next Steps\n")
+        one_text = read_text(fold_root / "docs/requirements/functional/one.md") or ""
+        _w(fold_root, "docs/requirements/functional/one.md",
+           one_text.replace("last_updated: 2026-01-01", "last_updated: 2026-01-05")
+           + "\n### REQ-AA-ALPHA-003: third\n\nAlso designed in a.md.\n")
+        a_path = fold_root / "docs/spec/a.md"
+
+        def _set_requires(ids: list[str]) -> None:
+            _w(fold_root, "docs/spec/a.md", re.sub(
+                r"^requires: \[.*\]$", "requires: [" + ", ".join(ids) + "]",
+                read_text(a_path) or "", count=1, flags=re.M))
+
+        stale_line = re.compile(r"^(WARN |INFO )?(\S+?): \[stale-chain\] (.*)$")
+
+        def stale_lines(loc: str) -> list[tuple[str, str]]:
+            """(severity prefix, message) for every [stale-chain] line at `loc`."""
+            _, text = _run(["--report", "--root", str(fold_root)])
+            out_ = []
+            for ln in text.splitlines():
+                m = stale_line.match(ln)
+                if m and m.group(2) == loc:
+                    out_.append(((m.group(1) or "").strip(), m.group(3)))
+            return out_
+
+        three = ["REQ-AA-ALPHA-001", "REQ-AA-ALPHA-002", "REQ-AA-ALPHA-003"]
+        _set_requires(three)
+        folded = stale_lines("docs/spec/a.md")
+        check(len(folded) == 1, f"three stale ids from one category file gave {len(folded)} finding(s), want 1")
+        check(bool(folded) and all(i in folded[0][1] for i in three),
+              f"folded message does not name every triggering id: {folded}")
+        # a second stale category file for the same spec -> a second finding
+        two_text = read_text(fold_root / "docs/requirements/functional/two.md") or ""
+        _w(fold_root, "docs/requirements/functional/two.md",
+           two_text.replace("last_updated: 2026-01-01", "last_updated: 2026-01-05"))
+        _set_requires(three + ["REQ-BB-ALPHA-001"])
+        two_pairs = stale_lines("docs/spec/a.md")
+        check(len(two_pairs) == 2, f"two stale category files gave {len(two_pairs)} finding(s), want 2")
+        named_cfs = {m.group(1) for m in (re.search(r"requires: (\S+) \(", msg) for _, msg in two_pairs) if m}
+        check(len(named_cfs) == 2,
+              f"the two findings do not name two distinct category files: {two_pairs}")
+        # severity: the folded shared-spec findings are info, the plan-level one warn
+        check(all(sev == "INFO" for sev, _ in two_pairs),
+              f"folded shared-spec finding is not info: {two_pairs}")
+        plan_findings = stale_lines("docs/ws/alpha/plan.md")
+        check(bool(plan_findings) and all(sev == "WARN" for sev, _ in plan_findings),
+              f"plan-level finding on an open workstream is not warn: {plan_findings}")
+        # -- 12. test_qimpl_definition_is_fence_symmetric (REQ-GC-HARNESSP6-004)
+        #    Definitions run through the same visible_lines() filter as
+        #    references: a fenced `### Q-IMPL-…` heading defines nothing, an
+        #    unfenced one still does, and a genuinely undefined unfenced
+        #    reference still fails.
+        fence_root = tmp / "fence"
+        build_fixture(fence_root, clean=True)
+        fid, uid, gid = qid("ALPHA", 5), qid("ALPHA", 6), qid("ALPHA", 7)
+        b_rel, fence = "docs/spec/b.md", "```"
+
+        def qimpl_defs(root_: Path) -> set[str]:
+            g_ = Gc(root_, lint_suite_rules=False)
+            g_.sweep_qimpl()
+            return set(g_.qimpl_defs)
+
+        base_defs = qimpl_defs(fence_root)
+        b_text = read_text(fence_root / b_rel) or ""
+        # (a) a fenced format illustration: heading + a reference to the same id,
+        #     both inside the fence.  Neither side may count.
+        _w(fence_root, b_rel, b_text + "\n## Illustration\n\nAn entry looks like:\n\n"
+           + fence + "\n### " + fid + ": illustrative only\n**Tier**: 2\n"
+           "**Spec reference**: §Gadget\n**Decision**: none — " + fid + " is a format example\n"
+           + fence + "\n")
+        check(qimpl_defs(fence_root) == base_defs,
+              f"a fenced heading defined {qimpl_defs(fence_root) - base_defs}, want nothing")
+        _, fence_out = _run(["--report", "--root", str(fence_root)])
+        check(fid not in fence_out,
+              f"the fenced illustration id surfaced as a finding:\n{fence_out}")
+        # (b) an unfenced heading still defines (and, unreferenced, is info (ii))
+        _w(fence_root, b_rel, (read_text(fence_root / b_rel) or "")
+           + "\n### " + uid + ": unfenced entry\n**Tier**: 2\n**Spec reference**: §Gadget\n"
+           "**Decision**: counts\n")
+        check(qimpl_defs(fence_root) == base_defs | {uid},
+              f"an unfenced heading did not define {uid}: {qimpl_defs(fence_root) - base_defs}")
+        _, fence_out = _run(["--report", "--root", str(fence_root)])
+        f2, w2, i2, _ = _parse(fence_out)
+        check(f2["qimpl-undefined"] == 0 and i2["qimpl-unreferenced"] == einfo["qimpl-unreferenced"] + 1,
+              f"unfenced definition not counted defined-only:\n{fence_out}")
+        # (c) a genuinely undefined reference, unfenced and unquoted, still fails
+        plan_rel = "docs/ws/alpha/plan.md"
+        _w(fence_root, plan_rel, (read_text(fence_root / plan_rel) or "")
+           + "\nResolved earlier by " + gid + " during the widget work.\n")
+        code, fence_out = _run(["--report", "--root", str(fence_root)])
+        f3, _, _, _ = _parse(fence_out)
+        check(code == 1 and f3["qimpl-undefined"] == 1 and gid in fence_out,
+              f"an undefined unfenced reference no longer fails (exit {code}):\n{fence_out}")
+
     finally:
         _LINT_SUITE_RULES = True
         shutil.rmtree(tmp, ignore_errors=True)
@@ -1532,7 +1742,9 @@ def self_test() -> int:
           "D/B/D-B hold; exit codes 0/1/2; finding shape; lint pass-through; four --fix rules "
           "idempotent with dates and other workstreams untouched; row-drop safety: an escaped pipe "
           "round-trips through --fix traceability-aggregate, a five-cell row raises one "
-          "[traceability-rowdrop] fail at <file>:<line>, --fix traceability-rowdrop exits 2")
+          "[traceability-rowdrop] fail at <file>:<line>, --fix traceability-rowdrop exits 2; "
+          "Q-IMPL definitions are fence-symmetric: a fenced heading defines nothing, an unfenced "
+          "one still does, an undefined unfenced reference still fails")
     return 0
 
 
@@ -1554,9 +1766,14 @@ sweep classes and rule ids
   gc (scoped to docs/**):
       [xlink-dead] fail   dead [text](path) / (see …) links; anchor miss is warn
       [id-missing] fail   requires: / research_refs / (see RS-…) ids that do not exist
-      [stale-chain] warn  research -> requirements -> specs -> plan -> verification dates,
+      [stale-chain] plan-level warn / shared-spec info
+             research -> requirements -> specs -> plan -> verification dates,
              per workstream via plan `traces to` -> spec requires: -> category files;
-             pending-red reads as "verification exists, not passed"; never fixable
+             a spec older than a category file it requires: ids from is folded to one
+             info finding per (spec, category file) pair naming every triggering id,
+             and is not routed at DONE; a closed workstream's plan-level findings are
+             skipped; pending-red reads as "verification exists, not passed";
+             never fixable
       [qimpl-undefined] fail    Q-IMPL referenced but defined in no spec
       [qimpl-unreferenced] info Q-IMPL defined but never referenced (not a defect)
       [qimpl-broken-ref] warn   **Spec reference** heading missing; [superseded by …] names an undefined id
@@ -1572,11 +1789,23 @@ sweep classes and rule ids
   excluded (review / dogfooding territory, not mechanical):
       new drift of skill text from spec wording; semantic orphaning
 
-Q-IMPL counting rule: a definition is `### Q-IMPL-…` under docs/spec/**; a
-reference is any other occurrence under docs/, skills/, agents/, tools/
-excluding docs/research/**, the placeholders (Q-IMPL-NNN, Q-IMPL-1,
-Q-IMPL-ISSUE42*, Q-IMPL-ISSUE57-001, unknown <WS> tokens), and anything inside
-fenced code or inline backticks.  Full text: the module docstring.
+Q-IMPL counting rule: a definition is `### Q-IMPL-…` under docs/spec/** that
+lies OUTSIDE a fenced code block; a reference is any other occurrence under
+docs/, skills/, agents/, tools/ excluding docs/research/**, the placeholders
+(Q-IMPL-NNN, Q-IMPL-1, Q-IMPL-ISSUE42*, Q-IMPL-ISSUE57-001, unknown <WS>
+tokens), and anything inside fenced code or inline backticks.  Both sides run
+through the same visible_lines() filter, so a heading inside a fence defines
+nothing just as a reference inside a fence references nothing.
+Countability obligation (an AUTHORING obligation, NOT an allowlist): an id used
+inside a fenced format illustration must be either an id that a real, unfenced
+`### Q-IMPL-…` entry defines elsewhere in the corpus, or one of the id-format
+placeholders listed above.  No marker, language tag or whitelist exists or may
+be added.  Full text: the module docstring.
+
+Reference commands (raw counts, refined by the exclusions above):
+  grep -rhoE '^### Q-IMPL-[A-Z0-9-]+' docs/spec | sed 's/^### //' | sort -u
+  grep -rHnE 'Q-IMPL-[A-Z0-9]+(-[0-9]+)?' docs skills agents tools --exclude-dir=research \\
+    | grep -vE ':[0-9]+:### Q-IMPL-' | grep -oE 'Q-IMPL-[A-Z0-9]+(-[0-9]+)?' | sort -u
 
 --fix whitelist (exactly these; each prints changed paths, is a no-op when
 re-run, never touches last_updated, never writes under another workstream):

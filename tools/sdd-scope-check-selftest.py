@@ -11,10 +11,12 @@ write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
 ``docs/spec/ws-traceability.md`` §Aggregate Regeneration Ownership (F12),
 ``docs/spec/harness-write-scope.md`` §`## Post-cycle Fixes` Is Inside the
 Implement / ``RED_BREAK`` Scope (F13) and §`R`/`C` Records and `-z` Parsing
-Are Fixture-Exercised (F15, F16) against the
+Are Fixture-Exercised (F15, F16) and §Git-State Observation (G1..G5) against the
 observation procedure defined in ``skills/sdd-orchestrate/references/write-scope.md``:
 
   §3  the three commands — porcelain delta, committed delta, ancestry check —
+      plus the git-state observation (stash count, branch, ``ORIG_HEAD``, and
+      the reverse porcelain delta minus the committed delta)
       plus the content-hash observation (already-dirty paths), the named-base
       catch-up (d) and its ``CATCH-UP`` line (remedy (ii))
       and the section resolution of fix hunks (hunk -> enclosing ``§Name``)
@@ -55,6 +57,21 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
       ``docs/notes with space.md``                  and rendered as one path, VIOLATION
                                                    (1 path)
 
+Git-state fixtures (``docs/spec/harness-write-scope.md`` §Git-State Observation,
+``references/write-scope.md`` §3/§5/§8) — the harness-p5 incident and the three
+legitimate cases the comparand must stay quiet on:
+
+  G1  read-only leaf: git stash then stash pop -> GIT_STATE (ORIG_HEAD drift),
+                                                  SCOPE: VIOLATION
+  G2  read-only leaf: git stash then stash     -> GIT_STATE (reverse porcelain
+      drop (the work is gone)                     delta), SCOPE: VIOLATION
+  G3  implement leaf commits a path already    -> SCOPE: CLEAN (clause (ii)
+      dirty at snapshot(before)                   subtracts the committed delta)
+  G4  orchestrator fan-out merge between two   -> SCOPE: CLEAN (outside any
+      dispatches                                  leaf's window)
+  G5  ORIG_HEAD absent in both / present in    -> CLEAN + GIT_STATE,
+      after only                                  SCOPE: VIOLATION
+
 Commit-fidelity fixtures (``docs/spec/harness-commit-fidelity.md`` §Self-Test
 Helper and Fixtures, ``references/write-scope.md`` §7a) — the pure helper
 ``commit_check(expected, landed)`` renders the own-line ``COMMIT:`` token from
@@ -73,6 +90,21 @@ two path sets; ``landed`` is always the two-sha range ``HEAD_before..HEAD_landed
   C6  sequential commit, observed and landed     -> COMPLETE (2 paths), the space path
       both hold ``docs/notes with space.md``        counted once (``-z``, split on ``\0``);
                                                    whitespace split -> false INCOMPLETE
+
+
+Convergence scenarios added at red round 1 (``harness-loop-control.md``
+§Convergence Signal), each mutation-proven — reverting that one fix fails that
+one scenario and no other:
+
+  L10 red R3: key rule 2 is gated on a         -> the ``.py`` pair renders nothing;
+      genuinely STRUCTURELESS file, not on        the ``.jsonl`` control still clusters
+      "not Markdown"
+  L11 red R4: a path absent from the checkout  -> no cluster key at all, so two
+      is not evidence of structurelessness        findings on different sections of it
+                                                  render nothing
+  L12 red R5: ``_headings()`` is fence-aware,  -> a Markdown file whose only ``#`` is
+      so a ``#`` inside a fenced block is not     inside a fence parses to [] sections
+      a heading                                   and its cluster is not dropped
 
 Usage:
     python3 tools/sdd-scope-check-selftest.py [-v] [--keep]
@@ -197,6 +229,36 @@ def snapshot(repo: str) -> list[str]:
     return records
 
 
+@dataclass(frozen=True)
+class GitState:
+    """The three extra plumbing values recorded by each snapshot (§3 git-state observation).
+
+    ``harness-write-scope.md`` §Git-State Observation: they are read inside the
+    **existing** ``snapshot(before)`` / ``snapshot(after)`` window — no second
+    window is introduced — so a leaf that mutates git state without adding a
+    porcelain line (the harness-p5 ``git stash``) is observed.
+    """
+
+    stash_count: int
+    branch: str
+    orig_head: str  # "" when ORIG_HEAD is absent — a legal value; absent-in-both compares equal
+
+
+def git_state(repo: str) -> GitState:
+    """``git stash list | wc -l``, ``rev-parse --abbrev-ref HEAD``, ``rev-parse --verify --quiet ORIG_HEAD``."""
+    stashes = [ln for ln in git(repo, "stash", "list").stdout.splitlines() if ln.strip()]
+    branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    # --verify --quiet: absence exits non-zero with empty output, which is the
+    # legal empty value, not an error.
+    orig = git(repo, "rev-parse", "--verify", "--quiet", "ORIG_HEAD", check=False).stdout.strip()
+    return GitState(len(stashes), branch, orig)
+
+
+def _short(sha: str) -> str:
+    """A short sha for rendering; ``<none>`` for the legal empty ORIG_HEAD value."""
+    return sha[:7] if sha else "<none>"
+
+
 # Label precedence of the strict observed-writes set (harness-write-scope.md
 # §Observed Writes Are a Strict Set): a path arriving from more than one term
 # keeps the richest label — committed ≻ content ≻ porcelain.
@@ -222,6 +284,7 @@ class Observed:
 class Observation:
     writes: list[Observed] = field(default_factory=list)
     history_rewrite: str | None = None  # rendered HISTORY_REWRITE line, if any
+    git_state: str | None = None  # rendered GIT_STATE line, if any (§Git-State Observation)
     catch_up: str | None = None  # rendered CATCH-UP note for the header line, if any
     # Third observation (telemetry.md §4): finding strings for leaf writes under
     # the gitignored ``.sdd/`` — each counts as one more OUT path.
@@ -403,6 +466,7 @@ def observe(
     *,
     base: str | None = None,
     content_before: dict[str, str] | None = None,
+    state_before: GitState | None = None,
 ) -> Observation:
     """Run the AFTER half of §3 and return the union of the two deltas.
 
@@ -509,6 +573,40 @@ def observe(
         else:
             _add_name_status(obs, git(repo, "diff", "--name-status", head_before, head_after).stdout, head_after)
 
+    # Git-state observation (REQ-HARN-HARNESSP6-001) — the comparand's two
+    # clauses, evaluated inside this same window:
+    #   (i)  state drift: stash count, branch or ORIG_HEAD differs between the
+    #        two snapshots (requires ``state_before``, taken pre-dispatch);
+    #   (ii) reverse porcelain delta: paths dirty in ``before`` and NOT dirty in
+    #        ``after``, MINUS the committed delta — a path stopped being dirty
+    #        with no commit explaining it. The existing delta (a) is
+    #        one-directional (lines in after, not in before), so a REMOVAL of
+    #        dirty lines — ``git stash``, ``git checkout -- <path>``,
+    #        ``git restore``, ``git clean`` — is invisible to it.
+    drift: list[str] = []
+    if state_before is not None:
+        state_after = git_state(repo)
+        if state_after.stash_count != state_before.stash_count:
+            drift.append(f"stash count {state_before.stash_count} -> {state_after.stash_count}")
+        if state_after.branch != state_before.branch:
+            drift.append(f"branch {state_before.branch} -> {state_after.branch}")
+        if state_after.orig_head != state_before.orig_head:
+            # Absence is the legal empty value, so absent-in-both compares equal
+            # and raises nothing; present-in-after-only is drift.
+            drift.append(f"ORIG_HEAD {_short(state_before.orig_head)} -> {_short(state_after.orig_head)}")
+    committed_paths = {w.path for w in obs.writes if w.term == "committed"}
+    after_dirty = set(ambiguous_set(after))
+    reverse_delta = [
+        p for p in ambiguous_set(before) if p not in after_dirty and p not in committed_paths
+    ]
+    if reverse_delta:
+        shown = ", ".join(reverse_delta[:3]) + (", …" if len(reverse_delta) > 3 else "")
+        drift.append(
+            f"{len(reverse_delta)} path(s) dirty before and clean after with no commit ({shown})"
+        )
+    if drift:
+        obs.git_state = "GIT_STATE  " + "; ".join(drift)
+
     # (c) ancestry — a non-zero exit is a HISTORY_REWRITE finding.
     rc = git(repo, "merge-base", "--is-ancestor", head_before, head_after, check=False).returncode
     if rc != 0:
@@ -606,9 +704,37 @@ def section_name(heading: str) -> str:
     return "§" + " ".join(text.split())
 
 
+# A fenced code block opens and closes on a line whose first non-space run is
+# three or more backticks or tildes (CommonMark). Everything between the opening
+# fence and the next fence of the SAME character is literal text, so a ``#``
+# there is a shell comment or a Markdown example — never a heading.
+FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+
+
 def _headings(lines: list[str]) -> list[tuple[int, str]]:
-    """``(line number, §Name)`` for every ``#``-heading, 1-based, in file order."""
-    return [(i, section_name(ln)) for i, ln in enumerate(lines, start=1) if ln.startswith("#")]
+    """``(line number, §Name)`` for every ``#``-heading, 1-based, in file order.
+
+    **Fence-aware** (REQ-HARN-HARNESSP6-002, red R5). Lines inside a fenced code
+    block are skipped: a ``# comment`` in a fenced shell block is not a heading,
+    and counting it made a genuinely structureless Markdown file look sectioned,
+    which silently dropped a convergence that key rule 2 would have rendered.
+    This is the same fence-blindness class REQ-GC-HARNESSP6-004 closed in
+    ``tools/sdd-gc.py``; the sibling tool key rule 2 depends on had kept it.
+    """
+    out: list[tuple[int, str]] = []
+    fence: str | None = None  # the opening fence's character run, while open
+    for i, ln in enumerate(lines, start=1):
+        m = FENCE.match(ln)
+        if m:
+            token = m.group(1)[0]
+            if fence is None:
+                fence = token
+            elif token == fence:
+                fence = None  # a closing fence of the same character
+            continue
+        if fence is None and ln.startswith("#"):
+            out.append((i, section_name(ln)))
+    return out
 
 
 def _hunk_ranges(diff_text: str) -> list[tuple[int, int]]:
@@ -744,6 +870,10 @@ def render(scope: list[ScopeGlob], obs: Observation, label: str) -> Finding:
         lines.append(f"  Observed writes: {obs.catch_up}")
     if obs.history_rewrite:
         lines.append(f"  {obs.history_rewrite}")
+    # GIT_STATE renders inside this block, parallel to HISTORY_REWRITE and above
+    # the path list; it introduces no new gate token (Q-REQ-P6-A).
+    if obs.git_state:
+        lines.append(f"  {obs.git_state}")
     out_paths: list[str] = []
     for w in obs.writes:
         t = tag(w.path, scope)
@@ -758,8 +888,9 @@ def render(scope: list[ScopeGlob], obs: Observation, label: str) -> Finding:
     for finding in obs.telemetry_findings:
         out_paths.append(finding.split()[1])
         lines.append(f"    {finding}")
-    # N counts OUT paths plus a HISTORY_REWRITE finding; ADVISORY never counts.
-    n = len(out_paths) + (1 if obs.history_rewrite else 0)
+    # N counts OUT paths plus a HISTORY_REWRITE and a GIT_STATE finding;
+    # ADVISORY never counts.
+    n = len(out_paths) + (1 if obs.history_rewrite else 0) + (1 if obs.git_state else 0)
     token = "SCOPE: CLEAN" if n == 0 else f"SCOPE: VIOLATION ({n} path{'s' if n != 1 else ''})"
     lines.append(f"  {token}")
     return Finding(lines, token, out_paths)
@@ -1733,6 +1864,572 @@ def scenario_a1_mii(repo: str) -> tuple[bool, str, list[str]]:
     ]
 
 
+def _dirty_two(repo: str) -> list[str]:
+    """Two tracked paths made dirty *before* the dispatch — the harness-p5 shape."""
+    write(repo, "docs/plan.md", "# Plan\nuncommitted work in the tree\n")
+    write(repo, "src/recon/engine.py", "def run():\n    return 7  # uncommitted work\n")
+    return ["docs/plan.md", "src/recon/engine.py"]
+
+
+def scenario_g1(repo: str) -> tuple[bool, str, list[str]]:
+    """Read-only leaf runs ``git stash`` then ``git stash pop`` -> GIT_STATE, VIOLATION.
+
+    ``harness-write-scope.md`` §Git-State Observation, the harness-p5 incident: a
+    read-only verifier stashed uncommitted work and the gate still rendered
+    ``SCOPE: CLEAN`` — the porcelain delta is one-directional, so a *removal* of
+    dirty lines is invisible to it. The pop restores the dirty set, so clause
+    (ii) is empty here and clause (i) carries the finding: ``git stash`` sets
+    ``ORIG_HEAD``, which was absent before the dispatch.
+    """
+    dirty = _dirty_two(repo)
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    git(repo, "stash", "-q")
+    git(repo, "stash", "pop", "-q")
+    obs = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f = render(SEQ_SCOPE_SRC, obs, "G1")
+    restored = all(p in " ".join(snapshot(repo)) for p in dirty)  # the pop put the work back
+    ok = (
+        restored
+        and obs.git_state is not None
+        and "ORIG_HEAD" in obs.git_state
+        and f.token == "SCOPE: VIOLATION (1 path)"
+        and any(ln.strip().startswith("GIT_STATE") for ln in f.lines)
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_g2(repo: str) -> tuple[bool, str, list[str]]:
+    """Read-only leaf runs ``git stash`` then ``git stash drop`` -> GIT_STATE, VIOLATION.
+
+    The work is gone: the paths dirty at ``snapshot(before)`` are clean at
+    ``snapshot(after)`` with no commit explaining it, so clause (ii) — the
+    reverse porcelain delta minus the committed delta — is non-empty. Clause (i)
+    adds the ``ORIG_HEAD`` drift the stash left behind.
+    """
+    dirty = _dirty_two(repo)
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    git(repo, "stash", "-q")
+    git(repo, "stash", "drop", "-q")
+    obs = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f = render(SEQ_SCOPE_SRC, obs, "G2")
+    gone = all(p not in " ".join(snapshot(repo)) for p in dirty)
+    ok = (
+        gone
+        and obs.git_state is not None
+        and "dirty before and clean after with no commit" in obs.git_state
+        and all(p in obs.git_state for p in dirty)
+        and f.token == "SCOPE: VIOLATION (1 path)"
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_g3(repo: str) -> tuple[bool, str, list[str]]:
+    """Implement leaf commits a path already dirty at ``snapshot(before)`` -> SCOPE: CLEAN.
+
+    The legitimate case clause (ii) must not fire on: the path leaves the dirty
+    set, but the committed delta explains it, and the subtraction empties the
+    reverse delta. A normal implement leaf only *adds* porcelain lines, does not
+    stash, does not switch branch and does not set ``ORIG_HEAD``.
+    """
+    write(repo, "docs/plan.md", "# Plan\ndirty before the dispatch\n")
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    write(repo, "docs/plan.md", "# Plan\ndirty before the dispatch\nleaf tick\n")
+    git(repo, "commit", "-q", "-am", "leaf: tick a plan task")
+    obs = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f = render(IMPLEMENT_SCOPE, obs, "G3")
+    left_dirty_set = "docs/plan.md" not in " ".join(snapshot(repo))
+    ok = (
+        left_dirty_set  # the precondition clause (ii) would otherwise fire on
+        and obs.git_state is None
+        and f.token == "SCOPE: CLEAN"
+        and any("IN" in ln and "docs/plan.md" in ln and "committed" in ln for ln in f.lines)
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_g4(repo: str) -> tuple[bool, str, list[str]]:
+    """Orchestrator fan-out merge between two dispatches -> SCOPE: CLEAN.
+
+    The merge is an orchestrator step that runs **outside** any leaf's
+    observation window, so no snapshot pair spans it: the ``ORIG_HEAD`` it sets
+    is already present at the second dispatch's ``snapshot(before)`` and compares
+    equal at ``snapshot(after)``. The merge commit is also a descendant, so the
+    ancestry check (c) still passes.
+    """
+    # A fan-out leaf's branch, committed outside the sequential window.
+    git(repo, "branch", "-q", "fanout-g1")
+    git(repo, "checkout", "-q", "fanout-g1")
+    write(repo, "src/recon/engine.py", "def run():\n    return 1  # leaf work\n")
+    git(repo, "commit", "-q", "-am", "leaf: recon work")
+    git(repo, "checkout", "-q", "-")
+    write(repo, "src/recon/other.py", "x = 1\n")
+    git(repo, "add", "-A", "src/recon/other.py")
+    git(repo, "commit", "-q", "-m", "orchestrator: bookkeeping")
+
+    # Between the two dispatches: the orchestrator merges the leaf branch.
+    git(repo, "merge", "-q", "--no-ff", "-m", "orchestrator: merge fanout-g1", "fanout-g1")
+    merged = "orchestrator: merge fanout-g1" in git(repo, "log", "--format=%s", "-5").stdout
+
+    # Dispatch 2 — its window opens after the merge.
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    write(repo, "src/recon/engine.py", "def run():\n    return 2  # dispatch 2\n")
+    obs = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f = render(SEQ_SCOPE_SRC, obs, "G4")
+    ok = (
+        merged
+        and state_before.orig_head == git_state(repo).orig_head  # set by the merge, equal across the window
+        and obs.git_state is None
+        and obs.history_rewrite is None
+        and f.token == "SCOPE: CLEAN"
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_g5(repo: str) -> tuple[bool, str, list[str]]:
+    """``ORIG_HEAD``: absent in both raises nothing; present in ``after`` only raises GIT_STATE.
+
+    Absence is the legal empty value, so absent-in-both compares equal — the
+    read never turns a repository that has simply never reset into a finding.
+    """
+    # Half 1 — ORIG_HEAD absent in both snapshots.
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    write(repo, "src/recon/engine.py", "def run():\n    return 3\n")
+    obs_absent = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f_absent = render(SEQ_SCOPE_SRC, obs_absent, "G5")
+    ok1 = (
+        state_before.orig_head == ""
+        and git_state(repo).orig_head == ""
+        and obs_absent.git_state is None
+        and f_absent.token == "SCOPE: CLEAN"
+    )
+
+    # Half 2 — the leaf sets ORIG_HEAD without moving HEAD or dirtying a path.
+    head2, before2, content_before2 = _begin(repo)
+    state_before2 = git_state(repo)
+    git(repo, "reset", "-q", "--soft", "HEAD")
+    obs_set = observe(repo, head2, before2, content_before=content_before2, state_before=state_before2)
+    f_set = render(SEQ_SCOPE_SRC, obs_set, "G5")
+    ok2 = (
+        state_before2.orig_head == ""
+        and git_state(repo).orig_head != ""
+        and obs_set.git_state is not None
+        and "ORIG_HEAD <none> ->" in obs_set.git_state
+        and obs_set.history_rewrite is None  # HEAD did not move
+        and f_set.token == "SCOPE: VIOLATION (1 path)"
+    )
+
+    ok = ok1 and ok2
+    return ok, f"{f_absent.token} + {f_set.token}", f_absent.lines + f_set.lines
+
+
+# ---------------------------------------------------------------------------
+# harness-loop-control.md §Convergence Signal — L2 — scenarios L1-L9
+# ---------------------------------------------------------------------------
+#
+# L2 is orchestrator-derived: nothing below adds a field to any leaf's RETURN:
+# shape, nothing is written to disk, and the ledger is a plain in-memory object
+# discarded when the scenario returns. The key rules are applied in the spec's
+# order — shared id (primary), sectionless file, equal (file, section)
+# (retained) — and the false-positive control is retained unchanged: in a file
+# that HAS sections, a file-level-only match renders nothing.
+
+
+@dataclass(frozen=True)
+class ConvFinding:
+    """One layer's finding, as the orchestrator already has it at a gate.
+
+    ``section`` is what the finding's own ref names; whether a section key is
+    *available* is decided by the key parser against the file itself
+    (:func:`parser_sections`), never by the finding's say-so.
+    """
+
+    layer: str  # blue | chunk-verifier | review | red
+    research_id: str
+    gate: str
+    file: str | None = None
+    section: str | None = None
+    cited_id: str | None = None  # a REQ-* or deviation-entry id
+
+
+# Key rule 2's discriminator (harness-loop-control.md §Convergence Signal, red
+# R3): a **record/data file** — a flat sequence of records with no addressable
+# structure of any kind. These are the files for which "the whole file" is the
+# only key that exists, which is what makes the file-level key meaningful there.
+# A source file is deliberately NOT in this set: a ``.py`` module has functions
+# and classes, so the key parser finding no ``#``-headings in it is a limitation
+# of the parser, not a property of the file.
+DATA_SUFFIXES = (".jsonl", ".ndjson", ".csv", ".tsv", ".log", ".txt")
+
+
+def parser_sections(repo: str, path: str) -> list[str]:
+    """Sections the arbitration key parser finds in ``path`` — empty when there are none.
+
+    Markdown only: headings are the only section structure the key parser reads.
+    A non-Markdown file yields ``[]`` here, which is **not** on its own a licence
+    to key on the file (see :func:`file_structure`).
+    """
+    full = os.path.join(repo, path)
+    if not path.endswith(MARKDOWN_SUFFIXES) or not os.path.isfile(full):
+        return []
+    with open(full, encoding="utf-8") as fh:
+        return [name for _, name in _headings(fh.read().splitlines())]
+
+
+# file_structure() return values.
+ABSENT_PATH = "absent"  # the path is not a file in the checkout — no key at all
+STRUCTURELESS = "structureless"  # a record/data file, or Markdown with no headings
+STRUCTURED = "structured"  # anything else: it has structure, whether or not we parse it
+
+
+def file_structure(repo: str, path: str) -> str:
+    """Classify ``path`` for key rule 2 (red R3, R4).
+
+    ``ABSENT_PATH``    — not a file in this checkout. A finding may name a path
+                         that is a typo, a rename, or a file living only in a
+                         fan-out worktree; absence must not silently discard the
+                         section discriminator and let two findings on DIFFERENT
+                         sections of it cluster (red R4).
+    ``STRUCTURELESS``  — a ``DATA_SUFFIXES`` record file, or a Markdown file in
+                         which the fence-aware parser finds no heading. The whole
+                         file is the only key that exists.
+    ``STRUCTURED``     — everything else, including source files. Two unrelated
+                         findings in a 1000-line module are not one root cause
+                         (red R3), so no file-level key is minted for them.
+    """
+    if not os.path.isfile(os.path.join(repo, path)):
+        return ABSENT_PATH
+    if path.endswith(DATA_SUFFIXES):
+        return STRUCTURELESS
+    if path.endswith(MARKDOWN_SUFFIXES) and not parser_sections(repo, path):
+        return STRUCTURELESS
+    return STRUCTURED
+
+
+def convergence_key(repo: str, f: ConvFinding) -> tuple[str, ...] | None:
+    """The finding's cluster key under the three key rules, applied in order."""
+    if f.cited_id:  # key rule 1 — shared id (primary), whatever the file and section
+        return ("id", f.cited_id)
+    if f.file is None:
+        return None
+    structure = file_structure(repo, f.file)
+    if structure == ABSENT_PATH:
+        # red R4: a path absent from the checkout yields NO cluster key. It is
+        # not evidence of structurelessness, so it must not collapse to one.
+        return None
+    if structure == STRUCTURELESS:  # key rule 2 — structureless file
+        return ("file", f.file)
+    if f.section is None:
+        # A sectioned file matched at file level only: the retained
+        # false-positive control renders nothing.
+        return None
+    # key rule 3 — equal (file, section), reusing the ratified leading-ordinal strip
+    return ("file-section", f.file, section_name(f.section.lstrip("§")))
+
+
+def convergence_line(key: tuple[str, ...], layers: list[str]) -> str:
+    """The own-line 6c token, naming the key in whichever shape formed the cluster."""
+    display = key[1] if key[0] in ("id", "file") else f"{key[1]} §{key[2].lstrip('§')}"
+    return f"CONVERGENCE: {display} ({', '.join(layers)}) — {len(layers)} layers"
+
+
+class ConvergenceLedger:
+    """Session-scoped, in-memory finding ledger — three fields per finding.
+
+    The ledger belongs to one cycle (``research_id``), which is how condition
+    (ii) is enforced: a finding stamped with another cycle's id is never
+    recorded. Entries hold ``key``, ``layer`` and ``gate`` only — no finding
+    text — and nothing is written to disk.
+    """
+
+    def __init__(self, research_id: str) -> None:
+        self.research_id = research_id
+        self.entries: list[dict] = []
+        self.rendered: set[tuple[str, ...]] = set()
+
+    def record(self, repo: str, f: ConvFinding) -> list[str]:
+        """Record one finding; return the ``CONVERGENCE:`` lines this gate renders."""
+        if f.research_id != self.research_id:  # condition (ii)
+            return []
+        key = convergence_key(repo, f)
+        if key is None:
+            return []
+        self.entries.append({"key": key, "layer": f.layer, "gate": f.gate})
+        layers: list[str] = []
+        for e in self.entries:  # condition (i) — different layers or second-executors
+            if e["key"] == key and e["layer"] not in layers:
+                layers.append(e["layer"])
+        if len(layers) < 2 or key in self.rendered:
+            return []  # a third layer joining a rendered cluster does not re-render it
+        self.rendered.add(key)
+        return [convergence_line(key, layers)]
+
+
+def render_gate(plan_line: str, conv_lines: list[str], telemetry_line: str) -> list[str]:
+    """A stage gate block: 6b, then 6c, then 7, then the options."""
+    return [plan_line, *conv_lines, telemetry_line,
+            "options: proceed │ loop-back-to-fix │ stop"]
+
+
+def _conv_repo(repo: str) -> None:
+    """Write the files the key parser is asked about (a sectioned one and two sectionless)."""
+    write(repo, "docs/spec/telemetry.md",
+          "# Telemetry\n\n## Writer rule\n\ntext\n\n## Reader rule\n\ntext\n")
+    write(repo, "docs/ws/harness/notes.jsonl", '{"rec": 1}\n{"rec": 2}\n')
+    write(repo, "tools/reader.py", "def summarize():\n    return 0\n")
+    # A Markdown file with NO real heading whose only ``#`` lines live inside a
+    # fenced shell block (red R5 fixture).
+    write(repo, "docs/ws/harness/fenced.md",
+          "Intro prose, no heading anywhere.\n\n```sh\n# run the sweep\npython3 tools/sdd-gc.py\n```\n\nmore prose\n")
+
+
+def _conv_run(repo: str, findings: list[ConvFinding], rid: str = "RS-HARNESSP6-001") -> list[str]:
+    """Feed findings to a fresh ledger in order; return every line rendered."""
+    ledger = ConvergenceLedger(rid)
+    lines: list[str] = []
+    for f in findings:
+        lines.extend(ledger.record(repo, f))
+    return lines
+
+
+def scenario_l1(repo: str) -> tuple[bool, str, list[str]]:
+    """Key rule 1 (primary): different layers, same `REQ-*` id, different sections -> cluster."""
+    _conv_repo(repo)
+    lines = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", "docs/spec/telemetry.md",
+                    "§Writer rule", "REQ-TELEM-HARNESSP6-001"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/ws/harness/verification.md",
+                    "§Issues Found", "REQ-TELEM-HARNESSP6-001"),
+    ])
+    ok = len(lines) == 1 and lines[0].startswith("CONVERGENCE: REQ-TELEM-HARNESSP6-001") \
+        and lines[0].endswith("2 layers")
+    return ok, lines[0] if lines else "no line", lines
+
+
+def scenario_l2(repo: str) -> tuple[bool, str, list[str]]:
+    """Key rule 2: different layers naming one sectionless file -> cluster on the file alone.
+
+    The `.jsonl` shape of the convergence the Chunk 8 replay found and a
+    section-granular key structurally cannot catch: a JSONL data file has no
+    heading for a `(file, section)` key to be equal on.
+    """
+    _conv_repo(repo)
+    path = "docs/ws/harness/notes.jsonl"
+    ok_parser = parser_sections(repo, path) == []
+    lines = _conv_run(repo, [
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", path),
+        ConvFinding("blue", "RS-HARNESSP6-001", "verify", path),
+    ])
+    ok = ok_parser and len(lines) == 1 and lines[0] == \
+        f"CONVERGENCE: {path} (red, blue) — 2 layers"
+    return ok, lines[0] if lines else "no line", lines
+
+
+def scenario_l3(repo: str) -> tuple[bool, str, list[str]]:
+    """Retained noise guard: different layers, same SECTIONED file, different sections -> nothing.
+
+    The decisive false-positive control: two findings in two sections of one
+    prose file are not one root cause, and key rule 2 does not reach a file the
+    parser does find sections in.
+    """
+    _conv_repo(repo)
+    ok_parser = parser_sections(repo, "docs/spec/telemetry.md") == ["§Telemetry", "§Writer rule",
+                                                                   "§Reader rule"]
+    lines = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", "docs/spec/telemetry.md", "§Writer rule"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/spec/telemetry.md", "§Reader rule"),
+    ])
+    # and the file-level-only match in that same sectioned file renders nothing either
+    file_only = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", "docs/spec/telemetry.md"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/spec/telemetry.md"),
+    ])
+    ok = ok_parser and lines == [] and file_only == []
+    return ok, "no cluster (sectioned file, different sections)", lines + file_only
+
+
+def scenario_l4(repo: str) -> tuple[bool, str, list[str]]:
+    """Condition (i): the SAME layer twice on one key -> no cluster."""
+    _conv_repo(repo)
+    lines = _conv_run(repo, [
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/spec/telemetry.md", "§Writer rule"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/spec/telemetry.md", "§Writer rule"),
+    ])
+    same_id = _conv_run(repo, [
+        ConvFinding("blue", "RS-HARNESSP6-001", "implement", cited_id="REQ-HARN-HARNESSP6-002"),
+        ConvFinding("blue", "RS-HARNESSP6-001", "verify", cited_id="REQ-HARN-HARNESSP6-002"),
+    ])
+    ok = lines == [] and same_id == []
+    return ok, "no cluster (same layer)", lines + same_id
+
+
+def scenario_l5(repo: str) -> tuple[bool, str, list[str]]:
+    """Key rule 3 (retained, demoted): different layers, equal `(file, section)` -> cluster.
+
+    Reuses the ratified leading-ordinal strip — `§3. Writer rule` and
+    `§Writer rule` are the same key (REQ-ARB-HARNESSP5-003). No recall claim
+    rests on this rule; the Chunk 8 replay measured it at zero clusters over
+    three cycles.
+    """
+    _conv_repo(repo)
+    lines = _conv_run(repo, [
+        ConvFinding("chunk-verifier", "RS-HARNESSP6-001", "implement",
+                    "docs/spec/telemetry.md", "§3. Writer rule"),
+        ConvFinding("review", "RS-HARNESSP6-001", "implement",
+                    "docs/spec/telemetry.md", "§Writer rule"),
+    ])
+    ok = lines == ["CONVERGENCE: docs/spec/telemetry.md §Writer rule "
+                   "(chunk-verifier, review) — 2 layers"]
+    return ok, lines[0] if lines else "no line", lines
+
+
+def scenario_l6(repo: str) -> tuple[bool, str, list[str]]:
+    """Condition (ii): two layers, same key, DIFFERENT `research_id` -> no cluster."""
+    _conv_repo(repo)
+    lines = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", cited_id="REQ-ORCH-HARNESSP6-001"),
+        ConvFinding("red", "RS-HARNESSP5-001", "verify", cited_id="REQ-ORCH-HARNESSP6-001"),
+    ])
+    return lines == [], "no cluster (different research_id)", lines
+
+
+def scenario_l7(repo: str) -> tuple[bool, str, list[str]]:
+    """Gate rendering: the line sits between 6b (`PLAN:`) and 7 (`TELEMETRY:`), `proceed` available."""
+    _conv_repo(repo)
+    conv = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "verify", cited_id="REQ-ORCH-HARNESSP6-001"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", cited_id="REQ-ORCH-HARNESSP6-001"),
+    ])
+    block = render_gate("PLAN: INCOMPLETE (6 of 7 ticked)", conv, "TELEMETRY: rec 4")
+    idx = [i for i, ln in enumerate(block) if ln.startswith("CONVERGENCE:")]
+    ok = (
+        len(conv) == 1
+        and len(idx) == 1
+        and block[idx[0] - 1].startswith("PLAN:")
+        and block[idx[0] + 1].startswith("TELEMETRY:")
+        and "proceed" in block[-1]  # informational: the line never withholds proceed
+        and not any(o in block[idx[0]] for o in ("│", "proceed"))  # no option set of its own
+    )
+    return ok, block[idx[0]] if idx else "no line", block
+
+
+def scenario_l8(repo: str) -> tuple[bool, str, list[str]]:
+    """Invariant 1 demonstrated: a run in which a cluster fires adds no path under `docs/`."""
+    _conv_repo(repo)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "convergence fixture files")
+    before = git(repo, "ls-files", "docs/").stdout.splitlines()
+    conv = _conv_run(repo, [
+        ConvFinding("blue", "RS-HARNESSP6-001", "implement", "docs/ws/harness/notes.jsonl"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/ws/harness/notes.jsonl"),
+    ])
+    after = git(repo, "ls-files", "docs/").stdout.splitlines()
+    ok = len(conv) == 1 and before == after
+    return ok, f"cluster fired, git ls-files docs/ unchanged ({len(after)} paths)", conv
+
+
+def scenario_l9(repo: str) -> tuple[bool, str, list[str]]:
+    """Q-IMPL-HARNESSP6-001: a THIRD layer joining a rendered cluster does not re-render it."""
+    _conv_repo(repo)
+    ledger = ConvergenceLedger("RS-HARNESSP6-001")
+    first = ledger.record(repo, ConvFinding("review", "RS-HARNESSP6-001", "specs",
+                                            cited_id="REQ-HARN-HARNESSP6-002"))
+    second = ledger.record(repo, ConvFinding("red", "RS-HARNESSP6-001", "verify",
+                                             cited_id="REQ-HARN-HARNESSP6-002"))
+    third = ledger.record(repo, ConvFinding("blue", "RS-HARNESSP6-001", "verify",
+                                            cited_id="REQ-HARN-HARNESSP6-002"))
+    ok = first == [] and len(second) == 1 and third == [] and len(ledger.entries) == 3
+    return ok, second[0] if second else "no line", second + third
+
+
+def scenario_l10(repo: str) -> tuple[bool, str, list[str]]:
+    """Red R3: key rule 2 is gated on a structureless file, not on "not Markdown".
+
+    Two unrelated findings anywhere in a source module are not one root cause —
+    a ``.py`` file has functions and classes, so the key parser finding no
+    ``#``-headings in it is a limitation of the parser, not a property of the
+    file. Mutation control: reverting the gate to "not Markdown" makes the
+    ``.py`` pair cluster and this scenario fail, while the ``.jsonl`` control
+    below must keep clustering so the fix does not simply delete key rule 2.
+    """
+    _conv_repo(repo)
+    py_noise = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "implement", "tools/reader.py"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "tools/reader.py"),
+    ])
+    # the rule it exists for is preserved: red and blue on one record/data file
+    data_control = _conv_run(repo, [
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/ws/harness/notes.jsonl"),
+        ConvFinding("blue", "RS-HARNESSP6-001", "verify", "docs/ws/harness/notes.jsonl"),
+    ])
+    ok = (
+        file_structure(repo, "tools/reader.py") == STRUCTURED
+        and file_structure(repo, "docs/ws/harness/notes.jsonl") == STRUCTURELESS
+        and py_noise == []
+        and len(data_control) == 1
+    )
+    return ok, f"py-noise {len(py_noise)} cluster(s), data control {len(data_control)}", py_noise + data_control
+
+
+def scenario_l11(repo: str) -> tuple[bool, str, list[str]]:
+    """Red R4: a path absent from the checkout yields NO cluster key.
+
+    A finding may name a typo, a renamed path, or a file living only in a
+    fan-out worktree. Classifying it as structureless would cluster two findings
+    naming DIFFERENT sections of it — exactly the case L3 asserts must not
+    cluster. Mutation control: returning ``[]`` for a missing path makes both
+    runs below cluster.
+    """
+    _conv_repo(repo)
+    gone = "docs/spec/gone.md"
+    diff_sections = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", gone, "§A"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", gone, "§B"),
+    ])
+    no_sections = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", gone),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", gone),
+    ])
+    ok = (
+        file_structure(repo, gone) == ABSENT_PATH
+        and convergence_key(repo, ConvFinding("red", "RS-HARNESSP6-001", "verify", gone, "§A")) is None
+        and diff_sections == []
+        and no_sections == []
+    )
+    return ok, "no cluster (absent path)", diff_sections + no_sections
+
+
+def scenario_l12(repo: str) -> tuple[bool, str, list[str]]:
+    """Red R5: ``_headings()`` is fence-aware, so a fenced ``#`` is not a section.
+
+    A Markdown file whose only ``#`` line is a shell comment inside a fenced
+    block has no sections, so key rule 2 applies and a genuine two-layer
+    convergence on it renders. Mutation control: a fence-blind ``_headings``
+    reports ``['§run the sweep']``, the file reads as sectioned, and the cluster
+    is silently dropped.
+    """
+    _conv_repo(repo)
+    fenced = "docs/ws/harness/fenced.md"
+    lines = _conv_run(repo, [
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", fenced),
+        ConvFinding("blue", "RS-HARNESSP6-001", "verify", fenced),
+    ])
+    # and a file that has BOTH a fenced ``#`` and a real heading keeps only the real one
+    write(repo, "docs/ws/harness/mixed.md",
+          "# Real\n\n```\n# not a heading\n```\n\n## Second\n")
+    ok = (
+        parser_sections(repo, fenced) == []
+        and file_structure(repo, fenced) == STRUCTURELESS
+        and parser_sections(repo, "docs/ws/harness/mixed.md") == ["§Real", "§Second"]
+        and lines == [f"CONVERGENCE: {fenced} (red, blue) — 2 layers"]
+    )
+    return ok, lines[0] if lines else "no line", lines
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -1750,6 +2447,11 @@ SCENARIOS = [
     ("F14", "strict set: one path in committed AND content delta, counted once", scenario_f14),
     ("F15", "rename across the scope boundary: one -z R record, both paths observed", scenario_f15),
     ("F16", "path with a space: -z keeps one record, observed and rendered once", scenario_f16),
+    ("G1", "git-state: read-only leaf stashes then pops (ORIG_HEAD drift)", scenario_g1),
+    ("G2", "git-state: read-only leaf stashes then drops (reverse porcelain delta)", scenario_g2),
+    ("G3", "git-state: implement leaf commits an already-dirty path (committed delta subtracted)", scenario_g3),
+    ("G4", "git-state: orchestrator fan-out merge between two dispatches (outside the window)", scenario_g4),
+    ("G5", "git-state: ORIG_HEAD absent in both vs present in after only", scenario_g5),
     ("C1", "COMMIT: sequential omission (2 of 3 staged), then amended", scenario_c1),
     ("C2", "COMMIT: sequential inverse (stray.txt landed, not observed)", scenario_c2),
     ("C3", "COMMIT: fan-out fast-forward of a two-commit leaf (range vs git show)", scenario_c3),
@@ -1761,6 +2463,18 @@ SCENARIOS = [
     ("A3", "ARB: one round-2 key on an untouched second file -> class b under both readings", scenario_a3),
     ("A1m-i", "ARB mutation: a deleted round-2 line makes A1 fail", scenario_a1_mi),
     ("A1m-ii", "ARB mutation: §Conventions flipped to a changed section makes A1 fail", scenario_a1_mii),
+    ("L1", "L2 key rule 1: different layers, same REQ-* id, different sections -> cluster", scenario_l1),
+    ("L2", "L2 key rule 2: different layers, one sectionless (.jsonl) file -> cluster on the file", scenario_l2),
+    ("L3", "L2 noise guard: sectioned file, different sections (and file-level only) -> nothing", scenario_l3),
+    ("L4", "L2 condition (i): the same layer twice -> no cluster", scenario_l4),
+    ("L5", "L2 key rule 3 retained: equal (file, section), ordinal-stripped -> cluster", scenario_l5),
+    ("L6", "L2 condition (ii): same key, different research_id -> no cluster", scenario_l6),
+    ("L7", "L2 rendering: CONVERGENCE: between PLAN: (6b) and TELEMETRY: (7), proceed available", scenario_l7),
+    ("L8", "L2 invariant: a run in which a cluster fires adds no path under docs/", scenario_l8),
+    ("L9", "L2 Q-IMPL-HARNESSP6-001: a third layer does not re-render the cluster", scenario_l9),
+    ("L10", "L2 red R3: key rule 2 is gated on a structureless file, not on non-Markdown", scenario_l10),
+    ("L11", "L2 red R4: a path absent from the checkout yields no cluster key", scenario_l11),
+    ("L12", "L2 red R5: _headings() is fence-aware, so a fenced # is not a section", scenario_l12),
 ]
 
 
@@ -1775,7 +2489,8 @@ def main(argv: list[str] | None = None) -> int:
         description=(
             f"Replay the {len(SCENARIOS)} write-scope scenarios of docs/spec/harness-write-scope.md "
             "§Verification, docs/spec/telemetry.md §Third Observation, "
-            "docs/spec/arbitrated-handoff.md §Section Resolution and "
+            "docs/spec/arbitrated-handoff.md §Section Resolution, "
+            "docs/spec/harness-loop-control.md §Convergence Signal — L2 and "
             "docs/spec/dispatch-snapshot-base.md §Snapshot Base Rule in throwaway git repos. "
             "Exit 0 when all pass."
         ),

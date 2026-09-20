@@ -561,6 +561,18 @@ only) `COMMIT:` at 2b → `CHUNK_VERDICT:` → `RED_VERDICT:` (with its derived
    options are suppressed, and one `replan` closes both. The tick state exists
    on the leaf's return, so it renders before the options
    (`docs/spec/harness-loop-control.md` §Plan Completion Ownership; §6 below);
+6c. **every gate**: the own-line `CONVERGENCE:` token — one line per cluster
+   whose **second** member arrived at this gate, naming the cluster's key in
+   whichever of the three key shapes formed it (the shared id; the file alone,
+   for a sectionless file; or file and section), the contributing layers and the
+   layer count, e.g. `CONVERGENCE: docs/spec/telemetry.md §Writer rule (review,
+   red) — 2 layers`. It renders **after** signal 6b and **immediately before**
+   the `TELEMETRY:` line of signal 7, because it is derived from the
+   finding-bearing signals above it and from both derived pauses (6, 6b). It is
+   **informational**: no option set, it never pauses the gate and it never
+   withholds `proceed`. The ledger it is computed over holds every finding this
+   gate surfaced, so its data exists before the decision and it renders before
+   the options (§5b; `docs/spec/harness-loop-control.md` §Convergence Signal);
 7. the `TELEMETRY:` line — the four-member family `rec <n> │ WRITE FAILED │ OFF
    │ .gitignore updated`, at most once each, rendered **last**, immediately
    after the `iteration`/cap line (or, when the pause of signal 6 or of signal
@@ -602,11 +614,14 @@ only) `COMMIT:` at 2b → `CHUNK_VERDICT:` → `RED_VERDICT:` (with its derived
    (`docs/spec/harness-loop-control.md` §Plan Completion Ownership).
 
 Two rules follow from "produced order": a signal whose data exists before the
-decision renders before the options (items 1–7, 2b and 6b); a signal that is the
+decision renders before the options (items 1–7, 2b, 6b and 6c); a signal that is the
 *consequence* of the decision renders after them (items 8 and 8b) and is **not**
 deferred to the next gate — `TELEMETRY: rec <n>` is the one deferred signal,
 and it may be because telemetry is never load-bearing. `COMMIT:` is
-load-bearing and therefore closes the gate it belongs to.
+load-bearing and therefore closes the gate it belongs to. No `TELEMETRY:` line
+and no `CONVERGENCE:` line ever pauses the gate or changes an option, and the
+"renders last before the options" clause that governs item 7 covers 6c in the
+same enumeration.
 
 ### 5a. Presentation of the gate block — from §The gate
 
@@ -622,6 +637,91 @@ caps are unchanged.
 the named findings, then proceed without re-review") `loop-back-to-fix` offers
 re-dispatch then re-review (the default) or skipping the re-review; a *Reject*
 never skips it.
+
+### 5b. Convergence signal — L2, item 6c — from §The gate
+
+[Added 2026-09-20, harness-p6 — REQ-HARN-HARNESSP6-002, REQ-ORCH-HARNESSP6-001,
+REQ-ORCH-HARNESSP6-002; descoped at the 2026-09-20 replan to the floor the
+Chunk 8 replay measured. Defining section:
+`docs/spec/harness-loop-control.md` §Convergence Signal — L2.]
+
+`CONVERGENCE:` is **orchestrator-derived**. It adds **no field to any leaf's
+`RETURN:` shape**, it is **not a fifth verification layer** — the four-layer
+verification table stays byte-unchanged wherever it appears — and it creates no
+durable artifact.
+
+**The cluster rule.** Two or more findings form a **cluster** when all three
+conditions hold:
+
+1. they come from **different** layers or second-executors — blue pipeline,
+   chunk verifier, review, red;
+2. they belong to the **same cycle**, by the `research_id` stamp cycle identity
+   already uses (`docs/spec/cycle-identity.md`);
+3. their **arbitration finding keys match under one of the three key rules
+   below**, applied in this order.
+
+**Key rule 1 — shared id (primary).** Two findings citing the same `REQ-*` id or
+the same deviation-entry id cluster, whatever their files and sections. In the
+Chunk 8 replay this was the **only** key that formed a cluster at all, The spike rated that single cluster **marginal** — in its own words, "0 that an operator would confidently call one root cause, 1 marginal … a topical adjacency rather than a demonstrated common cause". That is precisely why the signal is **informational** and never pauses a gate: its primary key rests on one cluster the spike itself would not confidently call a convergence. Key rule 2's justification is the stronger of the two — the cluster it recovers (red and blue on the same malformed records in a sectionless file) is the one the spike did rate genuine. so it is
+the primary key of the shipped signal.
+
+**Key rule 2 — structureless file.** The **file-level** key is itself the
+cluster key when the file is genuinely **structureless** — a record/data file
+(`.jsonl`, `.ndjson`, `.csv`, `.tsv`, `.log`, `.txt`), or a Markdown file in
+which the fence-aware parser finds no heading. Two findings from different
+layers naming such a file cluster on the file alone. This recovers the one
+genuine convergence a section-granular key structurally cannot catch (red and
+blue hitting the same malformed records in one JSONL data file, which can never
+carry a section key).
+
+Three boundaries keep that rule from admitting noise (red R3/R4/R5;
+`harness-loop-control.md` §Convergence Signal):
+
+- a **source** file is not structureless — a `.py` module has functions and
+  classes, so the Markdown parser finding no heading in it is a limitation of
+  the parser, not a property of the file, and two unrelated findings in one
+  1000-line module must not cluster;
+- a path **absent** from the checkout yields **no** key at all — absence is not
+  evidence of structurelessness, and collapsing it to the file key would cluster
+  two findings naming different sections of a path nobody can see;
+- heading detection is **fence-aware** — a `#` inside a fenced block is a
+  comment or an example, and counting it made a structureless Markdown file read
+  as sectioned, silently dropping a real cluster.
+
+**Key rule 3 — equal `(file, section)` (retained, demoted).** Findings whose
+keys are equal at section granularity still cluster, reusing the existing
+`(file, section)` key of `references/write-scope.md` / `arbitrated-handoff.md`
+with its ratified leading-ordinal strip (REQ-ARB-HARNESSP5-003) and its existing
+parser. It carries **no recall claim**: the replay measured it at zero clusters
+over three cycles. Its precision was never in question.
+
+**The false-positive control, retained unchanged.** **In a file that HAS
+sections, a file-level-only match renders nothing.** Two findings in two
+different sections of one large prose file are not one root cause. Key rule 2
+opens file-level matching only where there is no section to match on.
+
+**The ledger.** Convergence is computed over a **session-scoped, in-memory**
+finding ledger of the same class as the loop counters (§2, §3). Per finding it
+holds exactly three fields — `key`, `layer`, `gate` — and no finding text. It is
+never written to disk, never read by any `sdd-*` skill's phase detection, and is
+discarded at session end; losing it on a session boundary costs a line, not a
+decision.
+
+**The window.** Evaluated at **every** gate over everything recorded so far, not
+only at DONE. Each cluster renders **once**, at the gate where its **second**
+member arrives — a third layer joining an already-rendered cluster does **not**
+re-render it (`harness-loop-control.md` Q-IMPL-HARNESSP6-001). A cluster that
+completes only at DONE routes into `verification.md` §Issues Found, to be fixed
+or explicitly closed **in this cycle**, and **never** into §Next Steps.
+
+**Shipped scope, stated so verification is never asked for more.** The signal
+clusters findings that already carry a shared id or a shared location. Purely
+conceptual convergence — a shared root cause with no common id, file or section
+— cannot be derived from what the layers already return; it would need a
+root-cause field on a leaf's `RETURN:` or a fifth correlating layer, and both are
+standing exclusions. Against the harness-p3 §L2 origin case the shipped form
+clusters **none of the three** members, as the Chunk 8 replay measured. That is
+the accepted cost of shipping without a new field or a new layer.
 
 ## 6. Edge cases routed through the gate — from §The gate
 

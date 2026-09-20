@@ -215,6 +215,26 @@ For CLI tools: run them. For servers: start them and make requests. For librarie
   - **Marker is not `4` (v3 or earlier): UNCHANGED.** Diff against the base branch (`main` HEAD) exactly as the bullets above, and check `git diff` against it for unintended changes. The v3 path is untouched.
   - **Marker is `4`:** the regression base is the **workstream branch point** — `regression_base(<ws>) = merge-base(<ws>, main)`, the commit where the workstream branched. Compute the regression diff as **`<ws>` HEAD vs `regression_base(<ws>)`**, **not** `main` HEAD. Diffing against current `main` would fold in unrelated concurrent workstreams' changes that merged to `main` after `<ws>` branched, producing **false regressions**; the branch point isolates this workstream's own delta regardless of what else landed on `main` meanwhile. So a workstream's verification is **independent of other workstreams merged to `main`** in the interim (e.g. merging an unrelated `ISSUE-57` to `main` does not affect `sdd-verify` for `ISSUE-42`). This is the integration model's branch-per-workstream → PR-to-`main` boundary (REQ-WS-016/017): `main` is a shared trunk that moves under the workstream, so the branch point — not `main` HEAD — is the stable regression anchor. Full contract: `docs/spec/ws-integration.md` §Verification Regression Base Is the Workstream Branch Point.
 
+### Step 5b: Deferral-Backlog Screen (REQ-REQ-HARNESSP6-001)
+
+Run the screen before writing the report; it is this skill's obligation, not an
+optional courtesy. Scope is two enumerations, evaluated at run time: (i)
+`docs/requirements/index.md` §Out of Scope, and (ii) the §Next Steps section of
+**every** path the glob `docs/ws/*/verification.md` returns (marker `3`: the flat
+`docs/verification.md`). Extract each section heading-to-next-same-or-higher
+heading. Search it case-insensitively for the phrase table in
+`docs/spec/requirements-artifacts.md` §`## Out of Scope` Discipline — read the
+table there rather than copying it here, so the two can never drift. An
+occurrence at line `L` is **live** unless a bracketed dated marker matching that
+section's regex sits on `L` or `L-1`; nothing else is examined.
+
+Report **one row per path the glob returned**, including zero rows, with its
+phrase-hit and live counts, and state rows-walked equal to paths-returned, both
+derived from the same run. Any live occurrence is a finding: fix it in-cycle or
+close it with an adjacent dated marker. Phrase coverage is a screen over
+observed vocabulary, not a proof of absence — say so when reporting the result,
+and do not restate a zero as an absence of latent work.
+
 ### Step 6: Write Verification Report
 
 **Workstream scoping (marker `4`)**: under `docs/.sdd-version` == `4`, write the

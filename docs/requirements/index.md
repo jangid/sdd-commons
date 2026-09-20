@@ -1,5 +1,5 @@
 ---
-version: "17.0"
+version: "18.0"
 status: Approved
 last_updated: 2026-09-20
 traceability: traceability.md
@@ -111,8 +111,8 @@ tools-skills-agents repository. Covers eleven scopes:
 | Category | File | Domain | Requirements | Status | Last Updated |
 |----------|------|--------|-------------|--------|--------------|
 | functional | [research-structure.md](functional/research-structure.md) | RS | REQ-RS-001..003 | Approved | 2026-04-28 |
-| functional | [requirements-structure.md](functional/requirements-structure.md) | REQ | REQ-REQ-001..007 | Approved | 2026-04-28 |
-| functional | [plan-management.md](functional/plan-management.md) | PLAN | REQ-PLAN-001..004 | Approved | 2026-04-28 |
+| functional | [requirements-structure.md](functional/requirements-structure.md) | REQ | REQ-REQ-001..007, REQ-REQ-HARNESSP6-001 | Approved | 2026-09-20 |
+| functional | [plan-management.md](functional/plan-management.md) | PLAN | REQ-PLAN-001..004, REQ-PLAN-HARNESSP6-001 | Approved | 2026-09-20 |
 | functional | [staleness-detection.md](functional/staleness-detection.md) | STALE | REQ-STALE-001..003 | Approved | 2026-05-25 |
 | functional | [migration.md](functional/migration.md) | MIG | REQ-MIG-001..015 | Approved | 2026-05-25 |
 | functional | [chunk-close.md](functional/chunk-close.md) | CHKC | REQ-CHKC-001..008 | Approved | 2026-05-25 |
@@ -120,20 +120,20 @@ tools-skills-agents repository. Covers eleven scopes:
 | functional | [milestone-plans.md](functional/milestone-plans.md) | MPLAN | REQ-MPLAN-001..004 | Approved | 2026-05-25 |
 | functional | [cross-spec-consistency.md](functional/cross-spec-consistency.md) | XSPEC | REQ-XSPEC-001..002 | Approved | 2026-05-25 |
 | functional | [review.md](functional/review.md) | REV | REQ-REV-001..008 | Approved | 2026-05-25 |
-| functional | [orchestration.md](functional/orchestration.md) | ORCH | REQ-ORCH-001..034 | Approved | 2026-09-17 |
+| functional | [orchestration.md](functional/orchestration.md) | ORCH | REQ-ORCH-001..034, REQ-ORCH-HARNESSP6-001..002 | Approved | 2026-09-20 |
 | functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030, REQ-WS-HARNESSP3-001, REQ-WS-HARNESSP5-001..002 | Approved | 2026-09-19 |
 | functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027, REQ-HARN-HARNESSP5-001 | Approved | 2026-09-19 |
-| functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019, REQ-HARN-HARNESSP3-002..003, -005, REQ-HARN-HARNESSP4-007 | Approved | 2026-09-18 |
-| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002, REQ-HARN-HARNESSP3-001, -004, REQ-HARN-HARNESSP4-001..006, REQ-HARN-HARNESSP5-002 | Approved | 2026-09-19 |
+| functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019, REQ-HARN-HARNESSP3-002..003, -005, REQ-HARN-HARNESSP4-007, REQ-HARN-HARNESSP6-002 | Approved | 2026-09-20 |
+| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002, REQ-HARN-HARNESSP3-001, -004, REQ-HARN-HARNESSP4-001..006, REQ-HARN-HARNESSP5-002, REQ-HARN-HARNESSP6-001 | Approved | 2026-09-20 |
 | functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001..003, REQ-ARB-HARNESSP5-001..003 | Approved | 2026-09-19 |
 | functional | [adversarial-verify.md](functional/adversarial-verify.md) | REDB | REQ-REDB-HARNESSP2-001..009, REQ-REDB-HARNESSP3-001..004, REQ-REDB-HARNESSP4-001 | Approved | 2026-09-18 |
 | functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009, REQ-TELEM-HARNESSP3-001..002, REQ-TELEM-HARNESSP4-001..008, REQ-TELEM-HARNESSP5-001..008 | Approved | 2026-09-19 |
 | functional | [cycle-identity.md](functional/cycle-identity.md) | CYCID | REQ-CYCID-HARNESSP3-001..002, REQ-CYCID-HARNESSP4-001..002 | Approved | 2026-09-18 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
 | non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
-| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001 | Approved | 2026-09-20 |
+| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001, REQ-GC-HARNESSP6-001..004 | Approved | 2026-09-20 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
-| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003 | Approved | 2026-09-19 |
+| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003 | Approved | 2026-09-20 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
 
 > **ORCH delta note:** The ORCH domain mixes shipped requirements (REQ-ORCH-001..015,
@@ -353,6 +353,66 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Q2 "no design decision beyond ratifying the writer rule and the `v: 1` exemption" | Q-REQ-P5-B |
 | Q3 "orchestrator at the stage gate `proceed`, own bookkeeping commit" | Q-REQ-P5-C |
 
+> **harness-p6 delta note (marker 4, workstream `harness-p6`) — TERMINAL cycle:**
+> REQ-GC-HARNESSP6-001..004, REQ-HARN-HARNESSP6-001..002,
+> REQ-ORCH-HARNESSP6-001..002, REQ-LINT-HARNESSP6-001..003,
+> REQ-PLAN-HARNESSP6-001 and REQ-REQ-HARNESSP6-001 are the RS-HARNESSP6-001
+> delta added at the requirements phase on 2026-09-20. Their ids carry the
+> `HARNESSP6` workstream token per `docs/spec/ws-ids.md`. They are **not yet
+> specced or implemented**; their traceability columns are intentionally blank
+> (they are filled by `sdd-specs`, `sdd-implement` and `sdd-verify`; the per-ws
+> file `docs/ws/harness-p6/traceability.md` carries all 13 rows). **This cycle is terminal for the harness-hardening
+> series**: nothing in this delta, in §Out of Scope, or in a downstream
+> `verification.md` §Next Steps may be phrased as deferred, carried or queued to
+> a later cycle (REQ-REQ-HARNESSP6-001); an item too large to fix in-cycle
+> triggers a **replan**, never a successor workstream. Standing constraints this
+> delta must not contradict: REQ-ORCH-011/012/013/014 (no auto-advance, no
+> orchestrator-only work in leaves, no new durable artifact — L2's ledger is
+> session-scoped and its output is ephemeral gate text), REQ-REV-005/006,
+> REQ-HARN-027 as amended, REQ-TELEM-HARNESSP2-002 (no new telemetry record key —
+> a `convergence_n` field is a settled exclusion below), the four-layer
+> verification table (byte-unchanged — L2 is a gate signal, not a layer), and
+> marker-3 behaviour (unchanged this cycle). **Evidence classes are carried
+> deliberately:** REQ-GC-HARNESSP6-002 and -004 are probe-evidenced (Confidence
+> High); REQ-GC-HARNESSP6-001 rests on a direct `--report` measurement;
+> REQ-GC-HARNESSP6-003 is a severity judgement (Confidence Medium, reversible in
+> one line); REQ-HARN-HARNESSP6-001 is derived from contract text and not
+> replayed against a live dispatch (Confidence Medium-High — the self-test
+> scenarios in its acceptance are what close that gap and are required work, not
+> optional); REQ-HARN-HARNESSP6-002 and REQ-ORCH-HARNESSP6-001..002 (L2) are the
+> **weakest-evidenced** items in the delta (Confidence Medium — the cluster rule
+> reuses an exercised parser but has never been replayed against a real finding
+> set and its firing rate is unmeasured). **[Updated: 2026-09-20 — the Chunk 8 resolving spike replayed the rule over the recorded finding sets of harness-p3, -p4 and -p5. This sentence is superseded: the rule HAS been replayed. What it measured is that the co-located `(file, section)` key formed zero clusters over three cycles and clusters none of the three on the harness-p3 §L2 origin case, which is why L2 shipped at a descoped floor. What remains unmeasured is the **live** firing rate of the shipped floor, not the replay.]** L2 ships on explicit operator direction
+> recorded in the kickoff; it is the cycle's credible replan trigger, and a
+> replan descopes it **inside** this cycle rather than queueing it.
+
+### harness-p6 item coverage (kickoff §Scope items 1-9 and §Decided at DISCUSS, none dropped)
+
+| Kickoff item | Requirement(s) |
+|---|---|
+| (1) `[stale-chain]` skips closed, `status: pass` workstreams (19 of 63 warnings) | REQ-GC-HARNESSP6-001 |
+| (2) the shared-spec staleness sub-class, a distinct rule (44 of 63 warnings) | REQ-GC-HARNESSP6-002 (fold, Q1 option E), REQ-GC-HARNESSP6-003 (severity `info`, Q1 option C) |
+| (3) read-only leaves may mutate git state undetected (the `git stash` incident) | REQ-HARN-HARNESSP6-001 |
+| (4) `PLAN:` is the only gate token with no `REQUIRED` lint row | REQ-LINT-HARNESSP6-001 |
+| (5) the Q-IMPL sweep is fence-asymmetric; symmetry needs a countability rule | REQ-GC-HARNESSP6-004 |
+| (6) REQ-LINT-007's "must not move" list qualified for the Chunk 9 rescoping | REQ-LINT-HARNESSP6-002 |
+| (7) the stale `telemetry-reader.md` "says 61" plan §Open Questions entry | REQ-PLAN-HARNESSP6-001 |
+| (8) **L2** — the cross-layer convergence signal (cluster rule, ledger, window) | REQ-HARN-HARNESSP6-002 |
+| (8) L2 — rendering, position 6c, informational, no option set | REQ-ORCH-HARNESSP6-001 |
+| (8) L2 — co-located scope stated, not a fifth layer, three invariants | REQ-ORCH-HARNESSP6-002 |
+| (8) L2 — the lint `REQUIRED` row pair for its token | REQ-LINT-HARNESSP6-003 |
+| (9) the deferral-backlog sweep and the no-carry-forward closing condition | REQ-REQ-HARNESSP6-001; §Out of Scope sweep below |
+| Decided: items (1), (4), (6), (7) mechanical, straight to requirements | REQ-GC-HARNESSP6-001, REQ-LINT-HARNESSP6-001..002, REQ-PLAN-HARNESSP6-001 |
+| Decided: item (3) is an **observable** check, not contract wording alone | REQ-HARN-HARNESSP6-001 (the `GIT_STATE` finding and its comparand) |
+| Decided: items (1) and (2) are two rules, not one | REQ-GC-HARNESSP6-001 vs -002/-003 (disjoint halves, different false-negative profiles) |
+| Decided: L2 ships this cycle, orchestrator-derived, no finding field, not a layer | REQ-HARN-HARNESSP6-002, REQ-ORCH-HARNESSP6-001..002 |
+| Decided: terminal cycle, no-carry-forward DONE rule, §Out of Scope swept not grown | REQ-REQ-HARNESSP6-001 |
+| Decided: DONE rule — every traced row `pass`, nothing a deliberate `fail`, descope at replan | applies to every row in this delta |
+| Decided: plan priority = §Scope order, L2 sequenced last | recorded for `sdd-plan` in §Open Questions below |
+| Sweep block 1 — five §Out of Scope entries dispositioned | §Out of Scope below (rows 1-2 reworded, row 3 closed, rows 4-5 superseded) |
+| Sweep block 2 — five `docs/ws/harness-p5/verification.md` §Next Steps items | annotated in place in that report with dated bracketed markers |
+| Sweep — three new settled exclusions recorded with reasoning | §Out of Scope below |
+
 ## Domain Prefixes
 
 | Prefix | Domain | File |
@@ -369,7 +429,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | REV | External Review | functional/review.md |
 | ORCH | SDD Orchestration Driver | functional/orchestration.md |
 | WS | Multi-Workstream SDD | functional/multi-workstream.md |
-| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md, `HARNESSP3`-prefixed additions split across harness-verification.md and harness-boundaries.md — the `HARNESSP3` counter is per domain and runs 001..005 across both files; `HARNESSP4` likewise runs 001..007 — 001..006 in harness-boundaries.md, 007 in harness-verification.md; `HARNESSP5` runs 001..002 — 001 in harness-loop-control.md, 002 in harness-boundaries.md) |
+| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md, `HARNESSP3`-prefixed additions split across harness-verification.md and harness-boundaries.md — the `HARNESSP3` counter is per domain and runs 001..005 across both files; `HARNESSP4` likewise runs 001..007 — 001..006 in harness-boundaries.md, 007 in harness-verification.md; `HARNESSP5` runs 001..002 — 001 in harness-loop-control.md, 002 in harness-boundaries.md; `HARNESSP6` runs 001..002 — 001 in harness-boundaries.md, 002 in harness-verification.md) |
 | ARB | Arbitrated Handoff (contradicting review rounds) | functional/arbitrated-handoff.md |
 | REDB | Adversarial (Red/Blue) Verify | functional/adversarial-verify.md |
 | TELEM | Per-Dispatch Telemetry | functional/telemetry.md |
@@ -383,6 +443,45 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | CFG | Configuration | configuration/version-marker.md |
 
 ## Q-REQ Resolutions
+
+Resolved during requirements gathering for RS-HARNESSP6-001 (harness hardening
+part 6, workstream `harness-p6` — the **terminal** cycle of the series). The
+spike answered Q1–Q4 with an evidence-backed recommendation and a stated
+confidence each; the §Decided at DISCUSS list is inherited unchanged. The stage
+ran **non-interactively**, so every ambiguity was resolved by choice rather than
+by asking; each such choice is recorded here with its reason, per the convention
+P4 and P5 set (requirements-review M3).
+
+- **Q-REQ-P6-A** (how the git-state observation renders): a `GIT_STATE`
+  **line inside the existing `SCOPE:` block**, counted into `VIOLATION (N)`,
+  rather than a new own-line gate token. Reason: it parallels `HISTORY_REWRITE`,
+  which is already a member of that family, and leaves the REQ-ORCH-034 signal
+  order untouched — a new token would have to be placed in that order and
+  guarded by its own lint rows for no gain (RS-HARNESSP6-001 Q2 §Window and
+  rendering).
+- **Q-REQ-P6-B** (where the `CONVERGENCE:` token sits): position **6c**, after
+  the implement-only `PLAN:` parse at 6b and before `TELEMETRY:` at 7, and
+  **informational with no option set**. Reason: L2's cluster rule is
+  Medium-confidence and unmeasured in firing rate, so a pausing signal would
+  convert every false positive into an operator interruption; informational is
+  the reversible direction (Q4(c), Confidence Medium).
+- **Q-REQ-P6-C** (domain housing for kickoff items 7 and 9): item 7 (the stale
+  plan §Open Questions entry) under **PLAN**, item 9 (the sweep and the
+  no-carry-forward closing condition) under **REQ**. Reason: each sits with the
+  artifact it governs — `plan.md` archival and `index.md` §Out of Scope
+  respectively — and no new domain prefix is minted for a terminal cycle.
+- **Q-REQ-P6-D** (the `GIT_STATE` lint row, raised at the requirements review
+  as M2): **adopted into REQ-LINT-HARNESSP6-001** rather than declined. The
+  spike called it optional and recommended it land beside the `PLAN:` row;
+  declining it would leave a shipped finding name as unguarded as `PLAN:` is
+  today, which is the very defect item 4 exists to close.
+- **Q-REQ-P6-E** (the `stale-chain` DONE routing, raised at the requirements
+  review as M1): the demotion to `info` **carries its routing with it** —
+  `docs/spec/drift-sweep.md` row 7 and §DONE routing both move, leaving only
+  the plan-level sub-class decision-routed. Reason: `record` appends to
+  `verification.md` §Next Steps, which REQ-REQ-HARNESSP6-001 forbids from
+  holding anything, so the two requirements would otherwise contradict each
+  other at this cycle's own DONE gate.
 
 Resolved during requirements gathering for RS-HARNESSP5-001 (harness hardening
 part 5, workstream `harness-p5`). The spike answered Q1–Q3 with an
@@ -798,7 +897,13 @@ Resolved during requirements gathering for RS-002:
 - Forward planning to v4
 - Cross-project review (sdd-review operates on one SDD project at a time)
 - Review automation or auto-triggering
-- Review of sdd-review's own output (recursive case deferred)
+- Review of `sdd-review`'s own output (the recursive case) — **declined
+  2026-09-20 (settled exclusion, RS-HARNESSP6-001 §Deferral-Backlog Sweep row
+  1)**: the recursion has no terminating rule, since a review of a review is
+  itself reviewable, and REQ-REV-005/006 already fix `sdd-review` as a
+  non-executor. Two cycles of live review rounds produced no finding a
+  second-order review would have caught. Unbounded recursion, no observed need;
+  no re-raise clause.
 - _(superseded 2026-09-17 by plan entry, REQ-ORCH-031..033 in
   `functional/orchestration.md`)_ Non-research orchestrator entry points /
   starting the loop mid-pipeline (v1)
@@ -831,15 +936,19 @@ Resolved during requirements gathering for RS-002:
 - Hard-fixing self-reported `budget_consumed` (harness exposes no counter;
   recorded v1 limitation, REQ-HARN-005)
 - A one-shot upstream review before a non-research pipeline entry
-  (RS-HARNESSP3-001 Q8-OUT row 5) — **deferred**: mid-pipeline entry is out of
-  scope this cycle and orchestrate v1 is research-entry and sequential, so the
-  item only pays off once mid-pipeline entry exists. Re-raise in that cycle.
+  (RS-HARNESSP3-001 Q8-OUT row 5) — **declined 2026-09-20 (settled exclusion,
+  RS-HARNESSP6-001 §Deferral-Backlog Sweep row 2)**: it has no effect while
+  `sdd-orchestrate` is research-entry and sequential, which is the shipped
+  design. It is a **precondition on a feature that does not exist**, not queued
+  work: it would be designed together with mid-pipeline entry if mid-pipeline
+  entry is ever built, and is not otherwise open.
 - Clearing the four pre-existing `qimpl-broken-ref` gc warnings
-  (RS-HARNESSP3-001 Q8-OUT row 6) — **deferred**: housekeeping, not harness
-  behaviour. They are the stable entry baseline (`GC: 0 fail, 6 warn`) the last
-  two runs measured drift against; clearing them mid-cycle moves the baseline
-  without changing the harness. Route through the `tools/sdd-gc.py --report`
-  sweep at a DONE gate as a `record` item.
+  (RS-HARNESSP3-001 Q8-OUT row 6) — **closed 2026-09-20 — 0 remaining.**
+  `python3 tools/sdd-gc.py --report` reports zero `qimpl-broken-ref` findings at
+  the `harness-p6` branch point; harness-p5 fixed them at source under
+  REQ-QIMPL-HARNESSP5-002. The entry describes work that no longer exists and is
+  kept, rather than deleted, so the closure stays auditable at the DONE gate.
+  No work outstanding. (RS-HARNESSP6-001 §Deferral-Backlog Sweep row 3)
 - A pipe-escape fix in `tools/sdd-gc.py`'s `table_cells()` (RS-HARNESSP3-001
   Q8-OUT row 7) — **declined**: the function mis-splits only a cell containing a
   literal escaped `\|`, no such row has been observed in any run, and the
@@ -852,10 +961,12 @@ Resolved during requirements gathering for RS-002:
   `{deliverable_contract}` slot carries those findings (REQ-HARN-HARNESSP3-005).
 - Back-filling `research_id` into existing `verification.md` / `plan.md` files,
   and any marker bump (the layout stays at `4`).
-- L2 — a cross-layer **convergence signal** when two or more layers in one cycle
-  share a root cause (`docs/ws/harness-p3/verification.md` §L2) — **deferred to
-  harness-p5**: no evidence yet on what the signal should look like
-  (`docs/ws/harness-p4/kickoff.md` §Out of scope).
+- _(superseded 2026-09-20 — **no longer out of scope**: L2 ships in workstream
+  `harness-p6` as REQ-HARN-HARNESSP6-002 and REQ-ORCH-HARNESSP6-001..002, an
+  orchestrator-derived informational gate signal at position 6c. See
+  RS-HARNESSP6-001 Q4 and the harness-p6 delta note above.)_ L2 — a cross-layer
+  **convergence signal** when two or more layers in one cycle share a root cause
+  (`docs/ws/harness-p3/verification.md` §L2).
 - Re-opening anything settled by RS-008, RS-HARNESSP2-001 or RS-HARNESSP3-001;
   a third `COMMIT:` token member for a merge that drops a path (a clean merge
   cannot; the abort-and-redo path re-derives — RS-HARNESSP4-001 §Q1 case 5).
@@ -869,9 +980,12 @@ Resolved during requirements gathering for RS-002:
 Added for RS-HARNESSP5-001 (harness hardening part 5) — the p5 exclusion list in
 one place (research review M1):
 
-- L2 (cross-layer convergence as a gate signal) — **deferred again**; the p4
-  evidence (the same defect class caught 4× by review, 1× by lint) is recorded
-  here for a later cycle and not acted on.
+- _(superseded 2026-09-20 — **no longer out of scope**: see the entry above;
+  L2 ships in workstream `harness-p6` as REQ-HARN-HARNESSP6-002 and
+  REQ-ORCH-HARNESSP6-001..002. Both L2 entries are struck together so this
+  section cannot contradict the shipped requirement.)_ L2 (cross-layer
+  convergence as a gate signal); the p4 evidence (the same defect class caught
+  4× by review, 1× by lint) is recorded here.
 - A second live arbitration exercise — closure is by spec decision plus the
   offline fixture (REQ-ARB-HARNESSP5-002).
 - Touching `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` or the live
@@ -892,6 +1006,64 @@ one place (research review M1):
 - _(superseded 2026-09-17 — this repo now runs at marker `4`; see "A marker
   bump (the layout stays at `4`)" above and `functional/multi-workstream.md`)_
   This repo's v3→v4 migration (stays at marker `3` for this cycle)
+
+Added for RS-HARNESSP6-001 (harness hardening part 6, workstream `harness-p6`) —
+the terminal cycle's settled exclusions, each with its reasoning. None of these
+is deferred, carried or queued; none is to be re-raised as pending work
+(REQ-REQ-HARNESSP6-001):
+
+- **A per-requirement-date staleness comparison** (RS-HARNESSP6-001 Q1 option D)
+  — **declined**: it needs either a per-entry date marker hand-maintained across
+  24 category files, where a marker nobody bumps is a silent false negative on
+  every requirement, or `git log -L` history inside `--report`, which the tool
+  deliberately avoids; roughly 40-60 lines of new code. Its extra precision sits
+  on top of a comparand (the category file's date) that is already structurally
+  noisy under the shared v4 corpus, so it buys precision over noise at the
+  highest cost. The shipped answer is REQ-GC-HARNESSP6-002 plus -003.
+- **A `convergence_n` telemetry field for L2** (RS-HARNESSP6-001 Q4(c)) —
+  **declined**: an integer count would fit telemetry's "counts, enums, shas"
+  rule, but any new record key is a `v` key-set change and `v` staying `{1, 2}`
+  was settled in harness-p5. The signal's value is at the gate, where the
+  operator is; a post-cycle count of clusters buys nothing the gate transcript
+  does not already show. Settled, not deferred.
+- **Conceptual (non-co-located) convergence for L2** (RS-HARNESSP6-001 Q4(d)) —
+  **declined**: recovering convergence between findings that share a root cause
+  but no file and no section requires either a root-cause field on a leaf's
+  `RETURN:` shape or a fifth verification layer whose job is correlation, and
+  both are standing exclusions of this corpus. What ships is convergence over
+  findings that already carry a shared id or a shared location. Its accepted
+  cost is recall, and that cost is now measured rather than estimated: against
+  the three-layer origin case at `docs/ws/harness-p3/verification.md` §L2 the
+  shipped form clusters **none** of the three layers — the earlier "two of the
+  three" figure was never measured against the record and the Chunk 8 replay
+  refutes it — which is recorded here so no later reader mistakes L2 for the
+  full signal described there. A signal that catches the convergences it can
+  key on reliably is worth more than one that claims conceptual convergence and
+  cannot deliver it.
+- **The co-located `(file, section)` key as L2's primary cluster key**
+  (RS-HARNESSP6-001 Q4(a); Chunk 8 resolving spike) — **declined 2026-09-20
+  (settled exclusion, measured)**: replayed over the recorded findings of the
+  harness-p3, -p4 and -p5 cycles, an equal `(file, section)` key formed **zero**
+  clusters — zero in each of the three cycles and zero in total — and against
+  the harness-p3 §L2 origin case it clusters **none** of the three members, not
+  the two of three the earlier text asserted without measuring. The reason is
+  structural rather than a sampling artefact: different layers describe one
+  defect at different granularities and from different directions, so
+  co-location is the property a genuine cross-layer convergence is least likely
+  to exhibit, and supplying the ephemeral review and chunk-verifier findings the
+  replay could not see would add findings in *more* files, not more co-located
+  ones. The key is not noisy — its precision held, at zero false positives — so
+  it is **retained as a subordinate key** that renders when it fires; what is
+  declined is its use as the primary key and every recall claim resting on it.
+  What ships instead is the shared-`REQ-*`/deviation-id key as primary (the only
+  key that fired in the replay) plus a sectionless-file rule that recovers the
+  one genuine convergence a section-granular key structurally cannot catch (red
+  and blue on the same malformed records in `.sdd/telemetry.jsonl`, a file with
+  no sections). The measurement is done and the design is settled on it; there
+  is no open work in this entry. (REQ-HARN-HARNESSP6-002,
+  REQ-ORCH-HARNESSP6-001..002; `docs/ws/harness-p6/plan.md` §Chunk 8 → Spike
+  Findings)
+
 
 ## Open Questions
 
@@ -1068,6 +1240,61 @@ Added for RS-HARNESSP5-001 (harness hardening part 5):
   REQ-WS-HARNESSP3-001 signal that regeneration is the orchestrator's post-gate
   bookkeeping.
 
+Added at the requirements stage for RS-HARNESSP6-001 (workstream `harness-p6`).
+This stage ran non-interactively, so each ambiguity below was resolved by taking
+the reading most consistent with the approved findings and is recorded here
+rather than asked:
+
+- **Per-workstream traceability (corrected at the requirements review, C1).**
+  The per-ws row write is **this stage's own obligation** under
+  `docs/spec/ws-traceability.md` (marker `4`), not an orchestrator follow-up;
+  the REQ-WS-HARNESSP3-001 amendment hands the orchestrator only the
+  **aggregate regeneration**. The original dispatch scoped
+  `docs/ws/harness-p6/traceability.md` out in error. The file now carries all
+  13 `HARNESSP6` rows with Spec / Test / Implementation / Verified blank, and
+  the aggregate was regenerated mechanically via
+  `python3 tools/sdd-gc.py --fix traceability-aggregate` — never hand-merged.
+- **`docs/research/index.md` row — resolved.** The `RS-HARNESSP6-001` row
+  landed in the orchestrator's research-gate commit (`6ac9252`);
+  `python3 tools/sdd-gc.py --report` reports **0** `[index-research]` findings
+  and **0** fail. The requirements review restated this as still open; it is
+  not.
+- **Ambiguity resolved by choice — Q2 rendering.** The kickoff offered "a new
+  token, or a member of the existing `SCOPE:` family". REQ-HARN-HARNESSP6-001
+  takes the **`SCOPE:`-family member**, the reading most consistent with the
+  existing artifacts (the history-rewrite finding is already a line inside the
+  `SCOPE:` block rather than a token of its own). It costs no new REQ-ORCH-034
+  position and no new lint row pair. The comparand is independent of the choice,
+  so overruling this at specs changes rendering only.
+- **Ambiguity resolved by choice — L2's position.** REQ-ORCH-HARNESSP6-001 takes
+  **6c** (after `PLAN:`, before `TELEMETRY:`) over a derived line hanging under
+  one producer, because a convergence line spans producers and cannot honestly
+  hang under one. Cost difference: one sentence in §5's "renders last" clause.
+- **Ambiguity resolved by choice — housing of scope items (7) and (9).** Neither
+  had an obvious domain. Item (7) is written as REQ-PLAN-HARNESSP6-001 under
+  `PLAN` (it is an archival-hygiene rule with a named instance), and item (9) as
+  REQ-REQ-HARNESSP6-001 under `REQ` (it is a rule about the requirements corpus
+  itself). Both domains gain a `research_refs` field for the first time.
+- **Unmeasured: L2's firing rate (for `sdd-specs` and `sdd-verify`).** No
+  cycle's finding set has been replayed through the cluster rule, so the
+  false-positive rate of section-level matching across layers is unknown.
+  **Default**: ship informational, where a false positive costs one line. If
+  this cycle produces a qualifying finding pair, the verify stage records the
+  first real firing. Per the kickoff's terminality rule, if the rule cannot be
+  exercised at all this cycle, L2 is **descoped at replan inside this cycle**,
+  never queued.
+- **gc sweep widening is the dispatch-scope signal (for `sdd-specs`).** **Five**
+  category files' `last_updated` moved to 2026-09-20 with this diff
+  (`integration/drift-sweep.md` and `integration/skill-lint.md` were already at
+  that date; only their `research_refs` changed — requirements-review m1), so
+  `[stale-chain]` and `trace-empty` counts rise until the specs and traceability
+  work lands. Expected; the widened set names the specs the specs stage must
+  touch. Not a finding to fix at requirements.
+- **Plan ordering (for `sdd-plan`).** §Scope order is the plan priority, so the
+  two gc rules land first and **L2 is sequenced last** among the implementation
+  items — it is the item most likely to trigger a replan, and the other eight
+  should be landed before that risk is taken (kickoff §Decided at DISCUSS).
+
 ## Research References
 
 - [RS-001: SDD Artifact Structure](../research/RS-001-sdd-artifact-structure/findings.md)
@@ -1081,6 +1308,7 @@ Added for RS-HARNESSP5-001 (harness hardening part 5):
 - [RS-HARNESSP2-001: Harness Hardening, Part 2 (telemetry, adversarial verify, arbitration, drift sweep, evaluation)](../research/RS-HARNESSP2-001-harness-p2/findings.md)
 - [RS-HARNESSP5-001: Harness Hardening, Part 5 (regen provenance, stage-level fix telemetry, plan-completion ownership)](../research/RS-HARNESSP5-001-harness-hardening-p5/findings.md)
 - [RS-HARNESSP4-001: Harness Hardening, Part 4 (`COMMIT:` under fan-out, independent `expected` source for telemetry)](../research/RS-HARNESSP4-001-harness-hardening-p4/findings.md) — with its committed [evidence appendix](../research/RS-HARNESSP4-001-harness-hardening-p4/evidence-appendix.md)
+- [RS-HARNESSP6-001: Harness Hardening, Part 6 (terminal) — shared-spec staleness, git-state observation, Q-IMPL fence symmetry, the L2 convergence signal, and the deferral-backlog sweep](../research/RS-HARNESSP6-001-harness-hardening-p6/findings.md)
 - [RS-HARNESSP3-001: Harness Hardening, Part 3 (write-scope fidelity, return conformance, arbitration over regenerated artifacts, telemetry assurance, red-team follow-ups)](../research/RS-HARNESSP3-001-harness-hardening-p3/findings.md) — with its committed [evidence appendix](../research/RS-HARNESSP3-001-harness-hardening-p3/evidence-appendix.md)
 
 ## See Also

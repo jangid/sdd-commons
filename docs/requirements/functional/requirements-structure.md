@@ -1,7 +1,8 @@
 ---
 domain: REQ
-last_updated: 2026-04-28
+last_updated: 2026-09-20
 status: Approved
+research_refs: [RS-HARNESSP6-001]
 ---
 
 # Requirements: Requirements Structure
@@ -65,4 +66,70 @@ mapping requirement IDs to spec files, test files, and implementation status.
 The format must be a markdown table. This file must be referenced from
 `index.md` and updated by `sdd-specs` (when specs are written), `sdd-implement`
 (when tests/code are written), and `sdd-verify` (when verification completes).
+[Priority: must]
+
+### REQ-REQ-HARNESSP6-001: §Out of Scope holds settled exclusions with reasoning, never deferrals
+`docs/requirements/index.md` §Out of Scope must record every won't-do as a
+**settled exclusion with its reasoning**, and must not hold an entry phrased as
+deferred, carried, or queued to a next or later cycle. An entry whose work has
+since been done or has become moot is marked closed with its date and evidence
+rather than deleted, so the closure stays auditable; an entry superseded by a
+shipped requirement is replaced by a pointer to that requirement. The same rule
+binds a cycle's `verification.md` §Next Steps, which must contain no item
+phrased as carried to a later cycle. A finding too large to fix inside the cycle
+triggers a **replan**, not a successor workstream. (workstream `harness-p6`;
+kickoff §Scope item 9 and §Decided at DISCUSS — "§Out of Scope is swept, not
+grown"; RS-HARNESSP6-001 §Deferral-Backlog Sweep)
+**Acceptance** (widened at the red round, R1/R2; the spec's
+§`## Out of Scope` Discipline carries the normative table): a case-insensitive
+search over (i) `docs/requirements/index.md` §Out of Scope and (ii) the
+§Next Steps section of **every** path the glob `docs/ws/*/verification.md`
+returns — the glob is the scope, enumerated at run time; a run that walks a
+hand-picked subset has not run the check, and a conforming run reports one row
+per returned path, rows-walked equal to paths-returned, both derived from the
+same run.
+
+The search covers twenty-two phrasings: `deferred to`, `carried to`,
+`queued for`, `re-raise in that cycle`, `next cycle`, `a later cycle`,
+`successor`, `candidate`, `revisit`, `follow-up`/`follow-ups`,
+`in a cycle that`,
+`(?:needs|wants) a\b[^.\n]{0,60}\b(?:cycle|workstream)\b`, `owner:`,
+three narrow cycle-name-as-destination forms —
+`^\s*[-*]\s+(?:harness-)?p[0-9]+\b`, `\.\s+(?:harness-)?p[0-9]+\s*\.` and
+`(?:harness-)?p[0-9]+\s+(?:candidate|lead|owner)` — and six ordinary backlog
+markers `\btodo\b`, `\bbacklog:`, `\bopen item\b`, `\bparked\b`,
+`\bremains? open\b`, `\bunfinished\b`. Two rows are deliberately narrowed
+because their bare forms are citation vocabulary in this corpus: a bare
+`harness-p<N>` token fires 11 times in scope (i), every one a citation, and a
+bare `backlog` token fires 3 times there, likewise every one a citation — so
+the cycle-name rows match only destination/owner positions and the backlog row
+requires the label colon.
+
+[Updated: 2026-09-20, harness-p6 — verify-stage review M2. Rows 17–22 were
+added after the sixteen-row screen was shown to return zero on ordinary backlog
+lines (`TODO:`, `Backlog:`, `Open item:`, `Parked until …`, `Remains open`,
+`Unfinished:`). Each row was measured over all seven scopes before adding: the
+six together add zero live occurrences and zero marker-satisfied hits to the
+corpus as it stands, so their value is prospective. The spec's
+§`## Out of Scope` Discipline carries the normative table.]
+
+The two halves of the check carry different weight and the acceptance states
+both honestly. **Marker adjacency is exact**: a match does not count as live
+when its own line `L`, or the line `L-1` immediately preceding it, carries a
+bracketed dated marker matching
+`(\*\*\[|_\()(?i:superseded|closed|struck)[^\]\)]*20[0-9]{2}-[0-9]{2}-[0-9]{2}`;
+only `L` and `L-1` are examined and nothing else. Every annotated item therefore
+carries its own adjacent marker; a block-level marker covering several items
+does not satisfy this clause. **Phrase coverage is a best-effort screen** over
+the backlog vocabulary observed in this corpus, not an oracle — a deferral
+written in vocabulary no cycle has used yet passes it, and a reviewer still
+reads the section.
+
+Prose in §Q-REQ Resolutions recording what a **closed** cycle decided is outside
+the scopes and is not examined; so is this requirement's own text and the spec's,
+neither of which is a checked scope — re-confirmed 2026-09-20 after rows 17–22
+landed: the checked scopes remain `docs/requirements/index.md` §Out of Scope and
+the §Next Steps section of every path `docs/ws/*/verification.md` returns, and
+this file is neither. The three new settled exclusions named by
+RS-HARNESSP6-001 are each present with their reasoning.
 [Priority: must]

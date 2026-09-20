@@ -240,6 +240,54 @@ REQUIRED = [
      "reason": "post-decision `COMMIT:` one-line summary in §The gate (REQ-HARN-HARNESSP4-001)",
      "fix": "keep the `COMMIT: COMPLETE | INCOMPLETE` line in SKILL.md §The gate — its defining "
             "section is skills/sdd-orchestrate/references/write-scope.md §7"},
+    # -- harness-p6 contract rows (REQ-LINT-HARNESSP6-001): the `PLAN:` pause
+    #    token — the only gate token that shipped without a producer/consumer
+    #    pair — and the `GIT_STATE` finding name, which would have shipped the
+    #    same way (skill-lint-v5.md §`REQUIRED` Rows — `PLAN:` and `GIT_STATE`).
+    {"file": "skills/sdd-orchestrate/references/loop-control.md",
+     "pattern": r"PLAN: INCOMPLETE", "min": 1,
+     "reason": "`PLAN: INCOMPLETE (N of M ticked)` pause producer — §6 pause family (REQ-LINT-HARNESSP6-001)",
+     "fix": "keep the `PLAN: INCOMPLETE (N of M ticked)` pause in loop-control.md §6 — its defining "
+            "section is docs/spec/harness-loop-control.md §Plan Completion Ownership; its consumer "
+            "lives in skills/sdd-orchestrate/SKILL.md §The gate"},
+    {"file": "skills/sdd-orchestrate/SKILL.md",
+     "pattern": r"PLAN: INCOMPLETE", "min": 1,
+     "reason": "`PLAN: INCOMPLETE` one-line summary in §The gate signal order (REQ-LINT-HARNESSP6-001)",
+     "fix": "keep the `PLAN: INCOMPLETE (N of M ticked)` line in SKILL.md §The gate — its defining "
+            "section is docs/spec/harness-loop-control.md §Plan Completion Ownership; its producer "
+            "lives in skills/sdd-orchestrate/references/loop-control.md"},
+    # `GIT_STATE` is a finding NAME rendered inside the `SCOPE:` block, not an
+    # own-line gate token, so the pattern carries no trailing colon and no
+    # option-set alternation — the row guards the name's presence, which is all
+    # that is needed to make its deletion fail.
+    {"file": "skills/sdd-orchestrate/references/write-scope.md",
+     "pattern": r"GIT_STATE", "min": 1,
+     "reason": "`GIT_STATE` finding name producer — §5 rendering / §3 git-state observation "
+               "(REQ-HARN-HARNESSP6-001)",
+     "fix": "keep the `GIT_STATE` finding in write-scope.md §5 — its defining section is "
+            "docs/spec/harness-write-scope.md §Git-State Observation; its consumer lives in "
+            "skills/sdd-orchestrate/SKILL.md §The gate"},
+    {"file": "skills/sdd-orchestrate/SKILL.md",
+     "pattern": r"GIT_STATE", "min": 1,
+     "reason": "`GIT_STATE` finding name named in §The gate's `SCOPE:` summary (REQ-HARN-HARNESSP6-001)",
+     "fix": "keep the `GIT_STATE` mention in SKILL.md §The gate — its defining section is "
+            "docs/spec/harness-write-scope.md §Git-State Observation; its producer lives in "
+            "skills/sdd-orchestrate/references/write-scope.md"},
+    # -- harness-p6 contract rows (REQ-LINT-HARNESSP6-003): the L2 gate token
+    #    `CONVERGENCE:` gets the same producer/consumer pair that guards
+    #    `COMMIT:` (skill-lint-v5.md §`REQUIRED` Row — `CONVERGENCE:`).
+    {"file": "skills/sdd-orchestrate/references/loop-control.md",
+     "pattern": r"CONVERGENCE:", "min": 1,
+     "reason": "`CONVERGENCE:` L2 gate token producer — §5 order item 6c (REQ-LINT-HARNESSP6-003)",
+     "fix": "keep the `CONVERGENCE:` line in loop-control.md §5 item 6c / §5b — its defining "
+            "section is docs/spec/harness-loop-control.md §Convergence Signal; its consumer "
+            "lives in skills/sdd-orchestrate/SKILL.md §The gate"},
+    {"file": "skills/sdd-orchestrate/SKILL.md",
+     "pattern": r"CONVERGENCE:", "min": 1,
+     "reason": "`CONVERGENCE:` one-line summary in §The gate signal order (REQ-LINT-HARNESSP6-003)",
+     "fix": "keep the `CONVERGENCE:` line in SKILL.md §The gate — its defining "
+            "section is docs/spec/harness-loop-control.md §Convergence Signal; its producer "
+            "lives in skills/sdd-orchestrate/references/loop-control.md"},
 ]
 
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
@@ -828,9 +876,14 @@ def self_test() -> int:
             # every rule-table row carries a fix (the mutation loop above proves REQUIRED;
             # FORBIDDEN rows are asserted by shape)
             check(all(r.get('fix') for r in FORBIDDEN), "FORBIDDEN row without fix")
-            # harness-p2 adds four REQUIRED rows (RED_VERDICT producer/consumer,
-            # REVIEW: CONTRADICTION, Material `affects`) — REQ-LINT-HARNESSP2-001
-            check(len(REQUIRED) >= 32, f"expected the harness-p2 REQUIRED rows (>= 32), found {len(REQUIRED)}")
+            # harness-p2 added four REQUIRED rows (RED_VERDICT producer/consumer,
+            # REVIEW: CONTRADICTION, Material `affects`) — REQ-LINT-HARNESSP2-001.
+            # harness-p6 replaces that `>=` bound with the exact total: this
+            # cycle's three pairs (`PLAN:` ×2, `GIT_STATE` ×2, `CONVERGENCE:` ×2)
+            # are all present, and the table counts rows, not files, so the rows
+            # that share a target file are distinct rows
+            # (skill-lint-v5.md §Self-Test Extension, REQ-LINT-HARNESSP6-003).
+            check(len(REQUIRED) == 40, f"expected exactly 40 REQUIRED rows, found {len(REQUIRED)}")
             # d2 negative: a SKILL.md carrying only `RED_VERDICT: HELD` must NOT
             # satisfy the review-verdict consumer row (the `(?<!RED_)` lookbehind).
             d2 = next((r for r in REQUIRED
@@ -857,6 +910,51 @@ def self_test() -> int:
                     check(re.search(r["pattern"], good) is not None,
                           f"COMMIT: row pattern no longer matches `{good}`")
                 check("write-scope.md §7" in r["fix"], "COMMIT: row fix must point at write-scope.md §7")
+            # harness-p6 adds the `PLAN:` and `GIT_STATE` pairs
+            # (REQ-LINT-HARNESSP6-001). The mutation loop above already strips
+            # each of the four rows from its own file and asserts the row's fix
+            # is printed; these checks pin the pair shape so a later edit cannot
+            # silently drop half a pair or re-point a fix string.
+            plan_rows = [r for r in REQUIRED if r["pattern"] == r"PLAN: INCOMPLETE"]
+            check(len(plan_rows) == 2, f"expected two `PLAN: INCOMPLETE` REQUIRED rows, found {len(plan_rows)}")
+            check({r["file"] for r in plan_rows} == {
+                      "skills/sdd-orchestrate/references/loop-control.md",
+                      "skills/sdd-orchestrate/SKILL.md"},
+                  "`PLAN: INCOMPLETE` pair must target loop-control.md (producer) and SKILL.md (consumer)")
+            for r in plan_rows:
+                check("harness-loop-control.md §Plan Completion Ownership" in r["fix"],
+                      "`PLAN: INCOMPLETE` row fix must point at harness-loop-control.md §Plan Completion Ownership")
+                check(re.search(r["pattern"], "pauses with `PLAN: INCOMPLETE (3 of 7 ticked)`") is not None,
+                      f"`PLAN: INCOMPLETE` row pattern no longer matches the token: {r['pattern']}")
+            # `GIT_STATE` is a finding NAME rendered inside the `SCOPE:` block,
+            # not an own-line gate token — so its pattern carries no trailing
+            # colon and no option-set alternation (Q-REQ-P6-A).
+            git_rows = [r for r in REQUIRED if r["pattern"] == r"GIT_STATE"]
+            check(len(git_rows) == 2, f"expected two `GIT_STATE` REQUIRED rows, found {len(git_rows)}")
+            check({r["file"] for r in git_rows} == {
+                      "skills/sdd-orchestrate/references/write-scope.md",
+                      "skills/sdd-orchestrate/SKILL.md"},
+                  "`GIT_STATE` pair must target write-scope.md (producer) and SKILL.md (consumer)")
+            for r in git_rows:
+                check("harness-write-scope.md §Git-State Observation" in r["fix"],
+                      "`GIT_STATE` row fix must point at harness-write-scope.md §Git-State Observation")
+                check(":" not in r["pattern"] and "|" not in r["pattern"],
+                      f"`GIT_STATE` row pattern must carry no trailing colon and no alternation: {r['pattern']}")
+            # `CONVERGENCE:` is an own-line gate token (item 6c), so unlike
+            # `GIT_STATE` its pattern keeps the trailing colon
+            # (REQ-LINT-HARNESSP6-003).
+            conv_rows = [r for r in REQUIRED if r["pattern"] == r"CONVERGENCE:"]
+            check(len(conv_rows) == 2, f"expected two `CONVERGENCE:` REQUIRED rows, found {len(conv_rows)}")
+            check({r["file"] for r in conv_rows} == {
+                      "skills/sdd-orchestrate/references/loop-control.md",
+                      "skills/sdd-orchestrate/SKILL.md"},
+                  "`CONVERGENCE:` pair must target loop-control.md (producer) and SKILL.md (consumer)")
+            for r in conv_rows:
+                check("harness-loop-control.md §Convergence Signal" in r["fix"],
+                      "`CONVERGENCE:` row fix must point at harness-loop-control.md §Convergence Signal")
+                check(re.search(r["pattern"], "CONVERGENCE: REQ-LINT-HARNESSP6-003 (review, red) — 2 layers")
+                      is not None,
+                      f"`CONVERGENCE:` row pattern no longer matches the token: {r['pattern']}")
             # -- 7c. [template-drift] (REQ-LINT-HARNESSP4-001): the four pair rows
             #       compare byte-identical on the shipped set (skills + docs/spec
             #       copied to a temp root); one character changed inside the RED

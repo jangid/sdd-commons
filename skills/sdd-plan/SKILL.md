@@ -187,6 +187,31 @@ the flat `docs/plan.md` / `docs/plan-history/` exactly as written below, unchang
 2. Copy the current plan to `{plan-history}/{date}-{reason}.md` (e.g., `2026-04-27-rewrite-after-spec-update.md`)
 3. Then write the new plan
 
+**Strike resolved `## Open Questions` entries in the archived copy
+(REQ-PLAN-HARNESSP6-001).** Before the archive is written, review its
+`## Open Questions` section: an entry is **answered** when the spec, tool or
+plan text it asks about now states the answer. Every answered entry is
+**struck** — left visible, and marked with a bracketed dated resolution marker
+on a line of its own directly abutting the entry — immediately after its
+heading line, or after its last line when the entry wraps — naming the date and what
+resolved it:
+
+```markdown
+### 3. Does the reader still read the old default?
+**[Struck 2026-09-20 — resolved: the value reads 67 in all three places that
+carry it; REQ-PLAN-HARNESSP6-001]**
+```
+
+Never delete the entry and never reword it in place: deleting erases the record
+that the question was ever open, rewording leaves no evidence it was resolved
+rather than silently dropped. An entry you cannot resolve from the artifacts in
+front of you stays **unmarked** and is carried into the archive as-is — this
+rule strikes settled entries, it does not force a verdict. It applies to the
+archived copy under `plan-history/` only (marker `4`:
+`docs/ws/<ws>/plan-history/`); active-plan behaviour, files, sections and
+marker types are unchanged. See `docs/spec/plan-management.md` §Resolved
+`## Open Questions` Entries Are Struck at Archival.
+
 Save the plan to `docs/plan.md` (single-milestone; `docs/ws/<ws>/plan.md` under
 marker `4`) or create the index + per-milestone files (multi-milestone).
 

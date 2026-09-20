@@ -1,8 +1,8 @@
 ---
 domain: HARN
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 status: Approved
-research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001]
+research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001, RS-HARNESSP6-001]
 ---
 
 # Requirements: Harness Hardening — Boundaries
@@ -468,3 +468,40 @@ hits inside §Comparand Table; `grep -n 'C1–C5' docs/spec/harness-commit-fidel
 returns nothing; `python3 tools/sdd-scope-check-selftest.py --self-test` lists
 C1–C6; `python3 tools/sdd-gc.py --report` raises no new finding.
 [Priority: should]
+
+### REQ-HARN-HARNESSP6-001: the write-scope snapshot must observe git-state mutation by a leaf
+The write-scope observation window must observe mutation of **git state**, not
+only of files. Today the window is a one-directional porcelain delta, a
+committed delta between the two `HEAD` shas, and an ancestry check; `git stash`
+*removes* lines from the porcelain output and leaves `HEAD` untouched, so it is
+invisible to all three — which is exactly why a read-only verifier that ran
+`git stash` over nine files of uncommitted work in the harness-p5 cycle produced
+`SCOPE: CLEAN`. The orchestrator must therefore record, alongside the existing
+`git status --porcelain` read at **both** ends of the existing
+`snapshot(before)` / `snapshot(after)` window (no second window): the **stash
+count**, the **current branch**, and **`ORIG_HEAD`**. It must raise a
+`GIT_STATE` finding when either (i) the stash count, the current branch or
+`ORIG_HEAD` differs between the two snapshots; or (ii) the **reverse** porcelain
+delta — paths dirty before and not dirty after — is non-empty **after
+subtracting the committed delta**, i.e. a path stopped being dirty with no
+commit explaining it. The finding renders as a line **inside the existing
+write-scope block**, exactly parallel to the existing history-rewrite line, and
+counts into `SCOPE: VIOLATION (N paths)`; no new gate token is introduced and
+the REQ-ORCH-034 order is unchanged. Because a stash is recoverable, its options
+are `restore │ accept (note) │ stop`, with `proceed` unavailable while it is
+unresolved. The comparand must not fire on a legitimate dispatch: a normal
+implement leaf only *adds* porcelain lines and any dirty path it commits is
+subtracted by clause (ii); a fan-out merge is an orchestrator step outside any
+leaf's window, and a merge commit is a descendant, so the ancestry check still
+passes. (workstream `harness-p6`; kickoff §Scope item 3, settled at DISCUSS as
+an **observable** check rather than contract wording; RS-HARNESSP6-001 Q2,
+Confidence Medium-High — derived from contract text, not replayed against a
+live dispatch, which the self-test scenarios below close)
+**Acceptance**: `python3 tools/sdd-scope-check-selftest.py` exits 0 with four
+new scenarios — stash-with-pop and stash-and-drop each yield a `GIT_STATE`
+finding and `SCOPE: VIOLATION`; an implement leaf that commits a path which was
+already dirty at `snapshot(before)` yields `SCOPE: CLEAN`; a fan-out merge
+yields `SCOPE: CLEAN`; `skills/sdd-orchestrate/references/write-scope.md` §3
+lists the three extra plumbing reads and the reverse-delta subtraction, §5 the
+`GIT_STATE` line, §8 its options; `python3 tools/sdd-skill-lint.py` exits 0.
+[Priority: must]

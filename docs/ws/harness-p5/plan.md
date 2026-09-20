@@ -622,6 +622,11 @@ this workstream's traceability is filled.
   Chunk 5 must correct both to 67 when it next edits the file, or the operator
   fixes it out of band. Until then the plan and the spec disagree on that one
   number.
+  **[Struck 2026-09-20 — resolved: `docs/spec/telemetry-reader.md` now reads
+  **67** in all three places that carry it — the §Frozen-fixture prose, the
+  `test_p4_fixture_frozen` §Automated bullet and the REQ-TELEM-HARNESSP5-007
+  acceptance bullet; the plan and the spec no longer disagree on that number.
+  REQ-PLAN-HARNESSP6-001]**
 
 - **Fixture provenance wording diverges from the Approved spec.** The operator
   directed (carried specs-stage review item M1) that the arbitration fixture be

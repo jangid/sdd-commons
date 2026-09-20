@@ -275,14 +275,14 @@ ephemeral (REQ-ORCH-013):
 | # | Signal | Where |
 |---|--------|-------|
 | 1 | `RETURN.status` + `budget_consumed` vs the dispatched `Budget:` | per-chunk gate |
-| 2 | the own-line `SCOPE:` token | per-chunk gate |
+| 2 | the own-line `SCOPE:` token; a `VIOLATION` block renders each finding by name — `HISTORY_REWRITE`, and `GIT_STATE` for git-state mutation by a read-only leaf | per-chunk gate |
 | 3 | per chunk, `CHUNK_VERDICT:` with `Redo: N of 3` | per-chunk gate |
 | 3b | verify only: `RED_VERDICT:` with its `Rn` lines verbatim, then — on a red round N >= 2 — the derived `RED: Rn new-ground \| regression` lines, before the exit rule and before (4) | stage gate |
 | 4 | the review `VERDICT:` | stage gate |
 | 5 | the loop counters | stage gate |
 | 6 | the `REVIEW: CONTRADICTION` pause block when it fires, after the counters | stage gate |
 | 6b | implement only: the plan completion parse `PLAN: INCOMPLETE (N of M ticked)`, pausing with `replan │ stop` **only** and suppressing (6)'s options — signal 6's block still renders, only its options are suppressed | stage gate |
-| 7 | the `TELEMETRY:` line, last, before the options | stage gate |
+| 6c, 7 | the informational own-line `CONVERGENCE:` token — one line per cluster whose second member arrived here, naming its key (shared id, sectionless file, or file and section), the layers and the layer count; no option set, never pauses, never withholds `proceed` — then the `TELEMETRY:` line, last, before the options | every gate |
 | 8 | **post-decision**: the own-line `COMMIT: COMPLETE \| INCOMPLETE` closing line right after the orchestrator's own commit (or the fan-out merge; pre-decision at 2b for a fan-out per-leaf gate), pausing on `INCOMPLETE` with `amend \| accept (note) \| stop` before any next dispatch ([`references/write-scope.md`](references/write-scope.md) §7a) | after the decision |
 | 8b | implement `proceed` only, after (8): the orchestrator — the sole writer of the plan's `status:` under orchestration — flips `docs/ws/<id>/plan.md` to `status: complete` in its own bookkeeping commit, editing `status:` only and leaving `research_id:` untouched | after the decision |
 

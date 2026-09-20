@@ -2,7 +2,7 @@
 domain: LINT
 last_updated: 2026-09-20
 status: Approved
-research_refs: [RS-008, RS-HARNESSP4-001, RS-HARNESSP5-001]
+research_refs: [RS-008, RS-HARNESSP4-001, RS-HARNESSP5-001, RS-HARNESSP6-001]
 ---
 
 # Requirements: Skill Lint (`tools/sdd-skill-lint.py`)
@@ -146,6 +146,22 @@ move plus the HARN stubs pointing at `references/write-scope.md` and
 is superseded: `sdd-orchestrate/SKILL.md` was 551 lines at p4 DONE (p4 red R8
 accepted); the p5 target for every `SKILL.md` is **under 400** — see
 REQ-LINT-HARNESSP5-001 / -002.
+[Updated: 2026-09-20, harness-p6 — REQ-LINT-HARNESSP6-002] The "must **not**
+move" list above is **qualified, not amended**. Moving any of those sections out
+of `SKILL.md` for size reasons is an **authorised exception** to that list, and
+**REQ-LINT-HARNESSP5-001** — which requires every `SKILL.md` to be brought under
+400 lines by moving detail into `references/*.md` — is the authorising
+requirement; the harness-p5 move of §Isolation Discipline and §Orchestrator-Only
+Work into `references/isolation.md` is the instance. The two requirements
+conflict textually only: the `no` list scopes those sections out of *this*
+marker-4 prose move, it does not pin them to `SKILL.md` forever — see
+`docs/spec/skill-lint-v5.md` §Scope of the `no` row for the reconciling reading,
+and the moved-section invariants there (stub with the marker-3 sentence,
+`REQUIRED` rows re-pointed never dropped, fenced bodies kept paired) continue to
+apply. This requirement's id, its number and its original text above are
+deliberately left unchanged: amending them in place would break every artifact
+that cites REQ-LINT-007 and would erase the record that the two requirements
+once disagreed.
 
 <!-- REQ-LINT-HARNESSP2-NNN: workstream-prefixed additions for the harness-p2
      cycle (RS-HARNESSP2-001; marker 4, per docs/spec/ws-ids.md). -->
@@ -309,3 +325,56 @@ requirements-side split of `functional/telemetry.md` proposed in `index.md`
 `python3 tools/sdd-gc.py --report` raises no `qimpl-broken-ref` or broken-link
 finding on the split files; `python3 tools/sdd-skill-lint.py` exits 0.
 [Priority: should]
+
+### REQ-LINT-HARNESSP6-001: REQUIRED row — `PLAN:` stated in `loop-control.md` and `SKILL.md`
+`tools/sdd-skill-lint.py` must carry a `REQUIRED` row pair for the `PLAN:` gate
+token, mirroring the existing pairs for the other gate tokens. `PLAN:` is today
+the only gate token with no `REQUIRED` row, so deleting it from
+`skills/sdd-orchestrate/references/loop-control.md` §6 is unguarded while the
+same deletion of any sibling token fails the lint. One row asserts the producer
+(the token's definition in `loop-control.md`) and one the consumer (its mention
+in `skills/sdd-orchestrate/SKILL.md` §The gate). (workstream `harness-p6`;
+kickoff §Scope item 4, mechanical and decided at DISCUSS; carried from
+`docs/ws/harness-p5/verification.md` §Next Steps 4/4 and closed here)
+The same row pair must also guard the `GIT_STATE` finding name of
+REQ-HARN-HARNESSP6-001. RS-HARNESSP6-001 Q2 recommended it land alongside the
+`PLAN:` row so the two share one lint change; it is adopted here rather than
+declined, since a `GIT_STATE` line deleted from `write-scope.md` would otherwise
+be as unguarded as `PLAN:` is today.
+**Acceptance**: `python3 tools/sdd-skill-lint.py` exits 0 on the corpus as it
+stands; with the `PLAN:` line removed from `loop-control.md` §6 it exits
+non-zero naming that `REQUIRED` row, and likewise with the token removed from
+`SKILL.md`; and the same holds for the `GIT_STATE` name removed from
+`skills/sdd-orchestrate/references/write-scope.md`.
+[Priority: must]
+
+### REQ-LINT-HARNESSP6-002: REQ-LINT-007's "must not move" list is qualified for the Chunk 9 rescoping
+`docs/requirements/integration/skill-lint.md` REQ-LINT-007's "must not move"
+list must be qualified so that it matches the Chunk 9 rescoping that
+REQ-LINT-HARNESSP5-001 authorised in the same file. As written the two
+requirements read as contradicting each other: the earlier one forbids movement
+that the later one requires. The qualification is added as a bracketed dated
+`[Updated: …]` note on REQ-LINT-007 naming the authorised exception and its
+authorising requirement — the requirement id, its number and its original text
+are not changed. (workstream `harness-p6`; kickoff §Scope item 6, mechanical and
+decided at DISCUSS; carried from `docs/ws/harness-p5/verification.md` §Next
+Steps and closed here)
+**Acceptance**: REQ-LINT-007 carries an `[Updated: 2026-09-20 …]` note naming
+REQ-LINT-HARNESSP5-001 as the authorising requirement for the moved items; a
+reader of the two requirements in sequence finds no contradiction;
+`python3 tools/sdd-skill-lint.py` and `python3 tools/sdd-gc.py --report` are
+unchanged in their findings on this file.
+[Priority: must]
+
+### REQ-LINT-HARNESSP6-003: REQUIRED row pair — `CONVERGENCE:` stated in `loop-control.md` and `SKILL.md`
+`tools/sdd-skill-lint.py` must carry a `REQUIRED` row pair for the
+`CONVERGENCE:` gate token of REQ-ORCH-HARNESSP6-001, mirroring the two rows that
+guard the `COMMIT:` token: one asserting the producer (the token's definition
+and position in `loop-control.md` §5) and one the consumer (its mention in
+`SKILL.md` §The gate). This, REQ-LINT-HARNESSP6-001 and the `GIT_STATE`
+row adopted into it are the cycle's only lint changes, and they land together. (workstream `harness-p6`; RS-HARNESSP6-001 Q4(d)
+cost table)
+**Acceptance**: `python3 tools/sdd-skill-lint.py` exits 0 once the token ships,
+and exits non-zero naming the respective row when the token is removed from
+either file.
+[Priority: must]

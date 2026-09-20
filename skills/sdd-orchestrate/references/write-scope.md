@@ -235,6 +235,48 @@ observed writes := porcelain_delta UNION committed_delta UNION content_delta
   the dispatch, dirtied again → one entry, `committed <sha>`, `(1 path)`).
 - Fixture: scenario F10 of `tools/sdd-scope-check-selftest.py` (both halves).
 
+**Git-state observation (REQ-HARN-HARNESSP6-001).** The porcelain delta (a) is
+*one-directional* — lines in `after` not in `before` — so an operation that
+**removes** dirty lines is invisible to it, and `git stash` leaves `HEAD`
+untouched so (b) and (c) see nothing either (the harness-p5 incident: a
+read-only chunk verifier stashed nine files of uncommitted work and the gate
+still rendered `SCOPE: CLEAN`). **No second observation window is introduced**:
+`snapshot(before)` and `snapshot(after)` each record three extra plumbing reads
+alongside the `git status --porcelain` read they already take.
+
+```bash
+stash_count=$(git stash list | wc -l)
+branch=$(git rev-parse --abbrev-ref HEAD)
+orig_head=$(git rev-parse --verify --quiet ORIG_HEAD || echo "")
+```
+
+- `ORIG_HEAD` is read with `--verify --quiet`: its **absence** is the legal
+  empty value, and absent-in-both compares equal — a repository that has never
+  reset is never a finding.
+- For a fan-out leaf the three reads run in the leaf's worktree, as the
+  existing commands do.
+
+**The comparand** — a `GIT_STATE` finding is raised when **either** clause holds:
+
+| Clause | Condition |
+|---|---|
+| (i) state drift | `stash_count`, `branch` or `orig_head` differs between the two snapshots |
+| (ii) reverse porcelain delta | the set of paths dirty in `before` and **not** dirty in `after`, **minus** the paths of the committed delta (b), is non-empty — a path stopped being dirty with no commit explaining it |
+
+- Clause (ii) is the general form: it catches `git stash`, `git checkout --
+  <path>`, `git restore` and `git clean` on a path the leaf did not commit.
+  Clause (i) is the cheap form and catches a branch switch and a reset that
+  leaves the tree clean (`git stash` itself sets `ORIG_HEAD`, so a
+  stash-then-pop that restores the dirty set is still observed).
+- **It does not fire on a legitimate dispatch.** A normal implement leaf only
+  *adds* porcelain lines and any path it commits leaves the dirty set — the
+  subtraction in clause (ii) removes exactly that committed delta, so the
+  reverse delta is empty. An orchestrator **fan-out merge**, and the
+  orchestrator's own bookkeeping commit, run **outside** any leaf's window
+  (§Snapshot ordering above), so no snapshot pair spans them.
+- Rendering is the `GIT_STATE` line of §5; its options are in §8.
+- Fixtures: scenarios G1–G5 of `tools/sdd-scope-check-selftest.py`.
+
 **Third observation (telemetry) — REQ-TELEM-HARNESSP2-005.** Because `.sdd/`
 is gitignored (limitation (b), §5), the porcelain pair cannot see a leaf write
 there. In the same window take a third observation: before dispatch `n_before`
@@ -353,9 +395,23 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
 ```
 
 - The token line is `SCOPE: CLEAN` or `SCOPE: VIOLATION (N paths)` on its own;
-  `N` counts `OUT` paths plus a `HISTORY_REWRITE` finding; `ADVISORY` paths do
-  not count. A `HISTORY_REWRITE` line is rendered above the path list
+  `N` counts `OUT` paths plus a `HISTORY_REWRITE` and a `GIT_STATE` finding;
+  `ADVISORY` paths do not count. A `HISTORY_REWRITE` line is rendered above the
+  path list
   (`  HISTORY_REWRITE  HEAD_after d4e5f6 does not descend from HEAD_before a1b2c3`).
+- A **`GIT_STATE`** finding (§3 git-state observation) renders as a line
+  **inside this block**, exactly parallel to `HISTORY_REWRITE` and above the
+  path list, and counts into `SCOPE: VIOLATION (N paths)`. **No new gate token
+  is introduced** and the REQ-ORCH-034 signal order is unchanged. Shape:
+
+  ```
+    GIT_STATE  stash count 0 -> 1; 9 path(s) dirty before and clean after with no
+               commit (docs/plan.md, docs/spec/telemetry.md, …)
+  ```
+
+  Its options are `restore │ accept (note) │ stop` (§8), and `proceed` is
+  withheld while the finding is unresolved — the same withholding rule an
+  unresolved `OUT` path carries.
 - **The orchestrator branches on the token, not on prose.** `VIOLATION` → the
   gate offers, per `OUT` path, `revert path | accept & widen scope | stop`
   **before the per-chunk gate's commit** (sequential) or the leaf's merge
@@ -416,8 +472,11 @@ Write-scope check — implement dispatch #2 (Chunk 2, worktree wt-g1 / branch fa
   content-hash observation of §3 (REQ-HARN-HARNESSP3-001); it is no longer
   recorded here.
 - Writes outside the repository (scratchpad, `$TMPDIR`) are the sandbox's
-  concern, not this check's. The shared stash stack is out of scope (skills
-  never stash).
+  concern, not this check's.
+- **Closed, not a limitation:** the stash stack and the rest of git state are
+  observed by the git-state observation of §3 (REQ-HARN-HARNESSP6-001) — a leaf
+  that stashes, switches branch or reverts a dirty path raises `GIT_STATE`
+  instead of the `SCOPE: CLEAN` the harness-p5 incident produced.
 
 ---
 
@@ -483,6 +542,39 @@ Staging Path.
 | chunk verifier | nobody | `files_written: []` |
 | aggregate regeneration (marker `4`, post-gate bookkeeping) | **orchestrator**, in its **own** commit, separate from any leaf's | — (not a dispatch; driven by the session dirty flag) |
 | plan `status: complete` flip (post-gate bookkeeping) | **orchestrator**, in its **own** commit at the implement **stage gate** on `proceed`, after the `COMMIT:` closing line | — (not a dispatch; no leaf returns this path) |
+
+### 7b. Commit message attribution — the driver adds none
+
+**The orchestrator adds no attribution trailer to any commit it makes, and
+instructs no leaf to add one.** No co-authorship trailer, no "generated with"
+footer, no tool-identifying line of any kind. This holds for every commit in
+the table above — stage, per-chunk, fix, bookkeeping, `status:` flip — and for
+any pull-request body the driver composes. (The trailer keys are deliberately
+not spelled out here: `tools/sdd-skill-lint.py` carries a `[forbidden]` rule
+against them appearing in committed content, and this file is committed
+content.)
+
+**This rule lives here, in the driver, on purpose.** It does **not** depend on
+a project-level `CLAUDE.md`, an `AGENTS.md`, or a harness-supplied attribution
+default being read, present, or correctly precedence-ordered. A driver that
+commits at every gate must carry its own commit conventions; relying on a file
+outside the skill is how the convention silently lapses in a repository whose
+`CLAUDE.md` is missing, unread, or overridden.
+
+**Recorded 2026-09-21**, after the driver added a co-authorship trailer to
+twenty consecutive commits in *this* repository — whose `CLAUDE.md` forbids it
+and whose own linter already rejects the same string in file content — having
+deferred to a harness-supplied default that itself stated the project's
+instructions take precedence. The convention was encoded in two places and the
+driver still missed it, because neither place is consulted at commit time. That
+is the gap this section closes.
+
+**Precedence, stated once so it needs no re-derivation.** If a project's own
+instructions specify an attribution format, follow them. If they forbid
+attribution, add none. If they are silent, add none — silence is not consent to
+a trailer, and a commit with no trailer is trivially amendable while twenty with
+one are not. A harness- or tool-supplied attribution default never overrides
+either the project's instructions or this rule.
 
 **Aggregate-regeneration bookkeeping commit (REQ-WS-HARNESSP3-001).** Under
 marker `4` the shared `docs/requirements/traceability.md` is regenerated
@@ -662,6 +754,7 @@ budget exhaustion (`loop-control.md` §5, §6); telemetry normalises `amend` to
 | `OUT` path (`blocked_writes`) | `persist & widen scope` │ `drop` │ `stop` | never persisted without an explicit widen (§6) |
 | `ADVISORY` path | none required — hint shown | operator eyeballs the hunk; counts 0 toward `N` |
 | `HISTORY_REWRITE` | `stop` + manual recovery hint | never an automatic reset |
+| `GIT_STATE` (§3 git-state observation) | `restore` │ `accept (note)` │ `stop` | a stash is recoverable: `restore` is `git stash pop` for the stash case and `git checkout -- <path>` for a reverted path; `accept (note)` records the acceptance in ephemeral gate text only; `proceed` is withheld while the finding is unresolved |
 | verifier / review wrote anything | every path `OUT`; revert before any redo | `loop-control.md` §1b Verifier edge cases |
 | `COMMIT: INCOMPLETE` (post-decision, §7a) | `amend` │ `accept (note)` │ `stop` | `amend` stages only `observed, not landed` paths into the orchestrator's own commit, no write-scope re-run; no next dispatch until resolved |
 

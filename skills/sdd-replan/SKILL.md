@@ -148,6 +148,31 @@ First, determine if this is a **significant** or **minor** replan:
 2. Copy `docs/plan.md` to `docs/plan-history/{date}-replan-{reason}.md`
 3. Write the changelog and removed tasks to the **archive file**, not the active plan
 
+**Strike resolved `## Open Questions` entries in the archived copy
+(REQ-PLAN-HARNESSP6-001).** Before the archive is written, review its
+`## Open Questions` section: an entry is **answered** when the spec, tool or
+plan text it asks about now states the answer. Every answered entry is
+**struck** — left visible, and marked with a bracketed dated resolution marker
+on a line of its own directly abutting the entry — immediately after its
+heading line, or after its last line when the entry wraps — naming the date and what
+resolved it:
+
+```markdown
+### 3. Does the reader still read the old default?
+**[Struck 2026-09-20 — resolved: the value reads 67 in all three places that
+carry it; REQ-PLAN-HARNESSP6-001]**
+```
+
+Never delete the entry and never reword it in place: deleting erases the record
+that the question was ever open, rewording leaves no evidence it was resolved
+rather than silently dropped. An entry you cannot resolve from the artifacts in
+front of you stays **unmarked** and is carried into the archive as-is — this
+rule strikes settled entries, it does not force a verdict. It applies to the
+archived copy under `plan-history/` only (marker `4`:
+`docs/ws/<ws>/plan-history/`); active-plan behaviour, files, sections and
+marker types are unchanged. See `docs/spec/plan-management.md` §Resolved
+`## Open Questions` Entries Are Struck at Archival.
+
 **`-replan-` filename contract (REQ-HARN-003).** Every archive this skill
 writes carries the `-replan-` segment (`{date}-replan-{reason}.md`; per
 milestone `{date}-m{N}-replan-{reason}.md`); no other skill may use that

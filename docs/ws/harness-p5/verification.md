@@ -308,8 +308,16 @@ is fixed or accepted. The active plan may be archived to
 ## Next Steps
 
 - gc `[stale-chain]` (the dominant warn-class contributor): bump `docs/spec/telemetry.md`
+  **[Superseded 2026-09-20 — RS-HARNESSP6-001 Q1; the full note follows this entry. Marker repeated here on the line immediately above the phrase so the matched-phrase, at-or-above liveness rule resolves it (red R1/R2).]**
   `last_updated:` to `2026-09-20` through `sdd-specs` in a follow-up cycle — the
   content is already current. Routed `record` at the DONE gc step.
+  **[Superseded 2026-09-20 by RS-HARNESSP6-001 Q1 — see REQ-GC-HARNESSP6-002 and
+  REQ-GC-HARNESSP6-003.** This item is Q1's option A, which that spike rejects
+  and the harness-p6 kickoff bars: bumping a `last_updated:` purely to silence a
+  sweep destroys the signal. The shared-spec staleness class is instead folded to
+  one finding per (spec, category file) pair and carried at `info`. No date bump
+  is to be made on this account. The record of what harness-p5 found stands; the
+  instruction does not.**]**
 - ~~Spec text: rescope `docs/spec/deviation-protocol.md` §Acceptance Criteria
   (REQ-QIMPL-HARNESSP5-002) so the `tools/sdd-gc.py` guard reads "no
   qimpl-related hunk".~~ **Done 2026-09-20** — applied in this cycle with a
@@ -317,28 +325,48 @@ is fixed or accepted. The active plan may be archived to
 - Requirements text: qualify `docs/requirements/integration/skill-lint.md`
   REQ-LINT-007 (~L128-130) so the "must not move" list matches the Chunk 9
   rescoping that REQ-LINT-HARNESSP5-001 authorised in the same file.
+  **[Closed 2026-09-20 in harness-p6 — in scope as kickoff item (6) and written
+  up as REQ-LINT-HARNESSP6-002; no longer a forward-looking item here.]**
 - `docs/ws/harness-p5/plan.md` §Open Questions still says
   `telemetry-reader.md` "says 61" — **resolved**: it reads `67` in all three
   places (`wc -l` on the frozen p4 fixture → 67; `README.md:25`;
   `test_p4_fixture_frozen`). The stale entry can be struck at plan archival.
+  **[Closed 2026-09-20 in harness-p6 — in scope as kickoff item (7) and written
+  up as REQ-PLAN-HARNESSP6-001; the strike happens at that cycle's plan
+  archival.]**
 - L2 (cross-layer convergence as a gate signal) remains deferred, as decided at
   DISCUSS; the harness-p5 evidence adds nothing that changes the deferral.
+  **[Superseded 2026-09-20 by RS-HARNESSP6-001 Q4 — see REQ-HARN-HARNESSP6-002
+  and REQ-ORCH-HARNESSP6-001..002.** L2 ships in workstream `harness-p6` on
+  explicit operator direction, as an orchestrator-derived informational gate
+  signal at position 6c — no finding field, no fifth layer. The deferral
+  recorded here is no longer live; the two matching
+  `docs/requirements/index.md` §Out of Scope entries were struck with it.**]**
 
-- Carried to the next cycle (1/4): the red round 1 R1 fence asymmetry in
+**[Closed 2026-09-20 — the four numbered items below are all closed in
+harness-p6 and none survives as forward work: (1/4) → kickoff item (5) /
+REQ-GC-HARNESSP6-004; (2/4) → kickoff item (1) / REQ-GC-HARNESSP6-001; (3/4) →
+kickoff item (3) / REQ-HARN-HARNESSP6-001; (4/4) → kickoff item (4) /
+REQ-LINT-HARNESSP6-001. They are left in place as the record of what harness-p5
+found; they are no longer instructions. This marker deliberately does not quote
+the phrase it retires, so the REQ-REQ-HARNESSP6-001 acceptance grep cannot match
+the annotation itself.]**
+
+- **[Closed 2026-09-20 in harness-p6 — REQ-GC-HARNESSP6-004; no countability rule was needed: all 82 definition ids have an unfenced definition, 0 are fence-only.]** Carried to the next cycle (1/4): the red round 1 R1 fence asymmetry in
   `tools/sdd-gc.py`'s Q-IMPL sweep recorded under §Issues Found → Minor, together
   with its open design question — a countability rule that lets fenced format
   illustrations stay defined while fenced headings elsewhere stop counting.
-- Carried to the next cycle (2/4): gc's `[stale-chain]` rule flags closed,
+- **[Closed 2026-09-20 in harness-p6 — REQ-GC-HARNESSP6-001 (closed-workstream skip) and REQ-GC-HARNESSP6-002/-003 (the shared-spec sub-class).]** Carried to the next cycle (2/4): gc's `[stale-chain]` rule flags closed,
   `status: pass` workstreams forever, so the warning count grows monotonically
   (11 warnings on `docs/ws/harness-p3/plan.md` today). Teach the rule to skip
   closed workstreams.
-- Carried to the next cycle (3/4): read-only dispatches can mutate git state
+- **[Closed 2026-09-20 in harness-p6 — REQ-HARN-HARNESSP6-001: a `GIT_STATE` line inside the existing `SCOPE:` block.]** Carried to the next cycle (3/4): read-only dispatches can mutate git state
   undetected. The write-scope contract forbids creating, modifying and deleting
   files but says nothing about `git stash` / `git checkout` / `git reset`, and a
   verifier in this cycle ran `git stash` (recovered, no loss) while nine files of
   uncommitted work were in the tree — `SCOPE:` observes file writes and would not
   have caught it.
-- Carried to the next cycle (4/4): `PLAN:` is the only gate token with no
+- **[Closed 2026-09-20 in harness-p6 — REQ-LINT-HARNESSP6-001, which also adopts the `GIT_STATE` row (Q-REQ-P6-D).]** Carried to the next cycle (4/4): `PLAN:` is the only gate token with no
   `REQUIRED` row in `tools/sdd-skill-lint.py`, unlike `VERDICT:`,
   `CHUNK_VERDICT:`, `RED_VERDICT:` and `COMMIT:`, so deleting it from
   `loop-control.md` §6 is unguarded.
@@ -356,12 +384,17 @@ signal stops meaning anything. The rule itself is Next Step 2/4.
 - gc `[stale-chain]`: `docs/spec/telemetry.md` (42 warnings) — the spec's content
   is current (the harness-p5 writer rules were Approved at the specs stage and
   needed no edit), only its `last_updated:` lags its 2026-09-20 requirement file.
+  **[Superseded 2026-09-20 — RS-HARNESSP6-001 Q1; the full note follows this entry. Marker repeated above the phrase for the at-or-above liveness rule (red R1/R2).]**
   Fix: bump through `sdd-specs` in a cycle that actually edits it, or let Next
   Step 2/4's rule change retire the class.
+  **[Superseded 2026-09-20 by RS-HARNESSP6-001 Q1 — the "bump through
+  `sdd-specs`" half of this routing is withdrawn (see REQ-GC-HARNESSP6-002 and
+  -003); only the rule-change half stands.]**
 - gc `[stale-chain]`: `docs/ws/harness-p3/plan.md` (13), `docs/ws/harness-p4/plan.md` (6)
   — closed, `status: pass` workstreams flagged for being older than specs later
   cycles amended. They *should* be older. Fix: Next Step 2/4 — teach the rule to
   skip workstreams whose verification is `pass`.
+  **[Closed 2026-09-20 in harness-p6 — REQ-GC-HARNESSP6-001.]**
 - gc `[stale-chain]`: `docs/spec/adversarial-verify.md` (2) — same class, against
   a 2026-09-19 requirement file.
 - gc `[qimpl-unreferenced]`: 25 info lines — informational by design; entries live
