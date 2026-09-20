@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 requires:
   - REQ-HARN-020
   - REQ-HARN-021
@@ -489,7 +489,7 @@ ambiguous set makes the `R` fixture fail. Fixture ids continue the F-series
 - [ ] `tools/sdd-scope-check-selftest.py --self-test` gains a fixture in which one path is observed by both the committed and the content delta and asserts the rendered `N` is `1` with provenance label `committed`; the shipped self-test exits 0; `references/write-scope.md` §3 states the de-duplication and label-precedence rule in one sentence (REQ-HARN-HARNESSP4-004)
 - [ ] The `R` (scoped → out-of-scope `git mv`, both paths in the ambiguous set) and space-path (`-z` keeps one record) fixtures exist and pass under `--self-test`; the newline-split mutation fails the space-path fixture and dropping the origin path fails the `R` fixture; the shipped self-test exits 0 (REQ-HARN-HARNESSP4-005)
 - [ ] §Commit Ownership carries the one-sentence pointer to `harness-commit-fidelity.md` for the `COMMIT:` closing line (REQ-HARN-HARNESSP4-001, owned there)
-- [ ] §Commit Ownership names the **second** orchestrator bookkeeping commit with its three writes (aggregate regeneration, a cross-workstream `descoped` cell, the plan `status: complete` flip), states that it lands **after** `HEAD_landed` is captured, and states that a leaf writing any of them is a `SCOPE: VIOLATION`; `grep -n 'no-renames -z' docs/spec/harness-write-scope.md` shows the flags quoted once, pointing at `harness-commit-fidelity.md` §Comparand Table and `references/write-scope.md` §7a rather than restating the table (REQ-HARN-HARNESSP5-001, REQ-WS-HARNESSP5-001, REQ-HARN-HARNESSP5-002, all owned elsewhere)
+- [ ] §Commit Ownership names the **second** orchestrator bookkeeping commit with its three writes (aggregate regeneration, a cross-workstream `descoped` cell, the plan `status: complete` flip), states that it lands **after** `HEAD_landed` is captured, and states that a leaf writing any of them is a `SCOPE: VIOLATION`; `grep -cE '^actually runs — .git diff --name-only --no-renames -z' docs/spec/harness-write-scope.md` prints 1 — the `^` anchor matches only the §Comparand quotation, which begins its own line, and never this criterion, which begins `- [ ]`, so the check is not self-matching (the earlier corpus-wide `grep -n 'no-renames…'` form counted itself and could never print 1) — pointing at `harness-commit-fidelity.md` §Comparand Table and `references/write-scope.md` §7a rather than restating the table (REQ-HARN-HARNESSP5-001, REQ-WS-HARNESSP5-001, REQ-HARN-HARNESSP5-002, all owned elsewhere)
 
 ## Edge Cases
 

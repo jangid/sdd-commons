@@ -1,6 +1,6 @@
 ---
 domain: LINT
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 status: Approved
 research_refs: [RS-008, RS-HARNESSP4-001, RS-HARNESSP5-001]
 ---
@@ -256,7 +256,10 @@ The size evidence is RS-HARNESSP5-001 §Decided (measured 2026-09-19). Decided
 at DISCUSS: the target is lint warn-clean. (workstream `harness-p5`; kickoff
 §Scope item 3; p4 red R7/R8)
 **Acceptance**: `python3 tools/sdd-skill-lint.py` exits 0 and its summary line
-reports `0 warning(s)`; `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`
+matches `OK: N file(s) clean` with **no** warning clause — the linter appends
+`, W warning(s)` only when `W > 0`, so a warn-clean run prints no count at all
+and a `0 warning(s)` expectation is unsatisfiable; do not "restore" that
+wording; `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`
 prints 0; `wc -l skills/*/SKILL.md` shows every file < 400; every new
 `references/*.md` is linked from its stub and resolves.
 [Priority: must]

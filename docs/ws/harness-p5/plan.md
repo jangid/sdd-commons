@@ -45,7 +45,7 @@ add text to the same skills, so shrinking them first would be undone.
 |----|------|--------|------------------|
 | M1 | Arbitration closure | 1–2 | `tools/sdd-scope-check-selftest.py --self-test` runs A1–A3 (including both mutation cases); fixture evidence recorded and the five ARB rows' `Test`/`Implementation` cells filled — the `Verified` cells are `sdd-verify`'s to set at DONE |
 | M2 | Telemetry writer and reader fixes, plus the gc row-drop fix | 3–5 | `tools/sdd-telemetry.py --self-test` green; all six p4 findings closed against the frozen p3 and p4 fixtures; `tools/sdd-gc.py --self-test` green with the `traceability-rowdrop` rule |
-| M3 | Size and spec housekeeping | 6–9 | `python3 tools/sdd-skill-lint.py` exits 0 with `0 warning(s)`; `python3 tools/sdd-gc.py --report` shows 0 `[qimpl-broken-ref]` |
+| M3 | Size and spec housekeeping | 6–9 | `python3 tools/sdd-skill-lint.py` exits 0 and its summary line matches `OK: N file(s) clean` with no warning clause [Criterion corrected 2026-09-20 at verify: red R1 — the linter appends `, W warning(s)` only when W > 0 (sdd-skill-lint.py lines 648-652), so the string `0 warning(s)` can never print; warn-clean is the bare summary.]; `python3 tools/sdd-gc.py --report` shows 0 `[qimpl-broken-ref]` |
 
 ## Operator / Orchestrator Tasks
 
@@ -511,8 +511,8 @@ this workstream's traceability is filled.
    400 lines by the same stub-and-`references/` move, under the same marker-row
    constraints — traces to `docs/spec/skill-lint-v5.md` §Size Warn-Clean
    Baseline (REQ-LINT-HARNESSP5-001).
-2. [x] [verify] `python3 tools/sdd-skill-lint.py` exits 0 and its summary reports
-   `0 warning(s)`; `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`
+2. [x] [verify] `python3 tools/sdd-skill-lint.py` exits 0 and its summary line
+   matches `OK: N file(s) clean` with no warning clause [Criterion corrected 2026-09-20 at verify: red R1 — the linter appends `, W warning(s)` only when W > 0 (sdd-skill-lint.py lines 648-652), so the string `0 warning(s)` can never print; warn-clean is the bare summary.]; `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`
    prints 0; `wc -l skills/*/SKILL.md` shows every file < 400; the R7/R8
    `reproduce:` commands print 0 and a number < 400; and the file-wide baseline
    grep `grep -n '450\|exactly .sdd-orchestrate. and .sdd-migrate'

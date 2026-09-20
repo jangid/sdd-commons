@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-19
+last_updated: 2026-09-20
 requires:
   - REQ-QIMPL-001
   - REQ-QIMPL-002
@@ -119,18 +119,27 @@ for tier 2+ entries).
 
 ### Numbering
 
-- Global sequential: `Q-IMPL-001`, `Q-IMPL-002`, ... across all specs in
-  the project
+- Under `docs/.sdd-version` marker `4` a Q-IMPL id carries a workstream
+  segment and a **per-workstream** counter: `Q-IMPL-<WS>-NNN` (for example
+  `Q-IMPL-HARNESSP5-001`). `docs/spec/ws-ids.md` is the owning contract for the
+  form, the counter scope and the parsing rule — this spec cites it rather than
+  restating it.
+- Legacy bare `Q-IMPL-NNN` ids remain valid and are read as the `default`
+  workstream. They are never remapped and never renumbered.
 - The implementer scans all spec files' `## Implementation Questions`
-  sections to find the highest existing number and increments
+  sections to find the highest existing number **for the active workstream**
+  and increments
 - Numbering is append-only: retired entries remain in their spec with a
   `[superseded by Q-IMPL-NNN]` status note rather than being deleted or
   renumbered
 - No separate index file — entries live in the specs they relate to
 
-**Why global numbering**: A project-wide sequence makes Q-IMPL IDs
-unambiguous in conversation ("Q-IMPL-007" refers to exactly one entry).
-Per-spec numbering would require qualifying with the spec name.
+**Why a workstream-scoped sequence**: qualifying the counter by workstream
+keeps a Q-IMPL id unambiguous in conversation (one id, one entry) while letting
+two concurrent workstreams allocate their next number with no coordination and
+no collision — the same reasoning `docs/spec/ws-ids.md` applies to `RS-` and
+`REQ-` ids. Per-spec numbering would instead require qualifying with the spec
+name.
 
 **Why no index file**: The rubric M1 cycle produced ~9 entries across 4
 specs. At this volume, an index adds maintenance overhead without
@@ -253,13 +262,14 @@ warning and is not one of the three:
 - [ ] Tier 1 requires no documentation (REQ-QIMPL-001)
 - [ ] Tier 2 adds Q-IMPL entry and continues (REQ-QIMPL-001)
 - [ ] Tier 3 stops and escalates; references sdd-replan Level 2 (REQ-QIMPL-001)
-- [ ] Q-IMPL entries use global sequential numbering (REQ-QIMPL-002)
+- [ ] Q-IMPL entries use the numbering scheme of §Numbering — under marker `4` the workstream-scoped `Q-IMPL-<WS>-NNN` form of `docs/spec/ws-ids.md`, with legacy bare `Q-IMPL-NNN` ids read as the `default` workstream (REQ-QIMPL-002) — [rescoped 2026-09-20] this clause read "global sequential numbering", stale text predating the marker-`4` id contract; see §Numbering
 - [ ] Entries placed in spec's Implementation Questions section (REQ-QIMPL-002)
 - [ ] Each entry includes ID, tier, decision, rationale (REQ-QIMPL-002)
 - [ ] Numbering is append-only with superseded notes (REQ-QIMPL-002)
 - [ ] Task start includes advisory read of existing Q-IMPL entries (REQ-QIMPL-003)
 - [ ] The `[folded into §<section>, YYYY-MM-DD]` status note is defined here with its four rules; the six Q-IMPL-HARNESSP4-004..009 entries carry it and their bodies are unchanged; `grep -c 'folded into' docs/spec/telemetry.md docs/spec/telemetry-reader.md docs/spec/skill-lint-v5.md docs/spec/harness-chunk-verifier.md` sums to 6; `tools/sdd-telemetry.py --self-test`'s `test_schema_table_agrees` still passes; `grep -n '^  CHUNK_VERDICT:' docs/spec/harness-chunk-verifier.md` returns nothing; `python3 tools/sdd-gc.py --report` raises no new finding (REQ-QIMPL-HARNESSP5-001)
-- [ ] `python3 tools/sdd-gc.py --report | grep -c 'qimpl-broken-ref'` prints 0; `git diff --stat main -- tools/sdd-gc.py` is empty; no entry was renumbered; the entry `GC:` line at the next orchestrated run shows the reduced warning count (REQ-QIMPL-HARNESSP5-002)
+- [ ] `python3 tools/sdd-gc.py --report | grep -c 'qimpl-broken-ref'` prints 0; no qimpl-related hunk lands in `tools/sdd-gc.py` — `git diff main -- tools/sdd-gc.py | grep -E '^[+-]' | grep -v '^[+-][+-]' | grep -ci 'qimpl'` prints 0; no entry was renumbered; the entry `GC:` line at the next orchestrated run shows the reduced warning count (REQ-QIMPL-HARNESSP5-002)
+  - [rescoped 2026-09-20] This clause read "`git diff --stat main -- tools/sdd-gc.py` is empty" when it was Approved. The 2026-09-20 replan added REQ-GC-HARNESSP5-001 (`traceability-rowdrop`), whose implementation legitimately edits the same file, superseding the empty-diff form. The rescoped clause keeps the original intent — REQ-QIMPL-HARNESSP5-002 is a spec-text repair that touches no gc code — and is in any case implied by the `qimpl-broken-ref` count above.
 
 ## Cross-Spec Consistency (XSPEC)
 
