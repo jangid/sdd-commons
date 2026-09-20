@@ -197,12 +197,12 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-SKILL-022 | skill-updates.md |  | Chunk 2 task 7 exit-criteria grep (checkpoint + -replan- sentence in sdd-replan) | sdd-replan/SKILL.md Step 1.6, Step 4 | pass |
 | REQ-SKILL-023 | skill-updates.md |  | sdd-skill-lint.py --self-test (mechanics half); sdd-skill-lint.py --self-test §7 (REQUIRED rows half) | tools/sdd-skill-lint.py; tools/sdd-skill-lint.py REQUIRED rows | pass |
 | REQ-SKILL-024 | skill-updates.md |  | lint exit 0; every stub has UNCHANGED + resolving link (move half); Chunk 6 task 5 four-layer bullet diff vs adb73e3 + token-spelling sweep over USAGE.md / CLAUDE.md (docs half) | references/v4-workstreams.md (move half); USAGE.md §7b Gate signals and caps (v5), §3 exchange, §8 verifier-before-merge; CLAUDE.md §Driver gate-vocabulary paragraph (docs half) | pass |
-| REQ-AGENT-MARKETPLACE-001 |  | marketplace |  |  |  |
-| REQ-AGENT-MARKETPLACE-002 |  | marketplace |  |  |  |
-| REQ-AGENT-MARKETPLACE-003 |  | marketplace |  |  |  |
-| REQ-AGENT-MARKETPLACE-004 |  | marketplace |  |  |  |
-| REQ-AGENT-MARKETPLACE-005 |  | marketplace |  |  |  |
-| REQ-AGENT-MARKETPLACE-006 |  | marketplace |  |  |  |
+| REQ-AGENT-MARKETPLACE-001 | harness-agents.md | marketplace |  |  |  |
+| REQ-AGENT-MARKETPLACE-002 | harness-agents.md | marketplace |  |  |  |
+| REQ-AGENT-MARKETPLACE-003 | harness-agents.md | marketplace |  |  |  |
+| REQ-AGENT-MARKETPLACE-004 | harness-agents.md | marketplace |  |  |  |
+| REQ-AGENT-MARKETPLACE-005 | harness-agents.md | marketplace |  |  |  |
+| REQ-AGENT-MARKETPLACE-006 | harness-agents.md | marketplace |  |  |  |
 | REQ-ARB-HARNESSP2-001 | arbitrated-handoff.md | harness-p2 | by-hand fixture test_key_parse | loop-control.md §2a Retained per-round state | pass |
 | REQ-ARB-HARNESSP2-002 | arbitrated-handoff.md | harness-p2 | by-hand fixtures class_b untouched section; file-level degradation | loop-control.md §2a Contradiction classes | pass |
 | REQ-ARB-HARNESSP2-003 | arbitrated-handoff.md | harness-p2 | by-hand fixture test_class_c_regression | loop-control.md §2a Contradiction classes | pass |
@@ -225,11 +225,11 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-CYCID-HARNESSP3-002 | cycle-identity.md | harness-p3 | Chunk 5 task 7 plan-completion half of the same walkthrough; `references/loop-control.md` §3 unmodified (diff empty) | `skills/sdd-plan/SKILL.md` (frontmatter template `research_id:`, plan-writing note, §Phase Detection), `CLAUDE.md` §Phase Detection | pass |
 | REQ-CYCID-HARNESSP4-001 | cycle-identity.md | harness-p4 | plan Chunk 7 task 5 — `grep -n -A1 '^status: planned' skills/sdd-plan/SKILL.md` and `grep -n -A1 '^status: pass &#124; fail' skills/sdd-verify/SKILL.md` show `research_id:` on the next line (before `last_updated:`); `docs/ws/harness-p4/plan.md` frontmatter shows `status:` then `research_id:` consecutively; `git diff 1ca92e1 -- docs/spec/cycle-identity.md` empty (Q-IMPL-HARNESSP3-014 unchanged); `python3 tools/sdd-skill-lint.py` exit 0 | skills/sdd-plan/SKILL.md Step 7 single-milestone frontmatter template + `research_id:` stamp paragraph + Step 6 milestone-plan bullet; skills/sdd-verify/SKILL.md Step 6 report frontmatter template + `research_id:` stamp paragraph (status: → research_id: → last_updated:, per cycle-identity.md §The Stamp) | pass |
 | REQ-CYCID-HARNESSP4-002 | cycle-identity.md | harness-p4 | plan Chunk 7 tasks 3, 6 — `grep -c 'when a kickoff with one exists' CLAUDE.md` = 2, both on the §Phase Detection completion-signal rows; §Cycle identity paragraph's three cases unchanged; four-layer text in CLAUDE.md and skills/sdd-review/SKILL.md diff-empty against pre-cycle 0182bf2; `python3 tools/sdd-gc.py --report` at the 7-warning baseline (no new finding) | CLAUDE.md §Phase Detection — plan `status: complete` row and `verification.md` `status: pass` row carry the inline case-3 qualifier | pass |
-| REQ-DOCS-MARKETPLACE-001 |  | marketplace |  |  |  |
-| REQ-DOCS-MARKETPLACE-002 |  | marketplace |  |  |  |
-| REQ-DOCS-MARKETPLACE-003 |  | marketplace |  |  |  |
-| REQ-DOCS-MARKETPLACE-004 |  | marketplace |  |  |  |
-| REQ-DOCS-MARKETPLACE-005 |  | marketplace |  |  |  |
+| REQ-DOCS-MARKETPLACE-001 | project-docs.md | marketplace |  |  |  |
+| REQ-DOCS-MARKETPLACE-002 | project-docs.md | marketplace |  |  |  |
+| REQ-DOCS-MARKETPLACE-003 | project-docs.md | marketplace |  |  |  |
+| REQ-DOCS-MARKETPLACE-004 | project-docs.md | marketplace |  |  |  |
+| REQ-DOCS-MARKETPLACE-005 | project-docs.md | marketplace |  |  |  |
 | REQ-EVAL-HARNESSP2-001 | evaluation.md | harness-p2 | Chunk 7 task 4 guards: grep -rn decision_by skills/ = references/telemetry.md only; never-auto-advance sentence at sdd-orchestrate/SKILL.md §The gate + §Rules; REQ-ORCH-011 text unamended; no decision_by: policy record | docs/spec/evaluation.md §Evaluation Mode — Defined, Not Built (definition only; no skill implements the policy) | pass |
 | REQ-EVAL-HARNESSP2-002 | evaluation.md | harness-p2 | python3 tools/sdd-eval.py --self-test (six-record fixture yields fields 1–9 + aggregate; empty/missing file → N = 0); --help; derivation table = 9 rows | tools/sdd-eval.py (load, score_run, aggregate, evaluate, render); skills/sdd-orchestrate/references/telemetry.md §6 | pass |
 | REQ-EVAL-HARNESSP2-003 | evaluation.md | harness-p2 | deferred to §Next Steps — `- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy` (operator-run; not executable by a dispatched leaf) | docs/spec/evaluation.md §Manual N = 3 Pilot (verify task Chunk 7 task 5, deferred) | pass |
@@ -276,34 +276,34 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-LINT-HARNESSP6-001 | skill-lint-v5.md | harness-p6 | Chunk 4 task 3: `python3 tools/sdd-skill-lint.py --self-test` exits 0 — the generic `REQUIRED` mutation loop now strips each of the four new rows from a temp copy of its own file and asserts the row's own `fix:` string is printed, plus pair-shape assertions pinning two `PLAN: INCOMPLETE` rows (producer `references/loop-control.md`, consumer `SKILL.md`) and two `GIT_STATE` rows (producer `references/write-scope.md`, consumer `SKILL.md`), each row's `fix:` target, and that the `GIT_STATE` pattern carries no trailing colon and no alternation. Chunk 4 task 4: `python3 tools/sdd-skill-lint.py` exits 0 with `OK: N file(s) clean` on the corpus as it stands, and a temp copy of each of the three guarded files with the marker's lines removed exits 1 with a `[required]` line naming that row — all four demonstrated, no count pinned as a literal | `tools/sdd-skill-lint.py`: four new `REQUIRED` rows appended after the harness-p4 `COMMIT:` pair — `PLAN: INCOMPLETE` × 2 (`fix:` → `harness-loop-control.md` §Plan Completion Ownership) and `GIT_STATE` × 2 (`fix:` → `harness-write-scope.md` §Git-State Observation), the `GIT_STATE` pattern deliberately bare because the name is rendered inside the `SCOPE:` block and is not an own-line token; the harness-p6 assertion block in `self_test()` after the `COMMIT:` block. `skills/sdd-orchestrate/SKILL.md` §The gate: the signal-2 row now names the `VIOLATION` block's findings by name (`HISTORY_REWRITE`, `GIT_STATE`), satisfying the consumer row without adding a line (file stays at 399, under the `[size]` warn threshold) | pass |
 | REQ-LINT-HARNESSP6-002 | skill-lint-v5.md | harness-p6 | Chunk 6 task 2: `python3 tools/sdd-skill-lint.py` exits 0 and `python3 tools/sdd-gc.py --report` is byte-identical to a baseline captured immediately before the edit (0 findings located on `docs/requirements/integration/skill-lint.md`, 2 findings naming it, before and after); manual criterion — REQ-LINT-007 and REQ-LINT-HARNESSP5-001 read in sequence show no contradiction | docs/requirements/integration/skill-lint.md: the `[Updated: 2026-09-20, harness-p6 — REQ-LINT-HARNESSP6-002]` qualification note appended under REQ-LINT-007, naming the authorised exception and REQ-LINT-HARNESSP5-001 as the authorising requirement; the id, its number and its original text are unchanged | pass |
 | REQ-LINT-HARNESSP6-003 | skill-lint-v5.md | harness-p6 | Chunk 9 task 8: `python3 tools/sdd-skill-lint.py --self-test` exits 0 — the generic `REQUIRED` mutation loop strips each of the two new `CONVERGENCE:` rows from a temp copy of its own file and asserts that row's own `fix:` string is printed, and the new assertion block pins the pair shape (two rows; producer `references/loop-control.md`, consumer `SKILL.md`; each `fix:` pointing at `harness-loop-control.md` §Convergence Signal; the pattern still matching a rendered token line). The `>= 32` bound is replaced by the exact `len(REQUIRED)` total the table now holds, so an accidental drop of any row fails. `python3 tools/sdd-skill-lint.py` exits 0 on the corpus | `tools/sdd-skill-lint.py`: the `CONVERGENCE:` `REQUIRED` row pair appended after the harness-p6 `GIT_STATE` pair (producer `skills/sdd-orchestrate/references/loop-control.md` §5 item 6c / §5b, consumer `skills/sdd-orchestrate/SKILL.md` §The gate; pattern `CONVERGENCE:` keeping its trailing colon because it IS an own-line gate token, unlike the bare `GIT_STATE` finding name), and in `self_test()` the exact-total check replacing the `>= 32` bound plus the `conv_rows` pair-shape assertions beside the `plan_rows` / `git_rows` blocks | pass |
-| REQ-NAME-MARKETPLACE-001 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-002 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-003 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-004 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-005 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-006 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-007 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-008 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-009 |  | marketplace |  |  |  |
-| REQ-NAME-MARKETPLACE-010 |  | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-001 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-002 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-003 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-004 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-005 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-006 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-007 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-008 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-009 | skill-namespace-rename.md | marketplace |  |  |  |
+| REQ-NAME-MARKETPLACE-010 | skill-namespace-rename.md | marketplace |  |  |  |
 | REQ-ORCH-HARNESSP6-001 | harness-loop-control.md | harness-p6 | Chunk 9 tasks 4 and 5: scenario L7 above shows the line between 6b and 7 with `proceed` available and no option set of its own; `python3 tools/sdd-skill-lint.py` exits 0 with the `CONVERGENCE:` producer and consumer rows satisfied, and the lint's own `REQUIRED` mutation loop exits 1 naming the respective row when the token is stripped from either file; `wc -l skills/sdd-orchestrate/SKILL.md` is unchanged at its pre-chunk value, below the `[size]` warn threshold | `skills/sdd-orchestrate/references/loop-control.md` §5 item 6c and its closing "Two rules follow" paragraph, which now enumerates 6c with 6b and states that no `CONVERGENCE:` line ever pauses the gate or changes an option — item for item with `docs/spec/harness-loop-control.md` §Gate Signal Order. `skills/sdd-orchestrate/SKILL.md` §The gate: the signal table's `TELEMETRY:` row extended in place to ``6c, 7``, naming the token, its key shapes, the layers and layer count and its informational status before the `TELEMETRY:` line — folded into the existing row, so the file gains no line (the same technique Chunk 4 used for `GIT_STATE`) | pass |
 | REQ-ORCH-HARNESSP6-002 | harness-loop-control.md | harness-p6 | Chunk 9 task 9: scenario L8 above is the demonstrated no-new-artifact comparand (two `git ls-files docs/` listings around a run in which a cluster fires, compared in the same run); `grep -rn CONVERGENCE skills/` returns no hit inside any skill's phase-detection section; the chunk's `git diff` contains no line of the four-layer verification table and no telemetry record key; `python3 tools/sdd-gc.py --report` exits `OK` with zero failures. Chunk 9 task 6: the shipped scope and the measured origin-case recall are stated in the spec with their evidence, and the acceptance criterion derives both sides by re-running the Chunk 8 replay rather than pinning a recall figure | `docs/spec/harness-loop-control.md` §Verification → Automated: the key-parser group and the `research_id`, gate-rendering, no-new-path and third-layer fixtures now name their scenario ids (L1-L9), and the no-new-artifact bullet is restated as the fixture-run comparand it can actually be exercised by, rather than "after a full orchestrated cycle". `skills/sdd-orchestrate/references/loop-control.md` §5b states the shipped scope — a root-cause `RETURN:` field and a fifth correlating layer both remain standing exclusions — and the measured origin-case result. One deliverable of task 6 is `docs/spec/arbitrated-handoff.md`: the dated `[2026-09-20, harness-p6 — REQ-ORCH-HARNESSP6-002]` paragraph beside the key table, recording that the `(file, section)` key now has **two** consumers — the round-arbitration rule and L2 key rule 3, which reuses it with this section's ratified leading-ordinal strip and carries no recall claim. Written by the orchestrator at the Chunk 9 gate: it lay outside the implement leaf's dispatched write scope, so the leaf supplied its text and returned PARTIAL rather than writing out of scope | pass |
-| REQ-PC-MARKETPLACE-001 |  | marketplace |  |  |  |
-| REQ-PC-MARKETPLACE-002 |  | marketplace |  |  |  |
-| REQ-PC-MARKETPLACE-003 |  | marketplace |  |  |  |
-| REQ-PC-MARKETPLACE-004 |  | marketplace |  |  |  |
-| REQ-PC-MARKETPLACE-005 |  | marketplace |  |  |  |
-| REQ-PC-MARKETPLACE-006 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-001 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-002 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-003 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-004 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-005 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-006 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-007 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-008 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-009 |  | marketplace |  |  |  |
-| REQ-PKG-MARKETPLACE-010 |  | marketplace |  |  |  |
+| REQ-PC-MARKETPLACE-001 | pre-commit.md | marketplace |  |  |  |
+| REQ-PC-MARKETPLACE-002 | pre-commit.md | marketplace |  |  |  |
+| REQ-PC-MARKETPLACE-003 | pre-commit.md | marketplace |  |  |  |
+| REQ-PC-MARKETPLACE-004 | pre-commit.md | marketplace |  |  |  |
+| REQ-PC-MARKETPLACE-005 | pre-commit.md | marketplace |  |  |  |
+| REQ-PC-MARKETPLACE-006 | pre-commit.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-001 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-002 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-003 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-004 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-005 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-006 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-007 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-008 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-009 | marketplace-packaging.md | marketplace |  |  |  |
+| REQ-PKG-MARKETPLACE-010 | marketplace-packaging.md | marketplace |  |  |  |
 | REQ-PLAN-HARNESSP6-001 | plan-management.md | harness-p6 | Chunk 6 task 5: in `docs/ws/harness-p5/plan.md` the `## Open Questions / Assumptions` entry count is unchanged by the strike (8 before, 8 after, measured in the same run) and the struck entry carries an adjacent bracketed dated marker; the stale claim has no unmarked occurrence (its single occurrence is inside the struck entry) — verified against `docs/spec/plan-management.md` §Acceptance Criteria, which supersedes the requirement's unsatisfiable `grep -c` literal | skills/sdd-plan/SKILL.md and skills/sdd-replan/SKILL.md: the archival strike rule (struck, not deleted; adjacent bracketed dated marker; unresolvable entries carried unmarked; `plan-history/` copy only) added to each skill's archival step; docs/ws/harness-p5/plan.md: the `telemetry-reader.md` "says 61" entry struck in place with its date and evidence | pass |
 | REQ-QIMPL-HARNESSP5-001 | deviation-protocol.md §Fold-In Status Note | harness-p5 | `grep -c 'folded into' docs/spec/{telemetry,telemetry-reader,skill-lint-v5,harness-chunk-verifier}.md` sums to 6; `grep -n '^  CHUNK_VERDICT:' docs/spec/harness-chunk-verifier.md` empty | fold-in status notes on Q-IMPL-HARNESSP4-004..007 (`telemetry-reader.md`), -008 (`skill-lint-v5.md`), -009 (`harness-chunk-verifier.md`) | pass |
 | REQ-QIMPL-HARNESSP5-002 | deviation-protocol.md §Spec-Reference Integrity | harness-p5 | `python3 tools/sdd-gc.py --report &#124; grep -c 'qimpl-broken-ref'` prints 0; and, per the criterion rescoped 2026-09-20 (the original empty-`git diff --stat` guard was superseded by REQ-GC-HARNESSP5-001's edits to the same file), `git diff main -- tools/sdd-gc.py &#124; grep -E '^[+-]' &#124; grep -v '^[+-][+-]' &#124; grep -ci 'qimpl'` prints 0 — no qimpl-related hunk in `tools/sdd-gc.py` | re-pointed **Spec reference** of Q-IMPL-009 (`ws-ids.md`), Q-IMPL-014 (`ws-integration.md`), Q-IMPL-072 (`ws-orchestration.md`) | pass |
