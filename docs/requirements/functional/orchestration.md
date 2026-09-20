@@ -276,7 +276,7 @@ the skills directory. Installation guidance in the README must describe the
 [Priority: must]
 
 <!-- REQ-ORCH-029..030 capture driver-behavior gaps observed while dogfooding the
-     RS-006 fan-out cycle through sdd-orchestrate itself. (see RS-006) -->
+     RS-006 fan-out cycle through orchestrate itself. (see RS-006) -->
 
 ### REQ-ORCH-029: Distinguish a new cycle from a mid-loop resume
 On entry the driver must distinguish **resuming an in-progress cycle** from
@@ -392,7 +392,7 @@ between 6b and 7 and its §7 "renders last" clause names 6c;
 `skills/sdd-orchestrate/SKILL.md` §The gate names the token in its non-divergent
 summary; a gate rendering fixture shows the token in the stated position and
 shows `proceed` available while it is displayed; `python3
-tools/sdd-skill-lint.py` exits 0.
+tools/skill-lint.py` exits 0.
 [Priority: must]
 
 ### REQ-ORCH-HARNESSP6-002: L2 ships as co-located convergence and is not a fifth verification layer

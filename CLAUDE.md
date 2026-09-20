@@ -149,7 +149,7 @@ one record — counts, enums, shas, timestamps, never finding text — to
 detection; default on, opt-out at KICKOFF; `TELEMETRY: rec <n> | WRITE FAILED | OFF |
 .gitignore updated` are its only gate lines — four members, `rec <n>` the
 positive one; post-cycle reader `python3
-tools/sdd-telemetry.py summarize`). At the verify stage the operator may opt in
+tools/telemetry.py summarize`). At the verify stage the operator may opt in
 to a **red team** (`red team: off | on`, default off): one read-only leaf attacks
 the weakest acceptance criteria and ends with `RED_VERDICT: BROKEN | HELD`;
 `sdd-verify` then writes `status: pending-red` and `proceed` is withheld until
@@ -158,7 +158,7 @@ every `BROKEN` `Rn` is fixed (`RED_BREAK` packet) or accepted (recorded under
 fix loop a later review round that raises new ground, or regresses without it,
 pauses the stage gate as `REVIEW: CONTRADICTION (round N vs round N+1, class
 b|c)` with `accept round N+1 (fix) | accept round N (proceed, note) | third
-opinion (re-dispatch review) | stop`. `python3 tools/sdd-gc.py --report` sweeps
+opinion (re-dispatch review) | stop`. `python3 tools/gc.py --report` sweeps
 the docs corpus at entry (one informational `GC:` line) and at DONE (findings
 routed `--fix <rule>` │ `record | ignore` │ note; `record` appends to
 `verification.md` `## Next Steps`); gc never runs between stages, never blocks a
@@ -263,7 +263,7 @@ A workstream **owns only** its `kickoff.md`, `plan.md`, `plan-history/`, `verifi
 - **Replan triggers**: defined upfront in the plan — conditions that invalidate the approach
 - **Holistic verification**: goes beyond "tests pass" to user-perspective validation
 - **External review**: `sdd-review` runs in a separate session at phase boundaries to catch coherence gaps and scope omissions that in-session layers miss
-- **Four verification layers**: chunk-close (mechanical, per-chunk), XSPEC (structural, during specs), sdd-verify (holistic, end-of-project), sdd-review (semantic, out-of-session)
+- **Four verification layers**: chunk-close (mechanical, per-chunk), XSPEC (structural, during specs), verify (holistic, end-of-project), review (semantic, out-of-session)
 - **Cyclic**: replan can route back to any earlier phase based on severity
 
 ### When to Use

@@ -814,7 +814,7 @@ Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
   `test/kind/message/location`) — consistent.
 - `plan-management.md` §Plan History names `{date}-replan-{reason}.md` and
   `{date}-m{N}-complete.md`; this spec's regex accepts exactly those shapes and
-  the `m{N}-replan` variant from `skill-updates.md` §sdd-replan — consistent.
+  the `m{N}-replan` variant from `skill-updates.md` §replan — consistent.
 - `orchestration.md` §Gate Protocol vocabulary `proceed │ loop-back-to-fix │
   stop` is preserved; the exhaustion options are additive and appear only at a
   cap event — no contradiction (REQ-ORCH-034 amends orchestration.md).
@@ -849,7 +849,7 @@ Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
 **Rationale**: the orchestrator needs a default for every dispatch type it issues; the spec gives examples, not a complete table.
 **Date**: 2026-09-17 (Chunk 2)
 
-### Q-IMPL-083: sdd-implement/SKILL.md size warning accepted for v5
+### Q-IMPL-083: implement/SKILL.md size warning accepted for v5
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Circuit-Break Checkpoint, §Budget Slot; `skill-lint-v5.md` size warn tier
 **Decision**: the 525-line `sdd-implement/SKILL.md` (attempt ledger, checkpoint and budget detail plus the leaf return contract) trips the new 400-line warn; the warning is accepted **permanently**, and the `references/` split is **declined** rather than queued. **[Updated: 2026-09-20 — harness-p6 is the terminal cycle of the series (kickoff §Decided at DISCUSS), so an action queued to a successor cycle cannot stand. The earlier operator decision to defer the split is superseded by an operator decision at the harness-p6 specs gate to retire it as a settled exclusion: the 525-line `sdd-implement/SKILL.md` warn is accepted, its detail (attempt ledger, checkpoint, budget, leaf return contract) is cohesive with the skill it governs, and splitting it to satisfy a line-count proxy would divide a contract. Re-open only if the file grows past the point where the contract itself stops being readable.]**

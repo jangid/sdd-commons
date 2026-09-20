@@ -192,7 +192,7 @@ deterministic sort (see Open Questions).
       shared artifact bodies are not rewritten by tooling (REQ-WS-010)
 - [ ] Generators scope max-scan per workstream (per domain+workstream for requirements),
       replacing the global scan-and-increment (REQ-WS-011)
-- [ ] Exactly the four generators + the sdd-review convention string change; fan-out,
+- [ ] Exactly the four generators + the review convention string change; fan-out,
       traceability/requirements parsing, and Q-REQ/Q-SPEC/Q-IMPL checks are untouched
       (REQ-WS-012)
 - [ ] Shared-table writes are sorted-insertion or per-ws-owned; no raw EOF append
@@ -223,7 +223,7 @@ behavior change to be marker-`4`-gated with marker-`3` behavior retained. The sp
 marker `4` preserves solo v3 behavior while making the merge-safe model active
 exactly where concurrency exists. Default carried: gate on `marker == "4"`.
 
-### Q-IMPL-010: Merge-safe write rules placed in sdd-requirements + sdd-specs
+### Q-IMPL-010: Merge-safe write rules placed in requirements + specs
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Exactly Four Generators + One Convention String enumerates the
 five ID-format sites but does not pin which skill hosts the REQ-WS-010/013/015

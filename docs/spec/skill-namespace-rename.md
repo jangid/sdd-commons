@@ -51,7 +51,10 @@ change, not a contract change. The one deliberate exception is `--help` output,
 which changes because the tool's own name string changes; that is also the
 **only** source edit permitted to a bundled tool anywhere in the cycle, and it
 happens here rather than in the packaging step
-(`marketplace-packaging.md`, REQ-PKG-MARKETPLACE-007).
+(`marketplace-packaging.md`, REQ-PKG-MARKETPLACE-007). Its exact extent — a
+sibling-lookup path and two hint strings beyond `prog=` and `--help` — is
+recorded as Q-IMPL-MARKETPLACE-004, and the two reference forms rewritten
+alongside it as Q-IMPL-MARKETPLACE-005.
 
 ### Name coupling, not path coupling
 
@@ -85,6 +88,13 @@ left intact rather than silently swept.
 
 The single exception inside `docs/ws/` is this cycle's own workstream directory
 `docs/ws/marketplace/`, which is a live execution record, not a closed cycle.
+
+Two consequences of drawing the line here are recorded rather than left
+implicit: a path **into** the excluded corpus that appears inside a live
+document is quoted, never rewritten, because rewriting it would break the link
+(Q-IMPL-MARKETPLACE-006); and the shared aggregate `docs/requirements/traceability.md`
+is left unswept, because it is regenerated from the per-workstream files the
+exclusion covers (Q-IMPL-MARKETPLACE-008).
 
 The dated-marker discipline this corpus uses for superseded text is applied
 **once at the boundary** — one statement in `CONTRIBUTING.md` — rather than
@@ -153,6 +163,16 @@ on disk in the repository. This is the same shape the self-test already uses whe
 it copies the real skills tree into a scratch root, so it adds no new mechanism.
 The requirement does not say where the fixture lives; the choice is recorded as
 Q-IMPL-MARKETPLACE-002 rather than left implicit.
+
+Two paths are likewise outside the scope the rule **walks**, for one shared
+reason — a finding there is unfixable by construction, not merely inconvenient.
+`tools/fixtures/` holds bytes that are part of what they test and that
+`pre-commit.md` (REQ-PC-MARKETPLACE-005) freezes (Q-IMPL-MARKETPLACE-007); the
+shared aggregate `docs/requirements/traceability.md` is **derived** from the
+per-workstream files this rename excludes, so sweeping it would only
+desynchronize it from its own sources (Q-IMPL-MARKETPLACE-008). Both are
+scope boundaries carried in the rule beside the scope list, not occurrence
+allowlists, and the exemption list stays at four entries.
 
 The alternative — storing the fixture under `tools/fixtures/` — is rejected
 because `tools/` is one of the six live rename-scope areas: the live sweep would
@@ -266,3 +286,110 @@ fires.
 four entries. It constrains the self-test's implementation to synthesize its
 fixture, which is the same shape the self-test already uses when it copies the
 real skills tree into a scratch root.
+### Q-IMPL-MARKETPLACE-004: The bundled-tool source edit reaches the sibling lookup and the hint strings
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The rename surfaces
+**Date**: 2026-09-21 (implement stage, Chunk 1)
+
+**Context**: the table above permits exactly one source edit to a bundled tool —
+`prog=`, the usage/`--help` block and user-facing hint strings — and forbids
+every other edit, so the packaging step can assert an empty diff over the
+bundled tools. The drift sweep locates the skill linter **by filename** to run
+its delegated sweeps, which is neither a `prog=` string nor `--help` text.
+
+**Decision**: the edit was extended past `prog=`/`--help` to that sibling-lookup
+path in `tools/gc.py` and to both bundled tools' user-facing hint strings.
+Stopping at `--help` would have left the sweep printing a "linter missing" error
+— a behaviour change, which the spec forbids outright. Behaviour preservation
+outranks the diff-hygiene restriction; no later chunk edits these files, so the
+packaging chunk's empty-diff assertion still holds from its own reference sha.
+
+**Impact**: none on any tool's flags, exit codes or output beyond the renamed
+name strings. The restriction itself is unchanged: this is the same single
+permitted edit, described at its true extent.
+
+### Q-IMPL-MARKETPLACE-005: The skill-family glob and the dispatch placeholder take the namespaced form
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Name coupling, not path coupling
+**Date**: 2026-09-21 (implement stage, Chunk 1)
+
+**Context**: two reference forms inside `skills/` name the skill family as a
+pattern rather than naming one sibling: a glob over the family, and a dispatch
+placeholder that interpolates a stage name into a prefixed spelling. Neither is
+a `skills/<other-skill>/…` path, so neither is covered by the forbidden forms
+above.
+
+**Decision**: the glob was rewritten to the plugin-namespaced form and the
+placeholder reduced to the bare `{stage}` token. One install-instruction line in
+the driver's USAGE was **reworded** instead of rewritten, because there the glob
+denotes on-disk directory names, which is a different referent from the plugin
+namespace.
+
+**Impact**: none on behaviour. It keeps name coupling total inside `skills/`:
+after the rename no reference inside a skill reaches a sibling by a path or by a
+retired spelling.
+
+### Q-IMPL-MARKETPLACE-006: A path into the excluded corpus is quoted, not rewritten
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The live rename scope is exactly six areas
+**Date**: 2026-09-21 (implement stage, Chunks 1–2)
+
+**Context**: live documents cite artifacts in the deliberately excluded corpus —
+a findings directory under `docs/research/` whose own name carries the retired
+prefix. The live sweep must reach zero, but rewriting such a citation would
+point it at a directory that does not exist.
+
+**Decision**: the path is left verbatim and quoted in a backtick span, which
+skip (1) of the retired-prefix rule already skips. Where the citation was a
+Markdown link, the link was replaced by the same backticked path, because a link
+target cannot sit inside a backtick span and the rule skips no link target.
+
+**Impact**: none on the rule, which gains no case. It fixes the reading of the
+zero-over-six-areas criterion: "zero **bare** occurrences", not "zero mentions".
+
+### Q-IMPL-MARKETPLACE-007: `tools/fixtures/` is outside the walked scope
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The retired-prefix rule
+**Date**: 2026-09-21 (implement stage, Chunk 2)
+
+**Context**: `tools/` is one of the six live areas, and `tools/fixtures/` holds
+frozen fixtures that carry retired-prefix names in their recorded bytes. Those
+bytes are part of what they test, and `pre-commit.md` (REQ-PC-MARKETPLACE-005)
+requires them to stay byte-identical across this cycle — so a finding raised
+there could be satisfied neither by editing the file nor by exempting it.
+
+**Decision**: the rule does not walk `tools/fixtures/`. This is a
+directory-level scope boundary carried in the rule beside the scope list, not a
+per-occurrence allowlist, and the self-exemption list stays at its four
+documents. The self-test asserts the boundary directly: a synthesized fixture
+file under `tools/fixtures/` is absent from the walked set.
+
+**Impact**: the rule's live scope is the six areas minus one frozen fixture
+directory. Anything a future cycle unfreezes is swept again by deleting one
+tuple entry.
+
+### Q-IMPL-MARKETPLACE-008: The derived aggregate traceability is outside the walked scope
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The live rename scope is exactly six areas
+**Date**: 2026-09-21 (implement stage, Chunk 2)
+
+**Context**: `docs/requirements/traceability.md` sits inside a live area and
+carried by far the largest share of the corpus's retired-prefix occurrences. It
+is also **derived**: regenerated, never hand-merged, from the per-workstream
+files under `docs/ws/`, which this cycle deliberately excludes. Sweeping it was
+tried first and the drift sweep answered immediately — the swept aggregate no
+longer equalled `regenerate(docs/ws/*/traceability.md)`, raising a
+`[traceability-aggregate]` warning absent from the cycle's entry sweep, which
+§Ordering forbids at the rename chunk's close.
+
+**Decision**: the rule does not walk the aggregate, and its bytes are left
+unchanged. Sweeping it is not a fix but a desynchronization: the only way to
+make a swept aggregate stable would be to sweep the per-workstream sources,
+which REQ-NAME-MARKETPLACE-005 forbids and whose verification asserts that no
+`docs/ws/` path appears in the implementing change at all.
+
+**Impact**: the rule's live scope is the six areas minus one frozen fixture
+directory and one derived file. The aggregate keeps the retired spellings its
+per-workstream sources record — the same historical-fidelity argument the
+exclusion rests on — and regeneration stays a no-op rename-wise. A future cycle
+that sweeps `docs/ws/` removes this boundary with the entry it added.

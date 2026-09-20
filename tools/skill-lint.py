@@ -11,7 +11,7 @@ Catches the classes of cross-skill drift found in the 2026-07-23 audit:
     "assign new domain prefixes") — each rule may allowlist legitimate
     negative mentions or historical citations
   * required cross-file contract markers (e.g. the `**Depends on**` field must
-    exist in sdd-plan, `{qimpl_block}` in fan-out.md) so a contract edited in
+    exist in plan, `{qimpl_block}` in fan-out.md) so a contract edited in
     one file cannot silently vanish from its counterpart
   * duplicate/broken ordinals in numbered lists outside code fences
   * relative Markdown links and backtick-quoted `references/` /
@@ -56,7 +56,7 @@ FORBIDDEN = [
     {
         "pattern": r"docs/spikes",
         "files": None,
-        # sdd-implement's "do not create docs/spikes" negative mention and the
+        # implement's "do not create docs/spikes" negative mention and the
         # citations of the shipped RS-006 artifact are legitimate.
         "allow": [r"Do not create a separate", r"dispatch-concurrency"],
         "reason": "spike artifacts belong under docs/research/RS-* (audit F1)",
@@ -67,7 +67,7 @@ FORBIDDEN = [
      "fix": "say that split files keep their existing requirement IDs"},
     {"pattern": r"upgrade to v2", "files": None, "allow": [],
      "reason": "version-check wording must not hardcode v2 (audit F13)",
-     "fix": "say `upgrade to the latest version` (or run sdd-migrate)"},
+     "fix": "say `upgrade to the latest version` (or run migrate)"},
     {"pattern": r"start fresh with v2", "files": None, "allow": [],
      "reason": "greenfield wording must not hardcode v2 (final review #1)",
      "fix": "say `start fresh with the latest layout`"},
@@ -83,13 +83,13 @@ FORBIDDEN = [
     {"pattern": r"no plan index in v4", "files": None, "allow": [],
      "reason": "v4 per-workstream plan indexes exist (audit F17)",
      "fix": "say the plan index lives at docs/ws/<id>/plan.md under marker 4"},
-    {"pattern": r"skills/\*/SKILL\.md", "files": "sdd-review", "allow": [],
-     "reason": "sdd-review must not hardcode this repo's layout (audit F11)",
+    {"pattern": r"skills/\*/SKILL\.md", "files": "skills/review/", "allow": [],
+     "reason": "review must not hardcode this repo's layout (audit F11)",
      "fix": "describe the reviewed skill files generically (`the skill files`)"},
     {"pattern": r"v1 limitations", "files": None, "allow": [],
      "reason": "stale USAGE heading (audit F14)",
      "fix": "rename the heading to `Limitations` (version-neutral)"},
-    {"pattern": r"version: 2\.0", "files": "sdd-migrate", "allow": [],
+    {"pattern": r"version: 2\.0", "files": "skills/migrate/", "allow": [],
      "reason": "index version: is a content counter, not a format signal (audit F20)",
      "fix": "gate on docs/.sdd-version, not on the index `version:` field"},
     {"pattern": r"Co-Authored-By", "files": None, "allow": [],
@@ -102,12 +102,12 @@ FORBIDDEN = [
     #    skill_files() also lints USAGE.md, so it is listed — deviation recorded as a
     #    Q-IMPL in the Chunk 6 return, minted by the orchestrator at plan close).
     {"pattern": r"\.sdd/", "files": None, "allow": [],
-     "allow_files": ["skills/sdd-orchestrate/SKILL.md",
-                     "skills/sdd-orchestrate/references/telemetry.md",
-                     "skills/sdd-orchestrate/references/write-scope.md",
-                     "skills/sdd-orchestrate/USAGE.md"],
+     "allow_files": ["skills/orchestrate/SKILL.md",
+                     "skills/orchestrate/references/telemetry.md",
+                     "skills/orchestrate/references/write-scope.md",
+                     "skills/orchestrate/USAGE.md"],
      "reason": "telemetry is orchestrator-written and never a phase-detection or staleness input (REQ-ORCH-014)",
-     "fix": "remove the reference — skills never read .sdd/; only sdd-orchestrate's telemetry stub "
+     "fix": "remove the reference — skills never read .sdd/; only orchestrate's telemetry stub "
             "and references/telemetry.md may name it"},
 ]
 
@@ -115,179 +115,179 @@ FORBIDDEN = [
 # them. `min` is the minimum occurrence count in that file. Rows may carry
 # `"severity": "warn"` (default `fail`).
 REQUIRED = [
-    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"research_id", "min": 3,
+    {"file": "skills/orchestrate/SKILL.md", "pattern": r"research_id", "min": 3,
      "reason": "kickoff research_id contract (audit F10) spans table/KICKOFF/picker",
      "fix": "keep `research_id` in the entry table, KICKOFF and the picker stub"},
-    {"file": "skills/sdd-plan/SKILL.md", "pattern": r"\*\*Depends on\*\*", "min": 3,
+    {"file": "skills/plan/SKILL.md", "pattern": r"\*\*Depends on\*\*", "min": 3,
      "reason": "canonical chunk-dependency field consumed by fan-out (audit F7)",
      "fix": "restore the `**Depends on**` field in the chunk template, example and rules"},
-    {"file": "skills/sdd-orchestrate/references/fan-out.md", "pattern": r"\{qimpl_block\}", "min": 2,
+    {"file": "skills/orchestrate/references/fan-out.md", "pattern": r"\{qimpl_block\}", "min": 2,
      "reason": "per-leaf Q-IMPL block slot (audit F5): template + slot contract",
      "fix": "keep the `{qimpl_block}` slot in the leaf template and its slot contract"},
-    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"Parallel-dispatch exception", "min": 1,
+    {"file": "skills/implement/SKILL.md", "pattern": r"Parallel-dispatch exception", "min": 1,
      "reason": "leaf-side half of the Q-IMPL block contract (audit F5)",
      "fix": "restore the `Parallel-dispatch exception` bullet under Q-IMPL numbering"},
-    {"file": "skills/sdd-plan/SKILL.md", "pattern": r"last_updated: YYYY-MM-DD", "min": 1,
+    {"file": "skills/plan/SKILL.md", "pattern": r"last_updated: YYYY-MM-DD", "min": 1,
      "reason": "single-milestone plan frontmatter that staleness checks key off (audit F2)",
      "fix": "keep `last_updated: YYYY-MM-DD` in the plan frontmatter template"},
-    {"file": "skills/sdd-research/SKILL.md", "pattern": r"early_exit: true", "min": 1,
+    {"file": "skills/research/SKILL.md", "pattern": r"early_exit: true", "min": 1,
      "reason": "research early-exit marker the orchestrate picker relies on",
      "fix": "keep the `early_exit: true` findings frontmatter marker"},
-    {"file": "skills/sdd-review/SKILL.md", "pattern": r"`questions:` frontmatter", "min": 1,
+    {"file": "skills/review/SKILL.md", "pattern": r"`questions:` frontmatter", "min": 1,
      "reason": "research review reads questions from findings frontmatter (audit F9)",
      "fix": "say the research review reads the `questions:` frontmatter of findings.md"},
-    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"non-interactive", "min": 2,
+    {"file": "skills/orchestrate/references/dispatch-templates.md", "pattern": r"non-interactive", "min": 2,
      "reason": "both pipeline and review dispatch templates carry the clause (audit F15)",
      "fix": "add the `non-interactive` clause to every dispatch template"},
-    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"status:.*`active`", "min": 1,
+    {"file": "skills/implement/SKILL.md", "pattern": r"status:.*`active`", "min": 1,
      "reason": "plan status lifecycle executor: planned→active (final review #5)",
      "fix": "keep the step that flips plan `status:` to `active`"},
-    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"status:.*`complete`", "min": 1,
+    {"file": "skills/implement/SKILL.md", "pattern": r"status:.*`complete`", "min": 1,
      "reason": "plan status lifecycle executor: →complete (final review #5)",
      "fix": "keep the completion step that sets plan `status:` to `complete`"},
     # -- v5 core contract rows (skill-lint-v5.md §REQUIRED Rows — Core, REQ-LINT-005)
-    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"fix[- ]loop cap|iteration N of 3", "min": 1,
+    {"file": "skills/orchestrate/SKILL.md", "pattern": r"fix[- ]loop cap|iteration N of 3", "min": 1,
      "reason": "stage fix-loop cap the gate counts down (REQ-HARN-001)",
      "fix": "keep the `fix-loop cap` / `iteration N of 3` gate text in §The gate"},
-    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"replan re-entry cap", "min": 1,
+    {"file": "skills/orchestrate/SKILL.md", "pattern": r"replan re-entry cap", "min": 1,
      "reason": "replan re-entry cap derived from `-replan-` archives (REQ-HARN-002)",
      "fix": "keep the `replan re-entry cap` paragraph in §The gate"},
-    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"Budget:", "min": 3,
+    {"file": "skills/orchestrate/references/dispatch-templates.md", "pattern": r"Budget:", "min": 3,
      "reason": "pipeline + review + verifier dispatch templates carry a Budget: line (REQ-HARN-004)",
      "fix": "add the `Budget:` line to the pipeline, review and chunk-verifier dispatch templates"},
-    {"file": "skills/sdd-orchestrate/references/fan-out.md", "pattern": r"Budget:", "min": 1,
+    {"file": "skills/orchestrate/references/fan-out.md", "pattern": r"Budget:", "min": 1,
      "reason": "fan-out leaf template carries a Budget: line (REQ-HARN-004)",
      "fix": "add the `Budget:` line to the leaf dispatch template in fan-out.md"},
-    {"file": "skills/sdd-review/SKILL.md", "pattern": r"VERDICT: APPROVE \| APPROVE_WITH_FIXES \| REJECT", "min": 1,
-     "reason": "review verdict token producer (REQ-HARN-013); consumer is sdd-orchestrate/SKILL.md",
+    {"file": "skills/review/SKILL.md", "pattern": r"VERDICT: APPROVE \| APPROVE_WITH_FIXES \| REJECT", "min": 1,
+     "reason": "review verdict token producer (REQ-HARN-013); consumer is orchestrate/SKILL.md",
      "fix": "restore the `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT` token line — "
-            "its consumer lives in skills/sdd-orchestrate/SKILL.md"},
-    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"(?<!CHUNK_)(?<!RED_)VERDICT:", "min": 1,
-     "reason": "review verdict token consumer (REQ-HARN-013); producer is sdd-review/SKILL.md",
+            "its consumer lives in skills/orchestrate/SKILL.md"},
+    {"file": "skills/orchestrate/SKILL.md", "pattern": r"(?<!CHUNK_)(?<!RED_)VERDICT:", "min": 1,
+     "reason": "review verdict token consumer (REQ-HARN-013); producer is review/SKILL.md",
      "fix": "keep the review `VERDICT:` parse step in §The gate — its producer lives in "
-            "skills/sdd-review/SKILL.md"},
-    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"CHUNK_VERDICT: PASS \| FAIL", "min": 1,
-     "reason": "chunk-verifier verdict token producer (REQ-HARN-014); consumer is sdd-orchestrate/SKILL.md",
+            "skills/review/SKILL.md"},
+    {"file": "skills/orchestrate/references/dispatch-templates.md", "pattern": r"CHUNK_VERDICT: PASS \| FAIL", "min": 1,
+     "reason": "chunk-verifier verdict token producer (REQ-HARN-014); consumer is orchestrate/SKILL.md",
      "fix": "restore `CHUNK_VERDICT: PASS | FAIL` in the chunk-verifier dispatch template — "
-            "its consumer lives in skills/sdd-orchestrate/SKILL.md"},
-    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"CHUNK_VERDICT:", "min": 1,
+            "its consumer lives in skills/orchestrate/SKILL.md"},
+    {"file": "skills/orchestrate/SKILL.md", "pattern": r"CHUNK_VERDICT:", "min": 1,
      "reason": "chunk-verifier verdict consumer (REQ-HARN-014); producer is dispatch-templates.md",
      "fix": "keep the `CHUNK_VERDICT:` line in the per-chunk gate — its producer lives in "
-            "skills/sdd-orchestrate/references/dispatch-templates.md"},
-    {"file": "skills/sdd-replan/SKILL.md", "pattern": r"-replan-", "min": 1,
+            "skills/orchestrate/references/dispatch-templates.md"},
+    {"file": "skills/replan/SKILL.md", "pattern": r"-replan-", "min": 1,
      "reason": "`-replan-` archive filename the re-entry cap counts (REQ-HARN-003)",
      "fix": "keep the `{date}-replan-{reason}.md` archive filename convention"},
     # -- v5 remaining contract rows (skill-lint-v5.md §REQUIRED Rows — Remaining, REQ-LINT-006)
-    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"RETURN:", "min": 2,
+    {"file": "skills/orchestrate/references/dispatch-templates.md", "pattern": r"RETURN:", "min": 2,
      "reason": "pipeline + verifier templates require the RETURN: block (REQ-HARN-009)",
      "fix": "keep the `RETURN:` block requirement in the pipeline and chunk-verifier templates"},
-    {"file": "skills/sdd-orchestrate/references/fan-out.md", "pattern": r"RETURN:", "min": 1,
+    {"file": "skills/orchestrate/references/fan-out.md", "pattern": r"RETURN:", "min": 1,
      "reason": "fan-out leaf template requires the RETURN: block (REQ-HARN-009)",
      "fix": "keep the `RETURN:` block requirement in the leaf dispatch template"},
-    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md",
+    {"file": "skills/orchestrate/references/dispatch-templates.md",
      "pattern": r"status: COMPLETE \| PARTIAL \| BLOCKED \| BUDGET_EXHAUSTED", "min": 1,
      "reason": "own-line status token the orchestrator parses first (REQ-HARN-009)",
      "fix": "keep the `status: COMPLETE | PARTIAL | BLOCKED | BUDGET_EXHAUSTED` token line"},
-    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"\{repair_packet\}", "min": 2,
+    {"file": "skills/orchestrate/references/dispatch-templates.md", "pattern": r"\{repair_packet\}", "min": 2,
      "reason": "fix re-dispatch repair-packet slot: template + slot contract (REQ-HARN-011)",
      "fix": "keep the `{repair_packet}` slot in the fix re-dispatch template and its slot contract"},
-    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"Write scope:", "min": 3,
+    {"file": "skills/orchestrate/references/dispatch-templates.md", "pattern": r"Write scope:", "min": 3,
      "reason": "pipeline + review + verifier templates declare a Write scope: (REQ-HARN-020)",
      "fix": "add the `Write scope:` line to the pipeline, review and chunk-verifier templates"},
-    {"file": "skills/sdd-orchestrate/references/fan-out.md", "pattern": r"Write scope:", "min": 1,
+    {"file": "skills/orchestrate/references/fan-out.md", "pattern": r"Write scope:", "min": 1,
      "reason": "fan-out leaf template declares a Write scope: (REQ-HARN-020)",
      "fix": "add the `Write scope:` line to the leaf dispatch template in fan-out.md"},
-    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"oscillation", "min": 1,
+    {"file": "skills/implement/SKILL.md", "pattern": r"oscillation", "min": 1,
      "reason": "attempt-ledger oscillation stuck rule (REQ-HARN-007)",
      "fix": "keep the `oscillation` rule under stuck detection"},
-    {"file": "skills/sdd-implement/SKILL.md", "pattern": r"checkpoint", "min": 1,
+    {"file": "skills/implement/SKILL.md", "pattern": r"checkpoint", "min": 1,
      "reason": "circuit-break checkpoint format in the blocked-task note (REQ-HARN-008)",
      "fix": "keep the circuit-break `checkpoint` format under stuck detection"},
-    {"file": "skills/sdd-replan/SKILL.md", "pattern": r"checkpoint", "min": 1,
+    {"file": "skills/replan/SKILL.md", "pattern": r"checkpoint", "min": 1,
      "reason": "circuit-break checkpoint intake as replan stuck state (REQ-HARN-008)",
      "fix": "keep the step that reads the blocked-task `checkpoint` note as stuck state"},
     # -- harness-p2 contract rows (REQ-LINT-HARNESSP2-001): adversarial-verify.md and
     #    arbitrated-handoff.md §Skill and Lint Changes
-    {"file": "skills/sdd-orchestrate/references/dispatch-templates.md", "pattern": r"RED_VERDICT: BROKEN \| HELD", "min": 1,
-     "reason": "red-team verdict token producer (adversarial-verify.md); consumer is sdd-orchestrate/SKILL.md",
+    {"file": "skills/orchestrate/references/dispatch-templates.md", "pattern": r"RED_VERDICT: BROKEN \| HELD", "min": 1,
+     "reason": "red-team verdict token producer (adversarial-verify.md); consumer is orchestrate/SKILL.md",
      "fix": "restore `RED_VERDICT: BROKEN | HELD` in the RED TEAM dispatch template — "
-            "its consumer lives in skills/sdd-orchestrate/SKILL.md"},
-    {"file": "skills/sdd-orchestrate/SKILL.md", "pattern": r"RED_VERDICT:", "min": 1,
+            "its consumer lives in skills/orchestrate/SKILL.md"},
+    {"file": "skills/orchestrate/SKILL.md", "pattern": r"RED_VERDICT:", "min": 1,
      "reason": "red-team verdict consumer in §The gate signal order; producer is dispatch-templates.md",
      "fix": "keep the `RED_VERDICT:` parse step in §The gate (verify stage) — its producer lives in "
-            "skills/sdd-orchestrate/references/dispatch-templates.md"},
-    {"file": "skills/sdd-orchestrate/references/loop-control.md", "pattern": r"REVIEW: CONTRADICTION", "min": 1,
+            "skills/orchestrate/references/dispatch-templates.md"},
+    {"file": "skills/orchestrate/references/loop-control.md", "pattern": r"REVIEW: CONTRADICTION", "min": 1,
      "reason": "contradiction pause is raised and handled by the orchestrator (REQ-SKILL-HARNESSP2-003); "
                "SKILL.md §The gate carries the pointer",
      "fix": "keep the `REVIEW: CONTRADICTION` pause in loop-control.md — its pointer lives in "
-            "skills/sdd-orchestrate/SKILL.md §The gate"},
-    {"file": "skills/sdd-review/SKILL.md", "pattern": r"M1:.*affects", "min": 1,
+            "skills/orchestrate/SKILL.md §The gate"},
+    {"file": "skills/review/SKILL.md", "pattern": r"M1:.*affects", "min": 1,
      "reason": "Material template line carries `affects` for contradiction-class resolution (REQ-SKILL-HARNESSP2-006)",
      "fix": "restore `affects` on the `M1:` Material template line — its consumer lives in "
-            "skills/sdd-orchestrate/references/loop-control.md"},
+            "skills/orchestrate/references/loop-control.md"},
     # -- harness-p4 contract row (REQ-LINT-HARNESSP4-002): the post-decision
     #    commit-fidelity token `COMMIT: COMPLETE | INCOMPLETE`
     #    (skill-lint-v5.md §`REQUIRED` Row — `COMMIT: COMPLETE | INCOMPLETE`).
     #    The pattern matches the token or its family spelling and never a file
     #    that only names `SCOPE:` — the same guard the `CHUNK_VERDICT:` row uses.
-    {"file": "skills/sdd-orchestrate/references/loop-control.md",
+    {"file": "skills/orchestrate/references/loop-control.md",
      "pattern": r"COMMIT: (COMPLETE \| INCOMPLETE|COMPLETE|INCOMPLETE)", "min": 1,
      "reason": "post-decision `COMMIT:` gate signal — §5 order item 8 / position 2b (REQ-HARN-HARNESSP4-001)",
      "fix": "keep the `COMMIT: COMPLETE | INCOMPLETE` closing line in loop-control.md §5 — its defining "
-            "section is skills/sdd-orchestrate/references/write-scope.md §7"},
-    {"file": "skills/sdd-orchestrate/SKILL.md",
+            "section is skills/orchestrate/references/write-scope.md §7"},
+    {"file": "skills/orchestrate/SKILL.md",
      "pattern": r"COMMIT: (COMPLETE \| INCOMPLETE|COMPLETE|INCOMPLETE)", "min": 1,
      "reason": "post-decision `COMMIT:` one-line summary in §The gate (REQ-HARN-HARNESSP4-001)",
      "fix": "keep the `COMMIT: COMPLETE | INCOMPLETE` line in SKILL.md §The gate — its defining "
-            "section is skills/sdd-orchestrate/references/write-scope.md §7"},
+            "section is skills/orchestrate/references/write-scope.md §7"},
     # -- harness-p6 contract rows (REQ-LINT-HARNESSP6-001): the `PLAN:` pause
     #    token — the only gate token that shipped without a producer/consumer
     #    pair — and the `GIT_STATE` finding name, which would have shipped the
     #    same way (skill-lint-v5.md §`REQUIRED` Rows — `PLAN:` and `GIT_STATE`).
-    {"file": "skills/sdd-orchestrate/references/loop-control.md",
+    {"file": "skills/orchestrate/references/loop-control.md",
      "pattern": r"PLAN: INCOMPLETE", "min": 1,
      "reason": "`PLAN: INCOMPLETE (N of M ticked)` pause producer — §6 pause family (REQ-LINT-HARNESSP6-001)",
      "fix": "keep the `PLAN: INCOMPLETE (N of M ticked)` pause in loop-control.md §6 — its defining "
             "section is docs/spec/harness-loop-control.md §Plan Completion Ownership; its consumer "
-            "lives in skills/sdd-orchestrate/SKILL.md §The gate"},
-    {"file": "skills/sdd-orchestrate/SKILL.md",
+            "lives in skills/orchestrate/SKILL.md §The gate"},
+    {"file": "skills/orchestrate/SKILL.md",
      "pattern": r"PLAN: INCOMPLETE", "min": 1,
      "reason": "`PLAN: INCOMPLETE` one-line summary in §The gate signal order (REQ-LINT-HARNESSP6-001)",
      "fix": "keep the `PLAN: INCOMPLETE (N of M ticked)` line in SKILL.md §The gate — its defining "
             "section is docs/spec/harness-loop-control.md §Plan Completion Ownership; its producer "
-            "lives in skills/sdd-orchestrate/references/loop-control.md"},
+            "lives in skills/orchestrate/references/loop-control.md"},
     # `GIT_STATE` is a finding NAME rendered inside the `SCOPE:` block, not an
     # own-line gate token, so the pattern carries no trailing colon and no
     # option-set alternation — the row guards the name's presence, which is all
     # that is needed to make its deletion fail.
-    {"file": "skills/sdd-orchestrate/references/write-scope.md",
+    {"file": "skills/orchestrate/references/write-scope.md",
      "pattern": r"GIT_STATE", "min": 1,
      "reason": "`GIT_STATE` finding name producer — §5 rendering / §3 git-state observation "
                "(REQ-HARN-HARNESSP6-001)",
      "fix": "keep the `GIT_STATE` finding in write-scope.md §5 — its defining section is "
             "docs/spec/harness-write-scope.md §Git-State Observation; its consumer lives in "
-            "skills/sdd-orchestrate/SKILL.md §The gate"},
-    {"file": "skills/sdd-orchestrate/SKILL.md",
+            "skills/orchestrate/SKILL.md §The gate"},
+    {"file": "skills/orchestrate/SKILL.md",
      "pattern": r"GIT_STATE", "min": 1,
      "reason": "`GIT_STATE` finding name named in §The gate's `SCOPE:` summary (REQ-HARN-HARNESSP6-001)",
      "fix": "keep the `GIT_STATE` mention in SKILL.md §The gate — its defining section is "
             "docs/spec/harness-write-scope.md §Git-State Observation; its producer lives in "
-            "skills/sdd-orchestrate/references/write-scope.md"},
+            "skills/orchestrate/references/write-scope.md"},
     # -- harness-p6 contract rows (REQ-LINT-HARNESSP6-003): the L2 gate token
     #    `CONVERGENCE:` gets the same producer/consumer pair that guards
     #    `COMMIT:` (skill-lint-v5.md §`REQUIRED` Row — `CONVERGENCE:`).
-    {"file": "skills/sdd-orchestrate/references/loop-control.md",
+    {"file": "skills/orchestrate/references/loop-control.md",
      "pattern": r"CONVERGENCE:", "min": 1,
      "reason": "`CONVERGENCE:` L2 gate token producer — §5 order item 6c (REQ-LINT-HARNESSP6-003)",
      "fix": "keep the `CONVERGENCE:` line in loop-control.md §5 item 6c / §5b — its defining "
             "section is docs/spec/harness-loop-control.md §Convergence Signal; its consumer "
-            "lives in skills/sdd-orchestrate/SKILL.md §The gate"},
-    {"file": "skills/sdd-orchestrate/SKILL.md",
+            "lives in skills/orchestrate/SKILL.md §The gate"},
+    {"file": "skills/orchestrate/SKILL.md",
      "pattern": r"CONVERGENCE:", "min": 1,
      "reason": "`CONVERGENCE:` one-line summary in §The gate signal order (REQ-LINT-HARNESSP6-003)",
      "fix": "keep the `CONVERGENCE:` line in SKILL.md §The gate — its defining "
             "section is docs/spec/harness-loop-control.md §Convergence Signal; its producer "
-            "lives in skills/sdd-orchestrate/references/loop-control.md"},
+            "lives in skills/orchestrate/references/loop-control.md"},
 ]
 
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
@@ -301,9 +301,9 @@ REQUIRED = [
 # with only the fence markers stripped — no whitespace normalisation, because
 # the column-0 token contract of REQ-HARN-HARNESSP4-007 is itself a whitespace
 # fact. Every row carries the one fix: the skill side is the source of record.
-TEMPLATE_SOURCE = "skills/sdd-orchestrate/references/dispatch-templates.md"
+TEMPLATE_SOURCE = "skills/orchestrate/references/dispatch-templates.md"
 TEMPLATE_DRIFT_FIX = (
-    "edit skills/sdd-orchestrate/references/dispatch-templates.md (source of record) — "
+    "edit skills/orchestrate/references/dispatch-templates.md (source of record) — "
     "the spec side is Approved and stable; if the spec is the intended change, amend both in one commit"
 )
 TEMPLATE_PAIRS = [
@@ -325,6 +325,59 @@ TEMPLATE_PAIRS = [
      "fix": TEMPLATE_DRIFT_FIX},
 ]
 
+# ---------------------------------------------------------------------------
+# The retired-prefix rule (REQ-NAME-MARKETPLACE-009).
+#
+# The skills and tools dropped their `sdd-` prefix when this repository became
+# the `sdd` plugin (docs/spec/skill-namespace-rename.md). This rule stops the
+# retirement eroding as new text is written: a retired-prefix skill or tool name
+# appearing in the LIVE rename scope is a finding.
+#
+# Two skips, evaluated in this order:
+#   1. occurrences inside fenced code blocks and inside inline-backtick spans —
+#      the same skip the drift sweep's orphan-id sweep applies, so a live
+#      document may quote the retired form when describing the historical
+#      corpus;
+#   2. the short self-exemption path list below, carried IN THE RULE, naming the
+#      four documents whose subject *is* this rule.
+# There is no general allowlist and no per-occurrence suppression comment.
+#
+# Two scope boundaries sit beside the scope list, both for the same reason —
+# a finding there would be unfixable by construction, not merely inconvenient:
+#   * `tools/fixtures/`, whose bytes are part of what they test and which
+#     REQ-PC-MARKETPLACE-005 freezes (Q-IMPL-MARKETPLACE-007);
+#   * `docs/requirements/traceability.md`, which is DERIVED — regenerated from
+#     the per-workstream files under `docs/ws/`, the corpus this rename
+#     deliberately excludes, so sweeping it would only desynchronize it from its
+#     own sources (Q-IMPL-MARKETPLACE-008).
+# Neither is a per-occurrence allowlist and neither touches the self-exemption
+# list, which stays at the four documents whose subject is the rule.
+RETIRED_SKILLS = [
+    "research", "requirements", "specs", "plan", "implement", "verify",
+    "replan", "migrate", "orchestrate", "review",
+]
+RETIRED_TOOLS = ["gc", "skill-lint", "telemetry", "scope-check-selftest", "eval"]
+RETIRED_RE = re.compile(
+    r"\bsdd-(?:"
+    + "|".join(sorted(RETIRED_SKILLS + RETIRED_TOOLS, key=len, reverse=True))
+    + r")\b"
+)
+# The four documents whose subject is the rule itself.
+RETIRED_SELF_EXEMPT = (
+    "CONTRIBUTING.md",
+    "docs/requirements/integration/naming.md",
+    "tools/skill-lint.py",
+    "docs/spec/skill-namespace-rename.md",
+)
+# The live rename scope — exactly six areas.
+RETIRED_SCOPE_DIRS = ("skills", "tools", "docs/spec", "docs/requirements")
+RETIRED_SCOPE_FILES = ("CLAUDE.md", "README.md", "README.org")
+RETIRED_SCOPE_EXCLUDE_DIRS = ("fixtures",)
+RETIRED_SCOPE_EXCLUDE_FILES = ("docs/requirements/traceability.md",)
+RETIRED_SUFFIXES = (".md", ".org", ".py", ".txt", ".yaml", ".yml", ".json", ".toml", ".sh")
+RETIRED_FIX = ("drop the retired prefix (the plugin namespace supplies it), or — when the text "
+               "describes the historical corpus — quote the name in a backtick span or a fence")
+
 SIZE_WARN_LINES = 400   # entry point should read as a table of contents
 SIZE_FAIL_LINES = 1000  # project guideline (REQ-ORCH-019)
 SIZE_FIX = ("move detail to references/ and leave a stub; the entry point should "
@@ -338,14 +391,14 @@ NAME_FIX = "set name: to the directory name"
 
 # Every phase skill gates its layout on the version marker.
 VERSION_GATED_SKILLS = [
-    "sdd-research", "sdd-requirements", "sdd-specs", "sdd-plan",
-    "sdd-implement", "sdd-verify", "sdd-replan", "sdd-migrate", "sdd-orchestrate",
+    "research", "requirements", "specs", "plan",
+    "implement", "verify", "replan", "migrate", "orchestrate",
 ]
 
 # The seven skills that carry the collapsed v4 ownership summary (audit P1).
 V4_CONTRACT_SKILLS = [
-    "sdd-research", "sdd-requirements", "sdd-specs", "sdd-plan",
-    "sdd-implement", "sdd-verify", "sdd-replan",
+    "research", "requirements", "specs", "plan",
+    "implement", "verify", "replan",
 ]
 
 # Description must state when NOT to use the skill (repo quality check).
@@ -675,11 +728,56 @@ class Linter:
             return path, self.root, "warn"
         return None
 
+    def retired_scope_files(self) -> list[Path]:
+        """Every file in the live rename scope the retired-prefix rule walks."""
+        out: list[Path] = []
+        for d in RETIRED_SCOPE_DIRS:
+            base = self.root / d
+            if not base.is_dir():
+                continue
+            for f in sorted(base.rglob("*")):
+                if not f.is_file() or f.suffix not in RETIRED_SUFFIXES:
+                    continue
+                rel_parts = f.relative_to(self.root).parts
+                if any(part in (".git", ".worktrees") or part in RETIRED_SCOPE_EXCLUDE_DIRS
+                       for part in rel_parts):
+                    continue
+                if f.relative_to(self.root).as_posix() in RETIRED_SCOPE_EXCLUDE_FILES:
+                    continue
+                out.append(f)
+        for name in RETIRED_SCOPE_FILES:
+            f = self.root / name
+            if f.is_file():
+                out.append(f)
+        return out
+
+    def check_retired_prefix(self) -> None:
+        """Flag retired-prefix skill/tool names in the live rename scope."""
+        for f in self.retired_scope_files():
+            rel = f.relative_to(self.root).as_posix()
+            if rel in RETIRED_SELF_EXEMPT:          # skip (2): the rule's own documents
+                continue
+            fenced = False
+            for no, line in enumerate(f.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                if line.lstrip().startswith("```"):
+                    fenced = not fenced
+                    continue
+                if fenced:                          # skip (1a): fenced code blocks
+                    continue
+                stripped = re.sub(r"`[^`]*`", "", line)   # skip (1b): inline-backtick spans
+                m = RETIRED_RE.search(stripped)
+                if m:
+                    self.flag(f, no, "retired-prefix",
+                              f"`{m.group(0)}` — the retired namespace prefix must not "
+                              "appear bare in the live corpus (REQ-NAME-MARKETPLACE-009)",
+                              RETIRED_FIX)
+
     # -- driver -------------------------------------------------------------
 
     def run(self) -> int:
         self.check_structure()
         self.check_forbidden()
+        self.check_retired_prefix()
         self.check_required()
         self.check_template_drift()
         self.check_ordinals()
@@ -887,7 +985,7 @@ def self_test() -> int:
             # d2 negative: a SKILL.md carrying only `RED_VERDICT: HELD` must NOT
             # satisfy the review-verdict consumer row (the `(?<!RED_)` lookbehind).
             d2 = next((r for r in REQUIRED
-                       if r["file"] == "skills/sdd-orchestrate/SKILL.md" and "VERDICT" in r["pattern"]
+                       if r["file"] == "skills/orchestrate/SKILL.md" and "VERDICT" in r["pattern"]
                        and "CHUNK" in r["pattern"] and "RED_" in r["pattern"]),
                       {"pattern": "<missing d2 row>"})
             check(d2["pattern"] == r"(?<!CHUNK_)(?<!RED_)VERDICT:",
@@ -918,8 +1016,8 @@ def self_test() -> int:
             plan_rows = [r for r in REQUIRED if r["pattern"] == r"PLAN: INCOMPLETE"]
             check(len(plan_rows) == 2, f"expected two `PLAN: INCOMPLETE` REQUIRED rows, found {len(plan_rows)}")
             check({r["file"] for r in plan_rows} == {
-                      "skills/sdd-orchestrate/references/loop-control.md",
-                      "skills/sdd-orchestrate/SKILL.md"},
+                      "skills/orchestrate/references/loop-control.md",
+                      "skills/orchestrate/SKILL.md"},
                   "`PLAN: INCOMPLETE` pair must target loop-control.md (producer) and SKILL.md (consumer)")
             for r in plan_rows:
                 check("harness-loop-control.md §Plan Completion Ownership" in r["fix"],
@@ -932,8 +1030,8 @@ def self_test() -> int:
             git_rows = [r for r in REQUIRED if r["pattern"] == r"GIT_STATE"]
             check(len(git_rows) == 2, f"expected two `GIT_STATE` REQUIRED rows, found {len(git_rows)}")
             check({r["file"] for r in git_rows} == {
-                      "skills/sdd-orchestrate/references/write-scope.md",
-                      "skills/sdd-orchestrate/SKILL.md"},
+                      "skills/orchestrate/references/write-scope.md",
+                      "skills/orchestrate/SKILL.md"},
                   "`GIT_STATE` pair must target write-scope.md (producer) and SKILL.md (consumer)")
             for r in git_rows:
                 check("harness-write-scope.md §Git-State Observation" in r["fix"],
@@ -946,8 +1044,8 @@ def self_test() -> int:
             conv_rows = [r for r in REQUIRED if r["pattern"] == r"CONVERGENCE:"]
             check(len(conv_rows) == 2, f"expected two `CONVERGENCE:` REQUIRED rows, found {len(conv_rows)}")
             check({r["file"] for r in conv_rows} == {
-                      "skills/sdd-orchestrate/references/loop-control.md",
-                      "skills/sdd-orchestrate/SKILL.md"},
+                      "skills/orchestrate/references/loop-control.md",
+                      "skills/orchestrate/SKILL.md"},
                   "`CONVERGENCE:` pair must target loop-control.md (producer) and SKILL.md (consumer)")
             for r in conv_rows:
                 check("harness-loop-control.md §Convergence Signal" in r["fix"],
@@ -1007,16 +1105,16 @@ def self_test() -> int:
         if sdd_row is not None:
             check(sdd_row["files"] is None and sdd_row["allow"] == [], "`\\.sdd/` row must be repo-wide with allow: []")
             check(sdd_row.get("severity", "fail") == "fail", "`\\.sdd/` row must be fail severity")
-            for required_allow in ("skills/sdd-orchestrate/SKILL.md",
-                                   "skills/sdd-orchestrate/references/telemetry.md",
-                                   "skills/sdd-orchestrate/references/write-scope.md"):
+            for required_allow in ("skills/orchestrate/SKILL.md",
+                                   "skills/orchestrate/references/telemetry.md",
+                                   "skills/orchestrate/references/write-scope.md"):
                 check(required_allow in sdd_row["allow_files"], f"`\\.sdd/` allow_files lacks {required_allow}")
             sdd_root = root / "sddrow"
             fenced = "```\n.sdd/telemetry.jsonl\n```\n"
-            _fixture_skill(sdd_root, "sdd-plan", fenced)            # non-allowlisted → must fail
+            _fixture_skill(sdd_root, "plan", fenced)            # non-allowlisted → must fail
             code, out = _run_capture(sdd_root)
             check(code == 1 and sdd_row["fix"] in out,
-                  f"fenced .sdd/ mention in sdd-plan/SKILL.md did not fail with the row's fix:\n{out}")
+                  f"fenced .sdd/ mention in plan/SKILL.md did not fail with the row's fix:\n{out}")
             sdd_ok = root / "sddallow"
             for rel in sdd_row["allow_files"]:
                 target = sdd_ok / rel
@@ -1026,8 +1124,8 @@ def self_test() -> int:
                 else:
                     target.write_text(fenced, encoding="utf-8")
             # every allowlisted path needs a well-formed SKILL.md beside it
-            if not (sdd_ok / "skills" / "sdd-orchestrate" / "SKILL.md").is_file():
-                _fixture_skill(sdd_ok, "sdd-orchestrate", "prose\n")
+            if not (sdd_ok / "skills" / "orchestrate" / "SKILL.md").is_file():
+                _fixture_skill(sdd_ok, "orchestrate", "prose\n")
             code, out = _run_capture(sdd_ok)
             check(code == 0, f"allowlisted .sdd/ fixtures did not pass:\n{out}")
 
@@ -1060,10 +1158,59 @@ def self_test() -> int:
               f"allow_files did not skip the allowlisted file:\n{af_text}")
         check(len(af.findings) == 1, f"expected exactly one allow_files finding:\n{af_text}")
 
+        # -- 9. the retired-prefix rule (REQ-NAME-MARKETPLACE-009). The fixture is
+        #       SYNTHESIZED into the temp root and discarded with it — never stored
+        #       under tools/, whose live sweep would flag its deliberate bare
+        #       occurrence (Q-IMPL-MARKETPLACE-002). Four occurrences of the
+        #       retired form — bare, backticked, fenced, and inside a self-exempt
+        #       file — and exactly one flag: the bare one.
+        rp_root = root / "retired"
+        (rp_root / "docs" / "spec").mkdir(parents=True)
+        retired = RETIRED_SKILLS[0]                      # a retired-prefix skill name
+        token = "sdd-" + retired
+        (rp_root / "docs" / "spec" / "bare.md").write_text(
+            f"The {token} skill is named in prose.\n", encoding="utf-8")
+        (rp_root / "docs" / "spec" / "quoted.md").write_text(
+            f"The historical corpus says `{token}` here.\n", encoding="utf-8")
+        (rp_root / "docs" / "spec" / "fenced.md").write_text(
+            f"Example:\n\n```\n{token}\n```\n", encoding="utf-8")
+        # the self-exempt occurrence must sit in a walked scope area, or the skip
+        # it exercises would be vacuous: the naming requirements file is both.
+        (rp_root / "docs" / "requirements" / "integration").mkdir(parents=True)
+        (rp_root / "docs" / "requirements" / "integration" / "naming.md").write_text(
+            f"Pre-marketplace skills were named {token}.\n", encoding="utf-8")
+        rp = Linter(rp_root, suite_rules=False)
+        rp.check_retired_prefix()
+        rp_text = "\n".join(t for _, t in rp.findings)
+        check(len(rp.findings) == 1,
+              f"expected exactly one retired-prefix finding, got {len(rp.findings)}:\n{rp_text}")
+        check("docs/spec/bare.md" in rp_text and "[retired-prefix]" in rp_text,
+              f"the bare occurrence was not the flagged one:\n{rp_text}")
+        for skipped in ("quoted.md", "fenced.md", "naming.md"):
+            check(skipped not in rp_text, f"{skipped} must be skipped by the rule:\n{rp_text}")
+        check(all(sev == "fail" for sev, _ in rp.findings), "retired-prefix must be fail severity")
+        check(RETIRED_FIX in rp_text, f"retired-prefix finding without its fix:\n{rp_text}")
+        # the self-exemption list stays at the four documents whose subject is the rule
+        check(len(RETIRED_SELF_EXEMPT) == 4,
+              f"expected four self-exempt paths, found {len(RETIRED_SELF_EXEMPT)}")
+        # tools/fixtures/ is outside the walked scope (Q-IMPL-MARKETPLACE-007)
+        (rp_root / "tools" / "fixtures").mkdir(parents=True)
+        (rp_root / "tools" / "fixtures" / "frozen.md").write_text(
+            f"{token}\n", encoding="utf-8")
+        walked = {f.relative_to(rp_root).as_posix() for f in rp.retired_scope_files()}
+        check("tools/fixtures/frozen.md" not in walked,
+              "tools/fixtures/ must stay outside the retired-prefix walk (frozen fixture bytes)")
+        (rp_root / "docs" / "requirements" / "traceability.md").write_text(
+            f"{token}\n", encoding="utf-8")
+        walked = {f.relative_to(rp_root).as_posix() for f in rp.retired_scope_files()}
+        check("docs/requirements/traceability.md" not in walked,
+              "the derived aggregate traceability must stay outside the retired-prefix walk")
+
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
-    print("SELF-TEST OK: all rule classes fire; fix/warn/size/backtick/allow_files fixtures pass")
+    print("SELF-TEST OK: all rule classes fire; fix/warn/size/backtick/allow_files/"
+          "retired-prefix fixtures pass")
     return 0
 
 

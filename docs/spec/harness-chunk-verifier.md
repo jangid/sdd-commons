@@ -35,7 +35,7 @@ re-executes the mechanical part of the chunk-close layer and returns
 
 The four verification layers (`review.md` §Verification Stack Positioning,
 `CLAUDE.md`) are unchanged: chunk-close (mechanical), XSPEC (structural),
-sdd-verify (holistic), sdd-review (semantic). The verifier is a **second,
+verify (holistic), review (semantic). The verifier is a **second,
 independent executor of the chunk-close layer** under `sdd-orchestrate`:
 
 | Check | Implementer (Step 4, unchanged) | Verifier | Implement-stage `sdd-review` |
@@ -75,9 +75,9 @@ Write scope: (empty — read-only)       # you may not create, modify, delete or
 Commit ownership: you never commit.
 
 Task: re-run chunk-close Check 1 (spec-implementation type alignment) and
-Check 3 (test coverage per spec) for Chunk {N} exactly as sdd-implement Step 4
+Check 3 (test coverage per spec) for Chunk {N} exactly as implement Step 4
 defines them, then run every quality gate command and record exit codes. Do not
-run Check 2 or Check 4; do not invoke sdd-review or sdd-implement; do not fix
+run Check 2 or Check 4; do not invoke review or implement; do not fix
 anything.
 
 Return: findings in the chunk-close report shape (Check 1, Check 3, Gates),
@@ -436,10 +436,10 @@ there.
 ## Implementation Questions
 
 
-### Q-IMPL-052: "grep for `sdd-review`" reads as "no sdd-review invocation"
+### Q-IMPL-052: "grep for `sdd-review`" reads as "no review invocation"
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Verification — Automated
-**Decision**: the verifier template is pasted verbatim and contains the prohibition line "do not invoke sdd-review or sdd-implement"; the automated check is read as zero hits for `Skill tool` and for `invoke sdd-` as an instruction, with the prohibition line as the sole `sdd-review` string.
+**Decision**: the verifier template is pasted verbatim and contains the prohibition line "do not invoke review or implement"; the automated check is read as zero hits for `Skill tool` and for `invoke sdd-` as an instruction, with the prohibition line as the sole `sdd-review` string.
 **Rationale**: the spec's own template makes a literal zero-hit grep unsatisfiable.
 **Date**: 2026-09-17 (Chunk 3)
 

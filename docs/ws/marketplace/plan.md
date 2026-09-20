@@ -225,13 +225,13 @@ retired form while the historical record provably keeps its.
 **Depends on**: Chunk 1.
 **Traces to**: docs/spec/skill-namespace-rename.md
 **Tasks**:
-1. [ ] [implement] Update every linter rule keyed by a skill path or a skill
+1. [x] [implement] Update every linter rule keyed by a skill path or a skill
    name — including every producer/consumer contract row keyed by a `"file"` or
    `"files"` value — to the post-rename names, and remove every literal
    prefixed `skills/` path from the linter source — traces to
    `docs/spec/skill-namespace-rename.md` §The linter follows the rename
    (REQ-NAME-MARKETPLACE-008).
-2. [ ] [implement] Add the **retired-prefix rule**: it flags a retired-prefix
+2. [x] [implement] Add the **retired-prefix rule**: it flags a retired-prefix
    skill or tool name appearing in the live rename scope, with the two-step skip
    order evaluated in order — (1) occurrences inside fenced code blocks and
    inline-backtick spans, the same skip the drift sweep's orphan-id sweep
@@ -241,7 +241,7 @@ retired form while the historical record provably keeps its.
    allowlist and no per-occurrence suppression comment — traces to
    `docs/spec/skill-namespace-rename.md` §The retired-prefix rule and
    Q-IMPL-MARKETPLACE-001 (REQ-NAME-MARKETPLACE-009).
-3. [ ] [implement] Add the rule's `--self-test` case with a **synthesized**
+3. [x] [implement] Add the rule's `--self-test` case with a **synthesized**
    fixture: four occurrences of the retired form (bare, backticked, fenced, and
    inside a self-exempt file) written into a temporary directory at self-test
    time and discarded afterwards, the self-test asserting exactly one flag — the
@@ -251,7 +251,7 @@ retired form while the historical record provably keeps its.
    tree into a scratch root — traces to
    `docs/spec/skill-namespace-rename.md` §The retired-prefix rule and
    Q-IMPL-MARKETPLACE-002 (REQ-NAME-MARKETPLACE-009).
-4. [ ] [implement] Sweep the retired form out of the four remaining live areas —
+4. [x] [implement] Sweep the retired form out of the four remaining live areas —
    `docs/spec/`, `docs/requirements/`, `CLAUDE.md`, and the README. **The README
    at this chunk is the `.org` front door, which Chunk 6 task 3 deletes
    wholesale**, so invest no editorial work in it: bring it to zero bare
@@ -266,7 +266,7 @@ retired form while the historical record provably keeps its.
    and must reach zero bare occurrences on its own — traces to
    `docs/spec/skill-namespace-rename.md` §The live rename scope is exactly six
    areas (REQ-NAME-MARKETPLACE-004, -005).
-5. [ ] [verify] Run the retired-prefix grep over exactly the six live areas and
+5. [x] [verify] Run the retired-prefix grep over exactly the six live areas and
    assert zero matches outside the exemption set; run the **same** grep over
    `docs/ws/` excluding `docs/ws/marketplace/`, over `docs/research/` and over
    `docs/superpowers/` and assert a **non-zero** count — the positive half that
@@ -274,12 +274,12 @@ retired form while the historical record provably keeps its.
    Both sides derived in the same run; nested `.worktrees/` excluded — traces to
    `docs/spec/skill-namespace-rename.md` §Acceptance Criteria
    (REQ-NAME-MARKETPLACE-004, -005).
-6. [ ] [verify] Assert `git diff --name-only` over the implementing change of
+6. [x] [verify] Assert `git diff --name-only` over the implementing change of
    Chunks 1–2 lists no path under `docs/ws/`, `docs/research/` or
    `docs/superpowers/`, except paths under `docs/ws/marketplace/` — traces to
    `docs/spec/skill-namespace-rename.md` §Acceptance Criteria
    (REQ-NAME-MARKETPLACE-005).
-7. [ ] [verify] Assert `python3 tools/skill-lint.py --self-test` exits 0; assert
+7. [x] [verify] Assert `python3 tools/skill-lint.py --self-test` exits 0; assert
    a grep of the linter source for a prefixed `skills/` literal returns zero;
    and assert the **count of contract rows keyed on a skill file is equal before
    and after** the rename, obtained by running the same count command against

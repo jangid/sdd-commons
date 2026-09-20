@@ -32,15 +32,15 @@ session start, so start a new session after linking. Verify with
 
 The =skills/sdd-*= set implements a cyclic, phase-based workflow:
 =research → requirements → specs → plan → implement → verify=, with
-=sdd-replan=, =sdd-migrate=, and =sdd-review= as cross-cutting skills.
+=replan=, =migrate=, and =review= as cross-cutting skills.
 
-=sdd-orchestrate= is a *driver* that runs the whole suite as a single-operator
+=orchestrate= is a *driver* that runs the whole suite as a single-operator
 loop (DISCUSS → KICKOFF → LOOP → DONE) with per-stage, context-isolated external
 review and a human gate after every stage. Stages run sequentially by default; the
 implement stage can *opt into fan-out* — running independent chunk-groups in
 parallel worktrees and merging them sequentially back to =main= before review. See
 the operator guide:
-[[file:skills/sdd-orchestrate/USAGE.md][skills/sdd-orchestrate/USAGE.md]].
+[[file:skills/orchestrate/USAGE.md][skills/orchestrate/USAGE.md]].
 
 * License
 

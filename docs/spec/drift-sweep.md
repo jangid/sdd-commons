@@ -296,7 +296,7 @@ respecting commit ownership (REQ-HARN-024).
 | Finding class | Rules | Gate action |
 |---|---|---|
 | mechanical | `xlink-dead` (unique resolution), `index-requirements` row, `traceability-aggregate`, `plan-history-name` | `--fix <rule>` — the operator reviews and commits the rewrite (REQ-HARN-024) |
-| needs a decision | `qimpl-broken-ref`, `stale-chain` (**plan-level sub-kind only**, REQ-GC-HARNESSP6-003), `traceability-aggregate` (when the per-ws inputs themselves look wrong), `spec-approval` | `record \| ignore`; on `record` the orchestrator appends `- gc <rule>: <file:line> — <fix>` under the completed cycle's `verification.md` §Next Steps (marker `4`: `docs/ws/<id>/verification.md`; the `## Next Steps` section added to the `sdd-verify` Step 6 template — `adversarial-verify.md` §Skill and Lint Changes, sdd-verify row) — read by the next cycle's DISCUSS |
+| needs a decision | `qimpl-broken-ref`, `stale-chain` (**plan-level sub-kind only**, REQ-GC-HARNESSP6-003), `traceability-aggregate` (when the per-ws inputs themselves look wrong), `spec-approval` | `record \| ignore`; on `record` the orchestrator appends `- gc <rule>: <file:line> — <fix>` under the completed cycle's `verification.md` §Next Steps (marker `4`: `docs/ws/<id>/verification.md`; the `## Next Steps` section added to the `sdd-verify` Step 6 template — `adversarial-verify.md` §Skill and Lint Changes, verify row) — read by the next cycle's DISCUSS |
 | out of scope | sweep 15 | note only |
 
 **Dates are never auto-fixed.** REQ-GC-HARNESSP2-006 lists a stale
@@ -368,7 +368,7 @@ as `&#124;`.
 | Where | Change |
 |---|---|
 | `skills/sdd-orchestrate/SKILL.md` | entry step: run gc, show the `GC:` line, open the picker; §Transition: run gc at DONE, render findings, `record \| ignore` routing |
-| `skills/sdd-verify/SKILL.md` | Step 6 template gains a `## Next Steps` section after `## Recommendation`, documented as the slot for `- gc <rule>: …` and deferral lines — the change is carried **once**, in `adversarial-verify.md` §Skill and Lint Changes (sdd-verify row); today the template ends at `## Recommendation` and only `docs/ws/default/verification.md` carries the section by hand |
+| `skills/sdd-verify/SKILL.md` | Step 6 template gains a `## Next Steps` section after `## Recommendation`, documented as the slot for `- gc <rule>: …` and deferral lines — the change is carried **once**, in `adversarial-verify.md` §Skill and Lint Changes (verify row); today the template ends at `## Recommendation` and only `docs/ws/default/verification.md` carries the section by hand |
 | `skills/sdd-orchestrate/USAGE.md` | section: the `GC:` summary, DONE findings and routing |
 | `tools/sdd-gc.py` (**new**) | this spec |
 
@@ -577,14 +577,14 @@ no `--fix` entry, so the CLI contract in §CLI and Exit Codes is untouched.
 ### Q-IMPL-HARNESSP2-061: `stale-chain` compares dates strictly and only annotates `pending-red`
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Sweep Table row 7
-**Decision**: Upstream `last_updated` must be strictly greater than downstream to flag; equal dates are never stale; verification `date:` is accepted as an alias; missing dates are skipped; a `pending-red` verification is rendered as "verification exists, not passed" but yields no finding when newer than its plan (pass status is sdd-verify's job).
+**Decision**: Upstream `last_updated` must be strictly greater than downstream to flag; equal dates are never stale; verification `date:` is accepted as an alias; missing dates are skipped; a `pending-red` verification is rendered as "verification exists, not passed" but yields no finding when newer than its plan (pass status is verify's job).
 **Rationale**: Avoids same-day false positives and keeps staleness separate from verdict.
 **Date**: 2026-09-18 (Chunk 5)
 
 ### Q-IMPL-HARNESSP2-062: `trace-empty` scans per-workstream files only and never reads Verified
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Sweep Table row 11
-**Decision**: Under marker 4 the aggregate is derived, so only `docs/ws/*/traceability.md` rows are scanned; amendment rows (Spec differs from the legacy row for the same id — see `telemetry.md` §XSPEC amendment-row rule) are skipped entirely; the Verified column is sdd-verify Step 3b's and is never checked.
+**Decision**: Under marker 4 the aggregate is derived, so only `docs/ws/*/traceability.md` rows are scanned; amendment rows (Spec differs from the legacy row for the same id — see `telemetry.md` §XSPEC amendment-row rule) are skipped entirely; the Verified column is verify Step 3b's and is never checked.
 **Rationale**: Prevents double-reporting and respects the amendment-row rule.
 **Date**: 2026-09-18 (Chunk 5)
 

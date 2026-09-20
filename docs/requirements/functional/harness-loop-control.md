@@ -140,7 +140,7 @@ block with `status: BUDGET_EXHAUSTED` and no `budget_consumed` is treated by the
 orchestrator as malformed (REQ-HARN-009) and surfaced at the gate.
 [Priority: must]
 
-### REQ-HARN-006: Attempt ledger in sdd-implement
+### REQ-HARN-006: Attempt ledger in implement
 `sdd-implement` must keep, per task in its working context, an attempt ledger
 with one entry per attempted fix: `attempt` (ordinal), `hypothesis` (one line),
 `change` (files/lines touched, one line), `result` (which tests now pass/fail,

@@ -258,10 +258,10 @@ warning and is not one of the three:
 - At chunk close, verify Q-IMPL audit detects undocumented deviations
 
 ### Acceptance Criteria
-- [ ] Three-tier protocol documented in sdd-implement (REQ-QIMPL-001)
+- [ ] Three-tier protocol documented in implement (REQ-QIMPL-001)
 - [ ] Tier 1 requires no documentation (REQ-QIMPL-001)
 - [ ] Tier 2 adds Q-IMPL entry and continues (REQ-QIMPL-001)
-- [ ] Tier 3 stops and escalates; references sdd-replan Level 2 (REQ-QIMPL-001)
+- [ ] Tier 3 stops and escalates; references replan Level 2 (REQ-QIMPL-001)
 - [ ] Q-IMPL entries use the numbering scheme of §Numbering — under marker `4` the workstream-scoped `Q-IMPL-<WS>-NNN` form of `docs/spec/ws-ids.md`, with legacy bare `Q-IMPL-NNN` ids read as the `default` workstream (REQ-QIMPL-002) — [rescoped 2026-09-20] this clause read "global sequential numbering", stale text predating the marker-`4` id contract; see §Numbering
 - [ ] Entries placed in spec's Implementation Questions section (REQ-QIMPL-002)
 - [ ] Each entry includes ID, tier, decision, rationale (REQ-QIMPL-002)

@@ -76,7 +76,7 @@ no finding text, no blue evidence:
 
 ```
 You are a non-interactive RED TEAM subagent — the adversarial second executor of
-sdd-verify Steps 3–4. Do NOT ask questions. Do NOT fix anything. Run, don't read.
+verify Steps 3–4. Do NOT ask questions. Do NOT fix anything. Run, don't read.
 Repository root: {repo_root}                     # marker 4: the workstream branch checkout
 Specs (read each `## Acceptance Criteria` yourself): {spec_paths}
 Plan: {plan_path}

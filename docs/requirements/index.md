@@ -21,7 +21,7 @@ tools-skills-agents repository. Covers twelve scopes:
 3. **v3 migration** (RS-003): Migration path from v2 to v3 — plan vocabulary
    rename, version marker update, backward compatibility, documentation
    consistency.
-4. **External review** (RS-004): Formal sdd-review skill for structured
+4. **External review** (RS-004): Formal review skill for structured
    out-of-session review at phase boundaries — phase detection, report
    format, session isolation, scope-completeness checking.
 5. **Orchestration driver** (RS-005): `sdd-orchestrate` driver skill running
@@ -1031,7 +1031,7 @@ Resolved during requirements gathering for RS-002:
   Research References)_ New skills not derived from the research this corpus
   traces (RS-002 through RS-008, RS-HARNESSP2-001)
 - Forward planning to v4
-- Cross-project review (sdd-review operates on one SDD project at a time)
+- Cross-project review (review operates on one SDD project at a time)
 - Review automation or auto-triggering
 - Review of `sdd-review`'s own output (the recursive case) — **declined
   2026-09-20 (settled exclusion, RS-HARNESSP6-001 §Deferral-Backlog Sweep row
@@ -1409,7 +1409,7 @@ Added for RS-HARNESSP4-001 (harness hardening part 4):
   concatenates and stable-sorts without de-duplication, so the aggregate will
   carry two rows for one id with divergent `Verified` values once p4 writes
   `pass`. Legal under `ws-traceability.md` re-use rows; specs must decide
-  whether gc / sdd-verify need a duplicate-id tolerance (newest-workstream row
+  whether gc / verify need a duplicate-id tolerance (newest-workstream row
   wins) or whether the two-row aggregate is simply documented as-is.
 
 All other Q-REQ items resolved.
@@ -1511,8 +1511,8 @@ rather than asked:
 - [RS-001: SDD Artifact Structure](../research/RS-001-sdd-artifact-structure/findings.md)
 - [RS-002: SDD Skill Improvements](../research/RS-002-skill-improvements/findings.md)
 - [RS-003: v3 Migration Path](../research/RS-003-v3-migration/findings.md)
-- [RS-004: sdd-review Skill Design](../research/RS-004-sdd-review/findings.md)
-- [RS-005: sdd-orchestrate Feasibility](../research/RS-005-sdd-orchestrate-feasibility/findings.md)
+- RS-004: review skill design — `../research/RS-004-sdd-review/findings.md`
+- RS-005: orchestrate feasibility — `../research/RS-005-sdd-orchestrate-feasibility/findings.md`
 - [RS-006: Subagent Nesting & Worktrees (implement-stage fan-out)](../research/RS-006-subagent-nesting-worktrees/findings.md)
 - [RS-007: Multi-Workstream SDD (concurrent cycles in one repo)](../research/RS-007-multi-workstream/findings.md)
 - [RS-008: Harness Hardening (loop control, decoupled verification, boundaries)](../research/RS-008-harness-hardening/findings.md)

@@ -182,7 +182,7 @@ the purpose of per-milestone files.
 staleness detection continues to compare against `index.md`'s `last_updated`
 directly, as in the current model.
 
-### Interaction with sdd-plan
+### Interaction with plan
 
 `sdd-plan` must:
 1. Detect whether the project uses single-file or per-milestone plans
@@ -191,7 +191,7 @@ directly, as in the current model.
 3. When creating a new milestone plan, assign the next milestone ID and
    add it to the index table
 
-### Interaction with sdd-replan
+### Interaction with replan
 
 `sdd-replan` must:
 1. Identify which milestone's plan is affected by the replan trigger
@@ -200,7 +200,7 @@ directly, as in the current model.
 4. Cross-milestone replans (e.g., moving tasks from M2 to M3) must update
    both milestone files and the index
 
-### Interaction with sdd-implement
+### Interaction with implement
 
 `sdd-implement` must:
 1. Read the active milestone's plan file (identified via the index or by
@@ -244,6 +244,6 @@ directly, as in the current model.
 
 ### Q-IMPL-002: Per-milestone activation threshold heuristics
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §Single-Milestone Fallback — "sdd-plan detects that the project scope warrants splitting"
+**Spec reference**: §Single-Milestone Fallback — "plan detects that the project scope warrants splitting"
 **Decision**: Added concrete heuristics in the skill instruction: activate per-milestone structure when chunk count exceeds ~10, plan would exceed ~300 lines, or work spans multiple distinct delivery scopes.
 **Rationale**: The spec intentionally leaves the threshold to judgment. Concrete heuristics give the operator a starting point without being rigid (the "~" prefix signals approximation). Without numbers, different sessions would apply inconsistent thresholds.

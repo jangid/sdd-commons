@@ -163,7 +163,7 @@ sole-`.sdd-version`-gate discipline Chunks 0–5 used so the LIVE v3 repo's beha
 untouched.
 **Rationale**: There is no `docs/ws/` under marker `3`, so an ungated picker would break
 v3 solo use. The gate is consistent with `ws-layout.md` §.sdd-version gate (marker != 4
-routes to the sdd-migrate / v3 path).
+routes to the migrate / v3 path).
 
 ### Q-IMPL-017: Research early-exit recording shape
 **Tier**: 2 (spec ambiguity)

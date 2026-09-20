@@ -204,7 +204,7 @@ vocabulary, so no code change follows. See `docs/spec/adversarial-verify.md`.
 
 [Amended 2026-09-18, harness-p4 — REQ-REDB-HARNESSP4-001, owned by
 `adversarial-verify.md`] The gc criterion for these cells reads "`python3
-tools/sdd-gc.py --report` raises no new finding **on a `pending-red` cell**"; the
+tools/gc.py --report` raises no new finding **on a `pending-red` cell**"; the
 `[traceability-aggregate]` warning raised between a per-workstream traceability
 write and the orchestrator's post-gate regeneration (§Aggregate Regeneration
 Ownership) is the **designed handshake** and is expected, not a finding.
@@ -332,7 +332,7 @@ skill regenerates the aggregate after its per-ws write **unless it was
 dispatched with a write scope that omits `docs/requirements/traceability.md`**.
 See §Aggregate Regeneration Ownership above.
 
-### Q-IMPL-012: sdd-requirements (a shared-corpus skill) writes into a per-ws file
+### Q-IMPL-012: requirements (a shared-corpus skill) writes into a per-ws file
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Per-Workstream File Shape ("both new ws-prefixed requirements and
 pre-existing shared requirements the workstream re-uses may appear as rows owned by this

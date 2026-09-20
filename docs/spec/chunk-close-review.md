@@ -211,7 +211,7 @@ entries, or code fixes — all of which are durable artifacts. Persisting the
 report adds files nobody reads after the first session (validated by rubric
 M1 rework prompt experience — see RS-002).
 
-### Integration with sdd-implement
+### Integration with implement
 
 The chunk close checklist integrates into `sdd-implement`'s existing
 process at the boundary between chunks:
@@ -260,6 +260,6 @@ is more granular and runs more frequently.
 
 ### Q-IMPL-001: Step 5 (Handle Spec Gaps) folded into Q-IMPL Protocol
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §Integration with sdd-implement, step 8 ("Proceed to chunk N+1")
-**Decision**: Removed the former Step 5 (Handle Spec Gaps) entirely. Q-IMPL Tier 3 covers spec gaps with more structure (stop, escalate, classify). The "Do NOT" rules (no silent additions, no assumptions, no verification skipping) were folded into sdd-implement's Rules section.
+**Spec reference**: §Integration with implement, step 8 ("Proceed to chunk N+1")
+**Decision**: Removed the former Step 5 (Handle Spec Gaps) entirely. Q-IMPL Tier 3 covers spec gaps with more structure (stop, escalate, classify). The "Do NOT" rules (no silent additions, no assumptions, no verification skipping) were folded into implement's Rules section.
 **Impact**: Step numbering cascade adjusted — Step 5 is now Milestone Checkpoints, Step 6 is Completion.
