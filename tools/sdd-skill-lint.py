@@ -273,6 +273,21 @@ REQUIRED = [
      "fix": "keep the `GIT_STATE` mention in SKILL.md §The gate — its defining section is "
             "docs/spec/harness-write-scope.md §Git-State Observation; its producer lives in "
             "skills/sdd-orchestrate/references/write-scope.md"},
+    # -- harness-p6 contract rows (REQ-LINT-HARNESSP6-003): the L2 gate token
+    #    `CONVERGENCE:` gets the same producer/consumer pair that guards
+    #    `COMMIT:` (skill-lint-v5.md §`REQUIRED` Row — `CONVERGENCE:`).
+    {"file": "skills/sdd-orchestrate/references/loop-control.md",
+     "pattern": r"CONVERGENCE:", "min": 1,
+     "reason": "`CONVERGENCE:` L2 gate token producer — §5 order item 6c (REQ-LINT-HARNESSP6-003)",
+     "fix": "keep the `CONVERGENCE:` line in loop-control.md §5 item 6c / §5b — its defining "
+            "section is docs/spec/harness-loop-control.md §Convergence Signal; its consumer "
+            "lives in skills/sdd-orchestrate/SKILL.md §The gate"},
+    {"file": "skills/sdd-orchestrate/SKILL.md",
+     "pattern": r"CONVERGENCE:", "min": 1,
+     "reason": "`CONVERGENCE:` one-line summary in §The gate signal order (REQ-LINT-HARNESSP6-003)",
+     "fix": "keep the `CONVERGENCE:` line in SKILL.md §The gate — its defining "
+            "section is docs/spec/harness-loop-control.md §Convergence Signal; its producer "
+            "lives in skills/sdd-orchestrate/references/loop-control.md"},
 ]
 
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
@@ -861,9 +876,14 @@ def self_test() -> int:
             # every rule-table row carries a fix (the mutation loop above proves REQUIRED;
             # FORBIDDEN rows are asserted by shape)
             check(all(r.get('fix') for r in FORBIDDEN), "FORBIDDEN row without fix")
-            # harness-p2 adds four REQUIRED rows (RED_VERDICT producer/consumer,
-            # REVIEW: CONTRADICTION, Material `affects`) — REQ-LINT-HARNESSP2-001
-            check(len(REQUIRED) >= 32, f"expected the harness-p2 REQUIRED rows (>= 32), found {len(REQUIRED)}")
+            # harness-p2 added four REQUIRED rows (RED_VERDICT producer/consumer,
+            # REVIEW: CONTRADICTION, Material `affects`) — REQ-LINT-HARNESSP2-001.
+            # harness-p6 replaces that `>=` bound with the exact total: this
+            # cycle's three pairs (`PLAN:` ×2, `GIT_STATE` ×2, `CONVERGENCE:` ×2)
+            # are all present, and the table counts rows, not files, so the rows
+            # that share a target file are distinct rows
+            # (skill-lint-v5.md §Self-Test Extension, REQ-LINT-HARNESSP6-003).
+            check(len(REQUIRED) == 40, f"expected exactly 40 REQUIRED rows, found {len(REQUIRED)}")
             # d2 negative: a SKILL.md carrying only `RED_VERDICT: HELD` must NOT
             # satisfy the review-verdict consumer row (the `(?<!RED_)` lookbehind).
             d2 = next((r for r in REQUIRED
@@ -920,6 +940,21 @@ def self_test() -> int:
                       "`GIT_STATE` row fix must point at harness-write-scope.md §Git-State Observation")
                 check(":" not in r["pattern"] and "|" not in r["pattern"],
                       f"`GIT_STATE` row pattern must carry no trailing colon and no alternation: {r['pattern']}")
+            # `CONVERGENCE:` is an own-line gate token (item 6c), so unlike
+            # `GIT_STATE` its pattern keeps the trailing colon
+            # (REQ-LINT-HARNESSP6-003).
+            conv_rows = [r for r in REQUIRED if r["pattern"] == r"CONVERGENCE:"]
+            check(len(conv_rows) == 2, f"expected two `CONVERGENCE:` REQUIRED rows, found {len(conv_rows)}")
+            check({r["file"] for r in conv_rows} == {
+                      "skills/sdd-orchestrate/references/loop-control.md",
+                      "skills/sdd-orchestrate/SKILL.md"},
+                  "`CONVERGENCE:` pair must target loop-control.md (producer) and SKILL.md (consumer)")
+            for r in conv_rows:
+                check("harness-loop-control.md §Convergence Signal" in r["fix"],
+                      "`CONVERGENCE:` row fix must point at harness-loop-control.md §Convergence Signal")
+                check(re.search(r["pattern"], "CONVERGENCE: REQ-LINT-HARNESSP6-003 (review, red) — 2 layers")
+                      is not None,
+                      f"`CONVERGENCE:` row pattern no longer matches the token: {r['pattern']}")
             # -- 7c. [template-drift] (REQ-LINT-HARNESSP4-001): the four pair rows
             #       compare byte-identical on the shipped set (skills + docs/spec
             #       copied to a temp root); one character changed inside the RED

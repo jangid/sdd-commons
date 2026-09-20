@@ -542,7 +542,7 @@ line at position 6c, with a session-scoped in-memory ledger, adding no finding
 field, no fifth layer and no durable artifact.
 **Depends on**: Chunk 8.
 **Tasks**:
-1. [ ] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** State the
+1. [x] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** State the
    cluster rule in `docs/spec/harness-loop-control.md`'s consumer texts and in
    `skills/sdd-orchestrate/references/loop-control.md`: the three conditions
    (different layers or second-executors; same cycle by the `research_id` stamp;
@@ -561,13 +561,13 @@ field, no fifth layer and no durable artifact.
    sections, a file-level-only match renders nothing** — traces to
    `docs/spec/harness-loop-control.md` §Convergence Signal — L2
    (REQ-HARN-HARNESSP6-002).
-2. [ ] [implement] State the ledger: session-scoped, in memory, of the same class as
+2. [x] [implement] State the ledger: session-scoped, in memory, of the same class as
    the loop counters, holding exactly three fields per finding
    (`key`, `layer`, `gate`). No finding text, nothing on disk, never read by any
    skill's phase detection, discarded at session end — traces to
    `docs/spec/harness-loop-control.md` §Convergence Signal — L2 → The ledger
    (REQ-HARN-HARNESSP6-002).
-3. [ ] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** State the
+3. [x] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** State the
    window in terms of the amended key rules: evaluated at **every** gate over
    everything recorded so far; a cluster formed under **any** of the three key
    rules (shared id, sectionless file, retained `(file, section)`) renders
@@ -576,7 +576,7 @@ field, no fifth layer and no durable artifact.
    cycle — and **never** into §Next Steps — traces to
    `docs/spec/harness-loop-control.md` §Convergence Signal — L2 → The window
    (REQ-HARN-HARNESSP6-002).
-4. [ ] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** Render the
+4. [x] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** Render the
    own-line token `CONVERGENCE:` at position **6c** of the gate signal order —
    after 6b (`PLAN:`) and immediately before 7 (`TELEMETRY:`) — naming the
    cluster's **key in whichever of the three shapes formed it** (the shared id;
@@ -589,11 +589,11 @@ field, no fifth layer and no durable artifact.
    in its non-divergent summary — traces to
    `docs/spec/harness-loop-control.md` §Rendering and position and Q-REQ-P6-B
    (REQ-ORCH-HARNESSP6-001).
-5. [ ] [implement] Make and state its informational status: no option set, never
+5. [x] [implement] Make and state its informational status: no option set, never
    pauses the gate, never withholds `proceed` — traces to
    `docs/spec/harness-loop-control.md` §Rendering and position
    (REQ-ORCH-HARNESSP6-001).
-6. [ ] [implement] State the shipped scope explicitly — shared id primary,
+6. [x] [implement] State the shipped scope explicitly — shared id primary,
    sectionless file, retained `(file, section)` — with the **measured**
    origin-case recall (Chunk 8: 0 of the 3 harness-p3 §L2 members) as the
    accepted cost of shipping without a root-cause field or a fifth layer, so
@@ -605,7 +605,7 @@ field, no fifth layer and no durable artifact.
    that the `(file, section)` key now has two consumers — traces to
    `docs/spec/harness-loop-control.md` §Shipped scope
    (REQ-ORCH-HARNESSP6-002).
-7. [ ] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** Add the
+7. [x] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** Add the
    key-parser scenario group (**five** cases: different layers citing the same
    `REQ-*` id with different sections **cluster** — the primary key; different
    layers naming the same file in which the parser finds **no section** cluster
@@ -623,7 +623,7 @@ field, no fifth layer and no durable artifact.
    traces to
    `docs/spec/harness-loop-control.md` §Verification → Automated
    (REQ-HARN-HARNESSP6-002, REQ-ORCH-HARNESSP6-001, REQ-ORCH-HARNESSP6-002).
-8. [ ] [implement] Append the `CONVERGENCE:` `REQUIRED` row **pair** to
+8. [x] [implement] Append the `CONVERGENCE:` `REQUIRED` row **pair** to
    `tools/sdd-skill-lint.py` (producer `references/loop-control.md` §5 item 6c,
    consumer `SKILL.md` §The gate), extend `--self-test`'s mutation loop to the
    pair, and assert the **new `len(REQUIRED)` total exactly** — the table counts
@@ -631,7 +631,7 @@ field, no fifth layer and no durable artifact.
    `CONVERGENCE:` ×2) are now all present — traces to
    `docs/spec/skill-lint-v5.md` §`REQUIRED` Row — `CONVERGENCE:` and
    §Self-Test Extension (REQ-LINT-HARNESSP6-003, REQ-LINT-HARNESSP6-001).
-9. [ ] [verify] Assert the three invariants hold: no file under `docs/` is created
+9. [x] [verify] Assert the three invariants hold: no file under `docs/` is created
    by L2 — **demonstrated, not asserted (plan-review M4)**: capture
    `git ls-files docs/` before and after a run of the task-7 ledger/gate-render
    fixture in which a cluster actually fires, and assert the two listings are
@@ -646,7 +646,7 @@ field, no fifth layer and no durable artifact.
    telemetry record key was added — traces to
    `docs/spec/harness-loop-control.md` §Three invariants
    (REQ-ORCH-HARNESSP6-002).
-10. [ ] [verify] Assert no leaf `RETURN:` shape in
+10. [x] [verify] Assert no leaf `RETURN:` shape in
     `docs/spec/harness-return-contract.md` or in any dispatch template gained a
     field for L2 — traces to `docs/spec/harness-loop-control.md` §Acceptance
     Criteria (REQ-HARN-HARNESSP6-002, REQ-ORCH-HARNESSP6-002).

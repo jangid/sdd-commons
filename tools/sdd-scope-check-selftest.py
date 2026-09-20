@@ -1984,6 +1984,276 @@ def scenario_g5(repo: str) -> tuple[bool, str, list[str]]:
     return ok, f"{f_absent.token} + {f_set.token}", f_absent.lines + f_set.lines
 
 
+# ---------------------------------------------------------------------------
+# harness-loop-control.md §Convergence Signal — L2 — scenarios L1-L9
+# ---------------------------------------------------------------------------
+#
+# L2 is orchestrator-derived: nothing below adds a field to any leaf's RETURN:
+# shape, nothing is written to disk, and the ledger is a plain in-memory object
+# discarded when the scenario returns. The key rules are applied in the spec's
+# order — shared id (primary), sectionless file, equal (file, section)
+# (retained) — and the false-positive control is retained unchanged: in a file
+# that HAS sections, a file-level-only match renders nothing.
+
+
+@dataclass(frozen=True)
+class ConvFinding:
+    """One layer's finding, as the orchestrator already has it at a gate.
+
+    ``section`` is what the finding's own ref names; whether a section key is
+    *available* is decided by the key parser against the file itself
+    (:func:`parser_sections`), never by the finding's say-so.
+    """
+
+    layer: str  # blue | chunk-verifier | review | red
+    research_id: str
+    gate: str
+    file: str | None = None
+    section: str | None = None
+    cited_id: str | None = None  # a REQ-* or deviation-entry id
+
+
+def parser_sections(repo: str, path: str) -> list[str]:
+    """Sections the arbitration key parser finds in ``path`` — empty when there are none.
+
+    A ``.jsonl``, ``.py`` or other non-Markdown file has no section structure to
+    key on, and a Markdown file with no headings has none either. This is the
+    input to key rule 2 (sectionless file).
+    """
+    full = os.path.join(repo, path)
+    if not path.endswith(MARKDOWN_SUFFIXES) or not os.path.isfile(full):
+        return []
+    with open(full, encoding="utf-8") as fh:
+        return [name for _, name in _headings(fh.read().splitlines())]
+
+
+def convergence_key(repo: str, f: ConvFinding) -> tuple[str, ...] | None:
+    """The finding's cluster key under the three key rules, applied in order."""
+    if f.cited_id:  # key rule 1 — shared id (primary), whatever the file and section
+        return ("id", f.cited_id)
+    if f.file is None:
+        return None
+    if not parser_sections(repo, f.file):  # key rule 2 — sectionless file
+        return ("file", f.file)
+    if f.section is None:
+        # A sectioned file matched at file level only: the retained
+        # false-positive control renders nothing.
+        return None
+    # key rule 3 — equal (file, section), reusing the ratified leading-ordinal strip
+    return ("file-section", f.file, section_name(f.section.lstrip("§")))
+
+
+def convergence_line(key: tuple[str, ...], layers: list[str]) -> str:
+    """The own-line 6c token, naming the key in whichever shape formed the cluster."""
+    display = key[1] if key[0] in ("id", "file") else f"{key[1]} §{key[2].lstrip('§')}"
+    return f"CONVERGENCE: {display} ({', '.join(layers)}) — {len(layers)} layers"
+
+
+class ConvergenceLedger:
+    """Session-scoped, in-memory finding ledger — three fields per finding.
+
+    The ledger belongs to one cycle (``research_id``), which is how condition
+    (ii) is enforced: a finding stamped with another cycle's id is never
+    recorded. Entries hold ``key``, ``layer`` and ``gate`` only — no finding
+    text — and nothing is written to disk.
+    """
+
+    def __init__(self, research_id: str) -> None:
+        self.research_id = research_id
+        self.entries: list[dict] = []
+        self.rendered: set[tuple[str, ...]] = set()
+
+    def record(self, repo: str, f: ConvFinding) -> list[str]:
+        """Record one finding; return the ``CONVERGENCE:`` lines this gate renders."""
+        if f.research_id != self.research_id:  # condition (ii)
+            return []
+        key = convergence_key(repo, f)
+        if key is None:
+            return []
+        self.entries.append({"key": key, "layer": f.layer, "gate": f.gate})
+        layers: list[str] = []
+        for e in self.entries:  # condition (i) — different layers or second-executors
+            if e["key"] == key and e["layer"] not in layers:
+                layers.append(e["layer"])
+        if len(layers) < 2 or key in self.rendered:
+            return []  # a third layer joining a rendered cluster does not re-render it
+        self.rendered.add(key)
+        return [convergence_line(key, layers)]
+
+
+def render_gate(plan_line: str, conv_lines: list[str], telemetry_line: str) -> list[str]:
+    """A stage gate block: 6b, then 6c, then 7, then the options."""
+    return [plan_line, *conv_lines, telemetry_line,
+            "options: proceed │ loop-back-to-fix │ stop"]
+
+
+def _conv_repo(repo: str) -> None:
+    """Write the files the key parser is asked about (a sectioned one and two sectionless)."""
+    write(repo, "docs/spec/telemetry.md",
+          "# Telemetry\n\n## Writer rule\n\ntext\n\n## Reader rule\n\ntext\n")
+    write(repo, "docs/ws/harness/notes.jsonl", '{"rec": 1}\n{"rec": 2}\n')
+    write(repo, "tools/reader.py", "def summarize():\n    return 0\n")
+
+
+def _conv_run(repo: str, findings: list[ConvFinding], rid: str = "RS-HARNESSP6-001") -> list[str]:
+    """Feed findings to a fresh ledger in order; return every line rendered."""
+    ledger = ConvergenceLedger(rid)
+    lines: list[str] = []
+    for f in findings:
+        lines.extend(ledger.record(repo, f))
+    return lines
+
+
+def scenario_l1(repo: str) -> tuple[bool, str, list[str]]:
+    """Key rule 1 (primary): different layers, same `REQ-*` id, different sections -> cluster."""
+    _conv_repo(repo)
+    lines = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", "docs/spec/telemetry.md",
+                    "§Writer rule", "REQ-TELEM-HARNESSP6-001"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/ws/harness/verification.md",
+                    "§Issues Found", "REQ-TELEM-HARNESSP6-001"),
+    ])
+    ok = len(lines) == 1 and lines[0].startswith("CONVERGENCE: REQ-TELEM-HARNESSP6-001") \
+        and lines[0].endswith("2 layers")
+    return ok, lines[0] if lines else "no line", lines
+
+
+def scenario_l2(repo: str) -> tuple[bool, str, list[str]]:
+    """Key rule 2: different layers naming one sectionless file -> cluster on the file alone.
+
+    The `.jsonl` shape of the convergence the Chunk 8 replay found and a
+    section-granular key structurally cannot catch: a JSONL data file has no
+    heading for a `(file, section)` key to be equal on.
+    """
+    _conv_repo(repo)
+    path = "docs/ws/harness/notes.jsonl"
+    ok_parser = parser_sections(repo, path) == []
+    lines = _conv_run(repo, [
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", path),
+        ConvFinding("blue", "RS-HARNESSP6-001", "verify", path),
+    ])
+    ok = ok_parser and len(lines) == 1 and lines[0] == \
+        f"CONVERGENCE: {path} (red, blue) — 2 layers"
+    return ok, lines[0] if lines else "no line", lines
+
+
+def scenario_l3(repo: str) -> tuple[bool, str, list[str]]:
+    """Retained noise guard: different layers, same SECTIONED file, different sections -> nothing.
+
+    The decisive false-positive control: two findings in two sections of one
+    prose file are not one root cause, and key rule 2 does not reach a file the
+    parser does find sections in.
+    """
+    _conv_repo(repo)
+    ok_parser = parser_sections(repo, "docs/spec/telemetry.md") == ["§Telemetry", "§Writer rule",
+                                                                   "§Reader rule"]
+    lines = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", "docs/spec/telemetry.md", "§Writer rule"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/spec/telemetry.md", "§Reader rule"),
+    ])
+    # and the file-level-only match in that same sectioned file renders nothing either
+    file_only = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", "docs/spec/telemetry.md"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/spec/telemetry.md"),
+    ])
+    ok = ok_parser and lines == [] and file_only == []
+    return ok, "no cluster (sectioned file, different sections)", lines + file_only
+
+
+def scenario_l4(repo: str) -> tuple[bool, str, list[str]]:
+    """Condition (i): the SAME layer twice on one key -> no cluster."""
+    _conv_repo(repo)
+    lines = _conv_run(repo, [
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/spec/telemetry.md", "§Writer rule"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/spec/telemetry.md", "§Writer rule"),
+    ])
+    same_id = _conv_run(repo, [
+        ConvFinding("blue", "RS-HARNESSP6-001", "implement", cited_id="REQ-HARN-HARNESSP6-002"),
+        ConvFinding("blue", "RS-HARNESSP6-001", "verify", cited_id="REQ-HARN-HARNESSP6-002"),
+    ])
+    ok = lines == [] and same_id == []
+    return ok, "no cluster (same layer)", lines + same_id
+
+
+def scenario_l5(repo: str) -> tuple[bool, str, list[str]]:
+    """Key rule 3 (retained, demoted): different layers, equal `(file, section)` -> cluster.
+
+    Reuses the ratified leading-ordinal strip — `§3. Writer rule` and
+    `§Writer rule` are the same key (REQ-ARB-HARNESSP5-003). No recall claim
+    rests on this rule; the Chunk 8 replay measured it at zero clusters over
+    three cycles.
+    """
+    _conv_repo(repo)
+    lines = _conv_run(repo, [
+        ConvFinding("chunk-verifier", "RS-HARNESSP6-001", "implement",
+                    "docs/spec/telemetry.md", "§3. Writer rule"),
+        ConvFinding("review", "RS-HARNESSP6-001", "implement",
+                    "docs/spec/telemetry.md", "§Writer rule"),
+    ])
+    ok = lines == ["CONVERGENCE: docs/spec/telemetry.md §Writer rule "
+                   "(chunk-verifier, review) — 2 layers"]
+    return ok, lines[0] if lines else "no line", lines
+
+
+def scenario_l6(repo: str) -> tuple[bool, str, list[str]]:
+    """Condition (ii): two layers, same key, DIFFERENT `research_id` -> no cluster."""
+    _conv_repo(repo)
+    lines = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "specs", cited_id="REQ-ORCH-HARNESSP6-001"),
+        ConvFinding("red", "RS-HARNESSP5-001", "verify", cited_id="REQ-ORCH-HARNESSP6-001"),
+    ])
+    return lines == [], "no cluster (different research_id)", lines
+
+
+def scenario_l7(repo: str) -> tuple[bool, str, list[str]]:
+    """Gate rendering: the line sits between 6b (`PLAN:`) and 7 (`TELEMETRY:`), `proceed` available."""
+    _conv_repo(repo)
+    conv = _conv_run(repo, [
+        ConvFinding("review", "RS-HARNESSP6-001", "verify", cited_id="REQ-ORCH-HARNESSP6-001"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", cited_id="REQ-ORCH-HARNESSP6-001"),
+    ])
+    block = render_gate("PLAN: INCOMPLETE (6 of 7 ticked)", conv, "TELEMETRY: rec 4")
+    idx = [i for i, ln in enumerate(block) if ln.startswith("CONVERGENCE:")]
+    ok = (
+        len(conv) == 1
+        and len(idx) == 1
+        and block[idx[0] - 1].startswith("PLAN:")
+        and block[idx[0] + 1].startswith("TELEMETRY:")
+        and "proceed" in block[-1]  # informational: the line never withholds proceed
+        and not any(o in block[idx[0]] for o in ("│", "proceed"))  # no option set of its own
+    )
+    return ok, block[idx[0]] if idx else "no line", block
+
+
+def scenario_l8(repo: str) -> tuple[bool, str, list[str]]:
+    """Invariant 1 demonstrated: a run in which a cluster fires adds no path under `docs/`."""
+    _conv_repo(repo)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "convergence fixture files")
+    before = git(repo, "ls-files", "docs/").stdout.splitlines()
+    conv = _conv_run(repo, [
+        ConvFinding("blue", "RS-HARNESSP6-001", "implement", "docs/ws/harness/notes.jsonl"),
+        ConvFinding("red", "RS-HARNESSP6-001", "verify", "docs/ws/harness/notes.jsonl"),
+    ])
+    after = git(repo, "ls-files", "docs/").stdout.splitlines()
+    ok = len(conv) == 1 and before == after
+    return ok, f"cluster fired, git ls-files docs/ unchanged ({len(after)} paths)", conv
+
+
+def scenario_l9(repo: str) -> tuple[bool, str, list[str]]:
+    """Q-IMPL-HARNESSP6-001: a THIRD layer joining a rendered cluster does not re-render it."""
+    _conv_repo(repo)
+    ledger = ConvergenceLedger("RS-HARNESSP6-001")
+    first = ledger.record(repo, ConvFinding("review", "RS-HARNESSP6-001", "specs",
+                                            cited_id="REQ-HARN-HARNESSP6-002"))
+    second = ledger.record(repo, ConvFinding("red", "RS-HARNESSP6-001", "verify",
+                                             cited_id="REQ-HARN-HARNESSP6-002"))
+    third = ledger.record(repo, ConvFinding("blue", "RS-HARNESSP6-001", "verify",
+                                            cited_id="REQ-HARN-HARNESSP6-002"))
+    ok = first == [] and len(second) == 1 and third == [] and len(ledger.entries) == 3
+    return ok, second[0] if second else "no line", second + third
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -2017,6 +2287,15 @@ SCENARIOS = [
     ("A3", "ARB: one round-2 key on an untouched second file -> class b under both readings", scenario_a3),
     ("A1m-i", "ARB mutation: a deleted round-2 line makes A1 fail", scenario_a1_mi),
     ("A1m-ii", "ARB mutation: §Conventions flipped to a changed section makes A1 fail", scenario_a1_mii),
+    ("L1", "L2 key rule 1: different layers, same REQ-* id, different sections -> cluster", scenario_l1),
+    ("L2", "L2 key rule 2: different layers, one sectionless (.jsonl) file -> cluster on the file", scenario_l2),
+    ("L3", "L2 noise guard: sectioned file, different sections (and file-level only) -> nothing", scenario_l3),
+    ("L4", "L2 condition (i): the same layer twice -> no cluster", scenario_l4),
+    ("L5", "L2 key rule 3 retained: equal (file, section), ordinal-stripped -> cluster", scenario_l5),
+    ("L6", "L2 condition (ii): same key, different research_id -> no cluster", scenario_l6),
+    ("L7", "L2 rendering: CONVERGENCE: between PLAN: (6b) and TELEMETRY: (7), proceed available", scenario_l7),
+    ("L8", "L2 invariant: a run in which a cluster fires adds no path under docs/", scenario_l8),
+    ("L9", "L2 Q-IMPL-HARNESSP6-001: a third layer does not re-render the cluster", scenario_l9),
 ]
 
 
@@ -2031,7 +2310,8 @@ def main(argv: list[str] | None = None) -> int:
         description=(
             f"Replay the {len(SCENARIOS)} write-scope scenarios of docs/spec/harness-write-scope.md "
             "§Verification, docs/spec/telemetry.md §Third Observation, "
-            "docs/spec/arbitrated-handoff.md §Section Resolution and "
+            "docs/spec/arbitrated-handoff.md §Section Resolution, "
+            "docs/spec/harness-loop-control.md §Convergence Signal — L2 and "
             "docs/spec/dispatch-snapshot-base.md §Snapshot Base Rule in throwaway git repos. "
             "Exit 0 when all pass."
         ),

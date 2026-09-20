@@ -652,7 +652,8 @@ options" clause that governs item 7 covers 6c in the same enumeration.
   identical `change` lines is classified stuck by rule (b).
 - Fixture: a checkpoint composed from the RS-008 Schema 1 example is ≤ 15 lines
   and contains no line matching `^\s+File ".*", line \d+` or `Traceback`.
-- Convergence key-parser scenario group (REQ-HARN-HARNESSP6-002), five cases:
+- Convergence key-parser scenario group (REQ-HARN-HARNESSP6-002),
+  `tools/sdd-scope-check-selftest.py` scenarios **L1-L5**, five cases:
   two findings from **different** layers citing the same `REQ-*` id with
   different sections **cluster** (key rule 1, the primary key); two from
   different layers naming the same file in which the key parser finds **no
@@ -661,15 +662,22 @@ options" clause that governs item 7 covers 6c in the same enumeration.
   **different** sections do **not** (the retained noise guard); two from the
   **same** layer do **not**; two from different layers with equal
   `(file, section)` **cluster** (key rule 3, retained).
-- Fixture: two findings from different layers stamped with **different**
+- Fixture (**L6**): two findings from different layers stamped with **different**
   `research_id` values do not cluster (condition (ii)).
-- Gate rendering fixture: a gate with one complete cluster shows the
+- Gate rendering fixture (**L7**): a gate with one complete cluster shows the
   `CONVERGENCE:` line between the `PLAN:` position (6b) and the `TELEMETRY:`
   line (7), and shows `proceed` available while it is displayed
   (REQ-ORCH-HARNESSP6-001).
-- Fixture: after a full orchestrated cycle in which at least one cluster fired,
-  `git ls-files docs/` gains no new path and no `sdd-*` skill's phase-detection
-  branch reads the convergence ledger (REQ-ORCH-HARNESSP6-002).
+- Fixture (**L8**), demonstrated rather than asserted: `git ls-files docs/` is
+  captured before and after a run of the ledger/gate-render fixture **in which a
+  cluster actually fires**, and the two listings are identical. The fixture run
+  is the comparand because nothing inside this cycle makes a real cluster fire
+  during a real orchestrated cycle; the grep that no `sdd-*` skill's
+  phase-detection branch reads the convergence ledger is the second half of the
+  same invariant (REQ-ORCH-HARNESSP6-002).
+- Fixture (**L9**, Q-IMPL-HARNESSP6-001): a **third** layer joining an
+  already-rendered cluster does **not** re-render it — the ledger keeps all
+  three entries and emits no second line (REQ-HARN-HARNESSP6-002).
 
 ### Manual
 - Run one orchestrated stage to three `REJECT`s: a fourth gate shows the

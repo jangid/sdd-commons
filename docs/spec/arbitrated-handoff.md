@@ -84,6 +84,14 @@ Key parsing from a review line `- C1: <what> — [file:section] — affects
 | `section` | the text after that `:`, with a leading `§` or `#`s stripped, **then a leading ordinal `\d+[.)]?\s*` stripped** (`§3. Foo` ≡ `§Foo` — the rule `references/loop-control.md` §2a applies when computing `K_N`; added here 2026-09-19, REQ-ARB-HARNESSP5-003, closing Open Question 3), whitespace collapsed, kept case-sensitive → stored as `§Name`; missing → `?` |
 | `affects` | every `REQ-[A-Z]+(-[A-Z0-9]+)?-\d{3}` id in the `affects` clause; `affects —` or none → `∅` |
 
+**[2026-09-20, harness-p6 — REQ-ORCH-HARNESSP6-002.]** This key now has **two**
+consumers: the round-arbitration rule in this spec, and key rule 3 of
+`harness-loop-control.md` §Convergence Signal — L2, which reuses it — with this
+section's ratified leading-ordinal strip — as its **retained, demoted** cluster
+key. A change to the key's shape or to the strip rule therefore affects both;
+the L2 consumer carries no recall claim, the Chunk 8 replay having measured the
+`(file, section)` key at zero clusters over three cycles.
+
 A line whose `[file:section]` cannot be parsed at all is retained with
 `section = ?`, `affects = ∅` and participates only in file-level comparison.
 `fix[N].written` comes from §Section Resolution; when that is unavailable for a
