@@ -126,8 +126,12 @@ recorded as Q-IMPL-MARKETPLACE-003 below: the acting workstream's own
 execution artifacts under `docs/ws/<ws>/` necessarily change after the
 rename-chunk-close sha, so the `--name-only` check excepts that one directory,
 exactly as `skill-namespace-rename.md` already excepts it for
-REQ-NAME-MARKETPLACE-005. The plan must carry this ordering as an explicit chunk
-constraint — it is not inferable from the chunk list alone. It is also why the
+REQ-NAME-MARKETPLACE-005. A second carve-out is needed on the bundled-tool half
+of that same window and is recorded as Q-IMPL-MARKETPLACE-019 below: the
+packaging chunk *creates* the bundled copies after the rename-chunk-close sha,
+so the check measures modification of bundled-tool content, not the mere
+appearance of a newly added copy. The plan must carry this ordering as an
+explicit chunk constraint — it is not inferable from the chunk list alone. It is also why the
 YAML sample in §The two local hooks already spells the **post-rename** tool
 names: the config is authored inside the rename chunk, after the tool filenames
 change, so the sample is the form that is actually committed.
@@ -229,3 +233,39 @@ parses the config: the set of excluded areas is read out of the `exclude` value
 and compared against the table above, and every pattern line is checked to carry
 a non-empty reason comment. Read "YAML comment" in that criterion as "comment in
 the configuration file".
+
+### Q-IMPL-MARKETPLACE-019: the bundled-tool half of the `--name-only` window measures modification, not creation
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Normalisation happens inside this cycle — "lists no path
+under `docs/ws/`, `docs/research/` or `docs/superpowers/` and no bundled tool"
+**Date**: 2026-09-21 (implement stage, Chunk 7 task 3)
+
+**Context**: the same criterion Q-IMPL-MARKETPLACE-003 carves out for the acting
+workstream's directory is unsatisfiable as literally written on its *second*
+half too, and for the same structural reason. The bundled copies
+`skills/orchestrate/tools/gc.py` and `skills/orchestrate/tools/telemetry.py` do
+not exist at the rename-chunk-close sha: they are **created** by the packaging
+chunk, which the plan deliberately orders *after* the rename chunk. Any run of
+`git diff <rename-chunk-close sha> HEAD --name-only` at the end of this cycle
+therefore lists two bundled tool paths, with status `A`, no matter how correct
+the work is.
+
+**Decision**: the bundled-tool half of the criterion is read as "no bundled tool
+is **modified** inside the window" — status `M` or `D` on a bundled tool source
+or on a copy that already existed at the window's base. A status `A` addition by
+the packaging chunk is not a normalisation rewrite and does not violate it. As
+with Q-IMPL-MARKETPLACE-003, the distinction is applied **by the checking
+script**, from `git diff --name-status`, never by a pasted count or a
+hand-waved allowance. The bundled tool set is likewise derived live — every file
+under `skills/*/tools/` plus the repository-root source of the same basename —
+never pinned as a literal list.
+
+**Impact**: none on what the criterion protects. What the check exists to catch
+is a whole-repository normalisation landing after the rename-chunk-close sha and
+rewriting a bundled tool; that remains caught, because such a rewrite is a
+modification. Three independent observations confirm the protected property
+still holds at this cycle's close: the two bundled tool sources `tools/gc.py`
+and `tools/telemetry.py` do not appear in the window at all; `cmp` between each
+bundled copy and its root source exits 0, so neither copy carries a
+normalisation the source does not; and the forbidden-directory half of the
+criterion reports zero violations outside the Q-IMPL-MARKETPLACE-003 carve-out.

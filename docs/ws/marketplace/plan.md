@@ -725,7 +725,7 @@ reaches its terminal state — an open PR against `main`.
    plugin is the one packaging assumption research could not observe directly —
    traces to `docs/spec/marketplace-packaging.md` §Install verification
    (REQ-PKG-MARKETPLACE-010).
-3. [ ] [verify] Final whole-repository gate, all in one run: the skill linter
+3. [x] [verify] Final whole-repository gate, all in one run: the skill linter
    and its `--self-test` exit 0; `pre-commit run drift-sweep --all-files` and
    `pre-commit run skill-lint --all-files` each exit 0; `pre-commit run
    --all-files` exits 0 and a second immediate run leaves `git status
