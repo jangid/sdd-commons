@@ -717,11 +717,19 @@ in the run that produced it; no corpus-measured literal is pinned here.
 | `sdd-gc.py --report` | 0 | `OK: 9 sweep(s) clean, 0 warning(s), 31 info` |
 | `sdd-skill-lint.py` | 0 | `OK: 25 file(s) clean` |
 | `sdd-skill-lint.py --self-test` | 0 | `SELF-TEST OK: all rule classes fire; …` |
-| `sdd-scope-check-selftest.py` | 0 | `OK: 41/41 scenarios passed` |
+| `sdd-scope-check-selftest.py` | 0 | `OK: N/N scenarios passed`, both sides equal in that run |
 
 The lint summary reads `OK: 25 file(s) clean` with **no warning clause**, exactly
 as this task predicted; the unsatisfiable `0 warning(s)` expectation was not
-restored. `41/41` agrees with `grep -c '^def scenario_'` = 41 in the same run.
+restored. The two sides of that `N/N` are equal to each other and to
+`grep -c '^def scenario_' tools/sdd-scope-check-selftest.py` in the same run.
+**[Corrected 2026-09-20 — verify-stage review C1.** This exit criterion
+previously pinned the literal `41/41` and asserted the grep returned 41. Both
+were true when written and both went stale the moment this cycle's own red
+repair added three scenarios. The criterion is restated as the run-time property
+it was always meant to express — the count the suite reports equals the count the
+grep returns, in the same run — which is how REQ-GC-HARNESSP6-003's criterion
+derives both of its sides. No literal replaces the old one.**]
 
 **Task 2 (as split at the close-out; heading retained as written at the time) — mechanical liveness check over both scopes. NOT ticked: scope (ii)
 does not exist.**

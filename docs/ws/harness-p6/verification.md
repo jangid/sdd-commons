@@ -1,6 +1,6 @@
 ---
 workstream: harness-p6
-status: pending-red
+status: pass
 research_id: RS-HARNESSP6-001
 last_updated: 2026-09-20
 plan_ref: docs/ws/harness-p6/plan.md
@@ -18,8 +18,9 @@ criterion. The plan reads `status: complete` with 49/49 tasks ticked and
 commands exit 0: `sdd-skill-lint.py` prints `OK: 25 file(s) clean` **with no
 warning clause** (the unsatisfiable `0 warning(s)` expectation was not restored),
 `sdd-gc.py --report` prints `OK: 9 sweep(s) clean, 0 warning(s), 31 info`,
-`sdd-scope-check-selftest.py` prints `OK: 41/41 scenarios passed`, and both
-self-tests are green. All **13** `REQ-*-HARNESSP6-*` requirements are verified
+`sdd-scope-check-selftest.py` prints an `OK: N/N scenarios passed` summary whose
+two sides are equal and whose `N` equals `grep -c '^def scenario_'` on that same
+file in the same run — no count is pinned here — and both self-tests are green. All **13** `REQ-*-HARNESSP6-*` requirements are verified
 against their governing acceptance criteria — including the two superseded in
 place, where the governing form was walked and the withdrawn literal deliberately
 **not** run. All **nine** kickoff scope items are delivered; item 8 (L2) landed
@@ -29,10 +30,16 @@ not silent. There are **no regressions** against the workstream branch point
 critical issue. Two Minors, both prose-level and both stated here rather than
 deferred. **§Next Steps is empty, and that is the intended terminal outcome.**
 
-Red team is **enabled** for this stage, so this report carries
-`status: pending-red` and every would-be-`pass` `Verified` cell reads
-`pending-red`. The `pending-red → pass` flip is the orchestrator's at the verify
-gate; this skill never performs it.
+Red team was **enabled** for this stage, so this report was written at
+`status: pending-red` with every would-be-`pass` `Verified` cell reading
+`pending-red`. **[Flipped 2026-09-21 at the verify gate.** The red round
+returned `RED_VERDICT: BROKEN` with five findings — R1 the ninth false
+acceptance criterion of this cycle, R2 a scope under-run, R3/R4/R5 implementation
+defects in L2's key function. All five were fixed in-cycle and mutation-proven,
+none accepted; the verify-stage review then raised C1-C3 as blockers, which were
+also fixed. The orchestrator performed the `pending-red → pass` flip in this
+frontmatter and across all 13 `Verified` cells. The flip is the orchestrator's;
+`sdd-verify` never performs it.**]
 
 ## Quality Gates
 
@@ -42,7 +49,7 @@ gate; this skill never performs it.
 | Drift-sweep self-test (`--self-test`) | pass | rc=0; `SELF-TEST OK: sweeps 5-14 fire once each …`, last clause naming the fence-symmetric Q-IMPL case |
 | Skill lint (`python3 tools/sdd-skill-lint.py`) | pass | rc=0; `OK: 25 file(s) clean` — **no** warning clause, as specified |
 | Skill-lint self-test (`--self-test`) | pass | rc=0; `SELF-TEST OK: all rule classes fire; fix/warn/size/backtick/allow_files fixtures pass` |
-| Write-scope / convergence self-test (`python3 tools/sdd-scope-check-selftest.py`) | pass | rc=0; `OK: 41/41 scenarios passed`, including `G1`–`G5` and `L1`–`L9` |
+| Write-scope / convergence self-test (`python3 tools/sdd-scope-check-selftest.py`) | pass | rc=0; the summary reads `OK: N/N scenarios passed` with both sides equal, and `N` equals `grep -c '^def scenario_' tools/sdd-scope-check-selftest.py` in the same run. The run's `PASS` lines cover every `G`- and every `L`-prefixed scenario the file defines, each count read from that run rather than pinned |
 | Build / package | n/a | documentation-and-tooling corpus; no build target. The three `tools/*.py` entry points are the executable surface and all three run clean |
 | Format / type check | n/a | no formatter or type checker is configured for this repo (`CLAUDE.md` §Quality Checks defines the gates, and they are the five above) |
 
@@ -180,7 +187,7 @@ implement time because `sdd-verify` is what creates the file.
 
 | Criterion | Status | Evidence |
 |-----------|--------|----------|
-| Scope (i) `docs/requirements/index.md` §Out of Scope returns no **live** entry | pending-red | Section extracted heading-to-next-same-or-higher-heading (178 lines): **0** matches of any of the five phrases, therefore **0 live** |
+| Scope (i) `docs/requirements/index.md` §Out of Scope returns no **live** entry | pending-red | Section extracted heading-to-next-same-or-higher-heading: **0** matches of any row in the spec's phrase table — the table is read from `docs/spec/requirements-artifacts.md` at run time rather than copied here, and no row count is pinned — therefore **0 live**. Re-derived at HEAD after the M2 widening |
 | Scope (ii) `docs/ws/harness-p6/verification.md` §Next Steps returns no **live** entry — **the CO-1 half, run here** | pending-red | Re-run over this very file after it was written: §Next Steps holds **0** phrase matches, therefore **0 live**. The section is empty by design (see §Next Steps below) |
 | Scope (ii) is an **enumeration over the glob** `docs/ws/*/verification.md`, not a hand-list (corrected at red R2) | pending-red | `ls docs/ws/*/verification.md \| wc -l` → **6**; the sweep was re-run over all six and reports one row per returned path (§Issues Found → Red round 1). Rows walked = paths returned = 6, both derived from the same run. The pre-R2 run walked **3** and is superseded |
 | Scope (iii) `docs/ws/harness-p5/verification.md` §Next Steps — the artifact this cycle's sweep edited — returns no **live** entry | pending-red | 93 lines, **4** phrase matches, **4** marker-satisfied, **0 live**. This is also the check's **non-vacuity** evidence: the matcher demonstrably fires on real text and is then silenced only by per-item adjacent markers |
@@ -201,7 +208,7 @@ implement time because `sdd-verify` is what creates the file.
 | 6 | REQ-LINT-007's "must not move" list qualified | yes | REQ-LINT-HARNESSP6-002; note at `skill-lint.md:149` |
 | 7 | The stale "says 61" entry struck at archival | yes | REQ-PLAN-HARNESSP6-001 governing form |
 | 8 | **L2 — the cross-layer convergence signal** | yes, **descoped** | See below |
-| 9 | The deferral-backlog sweep | yes | REQ-REQ-HARNESSP6-001; 0 live across all three scopes |
+| 9 | The deferral-backlog sweep | yes | REQ-REQ-HARNESSP6-001; the screen returns 0 live over both enumerated scopes — six paths returned by the glob and six rows walked in the same run, plus §Out of Scope. A screen result, not an absence proof |
 
 **Item 8's weakening is recorded, not silent.** The descope is stated in
 **four** independent places, each dated and each naming its cause: (a) the plan's
@@ -254,8 +261,14 @@ Regression base is the **workstream branch point**
 - `docs/spec/harness-return-contract.md` and
   `skills/sdd-orchestrate/references/dispatch-templates.md` are untouched, so no
   leaf `RETURN:` shape gained a field.
-- All three self-test harnesses exit 0, including every pre-existing scenario
-  (41/41 in the scope-check harness, which was 32 at cycle start).
+- All three self-test harnesses exit 0, including every pre-existing scenario.
+  For the scope-check harness both sides are derived in the same run: the
+  reported scenario count equals `grep -c '^def scenario_'` on the harness at
+  HEAD, and that number is strictly greater than the same grep piped from
+  `git show 0b0287ce:tools/sdd-scope-check-selftest.py` — the branch point. No
+  literal is pinned on either side, because a pinned count re-breaks the next
+  time a scenario lands, which is exactly what happened to the figure this
+  bullet previously carried.
 
 ## Issues Found
 
@@ -283,32 +296,75 @@ Each fix is mutation-proven: reverting it alone makes exactly one scenario fail.
 - R4: `python3 tools/sdd-scope-check-selftest.py 2>&1 | grep '^PASS L11'` — two findings naming `§A` and `§B` of an absent `docs/spec/gone.md` render nothing. Reverting the absence branch makes L11 fail.
 - R5: `python3 tools/sdd-scope-check-selftest.py 2>&1 | grep '^PASS L12'` — a Markdown file whose only `#` line is inside a fenced shell block parses to `[]` sections and its two-layer cluster renders. Reverting to the fence-blind `_headings()` drops the cluster and fails L12.
 
-**The R2 re-run, one row per path the glob returned (6 of 6, 2026-09-20).**
+**The screen re-run at HEAD, one row per path the glob returned (6 of 6,
+2026-09-20).** The table below is the run that stands. It supersedes the table
+first written here, which reported `default` and `harness-p5` as carrying two
+live occurrences each and returned four marker edits for the orchestrator: those
+four edits were in fact part of commit `00e815a`, the very commit that wrote the
+table, so the table was already false when it was committed — a bookkeeping
+error, corrected here rather than explained away. The counts below are from a
+run over all seven scopes at HEAD under the twenty-two-row screen.
 
 | # | Path (`docs/ws/*/verification.md` §Next Steps) | phrase hits | live | note |
 |---|---|---|---|---|
-| 1 | `default` | 2 | **2** | pre-existing, outside this repair's write scope — see the blocked-write note below |
+| 1 | `default` | 3 | **0** | the marker prose added in `00e815a` itself matches a row, which is why the hit count rose from 2 to 3 while live fell to 0 |
 | 2 | `harness-p2` | 0 | 0 | — |
-| 3 | `harness-p3` | 12 | **0** | 15 markers added by this repair's annotation pass |
-| 4 | `harness-p4` | 4 | **0** | 7 markers added by this repair's annotation pass |
-| 5 | `harness-p5` | 6 | **2** | pre-existing; both items are already closed, their markers merely sit *below* the phrase line — see below |
+| 3 | `harness-p3` | 12 | **0** | 15 markers added by this cycle's annotation pass |
+| 4 | `harness-p4` | 5 | **0** | 7 markers from the annotation pass, plus the M6 re-statement below, whose own text matches a row and carries its own marker |
+| 5 | `harness-p5` | 6 | **0** | the two marker-placement edits landed in `00e815a` |
 | 6 | `harness-p6` | 0 | 0 | this report; §Next Steps is empty by design |
+
+Rows walked = 6 = paths the glob returned, both derived from that run. Scope (i)
+`docs/requirements/index.md` §Out of Scope returns 0 hits and 0 live in the same
+run. Total live across all seven scopes: **0**.
 
 Scope (i) `docs/requirements/index.md` §Out of Scope returns **0** hits and
 **0 live** under the widened screen — the narrowing of rows 14-16 is what keeps
 it there: a bare `harness-p<N>` token fires 11 times in that section, every one
 a citation rather than a deferral.
 
-**The four remaining live occurrences, stated rather than deferred.** They are
-`docs/ws/default/verification.md:233` (`revisit`), `:255` (`Follow-up (minor)`),
-`docs/ws/harness-p5/verification.md:311` (`follow-up cycle`, whose `**[Superseded
-2026-09-20 …]**` marker sits at `:313`, two lines below the phrase) and `:386`
-(`in a cycle that`, marker at `:388`). In all four the underlying item is
-already closed or declined; what is wrong is **marker placement**, a one-line
-edit each. Both files are other workstreams' artifacts and are outside this
-repair's declared write scope, so the repair did not touch them and returns the
-four edits as `blocked_writes` for the orchestrator to persist **in this
-cycle**. Nothing about them is carried, deferred or queued.
+**The four marker-placement edits landed in-cycle (corrected 2026-09-20).** The
+paragraph that stood here described `docs/ws/default/verification.md:233` and
+`:255` and `docs/ws/harness-p5/verification.md:311` and `:386` as live
+occurrences awaiting an out-of-scope repair, and returned them to the
+orchestrator as `blocked_writes`. That description was already out of date when
+it was written: commit `00e815a`, which committed this report, also contains
+those four marker edits. They were not carried, queued or returned — they
+landed, in this cycle, in that commit, and the screen at HEAD returns **0** live
+in both files. The `blocked_writes` framing is withdrawn and replaced by this
+record. (Line `:204` of this file already read "0 live"; the two statements are
+now consistent.)
+
+### Verify-stage review round 1 — C1-C3, M1-M4, M6, m1-m3 (recorded 2026-09-20; all dispositioned in-cycle)
+
+The verify-stage review returned `APPROVE_WITH_FIXES`. Every finding below was
+independently reproduced by the operator before dispatch and every one is closed
+here — fixed, landed, or recorded as a stated limitation. None is phrased as
+held over, and no finding required a replan (count stands at **1 of 3**).
+
+| Id | Sev | Disposition |
+|---|---|---|
+| C1 | blocking | **FIXED.** Seven stale pinned literals (`41/41`, "nine scenarios", "32 at cycle start", "= 41") across this report, `traceability.md` and `plan.md` were reintroduced by this cycle's own red repair, which added three scenarios. Every site is restated as a **run-time property** — the count the suite reports equals `grep -c '^def scenario_'` on the harness in the same run — rather than re-pinned at a new literal, which would re-break on the next scenario. `plan.md`'s exit criterion carries a dated correction note saying so |
+| C2 | blocking | **FIXED.** Minor 2's won't-do closure rested on the false claim that no tool here defines `def test_*`; four such definitions exist in `tools/sdd-telemetry.py`. The claim is withdrawn and the closure re-stated on the ground that actually holds — the three harnesses this cycle touched share fixture state across inline sections, so promotion is real churn for a naming preference in a corpus that demonstrably uses both styles. The disposition stands; only its reasoning changed |
+| C3 | blocking | **FIXED.** The six-row screen table reported four live entries that commit `00e815a` had already closed in the same commit that wrote the table. The table is replaced by a re-run at HEAD over all seven scopes, and the `blocked_writes` paragraph is replaced by a record that the four edits landed in-cycle, citing that commit |
+| M1, m3 | minor | **FIXED.** §Terminality and §Kickoff Scope Items row 9 read a screen result as an absence proof and still said "all three checked scopes". Both now state the result as a screen result, consistent with the spec's own honesty qualification, and name the two enumerated scopes |
+| M2 | minor | **FIXED (landed).** Six rows added to `docs/spec/requirements-artifacts.md` §`## Out of Scope` Discipline and mirrored into REQ-REQ-HARNESSP6-001: `\btodo\b`, `\bbacklog:`, `\bopen item\b`, `\bparked\b`, `\bremains? open\b`, `\bunfinished\b`. Tuned against the corpus, not guessed: a **bare** `backlog` token fires 3 times in `docs/requirements/index.md` §Out of Scope, all citations, so row 18 requires the label colon — the same narrowing rows 14-16 needed. Measured cost over all seven scopes: **zero** new live occurrences and **zero** new marker-satisfied hits; the rows match nothing in scope today and their value is entirely prospective. All six fire on the review's six sample lines |
+| M3 | minor | **FIXED.** The screen had no enforcer. `skills/sdd-verify/SKILL.md` gains §Step 5b, binding every cycle to run it over §Out of Scope plus the `docs/ws/*/verification.md` glob, with the marker rule and the per-path reporting obligation. The step reads the phrase table from the spec rather than copying it, so the two cannot drift. The file goes 375 → 395 lines, still under the 400-line `[size]` warn threshold; no threshold was raised, no exemption added, no file split |
+| M4 | minor | **RECORDED as a stated limitation.** Key rule 2's motivating case — red and blue on `.sdd/telemetry.jsonl` — is unreachable in the default configuration: the path is gitignored, telemetry is an operator opt-out, and with it off (or before the first append) the absent-path rule yields no key and the case renders nothing. The L10 control asserts a fixture-created path, so the rule's behaviour is what is demonstrated, not that case. The suffix discriminator's edges are disclosed as arbitrary (`.json`, `.yaml`, `.toml` read as structured). Dated notes in `docs/spec/harness-loop-control.md` §Convergence Signal and against REQ-HARN-HARNESSP6-002. No code change: the R3 discriminator stands |
+| M6 | minor | **FIXED (annotation only).** The `--plan on the live file` marker in `docs/ws/harness-p4/verification.md` §Next Steps asserted that the harness-p4 orchestrator closed the action when it gated — unverifiable here, since `.sdd/telemetry.jsonl` is gitignored. The assertion is withdrawn and the entry closed on the checkable ground instead: the line assigns the run to the orchestrator and excludes the leaf, so it is an ownership note, not an item offered onward. The original entry is untouched |
+| m1 | trivial | **NO CHANGE NEEDED — already satisfied.** `ARB_FIXTURE_DIR` in `tools/sdd-scope-check-selftest.py` is already pinned to `os.path.dirname(os.path.abspath(__file__))`. Re-verified by running the harness with cwd outside the repository: all scenarios pass and it exits 0. No cwd-relative fixture path remains in the file |
+
+**Self-reference check (run after these edits).** The six new rows were added to
+`docs/spec/requirements-artifacts.md` and
+`docs/requirements/functional/requirements-structure.md`, and **neither file is a
+checked scope** — the scopes are `docs/requirements/index.md` §Out of Scope and
+the §Next Steps section of every path `docs/ws/*/verification.md` returns. That
+is re-confirmed, and stated in the requirement itself. The screen was re-run over
+all seven scopes after every edit above: **0 live** everywhere, including this
+report, whose §Next Steps remains empty. One in-scope count moved —
+`harness-p4` §Next Steps went from 4 phrase hits to 5, because the M6
+re-statement's own text matches a row — and it carries its own adjacent dated
+marker, so it is marker-satisfied, not live.
 
 ### Critical (blocks release)
 
@@ -320,13 +376,22 @@ cycle**. Nothing about them is carried, deferred or queued.
 neither carried.]** Minor 1 is **FIXED**: both `PLAN: INCOMPLETE` rows now cite
 `REQ-LINT-HARNESSP6-001`, and the two `GIT_STATE` rows correctly still cite
 `REQ-HARN-HARNESSP6-001`; `sdd-skill-lint.py` and its `--self-test` both re-run
-clean. Minor 2 is **CLOSED as won't-do, with reasoning**: the self-test
-"function" names are inline section labels inside `self_test()`, which is the
-established convention of every tool in this corpus — none of them defines
-`def test_*`. The traceability cells say "self-test section N" and so misstate
-nothing, and the sections demonstrably run and are mutation-killed. Renaming
-them to real functions would be a refactor of three tools for a naming
-convention this corpus does not use. Not deferred: decided.
+clean. Minor 2 is **CLOSED as won't-do, on a corrected ground**: the
+self-test "function" names are inline section labels inside `self_test()`. The
+reason first given here — that no tool in this corpus defines `def test_*` — was
+false and is withdrawn: `grep -n '^def test_' tools/*.py` returns four
+definitions, all in `tools/sdd-telemetry.py` (`:1345`, `:1385`, `:1422`,
+`:1457`). The honest ground is narrower and still supports the disposition. The
+three tools whose self-tests this cycle touched — `sdd-gc.py`,
+`sdd-skill-lint.py` and `sdd-scope-check-selftest.py` — all use inline sections
+inside one `self_test()`, so promoting these labels to real functions would mean
+restructuring three harnesses' self-test bodies, and every one of those bodies
+closes over local fixture state that inline sections share by construction. That
+is real churn against a naming preference, with no behavioural gain: the
+traceability cells say "self-test section N", so nothing is misstated, and the
+sections demonstrably run and are mutation-killed. `sdd-telemetry.py`'s four
+`def test_*` functions show the other style also exists here; the corpus is
+mixed, not uniform, and neither style is wrong. Not deferred: decided.
 
 
 - **Mis-attributed `reason` strings on the two `PLAN: INCOMPLETE` lint rows.**
@@ -373,8 +438,11 @@ recorded in the kickoff's §Out of scope as intended behaviour.
 - [ ] Fix critical issues then ship (invoke sdd-replan)
 - [ ] Significant rework needed (invoke sdd-replan)
 
-This report is `status: pending-red`: blue passed, the red verdict is pending. It
-is **not** DONE and **not** a replan trigger. The orchestrator dispatches the red
+This report was written at `status: pending-red` — blue passed with the red
+verdict outstanding — and now reads `status: pass`: the red round resolved
+`BROKEN`, all five findings were fixed in-cycle and mutation-proven, and the
+review's three blocking findings were fixed before the flip. It was **not** a
+replan trigger; the one replan this cycle ran was the L2 descope at Chunk 8. The orchestrator dispatches the red
 team, gates, and performs the `pending-red → pass` flip in this frontmatter and in
 the `Verified` cells of `docs/ws/harness-p6/traceability.md` immediately before
 its own commit. The active plan may be archived to
@@ -391,10 +459,17 @@ work**, which is not the same as "no future defect can ever be found":
 - Nothing closes as a deliberate `fail`.
 - The one item that could not be delivered as specified — L2 — was **descoped at
   replan inside this cycle** (replan 1 of 3), not carried. Its reduced form
-  shipped and is exercised by nine scenarios.
-- The deferral sweep leaves **0 live** deferral phrases across all three checked
-  scopes, so `docs/requirements/index.md` §Out of Scope holds settled exclusions
-  with reasoning and no latent successor-cycle work.
+  shipped and is exercised by every `scenario_l*` the harness defines
+  (`grep -c '^def scenario_l'`, counted in the run that reports them all passing,
+  rather than pinned here).
+- The deferral **screen** returns **0 live** occurrences over its two enumerated
+  scopes — `docs/requirements/index.md` §Out of Scope and the §Next Steps section
+  of every path `docs/ws/*/verification.md` returns (seven sections walked in this
+  run: one §Out of Scope plus the six paths the glob returned). That is a screen result, not an absence proof: per the spec's own honesty
+  qualification, marker adjacency is decided exactly but phrase coverage is best
+  effort over observed vocabulary, so the reading it supports is "nothing the
+  screen recognises is live", not "no latent work exists". §Out of Scope's entries
+  each carry their reasoning, which is the claim that can be made.
 - The two Minors above are stated for in-cycle repair or won't-do closure. Neither
   is phrased as carried, deferred or queued, and neither appears in §Next Steps.
 

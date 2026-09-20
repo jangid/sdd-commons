@@ -352,7 +352,20 @@ the replay found and a section-granular key structurally cannot catch (red and
 blue on the same malformed records in a `.jsonl` file, which has no sections).
 The noise guard for sectioned files is unchanged. Requirement id, number and
 priority are unchanged; see `docs/ws/harness-p6/plan.md` §Chunk 8 → Spike
-Findings and `docs/requirements/index.md` §Out of Scope.]** Convergence is computed over a **session-scoped,
+Findings and `docs/requirements/index.md` §Out of Scope.]**
+
+**[Stated limitation: 2026-09-20 — verify-stage review M4.** The sectionless-file
+rule's motivating case, named in this requirement and in the spec, is red and
+blue on `.sdd/telemetry.jsonl`. That path is gitignored and telemetry is an
+operator opt-out at KICKOFF, so with telemetry off, or before the first append,
+the file is absent; the absent-path rule (red R4) then yields no key and the
+motivating case renders nothing. The self-test asserts rule 2 against a
+fixture-created data file, so the rule's behaviour — not that specific case —
+is what is demonstrated. The structureless discriminator's suffix set
+(`.jsonl`, `.ndjson`, `.csv`, `.tsv`, `.log`, `.txt`) also draws an arbitrary
+line: `.json`, `.yaml` and `.toml` read as structured. Recorded as a disclosure
+against the shipped floor; the code is unchanged and the R3 discriminator
+stands. Requirement id, number and priority are unchanged.]** Convergence is computed over a **session-scoped,
 in-memory finding ledger** of the same class as the loop counters: per finding it
 holds only the arbitration key, the emitting layer and the gate at which the
 finding arrived — no finding text, nothing on disk, no durable artifact. The

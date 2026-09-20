@@ -89,15 +89,29 @@ hand-picked subset has not run the check, and a conforming run reports one row
 per returned path, rows-walked equal to paths-returned, both derived from the
 same run.
 
-The search covers sixteen phrasings: `deferred to`, `carried to`, `queued for`,
-`re-raise in that cycle`, `next cycle`, `a later cycle`, `successor`,
-`candidate`, `revisit`, `follow-up`/`follow-ups`, `in a cycle that`,
-`(?:needs|wants) a\b[^.\n]{0,60}\b(?:cycle|workstream)\b`, `owner:`, and
+The search covers twenty-two phrasings: `deferred to`, `carried to`,
+`queued for`, `re-raise in that cycle`, `next cycle`, `a later cycle`,
+`successor`, `candidate`, `revisit`, `follow-up`/`follow-ups`,
+`in a cycle that`,
+`(?:needs|wants) a\b[^.\n]{0,60}\b(?:cycle|workstream)\b`, `owner:`,
 three narrow cycle-name-as-destination forms —
 `^\s*[-*]\s+(?:harness-)?p[0-9]+\b`, `\.\s+(?:harness-)?p[0-9]+\s*\.` and
-`(?:harness-)?p[0-9]+\s+(?:candidate|lead|owner)`. A bare `harness-p<N>` token
-is deliberately **not** a phrase: measured, it fires 11 times in scope (i) alone,
-every one a citation rather than a deferral.
+`(?:harness-)?p[0-9]+\s+(?:candidate|lead|owner)` — and six ordinary backlog
+markers `\btodo\b`, `\bbacklog:`, `\bopen item\b`, `\bparked\b`,
+`\bremains? open\b`, `\bunfinished\b`. Two rows are deliberately narrowed
+because their bare forms are citation vocabulary in this corpus: a bare
+`harness-p<N>` token fires 11 times in scope (i), every one a citation, and a
+bare `backlog` token fires 3 times there, likewise every one a citation — so
+the cycle-name rows match only destination/owner positions and the backlog row
+requires the label colon.
+
+[Updated: 2026-09-20, harness-p6 — verify-stage review M2. Rows 17–22 were
+added after the sixteen-row screen was shown to return zero on ordinary backlog
+lines (`TODO:`, `Backlog:`, `Open item:`, `Parked until …`, `Remains open`,
+`Unfinished:`). Each row was measured over all seven scopes before adding: the
+six together add zero live occurrences and zero marker-satisfied hits to the
+corpus as it stands, so their value is prospective. The spec's
+§`## Out of Scope` Discipline carries the normative table.]
 
 The two halves of the check carry different weight and the acceptance states
 both honestly. **Marker adjacency is exact**: a match does not count as live
@@ -113,6 +127,9 @@ reads the section.
 
 Prose in §Q-REQ Resolutions recording what a **closed** cycle decided is outside
 the scopes and is not examined; so is this requirement's own text and the spec's,
-neither of which is a checked scope. The three new settled exclusions named by
+neither of which is a checked scope — re-confirmed 2026-09-20 after rows 17–22
+landed: the checked scopes remain `docs/requirements/index.md` §Out of Scope and
+the §Next Steps section of every path `docs/ws/*/verification.md` returns, and
+this file is neither. The three new settled exclusions named by
 RS-HARNESSP6-001 are each present with their reasoning.
 [Priority: must]

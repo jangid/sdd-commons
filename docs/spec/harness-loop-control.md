@@ -491,6 +491,24 @@ incorrectly here. The rule is narrowed, not deleted: the `.jsonl` case it was
 introduced for is preserved and is asserted alongside the source-file case in
 the same scenario.
 
+**[Stated limitation, 2026-09-20 — verify-stage review M4. Key rule 2's
+motivating case is not reachable in the default configuration.** The case named
+above and in REQ-HARN-HARNESSP6-002 is red and blue both hitting
+`.sdd/telemetry.jsonl`. That path is **gitignored**, and telemetry is an
+operator opt-out at KICKOFF, so in a cycle with telemetry off — and in any
+cycle before its first append — the file does not exist. Combined with the
+absent-path rule below, a finding naming it then yields **no key**, and the
+origin case key rule 2 exists for renders nothing. The scenario that asserts
+rule 2 uses a fixture-created data file, so what is demonstrated is the rule's
+behaviour on a structureless path that exists, not the real `.jsonl` case; no
+claim is made that the motivating case has been exercised end to end.
+**The suffix discriminator's edges are arbitrary and are disclosed as such:**
+`DATA_SUFFIXES` admits `.jsonl`, `.ndjson`, `.csv`, `.tsv`, `.log` and `.txt`,
+while `.json`, `.yaml` and `.toml` read as STRUCTURED even though a heading
+parser finds no section in them either — a defensible line drawn at
+record-per-line files, not a derived one. No code change follows from this
+note; it is a disclosure, not a redesign.**]
+
 **A path absent from the checkout yields no key at all (red R4).** A finding may
 name a typo, a renamed path, or a file that exists only in a fan-out worktree.
 Absence is **not** evidence of structurelessness, so it must not collapse to the

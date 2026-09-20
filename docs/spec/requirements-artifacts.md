@@ -305,6 +305,25 @@ not what makes the section provably clean.
 | 14 | a §Next Steps bullet **opening** with a cycle name — `^\s*[-*]\s+(?:harness-)?p[0-9]+\b` | "- p5 telemetry (reader): …" |
 | 15 | a sentence whose whole content is a cycle name — `\.\s+(?:harness-)?p[0-9]+\s*\.` | "…nothing keeps them so. harness-p4." |
 | 16 | a cycle name used as an assignment — `(?:harness-)?p[0-9]+\s+(?:candidate\|lead\|owner)` | "**V14 (harness-p4 lead)**" |
+| 17 | `todo` — `\btodo\b` | "- TODO: bump the spec's `last_updated` when a later pass touches it." |
+| 18 | `backlog:` — `\bbacklog:` | "- Backlog: fold the liveness screen into `sdd-gc.py`." |
+| 19 | `open item` — `\bopen item\b` | "- Open item: the hunk-level check is not built." |
+| 20 | `parked` — `\bparked\b` | "- Parked until someone reworks the reader." |
+| 21 | `remain(s) open` — `\bremains? open\b` | "- Remains open; handle when the corpus is next touched." |
+| 22 | `unfinished` — `\bunfinished\b` | "- Unfinished: L2 recall was never measured." |
+
+**Rows 17–22 are ordinary backlog vocabulary (added 2026-09-20, harness-p6 —
+verify-stage review M2).** The sixteen-row screen was tuned to the deferral
+shapes this corpus had already written and therefore missed the vocabulary any
+repository uses for a backlog. Each row was measured against the seven scopes
+before it was added, and together they cost **zero** new live occurrences and
+zero new marker-satisfied hits: rows 17 and 19–22 match nothing anywhere in
+scope today, so their entire value is prospective. **Row 18 is narrowed to
+`backlog:`** for the same reason rows 14–16 are narrowed: a bare `backlog`
+token fires three times in `docs/requirements/index.md` §Out of Scope, every one
+of them a citation of a research section whose name contains the word, not a
+deferral. The colon restricts the match to the label position a backlog item is
+actually written in.
 
 **Rows 14–16 are deliberately narrow.** A bare `harness-p<N>` token is *not* a
 phrase: measured over the two scopes it fires 11 times in
