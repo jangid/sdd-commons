@@ -327,13 +327,32 @@ and second-executors **already return** — no field is added to any leaf's
 a **cluster** when (i) they come from **different** layers or second-executors
 (blue pipeline, chunk verifier, review, red); (ii) they belong to the **same
 cycle**, by the `research_id` stamp that cycle identity already uses; and (iii)
-their **arbitration finding keys are equal at section granularity** — same
-`file` **and** same `section`, reusing the existing `(file, section)` key with
-its ratified leading-ordinal strip and its existing parser. A file-level-only
-match must render **nothing**: two findings in one large file are not one root
-cause, and a rule that says they are makes the signal noise. A **secondary** key
-applies — two findings citing the same `REQ-*` or deviation-entry id cluster
-even when their sections differ. Convergence is computed over a **session-scoped,
+their **arbitration finding keys match** under one of three key rules. The
+**primary** key rule is the shared id — two findings citing the same `REQ-*` or
+deviation-entry id cluster whatever their files and sections. The **sectionless
+file** rule makes the file-level key a cluster key when the file has no section
+structure to key on (a data or code file such as `.jsonl` or `.py`, or any file
+in which the arbitration key parser finds no section): two findings from
+different layers naming such a file cluster on the file alone. Equal
+`(file, section)` keys — same `file` **and** same `section`, reusing the existing
+`(file, section)` key with its ratified leading-ordinal strip and its existing
+parser — are **retained** as a third key rule but carry no recall claim. For a
+file that **does** have sections, a file-level-only match must render
+**nothing**: two findings in two sections of one large prose file are not one
+root cause, and a rule that says they are makes the signal noise.
+
+**[Updated: 2026-09-20 — amended at replan, caused by the Chunk 8 resolving
+spike, which replayed the cluster rule over the recorded findings of harness-p3,
+-p4 and -p5. The co-located `(file, section)` key formed **zero** clusters in
+each of the three cycles and zero in total, and clustered **none** of the three
+layers of the harness-p3 §L2 origin case. The requirement therefore no longer
+rests on that key: the shared-id key that did fire becomes primary, and the
+sectionless-file rule is added because it recovers the one genuine convergence
+the replay found and a section-granular key structurally cannot catch (red and
+blue on the same malformed records in a `.jsonl` file, which has no sections).
+The noise guard for sectioned files is unchanged. Requirement id, number and
+priority are unchanged; see `docs/ws/harness-p6/plan.md` §Chunk 8 → Spike
+Findings and `docs/requirements/index.md` §Out of Scope.]** Convergence is computed over a **session-scoped,
 in-memory finding ledger** of the same class as the loop counters: per finding it
 holds only the arbitration key, the emitting layer and the gate at which the
 finding arrived — no finding text, nothing on disk, no durable artifact. The
@@ -348,10 +367,13 @@ never been replayed against a real finding set, and its firing rate is
 unmeasured; this requirement is deliberately carried at lower weight than the
 Q1-Q3 items and is the cycle's credible replan trigger)
 **Acceptance**: `docs/spec/harness-loop-control.md` §Convergence Signal states
-the three cluster conditions, the secondary id key, the file-level-only
-non-render and the ledger's contents; a self-test scenario group exercises the
-key parser across layers — two findings from different layers with equal
-`(file, section)` cluster; two from the **same** layer do not; two with the same
-file and different sections do not; two from different layers citing the same
-`REQ-*` id with different sections do; `python3 tools/sdd-skill-lint.py` exits 0.
+the three cluster conditions, the three key rules, the file-level-only
+non-render for files that have sections, and the ledger's contents; a self-test
+scenario group exercises the key parser across layers — two findings from
+different layers citing the same `REQ-*` id with different sections cluster
+(primary key); two from different layers naming the same file in which the
+parser finds no section cluster on the file alone; two from different layers in
+the same sectioned file with different sections do not; two from the **same**
+layer do not; two from different layers with equal `(file, section)` cluster
+(retained key); `python3 tools/sdd-skill-lint.py` exits 0.
 [Priority: must]

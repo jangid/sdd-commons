@@ -425,18 +425,34 @@ shape**, introduces no root-cause field, and is **not a fifth verification
 layer** — the four-layer verification table stays byte-unchanged wherever it
 appears. Everything L2 needs is already returned by the layers.
 
-**Shipped scope: co-located convergence, stated explicitly.** L2 clusters
-findings that already carry a **location**. Conceptual convergence — findings
-sharing a root cause but naming no common file and no common section, as in the
-three-layer origin case the signal was named for — **cannot** be derived from
-what layers already return: it needs either a root-cause field on a leaf's
-`RETURN:` or a fifth layer whose job is correlation, and both are standing
-exclusions. This is stated here rather than left implicit so that verification is
-never asked to prove a property the design does not deliver. Against the origin
-case (`docs/ws/harness-p3/verification.md` §L2 — blue's dropped `git add` in
-Chunk 7, review's C1 on an unexercised requirement, red's R4 on aggregate drift)
-the shipped form clusters **two of the three** layers. That recall is the
-accepted, recorded cost of shipping without a new field or a new layer.
+**Shipped scope: shared-id convergence plus a sectionless-file rule, stated
+explicitly.**
+
+**[Updated: 2026-09-20 — descoped at replan, caused by the Chunk 8 resolving
+spike (`docs/ws/harness-p6/plan.md` §Chunk 8 → Spike Findings). The co-located
+`(file, section)` key is **no longer the primary cluster key**: replayed over the
+recorded findings of the harness-p3, -p4 and -p5 cycles it formed **zero**
+clusters — in every one of the three cycles, and zero in total — and against the
+harness-p3 §L2 origin case it clusters **none** of the three layers, not two of
+the three as this section previously asserted. That 2-of-3 figure was never
+measured against the record; it is refuted by the replay and is withdrawn here
+and wherever else it was copied. The floor this section now states is what the
+spike's own data supports.]**
+
+L2 clusters findings that already carry a **shared identifier or a shared
+location**. Conceptual convergence — findings sharing a root cause but naming no
+common id, no common file and no common section, as in the three-layer origin
+case the signal was named for — **cannot** be derived from what layers already
+return: it needs either a root-cause field on a leaf's `RETURN:` or a fifth
+layer whose job is correlation, and both are standing exclusions. This is stated
+here rather than left implicit so that verification is never asked to prove a
+property the design does not deliver. Against the origin case
+(`docs/ws/harness-p3/verification.md` §L2 — blue's dropped `git add` in Chunk 7,
+review's C1 on an unexercised requirement, red's R4 on aggregate drift) the
+shipped form clusters **nothing**: the two members whose locations the record
+preserves differ at **file** level and cite different ids, and the third was
+never durably recorded at all. That is the measured, recorded cost of shipping
+without a new field or a new layer, and the design does not claim more.
 
 **The cluster rule.** Two or more findings form a **cluster** when all three
 conditions hold:
@@ -445,24 +461,49 @@ conditions hold:
 |---|---|
 | (i) | they come from **different** layers or second-executors — blue pipeline, chunk verifier, review, red |
 | (ii) | they belong to the **same cycle**, by the `research_id` stamp cycle identity already uses (`cycle-identity.md`) |
-| (iii) | their **arbitration finding keys are equal at section granularity** — same `file` **and** same `section`, reusing the existing `(file, section)` key of `arbitrated-handoff.md` with its ratified leading-ordinal strip (REQ-ARB-HARNESSP5-003) and its existing parser |
+| (iii) | their **arbitration finding keys match under one of the three key rules below** — shared id (primary), sectionless file, or equal `(file, section)` |
 
-A **secondary key** also clusters: two findings citing the same `REQ-*` id or the
-same deviation-entry id cluster even when their sections differ, because a
-shared id is as strong a co-location claim as a shared heading.
+**Key rule 1 — shared id (primary).** Two findings citing the same `REQ-*` id or
+the same deviation-entry id cluster, whatever their files and sections: a shared
+id is as strong a co-location claim as a shared heading, and in the spike's
+replay it was the **only** key that formed a cluster at all. It is the primary
+key of the shipped signal.
 
-**A file-level-only match renders nothing.** Two findings in one large file are
-not one root cause, and a rule that says they are makes the signal noise. This
-is the decisive false-positive control: section granularity is what keeps the
-line worth reading, and it is why file-level matching was rejected outright
-rather than offered as a fallback.
+**Key rule 2 — sectionless file.** The **file-level** key is itself a cluster key
+when the file has no section structure to key on — a data or code file such as
+`.jsonl` or `.py`, or any file in which the arbitration key parser finds no
+section. Two findings from different layers naming such a file cluster on the
+file alone. This rule is what recovers the one real convergence the spike found
+and that a section-granular rule structurally cannot catch: red R1 and blue both
+hitting the same 8 malformed records in `.sdd/telemetry.jsonl`, missed because a
+JSONL file has no sections for a `(file, section)` key to be equal on.
+
+**Key rule 3 — equal `(file, section)` (retained, not relied on).** Two findings
+whose arbitration finding keys are equal at section granularity — same `file`
+**and** same `section`, reusing the existing `(file, section)` key of
+`arbitrated-handoff.md` with its ratified leading-ordinal strip
+(REQ-ARB-HARNESSP5-003) and its existing parser — still cluster when they occur.
+The rule is kept because its precision is not in question; what the spike
+refuted is its **recall**, so no recall claim rests on it.
+
+**A file-level-only match in a file that has sections renders nothing.** Two
+findings in two different sections of one large prose file are not one root
+cause, and a rule that says they are makes the signal noise. This is the
+decisive false-positive control and it is **retained unchanged** for sectioned
+files: key rule 2 opens file-level matching only where there is no section to
+match on, which is exactly the case the guard was never protecting against. In
+the spike's replay the suppressed file-level matches scored 1-1 — one genuine
+convergence missed (the sectionless `.sdd/telemetry.jsonl` case, now caught by
+key rule 2) and one unrelated pair correctly suppressed (`tools/sdd-telemetry.py`,
+a sectioned Python file — key rule 2 does not apply where the parser does find
+sections).
 
 **The ledger.** Convergence is computed over a **session-scoped, in-memory
 finding ledger** of the same class as the loop counters (§State Placement). Per
 finding it holds exactly three fields:
 
 ```
-ledger entry = { key: (file, section) | id, layer: blue|chunk-verifier|review|red, gate: <gate label> }
+ledger entry = { key: id | (file,) [sectionless file] | (file, section), layer: blue|chunk-verifier|review|red, gate: <gate label> }
 ```
 
 No finding text, nothing on disk, no durable artifact. It is never read by any
@@ -487,8 +528,9 @@ own-line token `CONVERGENCE:` at position **6c** of the gate signal order
 CONVERGENCE: docs/spec/telemetry.md §Writer rule (review, red) — 2 layers
 ```
 
-It names the cluster's file and section, the contributing layers, and the layer
-count. It is **informational**: no option set, it never pauses the gate, and it
+It names the cluster's key — the shared id, or the file alone for a sectionless
+file, or file and section — the contributing layers, and the layer count. It is
+**informational**: no option set, it never pauses the gate, and it
 never withholds `proceed`. That is the decisive choice. With no root-cause field
 the cluster is a **heuristic** of Medium confidence and unmeasured firing rate; a
 pausing heuristic converts every false positive into an operator interruption,
@@ -528,6 +570,19 @@ cycle**, not a deferral.
   precision, lowest recall), or the co-located key evaluated only at DONE — with
   the descope recorded as a settled exclusion with its reasoning.
 
+**Spike result and resolution (recorded 2026-09-20).** The resolving spike ran
+and the assumption did **not** hold: over the recorded findings of the
+harness-p3, -p4 and -p5 cycles the `(file, section)` key formed zero clusters in
+each cycle and zero in total, and it clusters none of the three layers of the
+harness-p3 §L2 origin case. The rule is not noisy — it is silent, and its
+precision was never the problem. The fallback below was therefore taken as a
+replan **inside this cycle**: the shipped floor is the shared-id key as primary
+plus the sectionless-file rule stated above, and the co-located
+`(file, section)` key as the *primary* cluster key is recorded as a settled
+exclusion with its measured evidence in `docs/requirements/index.md`
+§Out of Scope. The full replay, its input set and the caveats on that input set
+are in `docs/ws/harness-p6/plan.md` §Chunk 8 → Spike Findings.
+
 It is this cycle's credible replan trigger. If it proves harder than the spike
 predicts, the handling is a **replan inside this cycle** that descopes L2 to its
 honest floor — the secondary-id key alone, or the co-located key evaluated only
@@ -558,7 +613,7 @@ in `references/loop-control.md` §5 — the two must agree item for item.
 | 5 | loop counters — `iteration N of MAX`, derived replan re-entry count against `REPLAN_MAX` | stage gate | this spec |
 | 6 | `REVIEW: CONTRADICTION (round N vs round N+1, class b\|c[, file-level])` pause block | stage gate, after the counters | `arbitrated-handoff.md` |
 | 6b | **implement stage gate only**: the completion parse of `docs/ws/<id>/plan.md` — when any numbered chunk task is unticked, the own-line `PLAN: INCOMPLETE (N of M ticked)` pause offering `replan │ stop` **only** (`proceed` withheld, so verify is never dispatched while the plan reads `implementing`); when every task is `[x]` no line renders. **Supersedes signal 6's option set when both fire** — 6's block still renders, its options are suppressed, and the gate offers `replan \| stop` only | implement stage gate, after signal 6, before `TELEMETRY:` | this spec §Plan Completion Ownership |
-| 6c | the own-line `CONVERGENCE:` token — one line per cluster whose second member arrived at this gate, naming the cluster's file and section, the contributing layers and the layer count. **Informational**: no option set, never pauses, never withholds `proceed` | every gate, after 6b, before `TELEMETRY:` | this spec §Convergence Signal |
+| 6c | the own-line `CONVERGENCE:` token — one line per cluster whose second member arrived at this gate, naming the cluster's key (shared id, sectionless file, or file and section), the contributing layers and the layer count. **Informational**: no option set, never pauses, never withholds `proceed` | every gate, after 6b, before `TELEMETRY:` | this spec §Convergence Signal |
 | 7 | the `TELEMETRY:` line — `rec <n> │ WRITE FAILED │ OFF │ .gitignore updated`, at most once each, immediately after the last counter-bearing line and **before the options** | every gate | `telemetry.md` |
 | — | the options (`proceed │ fix │ stop` per chunk; `proceed │ loop-back-to-fix │ stop` per stage; pause-family options where a pause fired) | every gate | `orchestration.md` §Gate Protocol |
 | 8 | **post-decision**: `COMMIT: COMPLETE \| INCOMPLETE` — rendered immediately after the orchestrator's own commit (sequential per-chunk and stage gates) or after the merge (fan-out merge step), as the **closing line of the same gate**, before the next dispatch; on `INCOMPLETE` it pauses with `amend \| accept (note) \| stop` and no next dispatch — including the implement-stage review after the last chunk — is issued until resolved | closing line of the gate that decided `proceed` | `harness-commit-fidelity.md` |
@@ -597,11 +652,15 @@ options" clause that governs item 7 covers 6c in the same enumeration.
   identical `change` lines is classified stuck by rule (b).
 - Fixture: a checkpoint composed from the RS-008 Schema 1 example is ≤ 15 lines
   and contains no line matching `^\s+File ".*", line \d+` or `Traceback`.
-- Convergence key-parser scenario group (REQ-HARN-HARNESSP6-002), four cases:
-  two findings from **different** layers with equal `(file, section)` **cluster**;
-  two from the **same** layer do **not**; two with the same file and different
-  sections do **not**; two from different layers citing the same `REQ-*` id with
-  different sections **do** (the secondary key).
+- Convergence key-parser scenario group (REQ-HARN-HARNESSP6-002), five cases:
+  two findings from **different** layers citing the same `REQ-*` id with
+  different sections **cluster** (key rule 1, the primary key); two from
+  different layers naming the same file in which the key parser finds **no
+  section** (e.g. a `.jsonl` or `.py` path) **cluster** on the file alone (key
+  rule 2); two from different layers in the **same sectioned file** with
+  **different** sections do **not** (the retained noise guard); two from the
+  **same** layer do **not**; two from different layers with equal
+  `(file, section)` **cluster** (key rule 3, retained).
 - Fixture: two findings from different layers stamped with **different**
   `research_id` values do not cluster (condition (ii)).
 - Gate rendering fixture: a gate with one complete cluster shows the
@@ -634,12 +693,12 @@ options" clause that governs item 7 covers 6c in the same enumeration.
 - [ ] `grep -n 'status: complete' skills/sdd-orchestrate/SKILL.md skills/sdd-orchestrate/references/loop-control.md skills/sdd-orchestrate/references/write-scope.md skills/sdd-implement/SKILL.md` shows the flip in §The gate, §1 and the §7 table, and the direct-session / orchestrated split in `sdd-implement` Step 6; the per-chunk PIPELINE template carries "tick tasks, never `status:`"; §Gate Signal Order lists 6b (`PLAN: INCOMPLETE (N of M ticked)`, `replan │ stop` only) and 8b (the flip after `COMMIT:`) and `references/loop-control.md` §5 agrees item for item (REQ-HARN-HARNESSP5-001)
 - [ ] `skills/sdd-orchestrate/references/loop-control.md` §6 lists `PLAN: INCOMPLETE (N of M ticked)` as the **fifth** pause-family member with `replan │ stop` as its whole option set; a walkthrough of an implement stage gate where a contradiction pause and an unticked task fire together renders signal 6's block and signal 6b's line but offers `replan │ stop` only — no `accept round N (proceed, note)` (REQ-HARN-HARNESSP5-001)
 - [ ] A walkthrough of an implement stage gate `proceed` shows the flip in a commit separate from the leaf's and `COMMIT: COMPLETE`; a second walkthrough with one unticked task shows the `PLAN: INCOMPLETE` pause, no flip and no verify dispatch; the `research_id:` line is byte-identical before and after the flip; `python3 tools/sdd-skill-lint.py` exits 0 (a `REQUIRED` row for the flip sentence is optional) (REQ-HARN-HARNESSP5-001)
-- [ ] §Convergence Signal states the three cluster conditions, the secondary id key, the file-level-only non-render, and the ledger's three fields; the ledger is session-scoped and in memory (REQ-HARN-HARNESSP6-002)
+- [ ] §Convergence Signal states the three cluster conditions, the three key rules (shared id primary, sectionless file, retained `(file, section)`), the file-level-only non-render for files that have sections, and the ledger's three fields; the ledger is session-scoped and in memory (REQ-HARN-HARNESSP6-002)
 - [ ] The signal is evaluated at every gate over everything recorded so far, each cluster renders once at the gate where its second member arrives, and a cluster completing only at DONE routes into `verification.md` §Issues Found and never §Next Steps (REQ-HARN-HARNESSP6-002)
-- [ ] The key-parser scenario group passes: different layers + equal `(file, section)` cluster; same layer does not; same file + different sections does not; different layers + same `REQ-*` id does (REQ-HARN-HARNESSP6-002)
+- [ ] The key-parser scenario group passes: different layers + same `REQ-*` id cluster (primary key); different layers naming the same sectionless file (no section found by the parser) cluster; different layers + same sectioned file + different sections do **not**; same layer does not; different layers + equal `(file, section)` cluster (retained key) (REQ-HARN-HARNESSP6-002)
 - [ ] §Gate Signal Order carries 6c between 6b and 7; the "renders last before the options" clause names 6c; `skills/sdd-orchestrate/references/loop-control.md` §5 agrees item for item and `SKILL.md` §The gate names the token in its non-divergent summary (REQ-ORCH-HARNESSP6-001)
 - [ ] `CONVERGENCE:` is informational — no option set, never pauses, never withholds `proceed`; a gate rendering fixture shows `proceed` available while the line is displayed (REQ-ORCH-HARNESSP6-001)
-- [ ] §Convergence Signal states the **co-located** scope explicitly and the 2-of-3 recall against the harness-p3 §L2 origin case (REQ-ORCH-HARNESSP6-002)
+- [ ] §Convergence Signal states the shipped scope explicitly — shared id primary, sectionless file, retained `(file, section)` — and states the origin-case recall as the Chunk 8 replay measured it, with no recall figure that the replay does not reproduce; re-running that replay over the same recorded finding sets reproduces the stated result (REQ-ORCH-HARNESSP6-002)
 - [ ] The three invariants hold: no file under `docs/` is created by L2; no phase-detection rule in any `sdd-*` skill references the signal; the four-layer verification table is byte-unchanged in `CLAUDE.md` and in every spec that restates it; no telemetry record key is added (REQ-ORCH-HARNESSP6-002)
 - [ ] No leaf `RETURN:` shape in `harness-return-contract.md` or any dispatch template gains a field for L2 (REQ-HARN-HARNESSP6-002, REQ-ORCH-HARNESSP6-002)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed

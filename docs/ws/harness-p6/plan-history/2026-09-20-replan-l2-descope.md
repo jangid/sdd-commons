@@ -1,3 +1,39 @@
+# Plan Archive: Replan — L2 descoped to the shared-id + sectionless-file floor
+
+## Changelog
+- **Date**: 2026-09-20
+- **Trigger**: the plan's **first** replan trigger, second disjunct. The Chunk 8
+  L2 resolving spike replayed the specified `(file, section)` co-located cluster
+  key over the recorded findings of the harness-p3, -p4 and -p5 cycles and it
+  formed **zero** clusters — zero in each cycle and zero in total — and
+  clustered **0 of 3** members of the harness-p3 §L2 origin case, not the 2 of 3
+  the specs and requirements asserted. The rule is silent, not noisy.
+- **Impact**: L2 **ships in this cycle**, descoped to a measured floor: the
+  **shared-id key** (`REQ-*` or deviation-entry id) becomes the **primary**
+  cluster key, and a **sectionless-file rule** is added — the file-level key
+  counts as a cluster key when the arbitration key parser finds no section in
+  the file (`.jsonl`, `.py`, …). For files that do have sections the
+  file-level-only non-render (the noise guard) is retained unchanged. The equal
+  `(file, section)` key is retained as a subordinate key carrying no recall
+  claim. The unmeasured 2-of-3 recall claim is withdrawn from
+  `docs/spec/harness-loop-control.md`, `docs/requirements/index.md` and
+  `docs/requirements/functional/orchestration.md`; the research findings file is
+  left as the historical record of what was believed at the time.
+- **Added**: no new chunk and no new task. `docs/requirements/index.md`
+  §Out of Scope gains one settled exclusion (the co-located key as the primary
+  cluster key, declined with its measured evidence).
+- **Removed**: no task removed. Chunk 9 tasks 1, 3, 4 and 7 are **rewritten** to
+  the new floor in the active plan; tasks 2, 5, 6, 8, 9 and 10 stand unchanged,
+  as the fired trigger's own text directs (verified against the task list).
+- **Reordered**: nothing. Chunk order and dependencies are unchanged.
+- **Cycle terminality**: unchanged and binding — nothing in this replan is
+  deferred, carried or queued to a later cycle; a further overrun triggers
+  another replan inside this cycle.
+- **Open Questions**: three entries below carry dated strike markers
+  (REQ-PLAN-HARNESSP6-001); they are left visible and unreworded.
+
+## Previous Plan Snapshot
+
 ---
 workstream: harness-p6
 status: planned
@@ -22,15 +58,6 @@ implementation items because it is the item most likely to trigger a replan and
 the other eight should be landed before that risk is taken (kickoff §Decided at
 DISCUSS). L2's spec section is `[high-uncertainty]`, so it opens with a
 mandatory in-cycle spike whose result steers its implement tasks.
-
-**Replanned 2026-09-20 (L2 descope).** The first replan trigger fired on the
-Chunk 8 spike result — the co-located `(file, section)` key forms zero clusters
-over three replayed cycles and 0 of 3 on the origin case. L2 still ships in this
-cycle, at a measured floor: the shared-id key as the **primary** cluster key plus
-a **sectionless-file** rule, with the equal-`(file, section)` key retained but
-carrying no recall claim, and the noise guard for sectioned files unchanged.
-Chunk 9 tasks 1, 3, 4 and 7 are rewritten to that floor; the previous plan is at
-`docs/ws/harness-p6/plan-history/2026-09-20-replan-l2-descope.md`.
 
 **This cycle is terminal.** No task, note, risk or replan trigger here is
 phrased as deferred, carried or queued to a next or later cycle. An item too
@@ -542,24 +569,14 @@ line at position 6c, with a session-scoped in-memory ledger, adding no finding
 field, no fifth layer and no durable artifact.
 **Depends on**: Chunk 8.
 **Tasks**:
-1. [ ] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** State the
-   cluster rule in `docs/spec/harness-loop-control.md`'s consumer texts and in
-   `skills/sdd-orchestrate/references/loop-control.md`: the three conditions
-   (different layers or second-executors; same cycle by the `research_id` stamp;
-   arbitration finding keys matching under one of the **three key rules**), and
-   the key rules themselves in this order — (1) **shared id, primary**: the same
-   `REQ-*` or deviation-entry id clusters whatever the files and sections, the
-   only key the Chunk 8 replay saw fire; (2) **sectionless file**: the
-   file-level key is itself a cluster key when the arbitration key parser finds
-   **no section** in the file (a `.jsonl`, `.py` or other file with no section
-   structure), which is what recovers the one genuine convergence a
-   section-granular key structurally cannot catch; (3) **equal
-   `(file, section)`, retained**: still clusters when it occurs, reusing the
-   existing key and its ratified leading-ordinal strip, but carries **no recall
-   claim** — the Chunk 8 replay measured it at zero clusters over three cycles.
-   State the false-positive control in its retained form: **in a file that has
-   sections, a file-level-only match renders nothing** — traces to
-   `docs/spec/harness-loop-control.md` §Convergence Signal — L2
+1. [ ] [implement] State the cluster rule in `docs/spec/harness-loop-control.md`'s
+   consumer texts and in `skills/sdd-orchestrate/references/loop-control.md`:
+   the three conditions (different layers or second-executors; same cycle by the
+   `research_id` stamp; arbitration finding keys equal at **section**
+   granularity, reusing the existing `(file, section)` key and its ratified
+   leading-ordinal strip), the secondary id key, and the decisive
+   false-positive control — a **file-level-only match renders nothing** —
+   traces to `docs/spec/harness-loop-control.md` §Convergence Signal — L2
    (REQ-HARN-HARNESSP6-002).
 2. [ ] [implement] State the ledger: session-scoped, in memory, of the same class as
    the loop counters, holding exactly three fields per finding
@@ -567,23 +584,17 @@ field, no fifth layer and no durable artifact.
    skill's phase detection, discarded at session end — traces to
    `docs/spec/harness-loop-control.md` §Convergence Signal — L2 → The ledger
    (REQ-HARN-HARNESSP6-002).
-3. [ ] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** State the
-   window in terms of the amended key rules: evaluated at **every** gate over
-   everything recorded so far; a cluster formed under **any** of the three key
-   rules (shared id, sectionless file, retained `(file, section)`) renders
-   **once**, at the gate where its second member arrives; a cluster completing only at DONE routes into
+3. [ ] [implement] State the window: evaluated at **every** gate over everything
+   recorded so far; each cluster renders **once**, at the gate where its second
+   member arrives; a cluster completing only at DONE routes into
    `verification.md` §Issues Found — to be fixed or explicitly closed in this
    cycle — and **never** into §Next Steps — traces to
    `docs/spec/harness-loop-control.md` §Convergence Signal — L2 → The window
    (REQ-HARN-HARNESSP6-002).
-4. [ ] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** Render the
-   own-line token `CONVERGENCE:` at position **6c** of the gate signal order —
-   after 6b (`PLAN:`) and immediately before 7 (`TELEMETRY:`) — naming the
-   cluster's **key in whichever of the three shapes formed it** (the shared id;
-   the file alone, for a sectionless file; or file and section), the
-   contributing layers and the layer count. Position 6c, the token spelling and
-   the informational status are unchanged by the replan; only the key shapes the
-   line must be able to render changed. Amend the "renders last before the options"
+4. [ ] [implement] Render the own-line token `CONVERGENCE:` at position **6c** of
+   the gate signal order — after 6b (`PLAN:`) and immediately before 7
+   (`TELEMETRY:`) — naming the cluster's file and section, the contributing
+   layers and the layer count. Amend the "renders last before the options"
    clause to name 6c. `references/loop-control.md` §5 must agree item for item
    with the spec's §Gate Signal Order, and `SKILL.md` §The gate names the token
    in its non-divergent summary — traces to
@@ -593,28 +604,18 @@ field, no fifth layer and no durable artifact.
    pauses the gate, never withholds `proceed` — traces to
    `docs/spec/harness-loop-control.md` §Rendering and position
    (REQ-ORCH-HARNESSP6-001).
-6. [ ] [implement] State the shipped scope explicitly — shared id primary,
-   sectionless file, retained `(file, section)` — with the **measured**
-   origin-case recall (Chunk 8: 0 of the 3 harness-p3 §L2 members) as the
+6. [ ] [implement] State the shipped **co-located** scope explicitly, with the
+   recorded 2-of-3 recall against the harness-p3 §L2 origin case as the
    accepted cost of shipping without a root-cause field or a fifth layer, so
    verification is never asked to prove a property the design does not deliver.
-   **[Corrected 2026-09-20 at replan — the task otherwise stands as the fired
-   trigger directs; only the refuted 2-of-3 figure it quoted is replaced by the
-   measured result. Recorded under §Open Questions 4.]**
    Add the one cross-reference in `docs/spec/arbitrated-handoff.md` recording
    that the `(file, section)` key now has two consumers — traces to
    `docs/spec/harness-loop-control.md` §Shipped scope
    (REQ-ORCH-HARNESSP6-002).
-7. [ ] [implement] **[Rewritten at replan 2026-09-20 — descoped floor]** Add the
-   key-parser scenario group (**five** cases: different layers citing the same
-   `REQ-*` id with different sections **cluster** — the primary key; different
-   layers naming the same file in which the parser finds **no section** cluster
-   on the file alone — the sectionless-file rule, with the `.jsonl` shape of the
-   `.sdd/telemetry.jsonl` case the Chunk 8 replay found; different layers in the
-   same **sectioned** file with different sections do **not** — the retained
-   noise guard; the same layer does not; different layers with equal
-   `(file, section)` **cluster** — the retained key), the
-   different-`research_id` non-clustering fixture,
+7. [ ] [implement] Add the key-parser scenario group (four cases: different layers
+   with equal `(file, section)` cluster; same layer does not; same file with
+   different sections does not; different layers citing the same `REQ-*` id with
+   different sections do), the different-`research_id` non-clustering fixture,
    the gate rendering fixture showing the line between 6b and 7 with `proceed`
    available, the no-new-path fixture, and — plan-review m7 — a
    `Q-IMPL-HARNESSP6-001` case asserting that a **third** layer joining an
@@ -696,10 +697,7 @@ thirteen traceability rows exercisable.
 
 ## Replan Triggers
 
-- **[FIRED 2026-09-20 — resolved by the replan archived at
-  `plan-history/2026-09-20-replan-l2-descope.md`; retained here as the record of
-  what fired, and no longer armed.]** **The L2 spike (Chunk 8) finds the
-  `(file, section)` cluster rule clusters
+- **The L2 spike (Chunk 8) finds the `(file, section)` cluster rule clusters
   unrelated findings at a rate an operator would call noise, or forms no cluster
   at all over the three replayed cycles** → **replan inside this cycle** that
   descopes L2 to its honest floor: the secondary-id key alone (highest
@@ -738,13 +736,8 @@ thirteen traceability rows exercisable.
 
 ## Risks
 
-- **L2's firing rate is now measured, and it is low** (RS-HARNESSP6-001 Q4;
-  Chunk 8 replay: one cluster over three cycles, from the shared-id key, plus
-  the sectionless-file case the amended rule now catches). The residual risk is
-  that the shipped floor fires rarely enough to be invisible in practice;
-  accepted, because the signal is informational and costs one line either way,
-  and because the measurement is on the record rather than estimated.
-  Mitigation (as planned, and exercised):
+- **L2 is Medium-confidence and its firing rate is unmeasured**
+  (RS-HARNESSP6-001 Q4; carried onto the three L2 traceability rows). Mitigation:
   the mandatory spike at Chunk 8 precedes every L2 implement task, the signal is
   informational so a false positive costs one line rather than an operator
   interruption, and the descope path is a named in-cycle replan rather than a
@@ -782,6 +775,11 @@ thirteen traceability rows exercisable.
    land at Chunk 4 (after their markers exist) and the `CONVERGENCE:` pair at
    Chunk 9, whose task 8 asserts the exact new `len(REQUIRED)` covering all six.
    Chosen non-interactively; no operator was available to arbitrate.
+   **[Struck 2026-09-20 — resolved: Chunk 4 landed the four `PLAN:` /
+   `GIT_STATE` `REQUIRED` rows with `python3 tools/sdd-skill-lint.py` at 0
+   (commit 8700d35), which is the end-state reading working in practice; the
+   `CONVERGENCE:` pair lands at Chunk 9 task 8, whose assertion of the exact
+   `len(REQUIRED)` covers all six rows as one table state. REQ-PLAN-HARNESSP6-001]**
 2. **Chunk 7's placement.** The kickoff's §Scope order puts the deferral sweep
    ninth — after L2 (item 8). It is scheduled **before** the L2 chunks here
    because the sweep is a corpus text change with no dependency on L2, while L2
@@ -790,25 +788,17 @@ thirteen traceability rows exercisable.
    instruction — "L2 is sequenced **last** among the implementation items" — is
    what this ordering follows; the §Scope numbering is a listing order, and the
    two are read as consistent with L2 last.
+   **[Struck 2026-09-20 — resolved: Chunks 1-7 landed in the planned order and
+   Chunk 8 (the first L2 chunk) ran last, so the ordering the entry proposed is
+   what executed and the kickoff's "L2 last" instruction held.
+   REQ-PLAN-HARNESSP6-001]**
 3. **Which harness-p3/-p4/-p5 findings the Chunk 8 spike replays.** The recorded
    finding sets are the three cycles' `verification.md` §Issues Found plus the
    red rounds and review findings those files record; reviews were ephemeral, so
    any review finding not recorded in a durable artifact cannot be replayed. The
    spike reports its input set explicitly so its recall figure is interpretable,
    rather than implying it replayed findings that no longer exist.
-
-4. **Whether the equal-`(file, section)` key survives the descope at all, and
-   what to do about Chunk 9 task 6.** The operator decision specifies the floor
-   as the shared-id key as primary plus the sectionless-file rule; it does not
-   say whether the co-located key is deleted or demoted. Reading taken, as the
-   most consistent with the spike's evidence: **demoted, not deleted** — the
-   replay measured its precision at zero false positives, so removing it would
-   lose clusters it can still form while removing nothing that misled anyone;
-   what is declined, and what §Out of Scope records, is its use as the *primary*
-   key and every recall claim resting on it. Second item: the fired trigger's
-   text lists task 6 among those that stand, but task 6 as written quotes the
-   refuted 2-of-3 recall. Reading taken: the task **stands** as work, and only
-   the false figure inside it is corrected to the measured result — leaving a
-   refuted number in an active task would re-introduce the defect this replan
-   exists to remove. Chosen non-interactively; no operator was available to
-   arbitrate.
+   **[Struck 2026-09-20 — resolved: the Chunk 8 spike ran and its §Spike
+   Findings state the input set explicitly (the three cycles' `verification.md`
+   sections named there) together with the ephemerality caveat, so the replayed
+   rate is on the record as a floor. REQ-PLAN-HARNESSP6-001]**

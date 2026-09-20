@@ -1030,14 +1030,39 @@ is deferred, carried or queued; none is to be re-raised as pending work
   **declined**: recovering convergence between findings that share a root cause
   but no file and no section requires either a root-cause field on a leaf's
   `RETURN:` shape or a fifth verification layer whose job is correlation, and
-  both are standing exclusions of this corpus. What ships is **co-located**
-  convergence over the existing `(file, section)` arbitration key. Its accepted
-  cost is recall: against the three-layer origin case at
-  `docs/ws/harness-p3/verification.md` §L2 the shipped form clusters two of the
-  three layers, and that is recorded here so no later reader mistakes L2 for the
-  full signal described there. A signal that catches co-located convergence
-  reliably is worth more than one that claims conceptual convergence and cannot
-  deliver it.
+  both are standing exclusions of this corpus. What ships is convergence over
+  findings that already carry a shared id or a shared location. Its accepted
+  cost is recall, and that cost is now measured rather than estimated: against
+  the three-layer origin case at `docs/ws/harness-p3/verification.md` §L2 the
+  shipped form clusters **none** of the three layers — the earlier "two of the
+  three" figure was never measured against the record and the Chunk 8 replay
+  refutes it — which is recorded here so no later reader mistakes L2 for the
+  full signal described there. A signal that catches the convergences it can
+  key on reliably is worth more than one that claims conceptual convergence and
+  cannot deliver it.
+- **The co-located `(file, section)` key as L2's primary cluster key**
+  (RS-HARNESSP6-001 Q4(a); Chunk 8 resolving spike) — **declined 2026-09-20
+  (settled exclusion, measured)**: replayed over the recorded findings of the
+  harness-p3, -p4 and -p5 cycles, an equal `(file, section)` key formed **zero**
+  clusters — zero in each of the three cycles and zero in total — and against
+  the harness-p3 §L2 origin case it clusters **none** of the three members, not
+  the two of three the earlier text asserted without measuring. The reason is
+  structural rather than a sampling artefact: different layers describe one
+  defect at different granularities and from different directions, so
+  co-location is the property a genuine cross-layer convergence is least likely
+  to exhibit, and supplying the ephemeral review and chunk-verifier findings the
+  replay could not see would add findings in *more* files, not more co-located
+  ones. The key is not noisy — its precision held, at zero false positives — so
+  it is **retained as a subordinate key** that renders when it fires; what is
+  declined is its use as the primary key and every recall claim resting on it.
+  What ships instead is the shared-`REQ-*`/deviation-id key as primary (the only
+  key that fired in the replay) plus a sectionless-file rule that recovers the
+  one genuine convergence a section-granular key structurally cannot catch (red
+  and blue on the same malformed records in `.sdd/telemetry.jsonl`, a file with
+  no sections). The measurement is done and the design is settled on it; there
+  is no open work in this entry. (REQ-HARN-HARNESSP6-002,
+  REQ-ORCH-HARNESSP6-001..002; `docs/ws/harness-p6/plan.md` §Chunk 8 → Spike
+  Findings)
 
 
 ## Open Questions
