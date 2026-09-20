@@ -88,7 +88,7 @@ grown"; RS-HARNESSP6-001 §Deferral-Backlog Sweep)
 cycle's sweep actually edited — returns no **live** entry. "Live" is decidable
 mechanically, not by judgement: a match does not count when its own line, or
 the line immediately preceding it, carries a bracketed dated marker matching
-`\*\*\[(Superseded|Closed|Struck)[^]]*20[0-9]{2}-[0-9]{2}-[0-9]{2}[^]]*\]\*\*`.
+`(\*\*\[|_\()(?i:superseded|closed|struck)[^\]\)]*20[0-9]{2}-[0-9]{2}-[0-9]{2}`.
 Every annotated item therefore carries its own adjacent marker; a block-level
 marker covering several items does not satisfy this clause. Prose in
 §Q-REQ Resolutions recording what a **closed** cycle decided is outside the

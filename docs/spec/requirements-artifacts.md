@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-05-25
+last_updated: 2026-09-20
 requires:
   - REQ-REQ-001
   - REQ-REQ-002
@@ -12,6 +12,7 @@ requires:
   - REQ-STALE-001
   - REQ-STALE-002
   - REQ-SKILL-003
+  - REQ-REQ-HARNESSP6-001
 ---
 
 # Requirements Artifacts
@@ -62,7 +63,7 @@ Each category file follows this structure:
 ---
 domain: AUTH
 last_updated: YYYY-MM-DD
-status: Approved | Approved
+status: Draft | Under Review | Approved
 ---
 
 # Requirements: Authentication
@@ -117,7 +118,7 @@ metadata and staleness detection:
 ```markdown
 ---
 version: 1.0
-status: Approved | Approved
+status: Draft | Under Review | Approved
 last_updated: YYYY-MM-DD
 ---
 
@@ -234,6 +235,52 @@ When `sdd-requirements` starts, it checks:
 This is advisory, not blocking. The user decides whether the new research
 affects requirements.
 
+### `## Out of Scope` Discipline (REQ-REQ-HARNESSP6-001)
+
+[Added 2026-09-20, harness-p6 — REQ-REQ-HARNESSP6-001]
+
+`docs/requirements/index.md` §Out of Scope records every won't-do as a **settled
+exclusion with its reasoning**. It must not hold an entry phrased as deferred,
+carried, or queued to a next or later cycle. A section that accumulates
+deferrals is a backlog wearing a scope section's name: it makes each cycle's
+boundary unfalsifiable and structurally guarantees a successor cycle.
+
+**The four dispositions.** Every entry is exactly one of:
+
+| Disposition | Shape |
+|---|---|
+| settled exclusion | the entry states the won't-do **and its reasoning** — why it is not worth doing, not when it might be |
+| closed | its work has since been done or has become moot: marked closed **with its date and evidence**, not deleted, so the closure stays auditable |
+| superseded | replaced by a pointer to the requirement that shipped it |
+| in scope | removed from the section because a requirement now carries it |
+
+**The same rule binds `verification.md` §Next Steps.** A cycle's §Next Steps must
+contain no item phrased as carried to a later cycle. A finding too large to fix
+inside the cycle triggers a **replan**, not a successor workstream.
+
+**Liveness is decidable mechanically, not by judgement.** A case-insensitive
+search for the deferral phrasings (`deferred to`, `carried to`, `queued for`,
+`re-raise in that cycle`, `next cycle`) over the two scopes above reports a
+**live** entry unless its own line, or the line immediately preceding it,
+carries a bracketed dated marker of the form
+
+```
+(\*\*\[|_\()(?i:superseded|closed|struck)[^\]\)]*20[0-9]{2}-[0-9]{2}-[0-9]{2}
+```
+
+Two consequences follow, and both are deliberate. First, **every** annotated
+item carries its **own adjacent** marker — a block-level marker introducing
+several items does not satisfy the rule, because a reader scanning one line
+cannot see it and a mechanical check cannot attribute it. Second, prose in
+§Q-REQ Resolutions that records what a **closed** cycle decided is outside the
+two scopes and is not examined: recording that a past cycle deferred something
+is history, not a live deferral.
+
+**Why a mechanical rule and not a review instruction.** A "don't write
+deferrals" instruction is unfalsifiable at a gate; an adjacent-marker rule is a
+grep an operator can run and a reviewer can reproduce, which is the property that
+makes a terminal cycle's closing condition checkable at all.
+
 ### File Size Management
 
 When a category file approaches 300 lines, the skill should:
@@ -245,6 +292,14 @@ When a category file approaches 300 lines, the skill should:
 ## Verification
 
 ### Automated
+- Validate that no entry in `index.md` §Out of Scope, and no item in a
+  `verification.md` §Next Steps, matches a deferral phrasing without an adjacent
+  bracketed dated `Superseded | Closed | Struck` marker on its own or the
+  preceding line (REQ-REQ-HARNESSP6-001).
+- Validate that a block-level marker introducing several items does **not**
+  satisfy the rule for those items (REQ-REQ-HARNESSP6-001).
+- Validate that §Q-REQ Resolutions prose is outside the checked scopes
+  (REQ-REQ-HARNESSP6-001).
 - Validate that `index.md` lists every category file that exists on disk
 - Validate that every requirement ID matches its file's `domain` frontmatter
 - Validate no duplicate requirement IDs across all files
@@ -264,3 +319,18 @@ When a category file approaches 300 lines, the skill should:
 - [ ] Research-to-requirements staleness is detected and reported (REQ-STALE-002)
 - [ ] `sdd-requirements` reads/writes the new structure (REQ-SKILL-003)
 - [ ] Old monolithic format is detected with migration offer (REQ-SKILL-003)
+- [ ] §Out of Scope holds only settled exclusions with reasoning, closed entries with date and evidence, and pointers to superseding requirements — no entry phrased as deferred, carried or queued to a later cycle (REQ-REQ-HARNESSP6-001)
+- [ ] The same rule binds `verification.md` §Next Steps; a finding too large to fix in-cycle triggers a replan, never a successor workstream (REQ-REQ-HARNESSP6-001)
+- [ ] Liveness is decided by the adjacent-marker rule: own line or immediately preceding line, per item, block-level markers excluded; §Q-REQ Resolutions prose is outside the checked scopes (REQ-REQ-HARNESSP6-001)
+- [ ] The three settled exclusions named by RS-HARNESSP6-001 are each present in §Out of Scope with their reasoning (REQ-REQ-HARNESSP6-001)
+
+
+**[Updated: 2026-09-20 — the rule originally accepted only the bold-bracket
+shape `**[Closed …]**`. Measured against the corpus it governs, that shape
+matched 11 annotations in `docs/ws/harness-p5/verification.md` §Next Steps and
+**0** in `docs/requirements/index.md` §Out of Scope, which uses a multi-line
+italic-paren shape `_(superseded 2026-09-20 — …)_`. A liveness rule that cannot
+read half its own governed corpus is vacuous until the first annotation lands
+there and then misfires, so both shapes are accepted and the match is anchored
+at the marker's opening rather than requiring its close (the italic form wraps
+across lines). Requirements-review M1.]**

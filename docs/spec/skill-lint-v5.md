@@ -13,6 +13,9 @@ requires:
   - REQ-LINT-HARNESSP4-002
   - REQ-LINT-HARNESSP5-001
   - REQ-LINT-HARNESSP5-002
+  - REQ-LINT-HARNESSP6-001
+  - REQ-LINT-HARNESSP6-002
+  - REQ-LINT-HARNESSP6-003
 ---
 
 # Skill Lint v5
@@ -233,6 +236,27 @@ may later move into another `references/*.md` under that section's invariants
 the Chunk 8 move of §Isolation Discipline and §Orchestrator-Only Work into
 `references/isolation.md` relied on exactly that reading.]
 
+#### Qualification of the "must not move" Row (REQ-LINT-HARNESSP6-002)
+
+[Added 2026-09-20, harness-p6 — REQ-LINT-HARNESSP6-002]
+
+Read in sequence, `docs/requirements/integration/skill-lint.md`'s REQ-LINT-007
+and REQ-LINT-HARNESSP5-001 contradict each other: the earlier one's "must not
+move" list forbids movement that the later one, in the same file, requires (the
+Chunk 8/9 rescoping). The contradiction is textual, not behavioural — this
+spec's §Scope of the `no` row already states the reconciling reading — so the
+fix is a **qualification on the requirement text**, not a design change:
+
+- REQ-LINT-007 gains a bracketed dated `[Updated: 2026-09-20 …]` note naming the
+  authorised exception and **REQ-LINT-HARNESSP5-001** as the authorising
+  requirement.
+- The requirement's **id, its number and its original text are not changed** —
+  amending the original in place would break every artifact that cites it and
+  would erase the record that the two requirements once disagreed.
+- No lint rule, no linter table and no skill file changes for this item; it is a
+  requirements-corpus text fix whose contract is recorded here so the implement
+  stage has a spec to trace to.
+
 Two mandatory guards:
 
 1. **`research_id` lint row.** The `REQUIRED` row `research_id` ≥ 3 in
@@ -330,6 +354,53 @@ points at `references/write-scope.md` §7 as the defining section. Removing the
 line from either file exits 1 with the row's fix; `--self-test`'s mutation loop
 covers the row.
 
+### `REQUIRED` Rows — `PLAN:` and `GIT_STATE` (REQ-LINT-HARNESSP6-001)
+
+[Added 2026-09-20, harness-p6 — REQ-LINT-HARNESSP6-001; `PLAN:` was the only
+gate token shipping without a lint pair, and the new `GIT_STATE` finding name
+would have shipped the same way]
+
+**Why.** Every gate token so far shipped with a producer/consumer `REQUIRED`
+pair, so deleting it from either file fails the lint. `PLAN:` did not, which
+means its deletion from `references/loop-control.md` §6 is today unguarded while
+the identical deletion of any sibling token fails. The `GIT_STATE` finding name
+of REQ-HARN-HARNESSP6-001 would be equally unguarded in
+`references/write-scope.md`; RS-HARNESSP6-001 Q2 recommended the two land
+together as one lint change, and that recommendation is **adopted** here rather
+than declined.
+
+| File | Pattern (regex) | min | Contract |
+|---|---|---|---|
+| `skills/sdd-orchestrate/references/loop-control.md` | `PLAN: INCOMPLETE` | 1 | §6 pause family, the producer (`harness-loop-control.md` §Plan Completion Ownership) |
+| `skills/sdd-orchestrate/SKILL.md` | same | 1 | §The gate one-line summary, the consumer |
+| `skills/sdd-orchestrate/references/write-scope.md` | `GIT_STATE` | 1 | §5, the producer (`harness-write-scope.md` §Git-State Observation) |
+| `skills/sdd-orchestrate/SKILL.md` | same | 1 | §The gate one-line summary, the consumer |
+
+`fix:` on the `PLAN:` rows points at `harness-loop-control.md` §Plan Completion
+Ownership; on the `GIT_STATE` rows at `harness-write-scope.md`
+§Git-State Observation. `GIT_STATE` is a finding **name inside the `SCOPE:`
+block**, not an own-line gate token, so its pattern carries no trailing colon
+and no option-set alternation — the row guards the name's presence, which is all
+that is needed to make its deletion fail.
+
+### `REQUIRED` Row — `CONVERGENCE:` (REQ-LINT-HARNESSP6-003)
+
+[Added 2026-09-20, harness-p6 — REQ-LINT-HARNESSP6-003]
+
+The L2 gate token of REQ-ORCH-HARNESSP6-001 gets the same pair that guards
+`COMMIT:` — one row for the producer, one for the consumer:
+
+| File | Pattern (regex) | min | Contract |
+|---|---|---|---|
+| `skills/sdd-orchestrate/references/loop-control.md` | `CONVERGENCE:` | 1 | §5 order, item 6c (`harness-loop-control.md` §Convergence Signal) |
+| `skills/sdd-orchestrate/SKILL.md` | same | 1 | §The gate one-line summary |
+
+`fix:` points at `harness-loop-control.md` §Convergence Signal as the defining
+section. These three **pairs** — **six rows**: the `PLAN:` pair, the
+`GIT_STATE` pair adopted into it, and this pair — are **this cycle's only lint
+changes**, and they land
+together as one change to the `REQUIRED` table.
+
 ### Self-Test Extension
 
 `--self-test` gains fixtures for: a finding without `fix` (must be impossible —
@@ -337,6 +408,11 @@ asserted via signature); a warn-only fixture exits 0 with `1 warning(s)`; a
 401-line SKILL.md warns and a 1001-line one fails; a backtick
 `references/missing.md` fails while an existing one passes; each new `REQUIRED`
 row fails when its marker is removed from a temp copy.
+The mutation loop covers the **six** rows added this cycle — `PLAN:` ×2,
+`GIT_STATE` ×2, `CONVERGENCE:` ×2 (the table counts rows, not files, so the two
+rows that both target `SKILL.md` are distinct rows). `len(REQUIRED)` grows by
+exactly six and the suite asserts the new total rather than a `>=` bound, so an
+accidental drop is caught.
 
 ## Verification
 
@@ -373,6 +449,10 @@ row fails when its marker is removed from a temp copy.
 - [ ] REQ-LINT-HARNESSP5-002's file-wide grep for the two legacy baseline figures (the two-file warn set and the four-hundred-fifty bound) returns nothing in this spec; the R7/R8 `reproduce:` commands print 0 and a number < 400; `docs/ws/harness-p5/verification.md` `## Post-cycle Fixes` records both reds closed (REQ-LINT-HARNESSP5-002)
 - [ ] §`[template-drift]` states the absent-side behaviour (warn, never fail) and the rendered finding order (tag after the location); Q-IMPL-HARNESSP4-008 carries its fold-in status note and its body is unchanged (REQ-QIMPL-HARNESSP5-001, owned by `deviation-protocol.md`)
 - [ ] `[template-drift]` rule present with the four-row pair table; the shipped skill set exits 0; changing one character inside the RED TEAM `RETURN:` block of `dispatch-templates.md` exits 1 with a `[template-drift]` line naming `adversarial-verify.md` and the fix; `--self-test`'s mutation loop covers it; REQ-HARN-HARNESSP4-007's edit is made with the rule active and leaves exit 0 (REQ-LINT-HARNESSP4-001)
+- [ ] `REQUIRED` rows for `PLAN:` (producer `references/loop-control.md` §6, consumer `SKILL.md` §The gate) and for the `GIT_STATE` finding name (producer `references/write-scope.md` §5, consumer `SKILL.md` §The gate); `python3 tools/sdd-skill-lint.py` exits 0 on the corpus as it stands, and exits non-zero naming the respective row when the guarded line is removed from any one of those three files (REQ-LINT-HARNESSP6-001)
+- [ ] `REQUIRED` row pair for `CONVERGENCE:` (producer `references/loop-control.md` §5 item 6c, consumer `SKILL.md` §The gate); lint exits 0 once the token ships and non-zero naming the respective row when it is removed from either file (REQ-LINT-HARNESSP6-003)
+- [ ] `--self-test`'s mutation loop covers all six new rows and asserts the new `len(REQUIRED)` total exactly (REQ-LINT-HARNESSP6-001, REQ-LINT-HARNESSP6-003)
+- [ ] REQ-LINT-007 in `docs/requirements/integration/skill-lint.md` carries a bracketed dated `[Updated: 2026-09-20 …]` note naming REQ-LINT-HARNESSP5-001 as the authorising requirement for the moved sections; the id, its number and its original text are unchanged; a reader of the two requirements in sequence finds no contradiction; the findings of `tools/sdd-skill-lint.py` and `tools/sdd-gc.py --report` on that file are unchanged (REQ-LINT-HARNESSP6-002)
 - [ ] `REQUIRED` row for `COMMIT: COMPLETE | INCOMPLETE` in `loop-control.md` and `SKILL.md`; removing either line exits 1 with the row's fix (pointing at `write-scope.md` §7); a file containing only `SCOPE: CLEAN` does not satisfy it; `--self-test` covers it; shipped skill set exits 0 (REQ-LINT-HARNESSP4-002)
 
 ## Edge Cases
@@ -467,7 +547,7 @@ contradictions.
 ### Q-IMPL-084: baseline warn set is three after v5 (cross-reference)
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §SKILL.md Size Check — REQ-LINT-003 acceptance names the baseline warn set as exactly {`sdd-orchestrate`, `sdd-migrate`}
-**Decision**: after this cycle the live warn set is {`sdd-orchestrate` 469, `sdd-migrate` 464, `sdd-implement` 525}; the third is accepted via Q-IMPL-083 in `harness-loop-control.md` (references split queued for the next cycle). The acceptance snapshot is historical, not a ceiling.
+**Decision**: after this cycle the live warn set is {`sdd-orchestrate` 469, `sdd-migrate` 464, `sdd-implement` 525}; the third is accepted via Q-IMPL-083 in `harness-loop-control.md` (the `references/` split is **declined**, not queued — see `harness-loop-control.md` Q-IMPL-083). The acceptance snapshot is historical, not a ceiling.
 **Rationale**: a reader of this spec needs the pointer; the requirement text never fixed the count.
 **Date**: 2026-09-17 (verify-stage review m4)
 

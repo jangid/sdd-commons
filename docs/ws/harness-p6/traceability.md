@@ -29,16 +29,16 @@ rate is unmeasured. Their verification should not be treated as routine.
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-GC-HARNESSP6-001 | | harness-p6 | | | |
-| REQ-GC-HARNESSP6-002 | | harness-p6 | | | |
-| REQ-GC-HARNESSP6-003 | | harness-p6 | | | |
-| REQ-GC-HARNESSP6-004 | | harness-p6 | | | |
-| REQ-HARN-HARNESSP6-001 | | harness-p6 | | | |
-| REQ-HARN-HARNESSP6-002 | | harness-p6 | | | |
-| REQ-LINT-HARNESSP6-001 | | harness-p6 | | | |
-| REQ-LINT-HARNESSP6-002 | | harness-p6 | | | |
-| REQ-LINT-HARNESSP6-003 | | harness-p6 | | | |
-| REQ-ORCH-HARNESSP6-001 | | harness-p6 | | | |
-| REQ-ORCH-HARNESSP6-002 | | harness-p6 | | | |
-| REQ-PLAN-HARNESSP6-001 | | harness-p6 | | | |
-| REQ-REQ-HARNESSP6-001 | | harness-p6 | | | |
+| REQ-GC-HARNESSP6-001 | drift-sweep.md | harness-p6 | | | |
+| REQ-GC-HARNESSP6-002 | drift-sweep.md | harness-p6 | | | |
+| REQ-GC-HARNESSP6-003 | drift-sweep.md | harness-p6 | | | |
+| REQ-GC-HARNESSP6-004 | drift-sweep.md | harness-p6 | | | |
+| REQ-HARN-HARNESSP6-001 | harness-write-scope.md | harness-p6 | | | |
+| REQ-HARN-HARNESSP6-002 | harness-loop-control.md | harness-p6 | | | |
+| REQ-LINT-HARNESSP6-001 | skill-lint-v5.md | harness-p6 | | | |
+| REQ-LINT-HARNESSP6-002 | skill-lint-v5.md | harness-p6 | | | |
+| REQ-LINT-HARNESSP6-003 | skill-lint-v5.md | harness-p6 | | | |
+| REQ-ORCH-HARNESSP6-001 | harness-loop-control.md | harness-p6 | | | |
+| REQ-ORCH-HARNESSP6-002 | harness-loop-control.md | harness-p6 | | | |
+| REQ-PLAN-HARNESSP6-001 | plan-management.md | harness-p6 | | | |
+| REQ-REQ-HARNESSP6-001 | requirements-artifacts.md | harness-p6 | | | |

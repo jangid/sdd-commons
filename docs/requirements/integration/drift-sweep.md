@@ -221,7 +221,7 @@ escape sequence, which every future correctly-escaped cell would inflate);
 workstream's plan is correctly older than specs and requirement files that later
 cycles amended — it *should* be older — so the finding is a structural false
 positive whose count grows monotonically with every subsequent cycle. Measured
-at this branch point, the rule emits 19 such lines (13 on `harness-p3`'s plan,
+at the branch point `ac0fb43`, the rule emitted 19 such lines (13 on `harness-p3`'s plan,
 6 on `harness-p4`'s), split between the `plan older than a traced spec` and
 `plan older than a traced requirement category file` sub-kinds; both sub-kinds
 must be skipped for a closed workstream. An open workstream (no
@@ -255,8 +255,20 @@ list in the message. No date is bumped to silence anything. (workstream
 **Acceptance**: `python3 tools/sdd-gc.py --self-test` exits 0 with a fixture
 where one spec requiring three ids from one stale category file yields exactly
 **one** `[stale-chain]` finding whose message names all three ids;
-`python3 tools/sdd-gc.py --report` on this repository reports exactly **3**
-spec-versus-requirement `[stale-chain]` findings, one per pair above.
+on this repository, `python3 tools/sdd-gc.py --report` emits exactly **one**
+spec-versus-requirement `[stale-chain]` finding per distinct `(spec, category
+file)` pair present in the corpus at the time it runs — verified by a command
+that derives both sides rather than pinning a literal: the count of such
+findings equals the count of distinct pairs those findings name.
+**[Updated: 2026-09-20 — the criterion originally read "exactly **3** findings,
+one per pair above", pinning the count measured at the kickoff. By the specs
+stage the corpus held **6** distinct pairs (the requirements commit re-dated
+five category files, widening the class onto `harness-return-contract.md` and
+`harness-chunk-verifier.md`), so the literal was already unsatisfiable. The
+count is a property of the shared corpus at run time, not of this change;
+pinning it is the fragile-criterion failure recorded as harness-p5's headline
+lesson. The fold property — one finding per pair — is what this requirement
+actually asserts, and it is stable.]**
 [Priority: must]
 
 ### REQ-GC-HARNESSP6-003: the folded shared-spec staleness finding is carried at `info`
@@ -283,7 +295,10 @@ the DONE gate. After this requirement only the **plan-level** sub-class remains
 decision-routed; the folded shared-spec class is informational and routes
 nowhere.
 **Acceptance**: `python3 tools/sdd-gc.py --report` on this repository exits `OK`
-with **0** `[stale-chain]` warnings and 3 `[stale-chain]` `info` lines;
+with **0** `[stale-chain]` **warnings**, and with every remaining
+spec-versus-requirement `[stale-chain]` line emitted at `info` (their number is
+whatever the corpus holds at run time and is deliberately not pinned — see
+REQ-GC-HARNESSP6-002's dated note);
 `python3 tools/sdd-gc.py --self-test` exits 0 with the severity asserted on the
 folded finding and unchanged on a plan-level finding; `docs/spec/drift-sweep.md`
 row 7 reads `info` for the shared-spec sub-class and its §DONE routing lists

@@ -12,6 +12,10 @@ requires:
   - REQ-SKILL-HARNESSP2-004
   - REQ-GC-HARNESSP3-001
   - REQ-GC-HARNESSP5-001
+  - REQ-GC-HARNESSP6-001
+  - REQ-GC-HARNESSP6-002
+  - REQ-GC-HARNESSP6-003
+  - REQ-GC-HARNESSP6-004
 ---
 
 # Drift Sweep (`tools/sdd-gc.py`)
@@ -81,7 +85,7 @@ rules are scoped to `docs/**`. `sdd-gc.py` never reads `.sdd/`
 | 4 | known drift phrases | delegated (lint) | `lint` | fail | `FORBIDDEN` table |
 | 5 | kickoff `date:` / `research_id:` present per workstream | delegated (lint) under marker `3` — the linter emits it at any run; gc under marker `4` — emitted at `sdd-orchestrate` entry and DONE (§Cadence) | `kickoff-fields` | fail | `orchestration.md` §Kickoff Artifact |
 | 6 | cross-links inside `docs/`: spec↔spec, requirement→spec `(see …)`, `research_refs`, `requires:` ids exist; `RS-` / `REQ-` / `Q-IMPL-` id existence | gc | `xlink-dead`, `id-missing` | **fail** | the linter's two regexes over `docs/**/*.md` + id existence |
-| 7 | staleness chain research → requirements → specs → plan → verification by `last_updated`, per workstream via plan `traces to` → spec `requires:` → category files | gc | `stale-chain` | warn | every skill's Phase Detection; `ws-staleness.md` (never a traceability file) |
+| 7 | staleness chain research → requirements → specs → plan → verification by `last_updated`, per workstream via plan `traces to` → spec `requires:` → category files. Two sub-kinds: **plan-level** (a `docs/ws/<id>/plan.md` older than a traced spec or a traced requirement category file) and **shared-spec** (a `docs/spec/*.md` older than a category file it `requires:` ids from), the latter emitted **folded** — one finding per `(spec, category file)` pair naming every triggering id | gc | `stale-chain` | plan-level **warn**; shared-spec **info** | every skill's Phase Detection; `ws-staleness.md` (never a traceability file); §Closed-Workstream Skip; §Shared-Spec Staleness |
 | 8 | orphan Q-IMPL (i) referenced-but-undefined | gc | `qimpl-undefined` | **fail** | §Q-IMPL Counting Rule |
 | 9 | orphan Q-IMPL (ii) defined-never-referenced | gc | `qimpl-unreferenced` | info | `deviation-protocol.md` — not a defect |
 | 10 | orphan Q-IMPL (iii) `Spec reference` section missing / broken `[superseded by …]` chain | gc | `qimpl-broken-ref` | warn | `deviation-protocol.md` §Numbering |
@@ -99,12 +103,96 @@ with `--workstream`.
 `stale-chain` reads `verification.md` `status: pending-red`
 (`adversarial-verify.md`) as "verification exists, not passed".
 
+### Closed-Workstream Skip (REQ-GC-HARNESSP6-001)
+
+[Added 2026-09-20, harness-p6 — REQ-GC-HARNESSP6-001]
+
+`stale-chain`'s **plan-level** sub-kind is skipped entirely for a **closed**
+workstream. A workstream is closed when `docs/ws/<id>/verification.md` exists
+and its frontmatter `status:` is exactly `pass`. Both plan-level sub-kinds
+(`plan older than a traced spec`, `plan older than a traced requirement category
+file`) are skipped together — a half-skip would leave the same false positive in
+a second shape.
+
+Rationale: a closed workstream's plan *should* be older than specs and category
+files that later cycles amended; the finding is structurally unfixable without
+back-dating an artifact, and its count grows monotonically with every subsequent
+cycle. Measured at the harness-p6 branch point (`ac0fb43`) the rule emitted 19 such lines
+(13 on `harness-p3`'s plan, 6 on `harness-p4`'s).
+
+Scope of the change, stated so an implementer does not widen it: this is a
+**scoping predicate on an existing rule** — no new rule id, no severity change,
+no allowlist, no file exempted by name. A workstream with no `verification.md`,
+or one whose `status:` is any value other than `pass` (including `fail` and
+`pending-red`), is **open** and is swept exactly as before, so real in-flight
+staleness still surfaces. The skip is evaluated per workstream, never per file:
+under marker `3` there is no `docs/ws/`, no sibling `verification.md` to read,
+and the predicate is never consulted — marker-3 behaviour is unchanged.
+
+### Shared-Spec Staleness: Fold and Severity (REQ-GC-HARNESSP6-002, REQ-GC-HARNESSP6-003)
+
+[Added 2026-09-20, harness-p6 — REQ-GC-HARNESSP6-002, REQ-GC-HARNESSP6-003]
+
+**The fold.** The spec-versus-requirement comparison emits **one** finding per
+`(downstream spec, upstream category file)` pair, not one per
+`(spec, requirement id)` pair. The message names the requirement ids that
+triggered it, so no information is lost:
+
+```
+INFO  [stale-chain] docs/spec/telemetry.md:1 — spec last_updated 2026-09-18 is
+      older than docs/requirements/functional/telemetry.md 2026-09-20
+      (ids: REQ-TELEM-001, REQ-TELEM-002, … 39 ids)
+      fix: review the spec against those requirements; bump last_updated via
+           sdd-specs if it actually needs a change
+```
+
+The fold is a **presentation** change and drops no comparison: every
+`(spec, id)` pair is still evaluated, and a pair that triggers still reaches the
+operator through its pair's id list. Its false-negative cost is therefore
+provably zero. It is preferred over the alternatives Q1 weighed — comparing only
+against `requires:` ids (already the behaviour), demoting without folding
+(leaves 44 lines at that branch point), and date-bumping to silence (rejected: it makes the signal
+meaningless). At the harness-p6 branch point (`ac0fb43`) 44 lines fanned out from exactly
+three pairs — **a dated measurement, not an invariant: the pair set grows
+whenever any workstream re-dates a category file, and stood at 6 pairs by the
+specs stage** — `docs/spec/telemetry.md` ← `functional/telemetry.md` (39),
+`docs/spec/telemetry.md` ← `integration/skill-lint.md` (3),
+`docs/spec/adversarial-verify.md` ← `integration/skill-lint.md` (2).
+
+**The severity.** The folded finding is emitted at **`info`**, not `warn`. Under
+the v4 shared corpus a category file is re-dated whenever *any* workstream
+appends a requirement to it, so a shared spec lagging that date is the expected
+steady state rather than a defect; carrying the class at `warn` is what made the
+warn class unusable as a drift signal. The finding is still printed and still
+counted, so the loss is one of **salience, not visibility**, and the severity is
+a one-line reversal if the class is ever observed hiding real staleness. Only
+the spec-versus-requirement sub-class moves — plan-level `stale-chain` findings
+keep `warn`.
+
+**The routing moves with the severity.** §Routing at DONE lists only the
+**plan-level** sub-class under `record | ignore`; the folded shared-spec class
+is informational and routes nowhere. This is binding, not tidiness: `record`
+appends to `verification.md` §Next Steps, which REQ-REQ-HARNESSP6-001 forbids
+from holding a carried item, so leaving the shared-spec class decision-routed
+would set two requirements of the same cycle against each other at the DONE
+gate.
+
+**Ordering.** The two changes are independent in code but not in verification:
+the "zero `[stale-chain]` warnings on this repository" condition cannot hold
+until the closed-workstream skip of REQ-GC-HARNESSP6-001 has also landed, since
+the 19 plan-level lines are `warn` and stay `warn`. A plan must not schedule the
+severity check before that rule.
+
 ### Q-IMPL Counting Rule (REQ-GC-HARNESSP2-003)
 
 Pinned so the numbers are reproducible (also in the tool's docstring with the
 three reference commands from RS-HARNESSP2-001 Q4):
 
-- **Definition**: a line matching `^### Q-IMPL-[A-Z0-9-]+` under `docs/spec/**`.
+- **Definition**: a line matching `^### Q-IMPL-[A-Z0-9-]+` under `docs/spec/**`
+  that lies **outside** a fenced code block — collected through the same
+  `visible_lines()` filter the reference side uses
+  (REQ-GC-HARNESSP6-004, added 2026-09-20). A heading inside a fence defines
+  nothing, exactly as a reference inside a fence references nothing.
 - **Reference**: any other occurrence of `Q-IMPL-[A-Z0-9]+(-\d+)?` under
   `docs/`, `skills/`, `agents/`, `tools/`, **excluding**:
   - `docs/research/**` (research cites foreign-repo ids);
@@ -116,6 +204,21 @@ three reference commands from RS-HARNESSP2-001 Q4):
     applies — so illustrative ids in templates (`chunk-close-review.md`,
     `deviation-protocol.md`, `harness-return-contract.md` and their skill
     mirrors) never count.
+**Fence symmetry and the countability obligation (REQ-GC-HARNESSP6-004).**
+Before this change references were filtered and definitions were not, so a
+deviation-entry heading inside a fence registered as a real definition that
+nothing could ever reference. Symmetry creates an **obligation on authors, not
+an allowlist**: an id used inside a fenced format illustration must be either
+(a) an id that a real, unfenced `### Q-IMPL-…` entry defines elsewhere in the
+corpus — the present convention, which both illustration ids in
+`deviation-protocol.md` already satisfy — or (b) one of the id-format
+placeholders the tool already excludes. No marker, info-string language tag or
+whitelist is introduced, so `CLAUDE.md` §Quality Checks' "there is no allowlist"
+statement stays true, and its documented "wrap it in a fenced code block" escape
+becomes symmetric: a fence can no longer accidentally *define* a foreign id
+either. The rule is stated in the module docstring and in `--help` alongside the
+reference commands.
+
 - Ids may be legacy (`Q-IMPL-083`) or workstream-prefixed
   (`Q-IMPL-<WS>-NNN`, `ws-ids.md`).
 - Classes: **both** = defined ∧ referenced; **defined-only** → info (ii);
@@ -193,14 +296,19 @@ respecting commit ownership (REQ-HARN-024).
 | Finding class | Rules | Gate action |
 |---|---|---|
 | mechanical | `xlink-dead` (unique resolution), `index-requirements` row, `traceability-aggregate`, `plan-history-name` | `--fix <rule>` — the operator reviews and commits the rewrite (REQ-HARN-024) |
-| needs a decision | `qimpl-broken-ref`, `stale-chain`, `traceability-aggregate` (when the per-ws inputs themselves look wrong), `spec-approval` | `record \| ignore`; on `record` the orchestrator appends `- gc <rule>: <file:line> — <fix>` under the completed cycle's `verification.md` §Next Steps (marker `4`: `docs/ws/<id>/verification.md`; the `## Next Steps` section added to the `sdd-verify` Step 6 template — `adversarial-verify.md` §Skill and Lint Changes, sdd-verify row) — read by the next cycle's DISCUSS |
+| needs a decision | `qimpl-broken-ref`, `stale-chain` (**plan-level sub-kind only**, REQ-GC-HARNESSP6-003), `traceability-aggregate` (when the per-ws inputs themselves look wrong), `spec-approval` | `record \| ignore`; on `record` the orchestrator appends `- gc <rule>: <file:line> — <fix>` under the completed cycle's `verification.md` §Next Steps (marker `4`: `docs/ws/<id>/verification.md`; the `## Next Steps` section added to the `sdd-verify` Step 6 template — `adversarial-verify.md` §Skill and Lint Changes, sdd-verify row) — read by the next cycle's DISCUSS |
 | out of scope | sweep 15 | note only |
 
 **Dates are never auto-fixed.** REQ-GC-HARNESSP2-006 lists a stale
 `last_updated` among the mechanical findings, while REQ-GC-HARNESSP2-007 states
-that `--fix` never touches `last_updated`; this spec follows -007 — `stale-chain`
-routes to `record | ignore` and the owning skill updates the date (editing it
-mechanically would mask the staleness it signals).
+that `--fix` never touches `last_updated`; this spec follows -007 — plan-level
+`stale-chain` routes to `record | ignore` and the owning skill updates the date
+(editing it mechanically would mask the staleness it signals).
+
+**The shared-spec sub-class is not routed.** Its findings are `info`, are
+displayed and counted at DONE, and are offered no option — not `record`, not
+`ignore`, not `--fix`. The class appears in no row of the table above
+(REQ-GC-HARNESSP6-003).
 
 gc never creates or modifies a plan task, never writes a file outside a
 `--fix` rule's whitelist, never creates `docs/gc/` or an issues file
@@ -315,6 +423,23 @@ The whole change is one sentence in `CLAUDE.md` and one in
   byte-identical, `git ls-files docs/` gains no new path.
 - `test_live_repo_clean`: on this repository `--report` exits 0 with no fail
   finding (warn/info counts are not pinned).
+- `test_stale_chain_skips_closed_workstream`: a fixture workstream whose
+  `verification.md` is `status: pass` raises **no** plan-level `[stale-chain]`
+  finding of either sub-kind; the same plan under a workstream whose
+  `verification.md` is `status: fail`, is `status: pending-red`, or is absent
+  raises them both as before (REQ-GC-HARNESSP6-001).
+- `test_shared_spec_staleness_folds`: a fixture spec requiring three ids from
+  one stale category file yields exactly **one** `[stale-chain]` finding whose
+  message names all three ids; two stale category files for the same spec yield
+  two findings (REQ-GC-HARNESSP6-002).
+- `test_shared_spec_staleness_severity`: the folded finding is emitted at `info`
+  and a plan-level finding on an open workstream is emitted at `warn`
+  (REQ-GC-HARNESSP6-003).
+- `test_qimpl_definition_is_fence_symmetric`: a `### Q-IMPL-…` heading inside a
+  fenced block contributes **no** definition; a reference to an
+  otherwise-undefined id that occurs only inside that fence raises no
+  `qimpl-undefined`; an unfenced heading still defines, and a genuinely
+  undefined unfenced reference still fails (REQ-GC-HARNESSP6-004).
 
 ### Manual
 
@@ -335,6 +460,12 @@ The whole change is one sentence in `CLAUDE.md` and one in
 - [ ] `python3 tools/sdd-gc.py --self-test` exits 0; `python3 tools/sdd-skill-lint.py` exits 0
 - [ ] `references/drift-sweep.md` states the convention and records that the `qimpl-undefined` rule is unchanged; `CLAUDE.md` carries the same sentence (REQ-GC-HARNESSP3-001)
 - [ ] `python3 tools/sdd-gc.py --report` raises no new `qimpl-undefined` finding on the amended prose, and the rule still fires on a genuinely undefined local id (REQ-GC-HARNESSP3-001)
+- [ ] `stale-chain` skips both plan-level sub-kinds for a workstream whose sibling `verification.md` is `status: pass`, and sweeps an absent / `fail` / `pending-red` workstream unchanged; no new rule id, no allowlist; marker-3 unaffected (REQ-GC-HARNESSP6-001)
+- [ ] `python3 tools/sdd-gc.py --report` on this repository reports zero `[stale-chain]` findings located in `docs/ws/harness-p3/plan.md` or `docs/ws/harness-p4/plan.md` (REQ-GC-HARNESSP6-001)
+- [ ] The spec-versus-requirement comparison emits one finding per `(spec, category file)` pair, naming every triggering requirement id in the message; on this repository the count of such findings **equals the count of distinct `(spec, category file)` pairs those findings name** — both sides derived from the same `--report` run, neither pinned as a literal (REQ-GC-HARNESSP6-002)
+- [ ] The folded finding is `info`; plan-level findings stay `warn`; §Sweep Table row 7 and §Routing at DONE both state the split, and the shared-spec sub-class is offered no `record` option (REQ-GC-HARNESSP6-003)
+- [ ] `python3 tools/sdd-gc.py --report` on this repository exits `OK` with **0** `[stale-chain]` **warnings**, every remaining spec-versus-requirement `[stale-chain]` line emitted at `info`; the number of `info` lines is a property of the corpus at run time and is deliberately not pinned (REQ-GC-HARNESSP6-001 + REQ-GC-HARNESSP6-003 together)
+- [ ] Q-IMPL definitions are collected through the same fence filter as references; the countability rule is an authoring obligation, not an allowlist, and is stated in the module docstring and `--help`; `--report` reports the same `qimpl-undefined` and `qimpl-broken-ref` counts as before the change, both 0 (REQ-GC-HARNESSP6-004)
 - [ ] Row parser splits on unescaped pipes only (`\|` literal, re-emitted unchanged); a wrong cell count raises one `[traceability-rowdrop]` **fail** naming `<file>:<line>` instead of dropping the row; `traceability-rowdrop` is not in `FIXABLE`; `python3 tools/sdd-gc.py --report` on this repository raises none and `grep -c '^| REQ-ARB-HARNESSP4-003 \|^| REQ-CYCID-HARNESSP4-001 ' docs/requirements/traceability.md` prints `2` (both recovered harness-p4 rows present — a row-presence assertion, not a corpus-wide escape count) (REQ-GC-HARNESSP5-001)
 
 ## Edge Cases

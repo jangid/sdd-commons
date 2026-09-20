@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-05-25
+last_updated: 2026-09-20
 requires:
   - REQ-PLAN-001
   - REQ-PLAN-002
@@ -8,6 +8,7 @@ requires:
   - REQ-PLAN-004
   - REQ-SKILL-005
   - REQ-SKILL-008
+  - REQ-PLAN-HARNESSP6-001
 ---
 
 # Plan Management
@@ -139,6 +140,42 @@ When `sdd-replan` revises the plan:
    - Changelog entries go to the archive file, not appended to the active plan.
    - Completed chunk summaries are preserved in the `## Completed` section.
 
+### Resolved `## Open Questions` Entries Are Struck at Archival (REQ-PLAN-HARNESSP6-001)
+
+[Added 2026-09-20, harness-p6 — REQ-PLAN-HARNESSP6-001]
+
+When `sdd-plan` or `sdd-replan` archives a plan, every `## Open Questions` entry
+whose question has since been answered is **struck** in the archived copy rather
+than carried forward unresolved. Without this, an archive reads as a live
+question forever, and a later reader cannot tell a genuinely open item from one
+that was settled three cycles ago.
+
+**Struck, not deleted.** The entry stays visible, marked with a bracketed dated
+resolution marker on its own line or the line immediately preceding it — the
+same adjacent-marker shape the requirements corpus uses
+(`requirements-artifacts.md` §`## Out of Scope` Discipline) — naming the date
+and what resolved it:
+
+```
+### 3. Does telemetry-reader.md still say 61?
+**[Struck 2026-09-20 — resolved: the value reads 67 in all three places that
+carry it; REQ-PLAN-HARNESSP6-001]**
+```
+
+Deleting the entry would erase the record that the question was ever open, which
+is exactly the auditability the archive exists to hold. Rewording it in place
+would leave no evidence that it had been resolved rather than silently dropped.
+
+**Who decides "answered".** The archiving skill, at archival time, from the
+artifacts in front of it: an entry is answered when the spec, tool or plan text
+it asks about now states the answer. An entry the skill cannot resolve stays
+unmarked and is carried into the archive as-is — this rule strikes settled
+entries, it does not force a verdict.
+
+**Scope.** The rule applies to the archived copy under `plan-history/`
+(marker `4`: `docs/ws/<id>/plan-history/`). It changes no active-plan behaviour
+and adds no file, section or marker type.
+
 ### Interaction with Staleness Detection
 
 `sdd-plan` reads staleness from `docs/requirements/index.md` (per overview
@@ -152,6 +189,11 @@ spec). When the plan is stale:
 ## Verification
 
 ### Automated
+- Validate that an archived plan's `## Open Questions` section contains no entry
+  that the corpus has since answered and that lacks an adjacent bracketed dated
+  resolution marker (REQ-PLAN-HARNESSP6-001).
+- Validate that striking an entry leaves it present in the archive — the
+  archived file's entry count is unchanged by the strike (REQ-PLAN-HARNESSP6-001).
 - Validate `docs/plan.md` contains no `## Plan Changelog` section
 - Validate `docs/plan.md` contains no `[removed: ...]` markers
 - Validate completed chunks are single-line summaries
@@ -171,3 +213,5 @@ spec). When the plan is stale:
 - [ ] Removed tasks are moved to archive, not marked inline (REQ-PLAN-004)
 - [ ] `sdd-plan` reads staleness from `requirements/index.md` (REQ-SKILL-005)
 - [ ] `sdd-replan` writes changelogs and removed tasks to archive (REQ-SKILL-008)
+- [ ] `sdd-plan` and `sdd-replan` strike resolved `## Open Questions` entries at archival, marking each with an adjacent bracketed dated resolution marker rather than deleting it (REQ-PLAN-HARNESSP6-001)
+- [ ] The concrete instance this cycle closes — the `docs/spec/telemetry-reader.md` "says 61" entry in `docs/ws/harness-p5/plan.md` §Open Questions — is struck with its date and evidence, and the stale claim no longer appears unmarked in that file or in the archive that replaces it (REQ-PLAN-HARNESSP6-001)
