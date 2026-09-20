@@ -93,33 +93,33 @@ finding per `(spec, category file)` pair at `info`, and its DONE routing moves
 with its severity.
 **Depends on**: Chunk 1.
 **Tasks**:
-1. [ ] [implement] Fold the fan-out: `_stale` gains a grouping accumulator and
+1. [x] [implement] Fold the fan-out: `_stale` gains a grouping accumulator and
    `sweep_stale()` emits once per `(downstream spec, upstream category file)`
    pair after the id loop, the message naming every triggering requirement id.
    Every `(spec, id)` pair is still evaluated — the fold is a presentation
    change with provably zero false-negative cost — traces to
    `docs/spec/drift-sweep.md` §Shared-Spec Staleness: Fold and Severity
    (REQ-GC-HARNESSP6-002).
-2. [ ] [implement] Demote the folded finding to `info` via a severity argument on
+2. [x] [implement] Demote the folded finding to `info` via a severity argument on
    the spec←requirement call site; plan-level `[stale-chain]` findings keep
    `warn`. Update §Sweep Table row 7 and the self-test fixture's
    `ewarn["stale-chain"]` expectations, which count per line today — traces to
    `docs/spec/drift-sweep.md` §Shared-Spec Staleness (REQ-GC-HARNESSP6-003).
-3. [ ] [implement] Move the routing with the severity: §Routing at DONE lists only
+3. [x] [implement] Move the routing with the severity: §Routing at DONE lists only
    the **plan-level** sub-class under `record | ignore`; the folded shared-spec
    class is informational and routes nowhere, so nothing can append it to
    `verification.md` §Next Steps — traces to `docs/spec/drift-sweep.md`
    §Routing at DONE and Q-REQ-P6-E (REQ-GC-HARNESSP6-003).
-4. [ ] [implement] Add `test_shared_spec_staleness_folds` and
+4. [x] [implement] Add `test_shared_spec_staleness_folds` and
    `test_shared_spec_staleness_severity` — traces to
    `docs/spec/drift-sweep.md` §Verification → Automated.
-5. [ ] [verify] From a **single** `--report` run, derive both sides and assert they
+5. [x] [verify] From a **single** `--report` run, derive both sides and assert they
    are equal: the number of spec-versus-requirement `[stale-chain]` findings,
    and the number of distinct `(spec, category file)` pairs those same findings
    name. Neither side is a literal; the pair set grows whenever any workstream
    re-dates a category file — traces to `docs/spec/drift-sweep.md` §Acceptance
    Criteria (REQ-GC-HARNESSP6-002).
-6. [ ] [verify] From the same run, assert `--report` exits `OK` with **0**
+6. [x] [verify] From the same run, assert `--report` exits `OK` with **0**
    `[stale-chain]` **warnings** and that every remaining spec-versus-requirement
    `[stale-chain]` line is `info`. The number of `info` lines is a property of
    the corpus at run time and is deliberately not pinned. This check is
