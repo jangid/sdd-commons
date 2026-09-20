@@ -78,7 +78,10 @@ not what this design describes.
 
 `description` is required to carry a trigger clause because the description is
 what a dispatcher matches on; a description that only describes is not
-dispatchable in practice.
+dispatchable in practice. Nothing mechanical enforces the clause's wording, so
+all three shipped agents open it with the same two words; that decision, and why
+the illustration is read as literal rather than indicative, is
+Q-IMPL-MARKETPLACE-013.
 
 **Read-only is expressed by omission.** All three agents are read-only, so each
 declares `tools` explicitly and that declaration excludes every mutating tool.
@@ -103,7 +106,8 @@ outcomes differ.
 `CLAUDE.md` §Agents documents exactly this five-field list and no longer lists
 the two dropped fields. The correction is **recorded** rather than silently
 applied, because the repository's previous list was written before any agent
-file existed in it (`project-docs.md`, REQ-DOCS-MARKETPLACE-005).
+file existed in it (`project-docs.md`, REQ-DOCS-MARKETPLACE-005); the record is
+Q-IMPL-MARKETPLACE-010 below.
 
 ### Vocabulary, and the token-relocation hazard
 
@@ -132,7 +136,10 @@ in one place:
   checkable by nothing.
 
 The name-plus-path form gets both, and keeps the template readable in a
-repository checkout where the plugin is not installed.
+repository checkout where the plugin is not installed. The linter resolves
+backtick-quoted paths only for the path classes it knows, so making the cited
+path checkable required one new repo-rooted class —
+Q-IMPL-MARKETPLACE-012.
 
 ### The agent file is the single source
 
@@ -149,7 +156,9 @@ The split is by variability, not by length:
 Per-dispatch material varies per dispatch; a role's standing definition does
 not. Two copies of a role's rules drift, and the harness has no mechanism that
 would detect the drift. Each template keeps its pinned `RETURN:` block
-**verbatim**, which the linter already checks.
+**verbatim**, which the linter already checks — and that same `[template-drift]`
+pinning bounds how much of a role's standing definition the extraction can
+reach, recorded as Q-IMPL-MARKETPLACE-011.
 
 ## Acceptance Criteria
 
@@ -162,3 +171,100 @@ a literal.
 - [ ] Each agent file contains its token at the start of a line; the skill linter exits 0 and its `--self-test` passes after the extraction; for each of the three tokens, the set of files carrying it — derived by the same grep before and after — is a superset of the pre-change set (REQ-AGENT-MARKETPLACE-004).
 - [ ] For each of the three roles, `skills/orchestrate/references/dispatch-templates.md` contains both the namespaced name and a backticked `agents/<name>.md` path within the same template; the linter's link check resolves each cited path on disk (REQ-AGENT-MARKETPLACE-005).
 - [ ] No rule text appears both in an agent file and in its dispatch template, checked by comparing the role-definition paragraphs of each pair; each template retains its pinned `RETURN:` block verbatim (linter-checked); the count of linter contract rows is unchanged across the extraction, derived by running the same count before and after (REQ-AGENT-MARKETPLACE-006).
+
+## Implementation Questions
+
+### Q-IMPL-MARKETPLACE-010: The `CLAUDE.md` §Agents field list is corrected, not merely trimmed
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The frontmatter contract
+**Date**: 2026-09-21 (implement stage, Chunk 4)
+
+**Context**: the repository's `CLAUDE.md` §Agents listed seven frontmatter
+fields — the five of §The frontmatter contract plus the two dropped ones — and
+documented none of the per-field rules the contract states. The list predates
+any agent file existing in this repository, so it described an intention, not a
+measured shape.
+
+**Decision**: replace the seven-field bullet with the five-field list, state
+which fields are required and which are optional-but-required-for-these-three,
+and add one bullet per field rule (kebab-case `name` equal to the stem, a
+`description` ending in a trigger clause, `tools` in either first-party form
+with the mutating tools omitted for a read-only agent, `model` tier names,
+`color` a colour word). The two dropped fields are removed from the section
+entirely rather than marked deprecated.
+
+**Impact**: none on behaviour — `CLAUDE.md` is documentation. The correction is
+recorded here because it changes a stated repository convention rather than
+implementing one, which REQ-DOCS-MARKETPLACE-005 requires be visible.
+
+### Q-IMPL-MARKETPLACE-011: The pinned `[template-drift]` fences bound the extraction
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The agent file is the single source
+**Date**: 2026-09-21 (implement stage, Chunk 4)
+
+**Context**: §The agent file is the single source says a role's standing
+definition moves to the agent file. Four fenced bodies in
+`skills/orchestrate/references/dispatch-templates.md` are pinned byte-for-byte
+against Approved specs by the linter's `[template-drift]` rule — the chunk
+verifier's dispatch body and verdict-rule fence, and the red team's dispatch
+body and return-contract example. Some standing definition lives inside those
+fences. Editing them would either fail the linter or require editing two
+Approved specs that are outside this chunk's write scope, and deleting the
+verdict-rule fence would fail the rule's "lost its anchored fence" branch.
+
+**Decision**: the extraction moves the **unfenced** role-definition prose — the
+section introductions, the verdict-rule trailer, the red team's judgement rules
+and the reviewer's role sentence — and leaves every pinned fence byte-identical.
+Where a pinned fence still carries standing text (notably the chunk verifier's
+`iff` verdict rule), the agent file states the same rule in its own words and
+the template's prose says where the meaning now lives, so no *paragraph* of rule
+text exists in both files.
+
+**Impact**: the "single source" property holds for the prose a future editor
+would actually edit; the pinned fences remain single-sourced by the drift rule
+itself, which is a stronger mechanism than prose de-duplication. Re-pinning
+those fences against their specs is a separate change requiring both specs to be
+re-approved.
+
+### Q-IMPL-MARKETPLACE-012: The linter gains one repo-rooted `agents/<name>.md` path class
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Citation: by name **and** by path
+**Date**: 2026-09-21 (implement stage, Chunk 4)
+
+**Context**: §Citation says the backticked path is what makes the citation
+mechanically verifiable, "the linter resolves backtick-quoted relative paths on
+disk". It does — but only for the three classes its `resolve_backtick_path()`
+knows (`references/…`, `skills/<skill>/references/…`, `docs/spec/….md`). A
+backticked `agents/<name>.md` span resolved to nothing and was silently skipped,
+so the citation was verifiable in principle and unchecked in fact.
+
+**Decision**: add one class — a span matching `agents/<name>.md` resolves
+against the repository root at severity `fail`, the same treatment as the
+`skills/…` form, since both name files in this repository. No contract row is
+added or removed; the `REQUIRED` row count is unchanged across the change,
+asserted by deriving it on both sides.
+
+**Impact**: a dispatch template that cites a non-existent agent file now fails
+the linter. Any future document under `skills/` that backticks an
+`agents/<name>.md` path is held to the same rule, which is the intent.
+
+### Q-IMPL-MARKETPLACE-013: The trigger-clause illustration is read as literal
+
+**Tier**: 2 (spec ambiguity)
+
+**Spec reference**: §The frontmatter contract — `description` is "a scalar
+ending in an explicit trigger clause ("Use when …")".
+
+**Decision**: the parenthetical is read as **literal**, not illustrative: all
+three shipped agents' descriptions end in a clause opening with the exact words
+`Use when`. Two of them (`red-team`, `reviewer`) previously opened with `Use at
+…`, which satisfies the criterion as worded but leaves the family
+non-uniform; both were rewritten to the `Use when …` form with no change of
+meaning or of the conditions they name.
+
+**Rationale**: a dispatcher matches on the description, and one literal opener
+across the family is the cheaper invariant to keep than a per-file judgement
+about whether a stage-scoped `Use at` reads better. Nothing mechanical enforces
+the wording, so uniformity is the only thing that keeps it stable; the
+alternative — recording that the parenthetical is illustrative — would license
+a third and fourth spelling with no way to notice.

@@ -710,6 +710,7 @@ class Linter:
         | span                                     | base            | severity |
         | `references/<file>`                      | the skill dir   | fail     |
         | `skills/<skill>/references/<file>`       | repo root       | fail     |
+        | `agents/<name>.md`                       | repo root       | fail     |
         | `docs/spec/<file>.md`                    | repo root       | warn     |
 
         Fragments (`#…`) and trailing punctuation are stripped. Globs and
@@ -723,6 +724,12 @@ class Linter:
         if path.startswith("references/"):
             return path, self.skill_dir_of(f), "fail"
         if re.match(r"skills/[^/]+/references/", path):
+            return path, self.root, "fail"
+        # A dispatch template cites each shipped agent by `subagent_type` name AND
+        # by path; the name is checkable by nothing, so the path is what makes the
+        # citation mechanically verifiable (REQ-AGENT-MARKETPLACE-005). Repo-rooted
+        # and `fail`, like the skills/ form — both live in this repository.
+        if re.match(r"agents/[^/]+\.md$", path):
             return path, self.root, "fail"
         if path.startswith("docs/spec/") and path.endswith(".md"):
             return path, self.root, "warn"
@@ -926,23 +933,41 @@ def self_test() -> int:
             "Read `references/present.md` first, then `references/missing.md`.\n"
             "Also `skills/ref-skill/references/present.md` and "
             "`skills/ref-skill/references/absent.md`:\n"
+            "Dispatch `agents/kept-agent.md`, never `agents/gone-agent.md`.\n"
             "Contract: `docs/spec/nowhere.md#section`.\n"
             "Globs like `references/*.md` are skipped.\n"
             "```\n`references/fenced-missing.md`\n```\n",
         )
         (d / "references").mkdir()
         (d / "references" / "present.md").write_text("# ok\n", encoding="utf-8")
+        # The `agents/<name>.md` class resolves against the REPO ROOT, so the
+        # resolvable half of the pair lives at the fixture root, not under the
+        # skill dir (REQ-AGENT-MARKETPLACE-005).
+        (ref_root / "agents").mkdir(parents=True, exist_ok=True)
+        (ref_root / "agents" / "kept-agent.md").write_text(
+            "---\nname: kept-agent\ndescription: Use when testing.\n---\n", encoding="utf-8")
         code, out = _run_capture(ref_root)
         check(code == 1, f"backtick fixture exited {code}:\n{out}")
-        check("`references/missing.md`" in out, f"backtick references/ miss not flagged:\n{out}")
-        check("`skills/ref-skill/references/absent.md`" in out,
-              f"backtick skills/<skill>/references/ miss not flagged:\n{out}")
+        # One `fail` per unresolvable path the fixture cites, one per resolution
+        # class. The expected count is DERIVED from this list, not hand-written,
+        # so adding a class to the fixture forces its finding to appear.
+        missing = ["references/missing.md",
+                   "skills/ref-skill/references/absent.md",
+                   "agents/gone-agent.md"]
+        for m in missing:
+            hits = [ln for ln in out.splitlines() if f"`{m}`" in ln]
+            check(len(hits) == 1, f"backtick miss `{m}` not flagged exactly once:\n{out}")
+            # `fail` severity is the absence of the WARN prefix the printer adds.
+            check(hits and not hits[0].startswith("WARN "),
+                  f"backtick miss `{m}` was not flagged at fail severity:\n{out}")
         check("WARN " in out and "`docs/spec/nowhere.md`" in out,
               f"docs/spec/ mention should warn:\n{out}")
         check("present.md" not in out, f"existing backtick path flagged:\n{out}")
+        check("kept-agent" not in out, f"existing agents/ backtick path flagged:\n{out}")
         check("fenced-missing" not in out and "*.md" not in out,
               f"fenced or glob backtick path flagged:\n{out}")
-        check("FAIL: 2 finding(s), 1 warning(s)" in out, f"backtick summary wrong:\n{out}")
+        check(f"FAIL: {len(missing)} finding(s), 1 warning(s)" in out,
+              f"backtick summary wrong:\n{out}")
         for sev, t in Linter(ref_root, suite_rules=False).findings:
             check("fix: " in t, f"finding without fix: {t}")
 

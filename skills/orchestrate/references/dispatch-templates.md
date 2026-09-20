@@ -188,8 +188,11 @@ returned content itself when a subagent reports a blocked write.
 
 ## REVIEW subagent template (isolation-critical)
 
-Carries only artifact paths + the repo root + "invoke review" + a
-`Budget:` bound. Nothing else.
+Dispatches the reviewer — `subagent_type: sdd:reviewer`, whose standing
+definition (what it inspects, how it judges, what its token means) lives in
+`agents/reviewer.md` and is **not restated here**. The template carries only
+artifact paths + the repo root + "invoke review" + a `Budget:` bound. Nothing
+else.
 This is the dispatch-time enforcement of `review` Step 2's prohibited-inputs
 list.
 
@@ -212,9 +215,10 @@ You are non-interactive — do NOT ask questions; you have no operator to answer
 them. Where review Step 2 says to request inputs from the operator, use the
 paths above instead and read everything else from the repository.
 
-Invoke the review skill and follow it to produce a tiered verdict on the
-deliverable. Obtain any context you need by reading files from the repository
-yourself — none is provided in this prompt by design.
+You are the reviewer defined in agents/reviewer.md (dispatch
+subagent_type: sdd:reviewer). Invoke the review skill and follow it. Obtain any
+context you need by reading files from the repository yourself — none is
+provided in this prompt by design.
 
 Emit no RETURN: block — a review returns its report plus, on a line of its own,
 the verdict token:
@@ -257,9 +261,12 @@ context window to leak through.
 
 ## CHUNK VERIFIER subagent template (read-only leaf)
 
-A second, independent executor of the chunk-close layer
-(`docs/spec/harness-chunk-verifier.md`): it re-runs Check 1, Check 3 and the
-project quality gates for ONE chunk and returns `CHUNK_VERDICT: PASS | FAIL`.
+Dispatches the chunk verifier — `subagent_type: sdd:chunk-verifier`, whose
+standing definition (what it inspects, how it judges, what its token means)
+lives in `agents/chunk-verifier.md` (design: `docs/spec/harness-chunk-verifier.md`)
+and is **not restated here**. This template carries only the per-dispatch
+material: the working directory, the chunk, the spec paths, the gate commands,
+the budget and the pinned `RETURN:` block.
 It is a **leaf** (`return-contract.md` §1) — it carries the leaf slots and
 nothing else — and it is **never `review`**: the template invokes no skill,
 carries no review checklist and produces no review report. Dispatched by the
@@ -329,7 +336,9 @@ CHUNK_VERDICT: PASS  iff  Check 1 has zero blocking findings
 CHUNK_VERDICT: FAIL  otherwise
 ```
 
-Check 3 is advisory (`chunk-close-review.md`) and never flips the verdict. Any
+The rule is pinned here byte-for-byte because a spec restates it; what the
+verdict *means* — including why an advisory Check 3 never changes it — is stated
+in `agents/chunk-verifier.md`. Any
 implementer override in the implement dispatch's `RETURN.chunk_close.overrides`
 is *reported* by the orchestrator next to the verifier's findings at the
 per-chunk gate — never applied by the verifier.
@@ -378,11 +387,14 @@ returns is written to `docs/` by it or on its behalf.
 
 ## RED TEAM subagent template (read-only leaf, verify stage only)
 
-The adversarial second executor of `verify` Steps 3–4
-(`docs/spec/adversarial-verify.md`): **Blue** is the verify pipeline, **Red**
-is a third dispatch kind (`telemetry.md` `dispatch.kind: red`) that picks the
-weakest acceptance criteria and constructs inputs or commands that violate
-them. It is **opt-in, default off** — asked as `red team: off | on` at the
+Dispatches the red team — `subagent_type: sdd:red-team`, whose standing
+definition (what it inspects, how it judges, what its token means) lives in
+`agents/red-team.md` (design: `docs/spec/adversarial-verify.md`) and is **not
+restated here**. **Blue** is the verify pipeline, **Red** is a third dispatch
+kind (`telemetry.md` `dispatch.kind: red`), the adversarial second executor of
+`verify` Steps 3–4. This template carries only the per-dispatch material: the
+repository root, the spec and plan paths, the gate commands, the budget and the
+pinned `RETURN:` block. It is **opt-in, default off** — asked as `red team: off | on` at the
 verify gate *before* the verify pipeline is dispatched (`../SKILL.md` §The
 gate) — and is dispatched **once per verify-pipeline return** that came back
 `RETURN.status: COMPLETE`, after that return and before the verify-stage
@@ -517,9 +529,9 @@ Rules (REQ-REDB-HARNESSP2-005, -006):
   build}`, `message`, `location` (`return-contract.md` §2).
 - `RED_VERDICT: BROKEN | HELD` is the **last line**, on its own; `BROKEN` iff
   `failures[]` is non-empty.
-- A claim without a runnable `reproduce:` is **advisory**: reported as `HELD`
-  with the suspicion in `observed:`; it never enters `failures[]`, never
-  affects the token, never gates the pass commit.
+- A claim without a runnable `reproduce:` never enters `failures[]`, never
+  affects the token and never gates the pass commit; the judgement behind that
+  — and what red does with the suspicion instead — is in `agents/red-team.md`.
 - `files_written` MUST be `[]`; the scope check on a red return must observe
   zero writes (write-revert rule above).
 

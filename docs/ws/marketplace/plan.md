@@ -382,7 +382,7 @@ templates cite them instead of restating them.
 **Depends on**: Chunk 3.
 **Traces to**: docs/spec/harness-agents.md
 **Tasks**:
-1. [ ] [verify] Before touching anything, derive the **before** sets this chunk
+1. [x] [verify] Before touching anything, derive the **before** sets this chunk
    must not shrink: for each of the three tokens (`CHUNK_VERDICT:`,
    `RED_VERDICT:`, `VERDICT:`), the set of files carrying it; and the count of
    linter contract rows. Derive them by command in this chunk, and re-derive the
@@ -390,14 +390,14 @@ templates cite them instead of restating them.
    than carrying the values forward — traces to
    `docs/spec/harness-agents.md` §Vocabulary, and the token-relocation hazard
    (REQ-AGENT-MARKETPLACE-004, -006).
-2. [ ] [implement] Write `agents/chunk-verifier.md`, `agents/red-team.md` and
+2. [x] [implement] Write `agents/chunk-verifier.md`, `agents/red-team.md` and
    `agents/reviewer.md` as three **top-level** files — peers,
    not children: a file in a like-named subdirectory would gain a third
    namespace segment and read as a sub-agent of a parent. Remove
    `agents/.gitkeep`, so `agents/` ends holding the three files and nothing else
    — traces to `docs/spec/harness-agents.md` §Three top-level files, peers not
    children (REQ-AGENT-MARKETPLACE-001).
-3. [ ] [implement] Give each file the frontmatter contract: `name` (kebab-case,
+3. [x] [implement] Give each file the frontmatter contract: `name` (kebab-case,
    string-equal to the filename stem), `description` (a scalar ending in an
    explicit trigger clause), `tools` (required for these three; string or flow
    sequence, excluding every mutating tool — for this repository exactly
@@ -406,7 +406,7 @@ templates cite them instead of restating them.
    `emoji` and `vibe`, this repository's own invention — must not appear
    anywhere under `agents/` — traces to `docs/spec/harness-agents.md` §The
    frontmatter contract (REQ-AGENT-MARKETPLACE-002).
-4. [ ] [implement] **Move** each role's standing definition out of
+4. [x] [implement] **Move** each role's standing definition out of
    `skills/orchestrate/references/dispatch-templates.md` into its agent file,
    and have the template cite the agent instead of restating it. The split is by
    variability, not length: the per-dispatch scope, budget, paths and the pinned
@@ -415,20 +415,20 @@ templates cite them instead of restating them.
    pinned `RETURN:` block **verbatim** — traces to
    `docs/spec/harness-agents.md` §The agent file is the single source
    (REQ-AGENT-MARKETPLACE-006).
-5. [ ] [implement] Cite each role **twice in one place** in its dispatch
+5. [x] [implement] Cite each role **twice in one place** in its dispatch
    template: by `subagent_type` name (`sdd:chunk-verifier`, `sdd:red-team`,
    `sdd:reviewer`) — which is what makes the dispatch work — and by a backticked
    `agents/<name>.md` path in one parenthetical, which is what makes the
    citation mechanically verifiable, since a `subagent_type` name is checkable
    by nothing — traces to `docs/spec/harness-agents.md` §Citation: by name
    **and** by path (REQ-AGENT-MARKETPLACE-005).
-6. [ ] [implement] Update `CLAUDE.md` §Agents to document exactly the five-field
+6. [x] [implement] Update `CLAUDE.md` §Agents to document exactly the five-field
    list of §The frontmatter contract, naming `color` and naming neither dropped
    field. The correction is recorded rather than silently applied: the previous
    list was written before any agent file existed in the repository — traces to
    `docs/spec/harness-agents.md` §The frontmatter contract
    (REQ-AGENT-MARKETPLACE-003, REQ-DOCS-MARKETPLACE-005).
-7. [ ] [verify] Derive both sides at run time: `agents/` contains exactly three
+7. [x] [verify] Derive both sides at run time: `agents/` contains exactly three
    `*.md` files, no subdirectory and no other file; `test ! -e agents/.gitkeep`
    succeeds; each stem is kebab-case; each file's parsed frontmatter satisfies
    the contract and its `tools` value contains none of the three mutating tools;
@@ -436,7 +436,7 @@ templates cite them instead of restating them.
    parsed from `CLAUDE.md` §Agents equals the spec's five-field list — traces to
    `docs/spec/harness-agents.md` §Acceptance Criteria
    (REQ-AGENT-MARKETPLACE-001, -002, -003).
-8. [ ] [verify] Assert the **superset** relation, not equality: for each of the
+8. [x] [verify] Assert the **superset** relation, not equality: for each of the
    three tokens, the set of files carrying it after the change **contains** the
    set that carried it before, derived by the same grep on both sides in one
    run. The extraction is additive with respect to tokens — *moving* a token out
@@ -447,7 +447,7 @@ templates cite them instead of restating them.
    unchanged — traces to `docs/spec/harness-agents.md` §Acceptance Criteria
    (REQ-AGENT-MARKETPLACE-004, -006).
 
-9. [ ] [verify] Assert the **citation pair** for each of the three roles, both
+9. [x] [verify] Assert the **citation pair** for each of the three roles, both
    forms **in the same template block**: parse
    `skills/orchestrate/references/dispatch-templates.md`, derive its template
    block boundaries from the file's own headings rather than from a pinned line

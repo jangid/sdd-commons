@@ -35,9 +35,19 @@ Each agent is a single Markdown file:
 agents/<agent-name>.md
 ```
 
-- **Frontmatter** fields: `name`, `description`, `tools`, `model`, `color`, `emoji`, `vibe`
-- `tools` lists the Claude Code tools the agent may use (e.g., `Read, Bash, Grep, Glob`)
+- **Frontmatter** fields: `name`, `description`, `tools`, `model`, `color` —
+  exactly five, and no others (`docs/spec/harness-agents.md` §The frontmatter
+  contract). `name` and `description` are required; `tools` is optional in
+  general and required for the three shipped harness agents; `model` and `color`
+  are optional
+- `name` is kebab-case and string-equal to the filename stem
+- `description` ends in an explicit trigger clause — it is what a dispatcher
+  matches on, so a description that only describes is not dispatchable
+- `tools` lists the Claude Code tools the agent may use (e.g., `Read, Bash, Grep, Glob`),
+  as a comma-separated string or a YAML flow sequence; a read-only agent
+  declares `tools` and omits every mutating tool (`Write`, `Edit`, `NotebookEdit`)
 - `model` specifies the preferred model tier (`opus`, `sonnet`, `haiku`)
+- `color` is a colour word
 - Body defines the agent's identity, phases, checklists, and report templates
 - Agents are adversarial or specialized personas — they should be opinionated and thorough
 
