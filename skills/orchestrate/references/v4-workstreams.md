@@ -207,4 +207,3 @@ conflict is not diagnostic of non-independence. The guaranteed-termination seque
 fallback is retained (re-run affected groups one at a time off the updated workstream
 branch). Under marker `3` this paragraph applies against `main` exactly as written,
 unchanged. See [`references/fan-out.md`](fan-out.md) §0/§3c.
-

@@ -178,4 +178,3 @@ The migration must preserve the current SDD phase state. Be aware of these scena
 | Verification | Remap IDs in verification tables |
 
 After migration, the project should be able to resume its current SDD phase using the updated v2 skills without any manual fixup.
-

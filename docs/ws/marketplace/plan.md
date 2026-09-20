@@ -304,7 +304,7 @@ chunk's close sha is the rename-chunk-close sha** (§Ordering Constraints 2).
 **Depends on**: Chunk 2.
 **Traces to**: docs/spec/pre-commit.md
 **Tasks**:
-1. [ ] [implement] Write `.pre-commit-config.yaml` declaring **exactly six**
+1. [x] [implement] Write `.pre-commit-config.yaml` declaring **exactly six**
    hooks and no others: `drift-sweep` and `skill-lint` under `repo: local` with
    `language: system`, `pass_filenames: false`, `always_run: true`, invoking
    `python3 tools/gc.py --fast` and `python3 tools/skill-lint.py`; plus
@@ -315,7 +315,7 @@ chunk's close sha is the rename-chunk-close sha** (§Ordering Constraints 2).
    an `args` value other than the drift sweep's profile selector — traces to
    `docs/spec/pre-commit.md` §The hook set and §No rule of the gate's own
    (REQ-PC-MARKETPLACE-001, -002, -003, -006).
-2. [ ] [implement] Add the `exclude` patterns, each with its reason stated in a
+2. [x] [implement] Add the `exclude` patterns, each with its reason stated in a
    YAML comment on that pattern: `tools/fixtures/` (frozen fixtures whose bytes
    are part of what they test), `docs/superpowers/` (vendored third-party
    corpus), and `docs/ws/` plus `docs/research/` (historical execution records
@@ -323,13 +323,13 @@ chunk's close sha is the rename-chunk-close sha** (§Ordering Constraints 2).
    sit inside the rename chunk without violating REQ-NAME-MARKETPLACE-005 —
    traces to `docs/spec/pre-commit.md` §Normalisation happens inside this cycle
    (REQ-PC-MARKETPLACE-005).
-3. [ ] [implement] Run `pre-commit run --all-files` over the whole repository and
+3. [x] [implement] Run `pre-commit run --all-files` over the whole repository and
    commit the resulting normalisation **inside this chunk**, before its closing
    sha. The measured exposure is expected to be `end-of-file-fixer` and
    `check-yaml` rewrites rather than whitespace stripping; do not assume that —
    report what actually changed — traces to `docs/spec/pre-commit.md`
    §Normalisation happens inside this cycle (REQ-PC-MARKETPLACE-005).
-4. [ ] [verify] Assert `pre-commit validate-config .pre-commit-config.yaml`
+4. [x] [verify] Assert `pre-commit validate-config .pre-commit-config.yaml`
    exits 0 and that the set of hook ids **parsed from the file** equals the
    six-id set of `pre-commit.md` §The hook set, both sides derived by parsing
    rather than by a pasted list; assert both local hooks parse with
@@ -338,26 +338,26 @@ chunk's close sha is the rename-chunk-close sha** (§Ordering Constraints 2).
    assert the set of excluded areas parsed from the config equals the spec's
    exclude table and that every `exclude` pattern carries its reason comment;
    and assert a run-time grep of `.pre-commit-config.yaml` for each of the three
-   contributor tool names — the skill linter, the scope-check self-test, the
-   evaluation tool — returns **zero** matches, so no contributor-only check has
+   contributor tool names — the scope-check self-test, the telemetry tool's
+   self-test, the evaluation tool — returns **zero** matches, so no contributor-only check has
    crept into the commit path. That is the config half of
    REQ-PC-MARKETPLACE-004; its `CONTRIBUTING.md`-reading half is asserted at
    Chunk 6 task 8 — traces to `docs/spec/pre-commit.md` §Acceptance Criteria
    (REQ-PC-MARKETPLACE-001, REQ-PC-MARKETPLACE-002, REQ-PC-MARKETPLACE-003,
    REQ-PC-MARKETPLACE-004, REQ-PC-MARKETPLACE-005, REQ-PC-MARKETPLACE-006).
-5. [ ] [verify] Assert **idempotence**: `pre-commit run --all-files` exits 0 and
+5. [x] [verify] Assert **idempotence**: `pre-commit run --all-files` exits 0 and
    `git status --porcelain` is empty when run a second time immediately
    afterwards; and `git diff <cycle entry sha> HEAD -- tools/fixtures/` is
    empty, so the frozen fixtures are byte-identical to their pre-cycle content —
    traces to `docs/spec/pre-commit.md` §Acceptance Criteria
    (REQ-PC-MARKETPLACE-005).
-6. [ ] [verify] Assert the hook-failure behaviour: introduce a deliberate lint
+6. [x] [verify] Assert the hook-failure behaviour: introduce a deliberate lint
    violation **in a scratch copy under `$TMPDIR`, never in this worktree**, and
    assert the corresponding hook exits non-zero. Pass the scratch copy an
    explicit root — a copied tool run without one silently scans the real corpus
    and returns a false green — traces to `docs/spec/pre-commit.md` §Acceptance
    Criteria (REQ-PC-MARKETPLACE-002).
-7. [ ] [verify] **The rename-close gate** (§Ordering Constraints 1). At this
+7. [x] [verify] **The rename-close gate** (§Ordering Constraints 1). At this
    chunk's close, and **before any manifest file exists**, assert all three in
    one run: `test ! -e .claude-plugin/marketplace.json` succeeds; the skill
    linter exits 0; and the drift sweep's report contains **no finding absent

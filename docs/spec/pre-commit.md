@@ -134,7 +134,8 @@ change, so the sample is the form that is actually committed.
 
 **Excluded paths, each with the reason inline.** Any path the hooks must not
 normalise is named in an explicit `exclude` pattern in the config, with the
-reason stated in a YAML comment on that pattern:
+reason stated in a comment on that pattern (the comment form actually used is
+recorded as Q-IMPL-MARKETPLACE-009 below):
 
 | Excluded | Reason |
 |---|---|
@@ -205,3 +206,26 @@ rename-chunk-close sha — the historical execution records of *closed* cycles,
 the vendored corpus and the bundled tools all stay inside the check unchanged.
 Only the directory the running cycle owns and is expected to write is excepted,
 and no other workstream's directory is.
+
+### Q-IMPL-MARKETPLACE-009: the per-pattern reason comments are verbose-regex comments
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Normalisation happens inside this cycle — "the reason
+stated in a YAML comment on that pattern"
+**Date**: 2026-09-21 (implement stage, Chunk 3)
+
+**Context**: pre-commit's `exclude` is a **single regular expression**, one YAML
+scalar value. YAML comments cannot appear inside a scalar, so a literal YAML
+comment can sit above the `exclude:` key but never *on* an individual pattern —
+the spec's wording and the format it describes cannot both be satisfied.
+
+**Decision**: the `exclude` value is written as a verbose `(?x)` regex in a block
+scalar, one excluded area per line, each followed by a `#` comment stating its
+reason. Python's verbose mode makes those real comments in the compiled
+expression, and they are comments in the file on exactly the pattern they
+explain. A YAML comment block above the key records the excluded set as a whole.
+
+**Impact**: none on what the criterion protects. The acceptance check still
+parses the config: the set of excluded areas is read out of the `exclude` value
+and compared against the table above, and every pattern line is checked to carry
+a non-empty reason comment. Read "YAML comment" in that criterion as "comment in
+the configuration file".

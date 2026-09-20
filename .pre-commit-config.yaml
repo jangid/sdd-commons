@@ -1,0 +1,49 @@
+# Pre-commit gate for the SDD toolkit — docs/spec/pre-commit.md.
+#
+# The gate is a runner, not a source of policy: every hook below is either one
+# of the repository's own two maintenance tools or one of four upstream file
+# hygiene hooks. No hook enforces a rule that is not already stated in a
+# requirement, a skill, or one of the two tools' own rule tables.
+#
+# Excluded areas, each pattern carrying its reason on its own line. The
+# exclusion list is written as a verbose (?x) regex so that each pattern can sit
+# on its own line beside its reason — see Q-IMPL-MARKETPLACE-009 in
+# docs/spec/pre-commit.md.
+exclude: |
+  (?x)^(
+      tools/fixtures/      # frozen fixtures whose bytes are part of what they test — normalising one would change what the fixture proves while leaving every test green
+    | docs/superpowers/    # vendored third-party corpus, not this repository's text to normalise
+    | docs/ws/             # historical execution records of closed cycles — a rewrite makes the record disagree with the commits it describes
+    | docs/research/       # historical execution records of closed cycles — a rewrite makes the record disagree with the commits it describes
+  )
+
+repos:
+  # The repository's own two whole-corpus sweeps. Both are invoked once per
+  # commit over the whole repository, never once per changed file: each tool's
+  # findings are cross-file, so a per-file invocation would both mis-report and
+  # multiply the cost by the number of staged files.
+  - repo: local
+    hooks:
+      - id: drift-sweep
+        name: drift sweep (fast profile)
+        entry: python3 tools/gc.py --fast
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: skill-lint
+        name: skill linter
+        entry: python3 tools/skill-lint.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  # Upstream file hygiene. check-json in particular guards the two manifests,
+  # which are the only files in the repository whose parseability the install
+  # depends on.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
