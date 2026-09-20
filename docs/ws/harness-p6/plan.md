@@ -142,7 +142,7 @@ incident) is observed, instead of rendering `SCOPE: CLEAN`.
 **Depends on**: None (independent of Chunks 1–2; may be worked in parallel with
 them).
 **Tasks**:
-1. [ ] [implement] `skills/sdd-orchestrate/references/write-scope.md` §3: state the
+1. [x] [implement] `skills/sdd-orchestrate/references/write-scope.md` §3: state the
    three extra plumbing reads taken inside the **existing**
    `snapshot(before)` / `snapshot(after)` window — `git stash list | wc -l`,
    `git rev-parse --abbrev-ref HEAD`, `git rev-parse --verify --quiet ORIG_HEAD`
@@ -150,25 +150,25 @@ them).
    reverse-porcelain-delta subtraction. No second observation window is
    introduced — traces to `docs/spec/harness-write-scope.md` §Git-State
    Observation (REQ-HARN-HARNESSP6-001).
-2. [ ] [implement] State the comparand's two clauses: (i) state drift in stash
+2. [x] [implement] State the comparand's two clauses: (i) state drift in stash
    count, branch or `ORIG_HEAD`; (ii) the set of paths dirty in `before` and not
    dirty in `after`, **minus** the committed delta, being non-empty — traces to
    `docs/spec/harness-write-scope.md` §Git-State Observation
    (REQ-HARN-HARNESSP6-001).
-3. [ ] [implement] `references/write-scope.md` §5: the `GIT_STATE` line, rendered
+3. [x] [implement] `references/write-scope.md` §5: the `GIT_STATE` line, rendered
    **inside** the existing write-scope block exactly parallel to
    `HISTORY_REWRITE`, above the path list, counting into
    `SCOPE: VIOLATION (N paths)`. No new own-line gate token; the REQ-ORCH-034
    signal order is unchanged — traces to `docs/spec/harness-write-scope.md`
    §Git-State Observation and Q-REQ-P6-A (REQ-HARN-HARNESSP6-001).
-4. [ ] [implement] `references/write-scope.md` §8: the option set
+4. [x] [implement] `references/write-scope.md` §8: the option set
    `restore │ accept (note) │ stop`, with `proceed` withheld while the finding
    is unresolved — the same withholding rule an unresolved `OUT` path carries;
    `restore` is `git stash pop` for the stash case and `git checkout -- <path>`
    for a reverted path; `accept (note)` lives in ephemeral gate text only —
    traces to `docs/spec/harness-write-scope.md` §Git-State Observation
    (REQ-HARN-HARNESSP6-001).
-5. [ ] [implement] Four new `tools/sdd-scope-check-selftest.py` scenarios:
+5. [x] [implement] Four new `tools/sdd-scope-check-selftest.py` scenarios:
    stash-then-pop → `GIT_STATE`, `VIOLATION`; stash-then-drop → `GIT_STATE`,
    `VIOLATION`; an implement leaf committing a path already dirty at
    `snapshot(before)` → `SCOPE: CLEAN` (clause (ii) subtracts the committed
@@ -177,7 +177,7 @@ them).
    fixture: absent in both raises nothing, present in `after` only raises
    `GIT_STATE` — traces to `docs/spec/harness-write-scope.md` §Self-Test
    Scenarios and §Verification → Automated (REQ-HARN-HARNESSP6-001).
-6. [ ] [verify] `python3 tools/sdd-scope-check-selftest.py` exits 0 with all four
+6. [x] [verify] `python3 tools/sdd-scope-check-selftest.py` exits 0 with all four
    new scenarios plus the `ORIG_HEAD` pair, and every pre-existing fixture still
    passes (compare against the fixture list captured at this task's start, not
    against a remembered count) — traces to

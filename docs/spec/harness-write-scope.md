@@ -297,8 +297,15 @@ not fixed in this cycle:
 - **(b) Ignored paths.** Paths matched by `.gitignore` are not observed
   (`--ignored` is not used) — they are not project content.
 - Writes outside the repository (scratchpad, `$TMPDIR`) are the sandbox's
-  concern, not this check's. The shared stash stack is out of scope (skills
-  never stash).
+  concern, not this check's. ~~The shared stash stack is out of scope (skills
+  never stash).~~ **[Retired 2026-09-20 — REQ-HARN-HARNESSP6-001.** The claim
+  was falsified by the harness-p5 incident, in which a read-only verifier leaf
+  ran `git stash` with nine files of uncommitted work in the tree. The stash
+  stack is now observed: §Git-State Observation reads `git stash list | wc -l`
+  inside the existing snapshot window, and a leaf that stashes renders a
+  `GIT_STATE` line counting into `SCOPE: VIOLATION (N paths)`. Left visible
+  rather than deleted, per the strike convention this cycle ships
+  (REQ-PLAN-HARNESSP6-001).**]
 
 ### Marker-4 Rooting
 

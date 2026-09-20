@@ -11,10 +11,12 @@ write-scope scenarios of ``docs/spec/harness-write-scope.md`` §Verification
 ``docs/spec/ws-traceability.md`` §Aggregate Regeneration Ownership (F12),
 ``docs/spec/harness-write-scope.md`` §`## Post-cycle Fixes` Is Inside the
 Implement / ``RED_BREAK`` Scope (F13) and §`R`/`C` Records and `-z` Parsing
-Are Fixture-Exercised (F15, F16) against the
+Are Fixture-Exercised (F15, F16) and §Git-State Observation (G1..G5) against the
 observation procedure defined in ``skills/sdd-orchestrate/references/write-scope.md``:
 
   §3  the three commands — porcelain delta, committed delta, ancestry check —
+      plus the git-state observation (stash count, branch, ``ORIG_HEAD``, and
+      the reverse porcelain delta minus the committed delta)
       plus the content-hash observation (already-dirty paths), the named-base
       catch-up (d) and its ``CATCH-UP`` line (remedy (ii))
       and the section resolution of fix hunks (hunk -> enclosing ``§Name``)
@@ -54,6 +56,21 @@ Scenarios (ids match the traceability Test cells for REQ-HARN-020..026):
   F16 path with a space, untracked              -> ``-z`` keeps ONE record; observed
       ``docs/notes with space.md``                  and rendered as one path, VIOLATION
                                                    (1 path)
+
+Git-state fixtures (``docs/spec/harness-write-scope.md`` §Git-State Observation,
+``references/write-scope.md`` §3/§5/§8) — the harness-p5 incident and the three
+legitimate cases the comparand must stay quiet on:
+
+  G1  read-only leaf: git stash then stash pop -> GIT_STATE (ORIG_HEAD drift),
+                                                  SCOPE: VIOLATION
+  G2  read-only leaf: git stash then stash     -> GIT_STATE (reverse porcelain
+      drop (the work is gone)                     delta), SCOPE: VIOLATION
+  G3  implement leaf commits a path already    -> SCOPE: CLEAN (clause (ii)
+      dirty at snapshot(before)                   subtracts the committed delta)
+  G4  orchestrator fan-out merge between two   -> SCOPE: CLEAN (outside any
+      dispatches                                  leaf's window)
+  G5  ORIG_HEAD absent in both / present in    -> CLEAN + GIT_STATE,
+      after only                                  SCOPE: VIOLATION
 
 Commit-fidelity fixtures (``docs/spec/harness-commit-fidelity.md`` §Self-Test
 Helper and Fixtures, ``references/write-scope.md`` §7a) — the pure helper
@@ -197,6 +214,36 @@ def snapshot(repo: str) -> list[str]:
     return records
 
 
+@dataclass(frozen=True)
+class GitState:
+    """The three extra plumbing values recorded by each snapshot (§3 git-state observation).
+
+    ``harness-write-scope.md`` §Git-State Observation: they are read inside the
+    **existing** ``snapshot(before)`` / ``snapshot(after)`` window — no second
+    window is introduced — so a leaf that mutates git state without adding a
+    porcelain line (the harness-p5 ``git stash``) is observed.
+    """
+
+    stash_count: int
+    branch: str
+    orig_head: str  # "" when ORIG_HEAD is absent — a legal value; absent-in-both compares equal
+
+
+def git_state(repo: str) -> GitState:
+    """``git stash list | wc -l``, ``rev-parse --abbrev-ref HEAD``, ``rev-parse --verify --quiet ORIG_HEAD``."""
+    stashes = [ln for ln in git(repo, "stash", "list").stdout.splitlines() if ln.strip()]
+    branch = git(repo, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    # --verify --quiet: absence exits non-zero with empty output, which is the
+    # legal empty value, not an error.
+    orig = git(repo, "rev-parse", "--verify", "--quiet", "ORIG_HEAD", check=False).stdout.strip()
+    return GitState(len(stashes), branch, orig)
+
+
+def _short(sha: str) -> str:
+    """A short sha for rendering; ``<none>`` for the legal empty ORIG_HEAD value."""
+    return sha[:7] if sha else "<none>"
+
+
 # Label precedence of the strict observed-writes set (harness-write-scope.md
 # §Observed Writes Are a Strict Set): a path arriving from more than one term
 # keeps the richest label — committed ≻ content ≻ porcelain.
@@ -222,6 +269,7 @@ class Observed:
 class Observation:
     writes: list[Observed] = field(default_factory=list)
     history_rewrite: str | None = None  # rendered HISTORY_REWRITE line, if any
+    git_state: str | None = None  # rendered GIT_STATE line, if any (§Git-State Observation)
     catch_up: str | None = None  # rendered CATCH-UP note for the header line, if any
     # Third observation (telemetry.md §4): finding strings for leaf writes under
     # the gitignored ``.sdd/`` — each counts as one more OUT path.
@@ -403,6 +451,7 @@ def observe(
     *,
     base: str | None = None,
     content_before: dict[str, str] | None = None,
+    state_before: GitState | None = None,
 ) -> Observation:
     """Run the AFTER half of §3 and return the union of the two deltas.
 
@@ -508,6 +557,40 @@ def observe(
                 _add_name_status(obs, git(repo, "show", "--name-status", "--format=", sha).stdout, sha)
         else:
             _add_name_status(obs, git(repo, "diff", "--name-status", head_before, head_after).stdout, head_after)
+
+    # Git-state observation (REQ-HARN-HARNESSP6-001) — the comparand's two
+    # clauses, evaluated inside this same window:
+    #   (i)  state drift: stash count, branch or ORIG_HEAD differs between the
+    #        two snapshots (requires ``state_before``, taken pre-dispatch);
+    #   (ii) reverse porcelain delta: paths dirty in ``before`` and NOT dirty in
+    #        ``after``, MINUS the committed delta — a path stopped being dirty
+    #        with no commit explaining it. The existing delta (a) is
+    #        one-directional (lines in after, not in before), so a REMOVAL of
+    #        dirty lines — ``git stash``, ``git checkout -- <path>``,
+    #        ``git restore``, ``git clean`` — is invisible to it.
+    drift: list[str] = []
+    if state_before is not None:
+        state_after = git_state(repo)
+        if state_after.stash_count != state_before.stash_count:
+            drift.append(f"stash count {state_before.stash_count} -> {state_after.stash_count}")
+        if state_after.branch != state_before.branch:
+            drift.append(f"branch {state_before.branch} -> {state_after.branch}")
+        if state_after.orig_head != state_before.orig_head:
+            # Absence is the legal empty value, so absent-in-both compares equal
+            # and raises nothing; present-in-after-only is drift.
+            drift.append(f"ORIG_HEAD {_short(state_before.orig_head)} -> {_short(state_after.orig_head)}")
+    committed_paths = {w.path for w in obs.writes if w.term == "committed"}
+    after_dirty = set(ambiguous_set(after))
+    reverse_delta = [
+        p for p in ambiguous_set(before) if p not in after_dirty and p not in committed_paths
+    ]
+    if reverse_delta:
+        shown = ", ".join(reverse_delta[:3]) + (", …" if len(reverse_delta) > 3 else "")
+        drift.append(
+            f"{len(reverse_delta)} path(s) dirty before and clean after with no commit ({shown})"
+        )
+    if drift:
+        obs.git_state = "GIT_STATE  " + "; ".join(drift)
 
     # (c) ancestry — a non-zero exit is a HISTORY_REWRITE finding.
     rc = git(repo, "merge-base", "--is-ancestor", head_before, head_after, check=False).returncode
@@ -744,6 +827,10 @@ def render(scope: list[ScopeGlob], obs: Observation, label: str) -> Finding:
         lines.append(f"  Observed writes: {obs.catch_up}")
     if obs.history_rewrite:
         lines.append(f"  {obs.history_rewrite}")
+    # GIT_STATE renders inside this block, parallel to HISTORY_REWRITE and above
+    # the path list; it introduces no new gate token (Q-REQ-P6-A).
+    if obs.git_state:
+        lines.append(f"  {obs.git_state}")
     out_paths: list[str] = []
     for w in obs.writes:
         t = tag(w.path, scope)
@@ -758,8 +845,9 @@ def render(scope: list[ScopeGlob], obs: Observation, label: str) -> Finding:
     for finding in obs.telemetry_findings:
         out_paths.append(finding.split()[1])
         lines.append(f"    {finding}")
-    # N counts OUT paths plus a HISTORY_REWRITE finding; ADVISORY never counts.
-    n = len(out_paths) + (1 if obs.history_rewrite else 0)
+    # N counts OUT paths plus a HISTORY_REWRITE and a GIT_STATE finding;
+    # ADVISORY never counts.
+    n = len(out_paths) + (1 if obs.history_rewrite else 0) + (1 if obs.git_state else 0)
     token = "SCOPE: CLEAN" if n == 0 else f"SCOPE: VIOLATION ({n} path{'s' if n != 1 else ''})"
     lines.append(f"  {token}")
     return Finding(lines, token, out_paths)
@@ -1733,6 +1821,169 @@ def scenario_a1_mii(repo: str) -> tuple[bool, str, list[str]]:
     ]
 
 
+def _dirty_two(repo: str) -> list[str]:
+    """Two tracked paths made dirty *before* the dispatch — the harness-p5 shape."""
+    write(repo, "docs/plan.md", "# Plan\nuncommitted work in the tree\n")
+    write(repo, "src/recon/engine.py", "def run():\n    return 7  # uncommitted work\n")
+    return ["docs/plan.md", "src/recon/engine.py"]
+
+
+def scenario_g1(repo: str) -> tuple[bool, str, list[str]]:
+    """Read-only leaf runs ``git stash`` then ``git stash pop`` -> GIT_STATE, VIOLATION.
+
+    ``harness-write-scope.md`` §Git-State Observation, the harness-p5 incident: a
+    read-only verifier stashed uncommitted work and the gate still rendered
+    ``SCOPE: CLEAN`` — the porcelain delta is one-directional, so a *removal* of
+    dirty lines is invisible to it. The pop restores the dirty set, so clause
+    (ii) is empty here and clause (i) carries the finding: ``git stash`` sets
+    ``ORIG_HEAD``, which was absent before the dispatch.
+    """
+    dirty = _dirty_two(repo)
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    git(repo, "stash", "-q")
+    git(repo, "stash", "pop", "-q")
+    obs = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f = render(SEQ_SCOPE_SRC, obs, "G1")
+    restored = all(p in " ".join(snapshot(repo)) for p in dirty)  # the pop put the work back
+    ok = (
+        restored
+        and obs.git_state is not None
+        and "ORIG_HEAD" in obs.git_state
+        and f.token == "SCOPE: VIOLATION (1 path)"
+        and any(ln.strip().startswith("GIT_STATE") for ln in f.lines)
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_g2(repo: str) -> tuple[bool, str, list[str]]:
+    """Read-only leaf runs ``git stash`` then ``git stash drop`` -> GIT_STATE, VIOLATION.
+
+    The work is gone: the paths dirty at ``snapshot(before)`` are clean at
+    ``snapshot(after)`` with no commit explaining it, so clause (ii) — the
+    reverse porcelain delta minus the committed delta — is non-empty. Clause (i)
+    adds the ``ORIG_HEAD`` drift the stash left behind.
+    """
+    dirty = _dirty_two(repo)
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    git(repo, "stash", "-q")
+    git(repo, "stash", "drop", "-q")
+    obs = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f = render(SEQ_SCOPE_SRC, obs, "G2")
+    gone = all(p not in " ".join(snapshot(repo)) for p in dirty)
+    ok = (
+        gone
+        and obs.git_state is not None
+        and "dirty before and clean after with no commit" in obs.git_state
+        and all(p in obs.git_state for p in dirty)
+        and f.token == "SCOPE: VIOLATION (1 path)"
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_g3(repo: str) -> tuple[bool, str, list[str]]:
+    """Implement leaf commits a path already dirty at ``snapshot(before)`` -> SCOPE: CLEAN.
+
+    The legitimate case clause (ii) must not fire on: the path leaves the dirty
+    set, but the committed delta explains it, and the subtraction empties the
+    reverse delta. A normal implement leaf only *adds* porcelain lines, does not
+    stash, does not switch branch and does not set ``ORIG_HEAD``.
+    """
+    write(repo, "docs/plan.md", "# Plan\ndirty before the dispatch\n")
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    write(repo, "docs/plan.md", "# Plan\ndirty before the dispatch\nleaf tick\n")
+    git(repo, "commit", "-q", "-am", "leaf: tick a plan task")
+    obs = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f = render(IMPLEMENT_SCOPE, obs, "G3")
+    left_dirty_set = "docs/plan.md" not in " ".join(snapshot(repo))
+    ok = (
+        left_dirty_set  # the precondition clause (ii) would otherwise fire on
+        and obs.git_state is None
+        and f.token == "SCOPE: CLEAN"
+        and any("IN" in ln and "docs/plan.md" in ln and "committed" in ln for ln in f.lines)
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_g4(repo: str) -> tuple[bool, str, list[str]]:
+    """Orchestrator fan-out merge between two dispatches -> SCOPE: CLEAN.
+
+    The merge is an orchestrator step that runs **outside** any leaf's
+    observation window, so no snapshot pair spans it: the ``ORIG_HEAD`` it sets
+    is already present at the second dispatch's ``snapshot(before)`` and compares
+    equal at ``snapshot(after)``. The merge commit is also a descendant, so the
+    ancestry check (c) still passes.
+    """
+    # A fan-out leaf's branch, committed outside the sequential window.
+    git(repo, "branch", "-q", "fanout-g1")
+    git(repo, "checkout", "-q", "fanout-g1")
+    write(repo, "src/recon/engine.py", "def run():\n    return 1  # leaf work\n")
+    git(repo, "commit", "-q", "-am", "leaf: recon work")
+    git(repo, "checkout", "-q", "-")
+    write(repo, "src/recon/other.py", "x = 1\n")
+    git(repo, "add", "-A", "src/recon/other.py")
+    git(repo, "commit", "-q", "-m", "orchestrator: bookkeeping")
+
+    # Between the two dispatches: the orchestrator merges the leaf branch.
+    git(repo, "merge", "-q", "--no-ff", "-m", "orchestrator: merge fanout-g1", "fanout-g1")
+    merged = "orchestrator: merge fanout-g1" in git(repo, "log", "--format=%s", "-5").stdout
+
+    # Dispatch 2 — its window opens after the merge.
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    write(repo, "src/recon/engine.py", "def run():\n    return 2  # dispatch 2\n")
+    obs = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f = render(SEQ_SCOPE_SRC, obs, "G4")
+    ok = (
+        merged
+        and state_before.orig_head == git_state(repo).orig_head  # set by the merge, equal across the window
+        and obs.git_state is None
+        and obs.history_rewrite is None
+        and f.token == "SCOPE: CLEAN"
+    )
+    return ok, f.token, f.lines
+
+
+def scenario_g5(repo: str) -> tuple[bool, str, list[str]]:
+    """``ORIG_HEAD``: absent in both raises nothing; present in ``after`` only raises GIT_STATE.
+
+    Absence is the legal empty value, so absent-in-both compares equal — the
+    read never turns a repository that has simply never reset into a finding.
+    """
+    # Half 1 — ORIG_HEAD absent in both snapshots.
+    head, before, content_before = _begin(repo)
+    state_before = git_state(repo)
+    write(repo, "src/recon/engine.py", "def run():\n    return 3\n")
+    obs_absent = observe(repo, head, before, content_before=content_before, state_before=state_before)
+    f_absent = render(SEQ_SCOPE_SRC, obs_absent, "G5")
+    ok1 = (
+        state_before.orig_head == ""
+        and git_state(repo).orig_head == ""
+        and obs_absent.git_state is None
+        and f_absent.token == "SCOPE: CLEAN"
+    )
+
+    # Half 2 — the leaf sets ORIG_HEAD without moving HEAD or dirtying a path.
+    head2, before2, content_before2 = _begin(repo)
+    state_before2 = git_state(repo)
+    git(repo, "reset", "-q", "--soft", "HEAD")
+    obs_set = observe(repo, head2, before2, content_before=content_before2, state_before=state_before2)
+    f_set = render(SEQ_SCOPE_SRC, obs_set, "G5")
+    ok2 = (
+        state_before2.orig_head == ""
+        and git_state(repo).orig_head != ""
+        and obs_set.git_state is not None
+        and "ORIG_HEAD <none> ->" in obs_set.git_state
+        and obs_set.history_rewrite is None  # HEAD did not move
+        and f_set.token == "SCOPE: VIOLATION (1 path)"
+    )
+
+    ok = ok1 and ok2
+    return ok, f"{f_absent.token} + {f_set.token}", f_absent.lines + f_set.lines
+
+
 SCENARIOS = [
     ("F1", "porcelain-only OUT uncommitted", scenario_f1),
     ("F2", "committed OUT with clean porcelain", scenario_f2),
@@ -1750,6 +2001,11 @@ SCENARIOS = [
     ("F14", "strict set: one path in committed AND content delta, counted once", scenario_f14),
     ("F15", "rename across the scope boundary: one -z R record, both paths observed", scenario_f15),
     ("F16", "path with a space: -z keeps one record, observed and rendered once", scenario_f16),
+    ("G1", "git-state: read-only leaf stashes then pops (ORIG_HEAD drift)", scenario_g1),
+    ("G2", "git-state: read-only leaf stashes then drops (reverse porcelain delta)", scenario_g2),
+    ("G3", "git-state: implement leaf commits an already-dirty path (committed delta subtracted)", scenario_g3),
+    ("G4", "git-state: orchestrator fan-out merge between two dispatches (outside the window)", scenario_g4),
+    ("G5", "git-state: ORIG_HEAD absent in both vs present in after only", scenario_g5),
     ("C1", "COMMIT: sequential omission (2 of 3 staged), then amended", scenario_c1),
     ("C2", "COMMIT: sequential inverse (stray.txt landed, not observed)", scenario_c2),
     ("C3", "COMMIT: fan-out fast-forward of a two-commit leaf (range vs git show)", scenario_c3),
