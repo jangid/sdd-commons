@@ -117,6 +117,21 @@ exists at both roots and a one-root binding silently drops whichever manifest
 the other holds; the five root files, because the move edits some of them and
 they may exist at either root.
 
+**`skill_dir_of()` binds to the root the file was walked from** — the same rule
+`rel()` states in §2, written here because neither §3 nor §4 assigned this
+helper a root and that silence is what produced the regression C3.10 fixed in
+code: `self.root / "skills"` alone names the corpus root's tree, which after
+the move does not exist, so every suite-root file carrying a `references/…`
+backtick span raised `ValueError`. §3's "links keep resolving against the
+corpus root" governs where a link **target** resolves, not where a swept
+**file's** skill directory is located. The same binding governs the other
+`skills`- and `agents`-keyed helpers, which §4's table already places on the
+suite root: `check_structure()`, `check_size()`, and the `skills/…` and
+`agents/…` bases of `resolve_backtick_path()`; the `docs/spec/…` base stays on
+the corpus root. A future edit that re-binds any of them to the corpus root
+contradicts this paragraph, not merely a comment (C6.13, added post-plan from
+the Chunk 5 verification).
+
 **Per-entry rendering.** Each entry's findings render relative to the root that
 entry is bound to — a union-bound entry relative to whichever root supplied the
 file. §2's per-root rule covers the generic walk only: `retired_scope_files()`
@@ -373,3 +388,29 @@ expectation fails the self-test):
   which root supplies those names, not whether they are policed, since §4 binds
   both to the union. Blocking constraint: a packaging-surface decision about
   what an installed plugin shows a reader, owned by no artifact in this cycle.
+
+## Implementation Questions
+
+### Q-IMPL-PACKAGING-001: `--print-population` prints a fifth table line
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §6 Counts: asserted, or only printed — "`REQUIRED=40
+VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13`"
+**Decision**: the flag prints **one line per rule table**, derived from the
+live tables at run time, which is **five** lines today — the four §6 names it
+enumerates plus `TEMPLATE_PAIRS=4`. §6's enumeration is read as the **required
+subset**, not as a closed list: every criterion phrased "prints the four
+run-time-derived populations" (this spec's §Acceptance Criteria, the plan's
+C7.3) is satisfied by a superset that carries those four lines with those
+values, and is **not** satisfied by an output missing any of them. No number is
+written into the flag or into `population_tables()`; both sides of the
+self-test's `print_population_shape` case read the table lengths at call time.
+**Rationale**: §6's own stated purpose for the flag is to catch a rule-table
+row dropped or duplicated by §3's retarget. `TEMPLATE_PAIRS` is a rule table
+subject to exactly that risk, so omitting it would leave the one table whose
+per-side binding this cycle changed (§5) unwatched — the deviation serves §6's
+purpose rather than diluting it. Recording it as a closed-enumeration deviation
+rather than silently amending §6 keeps the pinned four values, and the sentence
+that makes them the one asserted population in the corpus, exactly as approved.
+The Chunk 4 verifier raised the extra line as a deviation from §6's letter;
+this entry is that record (C6.14, added post-plan from the Chunk 5
+verification).

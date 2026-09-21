@@ -11,7 +11,7 @@
 # docs/spec/pre-commit.md.
 exclude: |
   (?x)^(
-      tools/fixtures/      # frozen fixtures whose bytes are part of what they test — normalising one would change what the fixture proves while leaving every test green
+      plugins/sdd/tools/fixtures/   # frozen fixtures whose bytes are part of what they test — normalising one would change what the fixture proves while leaving every test green
     | docs/superpowers/    # vendored third-party corpus, not this repository's text to normalise
     | docs/ws/             # execution records of closed cycles — a rewrite makes the record disagree with the commits it describes; the active workstream is excluded with them so the gate does not rewrite a plan mid-cycle
     | docs/research/       # historical execution records of closed cycles — a rewrite makes the record disagree with the commits it describes

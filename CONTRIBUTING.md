@@ -64,8 +64,8 @@ Run it over everything before a first commit or after a large change:
 pre-commit run --all-files
 ```
 
-The gate runs the two whole-corpus sweeps (`python3 tools/gc.py --fast` and
-`python3 tools/skill-lint.py`) plus upstream file-hygiene hooks. It is a runner,
+The gate runs the two whole-corpus sweeps (`python3 plugins/sdd/tools/gc.py --fast` and
+`python3 plugins/sdd/tools/skill-lint.py`) plus upstream file-hygiene hooks. It is a runner,
 not a source of policy — every rule it enforces is stated in a requirement, a
 skill, or one of the two tools' own rule tables.
 
@@ -78,9 +78,9 @@ tool or its fixture:
 
 | When you touch | Run |
 |---|---|
-| `tools/scope-check-selftest.py` or its fixtures | `python3 tools/scope-check-selftest.py --self-test` |
-| `tools/telemetry.py` or `tools/fixtures/` telemetry data | `python3 tools/telemetry.py --self-test` |
-| `tools/eval.py` or its fixture | `python3 tools/eval.py --self-test` |
+| `plugins/sdd/tools/scope-check-selftest.py` or its fixtures | `python3 plugins/sdd/tools/scope-check-selftest.py --self-test` |
+| `plugins/sdd/tools/telemetry.py` or `plugins/sdd/tools/fixtures/` telemetry data | `python3 plugins/sdd/tools/telemetry.py --self-test` |
+| `plugins/sdd/tools/eval.py` or its fixture | `python3 plugins/sdd/tools/eval.py --self-test` |
 
 ## Adding new content
 
@@ -90,19 +90,19 @@ disagree, `CLAUDE.md` is correct and this section is the stale copy.
 
 ### New skill
 
-1. Create `skills/<name>/SKILL.md` with frontmatter and body
+1. Create `plugins/sdd/skills/<name>/SKILL.md` with frontmatter and body
 2. Test the skill by invoking it in a Claude Code session
 3. Commit with: `feat(skills): add <name>`
 
 ### New agent
 
-1. Create `agents/<name>.md` with frontmatter and body
+1. Create `plugins/sdd/agents/<name>.md` with frontmatter and body
 2. Verify the agent can be loaded as a subagent type
 3. Commit with: `feat(agents): add <name>`
 
 ### New tool
 
-1. Create the script in `tools/`
+1. Create the script in `plugins/sdd/tools/`
 2. Ensure it runs standalone
 3. Commit with: `feat(tools): add <name>`
 

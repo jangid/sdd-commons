@@ -87,7 +87,8 @@ FORBIDDEN = [
      "reason": "v4 per-workstream plan indexes exist (audit F17)",
      "fix": "say the plan index lives at docs/ws/<id>/plan.md under marker 4"},
     {"pattern": r"skills/\*/SKILL\.md", "files": "skills/review/", "allow": [],
-     "reason": "review must not hardcode this repo's layout (audit F11)",
+     "reason": "review must not hardcode this repo's layout (audit F11 — ungated set "
+               "only; exceptions check_retired_prefix and TEMPLATE_PAIRS's spec side)",
      "fix": "describe the reviewed skill files generically (`the skill files`)"},
     {"pattern": r"v1 limitations", "files": None, "allow": [],
      "reason": "stale USAGE heading (audit F14)",
@@ -696,8 +697,17 @@ class Linter:
     # -- checks -------------------------------------------------------------
 
     def check_structure(self) -> None:
-        """Every skill dir has a SKILL.md; frontmatter well-formed; name matches dir."""
-        skills_dir = self.root / "skills"
+        """Every skill dir has a SKILL.md; frontmatter well-formed; name matches dir.
+
+        `skills` and `agents` bind to the SUITE root (two-root-linter.md §4's
+        binding table). This predates the cycle and worked only while the two
+        roots coincided; `self.root` is the corpus root, so after the move it
+        named a `skills/` that does not exist there and the check degraded to a
+        single `[structure] skills/ directory not found` finding — every
+        per-skill frontmatter and naming rule silently stopped running
+        (C6.11, added post-plan from the Chunk 5 verification).
+        """
+        skills_dir = self.suite_root / "skills"
         if not skills_dir.is_dir():
             self.flag(self.root, None, "structure", "skills/ directory not found",
                       "run the linter from the repo root or pass REPO_ROOT")
@@ -732,7 +742,7 @@ class Linter:
                           "(repo quality check)",
                           "add a `Skip …` / `Do NOT use …` clause to the description")
         # Agent files must carry frontmatter too (repo quality check).
-        agents_dir = self.root / "agents"
+        agents_dir = self.suite_root / "agents"
         if agents_dir.is_dir():
             for a in sorted(agents_dir.glob("*.md")):
                 fm = self.frontmatter(a.read_text(encoding="utf-8"))
@@ -827,8 +837,11 @@ class Linter:
         Repo-specific (the rows name this repo's specs), so it runs with the
         other suite rows only. A spec file absent from the root warns, never
         fails (a consumer repo linted via REPO_ROOT has no docs/spec/ — the
-        F11 principle); a present file that lost its anchored fence fails
-        alone with the counterpart named (Q-IMPL-HARNESSP4-008).
+        F11 principle, scoped to the **ungated** set, with exactly two
+        exceptions: (i) check_retired_prefix() — ungated but suite-bound;
+        (ii) TEMPLATE_PAIRS's spec side — gated but corpus-bound); a present
+        file that lost its anchored fence fails alone with the counterpart
+        named (Q-IMPL-HARNESSP4-008).
         """
         if not self.suite_rules:
             return
@@ -856,8 +869,11 @@ class Linter:
             if not self.suite_contained():
                 # Disjoint roots: the spec side is SKIPPED, not warned. Warning
                 # (or failing) there names this suite's spec files inside a
-                # consumer's tree — the F11 principle. Under containment the
-                # spec side is checked and an absent spec keeps warning.
+                # consumer's tree — the F11 principle, ungated set only, with
+                # the two exceptions check_retired_prefix (ungated but
+                # suite-bound) and TEMPLATE_PAIRS's corpus-bound spec side.
+                # Under containment the spec side is checked and an absent
+                # spec keeps warning.
                 continue
             if not spec_path.is_file():
                 self.flag(spec_path, None, "template-drift",
@@ -913,8 +929,9 @@ class Linter:
 
         Line count uses `wc -l` semantics (number of newline characters).
         Only entry points are checked — `references/*.md` and `USAGE.md` are exempt.
+        `skills` binds to the suite root (§4), as in `check_structure()`.
         """
-        skills_dir = self.root / "skills"
+        skills_dir = self.suite_root / "skills"
         if not skills_dir.is_dir():
             return
         for sk in sorted(skills_dir.glob("*/SKILL.md")):
@@ -964,9 +981,9 @@ class Linter:
 
         | span                                     | base            | severity |
         | `references/<file>`                      | the skill dir   | fail     |
-        | `skills/<skill>/references/<file>`       | repo root       | fail     |
-        | `agents/<name>.md`                       | repo root       | fail     |
-        | `docs/spec/<file>.md`                    | repo root       | warn     |
+        | `skills/<skill>/references/<file>`       | suite root      | fail     |
+        | `agents/<name>.md`                       | suite root      | fail     |
+        | `docs/spec/<file>.md`                    | corpus root     | warn     |
 
         Fragments (`#…`) and trailing punctuation are stripped. Globs and
         placeholders (`*`, `<`, `>`, `{`, `}`) and spans with whitespace are
@@ -979,15 +996,20 @@ class Linter:
         if path.startswith("references/"):
             return path, self.skill_dir_of(f), "fail"
         if re.match(r"skills/[^/]+/references/", path):
-            return path, self.root, "fail"
+            # `skills/…` is suite-bound (§4's table), like `skill_dir_of()`.
+            return path, self.suite_root, "fail"
         # A dispatch template cites each shipped agent by `subagent_type` name AND
         # by path; the name is checkable by nothing, so the path is what makes the
         # citation mechanically verifiable (REQ-AGENT-MARKETPLACE-005). Repo-rooted
         # and `fail`, like the skills/ form — both live in this repository.
         if re.match(r"agents/[^/]+\.md$", path):
-            return path, self.root, "fail"
+            # `agents` is suite-bound (§4's table): the cited agent files ship
+            # inside the plugin, so a corpus binding reports every one of them
+            # unresolved once the roots differ (C6.11).
+            return path, self.suite_root, "fail"
         if path.startswith("docs/spec/") and path.endswith(".md"):
-            return path, self.root, "warn"
+            # `docs/spec` stays corpus-bound (§4's table).
+            return path, self.corpus_root, "warn"
         return None
 
     def retired_scope_roots(self, entry: str) -> list[Path]:
@@ -1391,9 +1413,18 @@ def self_test() -> int:
             #       fires no chunk-verifier row.
             check(len(TEMPLATE_PAIRS) == 4, f"expected the four TEMPLATE_PAIRS rows, found {len(TEMPLATE_PAIRS)}")
             check(all(r.get("fix") for r in TEMPLATE_PAIRS), "TEMPLATE_PAIRS row without fix")
-            real_spec = real_skills.parent / "docs" / "spec"
-            check(real_spec.is_dir(), "docs/spec/ missing beside the real skill suite")
-            if real_spec.is_dir():
+            # `docs/spec/` is CORPUS-bound (§4's binding table) and deliberately
+            # stayed at the corpus root when the suite moved to `plugins/sdd/`, so
+            # it is not a sibling of the suite. Walk up from the suite root to the
+            # nearest ancestor that holds it — that ancestor IS the corpus root,
+            # and under the equal-roots geometry it is the suite's own parent, so
+            # the pre-move behaviour is unchanged (C6.10).
+            real_spec = next((anc / "docs" / "spec"
+                              for anc in [real_skills.parent, *real_skills.parent.parents]
+                              if (anc / "docs" / "spec").is_dir()), None)
+            check(real_spec is not None,
+                  "docs/spec/ not found at the corpus root above the real skill suite")
+            if real_spec is not None:
                 drift_root = root / "drift"
                 shutil.copytree(real_skills, drift_root / "skills")
                 shutil.copytree(real_spec, drift_root / "docs" / "spec")
@@ -2080,9 +2111,11 @@ def self_test() -> int:
                       f"{label}: all {len(TEMPLATE_PAIRS)} rows degraded to the absent-spec "
                       f"warning — the spec side is bound to the wrong root")
 
-        # -- 11b. the two cases added post-plan from the Chunk 2 verification
-        #         (C3.10, C3.11). They are IN ADDITION to the fourteen cases
-        #         §Verification and C7.6 count.
+        # -- 11b. the three cases added post-plan from the verification of an
+        #         earlier chunk (C3.10, C3.11 from Chunk 2;
+        #         `check_structure_binds_to_the_suite_root` = C6.11 from Chunk
+        #         5). They are IN ADDITION to the fourteen cases §Verification
+        #         and C7.6 count.
         sd = root / "skilldir"
         sd_corpus = sd / "corpus"
         sd_suite = sd_corpus / "plugins" / "sdd"
@@ -2163,6 +2196,49 @@ def self_test() -> int:
                   f"the row must still fire on the non-allowlisted suite-root file:\n"
                   + "\n".join(texts))
 
+        cs = root / "structure"
+        cs_corpus = cs / "corpus"
+        cs_suite = cs_corpus / "plugins" / "sdd"
+        _fixture_skill(cs_suite, "good-skill", "Body. Skip for Y.\n")
+        (cs_suite / "skills" / "mismatched").mkdir(parents=True, exist_ok=True)
+        (cs_suite / "skills" / "mismatched" / "SKILL.md").write_text(
+            "---\nname: not-the-dir\ndescription: >\n  Use for X. Skip for Y.\n---\n\n# x\n",
+            encoding="utf-8")
+        (cs_corpus / "docs").mkdir(parents=True, exist_ok=True)
+
+        def check_structure_binds_to_the_suite_root() -> None:
+            """C6.11: `check_structure()` walks `<suite_root>/skills`, not the corpus's.
+
+            `self.root / "skills"` alone names the CORPUS root's tree, which after
+            the move does not exist; the check then emitted one
+            `[structure] skills/ directory not found` finding and returned, so
+            every per-skill frontmatter and name-match rule stopped running with
+            no diagnostic that they had. Added post-plan from the Chunk 5
+            verification; §4's binding table puts `skills` on the suite root.
+            """
+            lin = Linter(cs_corpus, cs_suite, suite_rules=False)
+            lin.check_structure()
+            texts = [t for _, t in lin.findings]
+            check(not any("skills/ directory not found" in t for t in texts),
+                  "the nested suite's skills/ must be found at the suite root:\n"
+                  + "\n".join(texts))
+            check(any(_loc(t) == "skills/mismatched/SKILL.md" and "not-the-dir" in t
+                      for t in texts),
+                  "the per-skill rules must still run against the suite-root tree:\n"
+                  + "\n".join(texts))
+            check(not any(_loc(t) == "skills/good-skill/SKILL.md" for t in texts),
+                  "the clean suite-root skill must not be flagged:\n" + "\n".join(texts))
+            # The INVERSION, so the case cannot pass vacuously: bind the suite
+            # root at the corpus root, which holds no `skills/` — exactly what
+            # the corpus binding did post-move — and the single not-found
+            # finding comes back and the per-skill findings disappear.
+            inv = Linter(cs_corpus, cs_corpus, suite_rules=False)
+            inv.check_structure()
+            inv_texts = [t for _, t in inv.findings]
+            check(len(inv_texts) == 1 and "skills/ directory not found" in inv_texts[0],
+                  "inversion: a root with no skills/ must yield exactly the "
+                  "not-found finding:\n" + "\n".join(inv_texts))
+
         def print_population_shape() -> None:
             """C4.3 — `--print-population`'s output asserted by SHAPE, not by value.
 
@@ -2213,7 +2289,8 @@ def self_test() -> int:
                       template_pairs_bind_per_side,
                       print_population_shape,
                       skill_dir_of_binds_per_root,
-                      forbidden_allow_files_root_correct):
+                      forbidden_allow_files_root_correct,
+                      check_structure_binds_to_the_suite_root):
             _case()
 
     if failures:

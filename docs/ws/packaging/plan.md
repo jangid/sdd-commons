@@ -485,7 +485,7 @@ behavioural comparisons (C1.7, C2.4, C2.6) cite instead.
 documentation repairs land.
 **Depends on**: Chunk 5.
 **Tasks**:
-1. [ ] [implement] Repair the last cwd-relative drift-sweep invocation in a skill
+1. [x] [implement] Repair the last cwd-relative drift-sweep invocation in a skill
    body — `python3 tools/gc.py --report --root .` in the verify skill's gc
    criterion (`skills/verify/SKILL.md:169`, now under `plugins/sdd/`) — so
    **both** halves come out correct: the script path resolves to the tool inside
@@ -493,14 +493,14 @@ documentation repairs land.
    directory, never the suite. **Sequenced after** Chunk 1 and Chunk 2 — done
    first it would pin a spelling those bindings then change — traces to
    `two-root-linter.md` §8 (REQ-PKG-PACKAGING-009)
-2. [ ] [implement] Correct `docs/spec/orchestration.md` (~`:574`) to name the project
+2. [x] [implement] Correct `docs/spec/orchestration.md` (~`:574`) to name the project
    README by its live filename; nothing else in the paragraph changes, and the
    symlink-install convention is untouched. **Carried note m2**: the criterion's
    drift-sweep leg has a pre-move/post-move binary the requirement's own wording
    drops — evaluate it as `python3 plugins/sdd/tools/gc.py --report` here,
    because this task runs after the move, and say so in the task close — traces
    to `project-docs.md` §Carried Documentation Repairs (REQ-DOCS-PACKAGING-001)
-3. [ ] [implement] **The amended F11 target.** Re-scope the pre-split F11 sentence
+3. [x] [implement] **The amended F11 target.** Re-scope the pre-split F11 sentence
    wherever it is stated — the linter's own docstring or rule-table comment, and
    `docs/spec/skill-lint-v5.md` lines 322, 469-470, 494 and 566 — to name the
    **ungated** set as the consumer-facing one, with **both** exceptions stated
@@ -508,7 +508,7 @@ documentation repairs land.
    `check_retired_prefix()`; (ii) *gated but corpus-bound* — `TEMPLATE_PAIRS`'s
    `spec` side. The sentence is re-scoped, never deleted — traces to
    `skill-lint-v5.md` §Two-Root Amendment (REQ-PKG-PACKAGING-005)
-4. [ ] [implement] Make the deferral-backlog screen's liveness rule **item-scoped**:
+4. [x] [implement] Make the deferral-backlog screen's liveness rule **item-scoped**:
    a marker suppresses only the item it belongs to, so a marker introducing or
    closing one item never satisfies the rule for its neighbour. The phrase table
    and the marker regex stay where they are and keep being read from the spec
@@ -517,13 +517,13 @@ documentation repairs land.
    dated marker and the second a backlog phrase with no marker of its own —
    scored **live** under the new rule and **not-live** under `L`/`L-1` — traces
    to `project-docs.md` §Carried Documentation Repairs (REQ-DOCS-PACKAGING-003)
-5. [ ] [implement] **Carried note M5.** `docs/spec/requirements-artifacts.md`
+5. [x] [implement] **Carried note M5.** `docs/spec/requirements-artifacts.md`
    §`## Out of Scope` Discipline still carries the `L`/`L-1` rule as Approved
    text with no pointer to its superseding contract. Land the wording there:
    the rule is superseded by REQ-DOCS-PACKAGING-003's item-scoped contract, with
    a pointer rather than a silent rewrite — traces to `project-docs.md`
    §Carried Documentation Repairs (REQ-DOCS-PACKAGING-003)
-6. [ ] [verify] A run-time grep of `docs/spec/orchestration.md` for the retired front
+6. [x] [verify] A run-time grep of `docs/spec/orchestration.md` for the retired front
    door's filename returns zero matches inside backticks or out; a run-time grep
    across `docs/spec/` at the corpus root and `plugins/sdd/skills/` and
    `plugins/sdd/tools/` at the suite root for the F11 sentence **unaccompanied
@@ -536,10 +536,10 @@ documentation repairs land.
    match on that filename, not merely as the absence of the retired one
    — traces to `two-root-linter.md`, `skill-lint-v5.md`,
    `project-docs.md` §Acceptance Criteria
-7. [ ] [verify] Re-run the deferral-backlog screen over `docs/ws/*/verification.md`
+7. [x] [verify] Re-run the deferral-backlog screen over `docs/ws/*/verification.md`
    with the item-scoped rule and report its counts; **assert no count that this
    run did not measure** — traces to `project-docs.md` §Acceptance Criteria
-8. [ ] [verify] **The scratch-consumer-repository run** — REQ-PKG-PACKAGING-009's
+8. [x] [verify] **The scratch-consumer-repository run** — REQ-PKG-PACKAGING-009's
    third acceptance clause (`two-root-linter.md` §Acceptance Criteria bullet 5),
    which neither task 1's edit nor task 6's greps can reach: a grep proves the
    spelling, not what the spelling resolves to at run time. In a **scratch git
@@ -552,7 +552,7 @@ documentation repairs land.
    inversion that makes it fail: hard-coding the root to the suite makes the
    assertion name a suite path — traces to `two-root-linter.md` §8,
    §Acceptance Criteria (REQ-PKG-PACKAGING-009)
-9. [ ] [implement] **The root documents the move invalidates (carried note M4).**
+9. [x] [implement] **The root documents the move invalidates (carried note M4).**
    `CLAUDE.md` and `CONTRIBUTING.md` spell suite paths that no other task
    touches and that the move makes wrong: `CLAUDE.md:101,103,185`
    (`tools/gc.py`, `tools/skill-lint.py`) and `:30,45,76,82`
@@ -567,6 +567,53 @@ documentation repairs land.
    inside a marker section is recorded as an accepted residue with its line
    named, not edited — traces to `project-docs.md` §`CLAUDE.md`,
    `two-root-linter.md` §1 (REQ-PKG-PACKAGING-001, REQ-DOCS-PACKAGING-002)
+10. [x] [implement] **The self-test fixture's single-root assumption.**
+   `plugins/sdd/tools/skill-lint.py`'s `--self-test` derived `docs/spec/` as
+   `real_skills.parent / "docs" / "spec"`, i.e. `plugins/sdd/docs/spec`, which
+   never exists because `docs/spec` deliberately stayed at the corpus root; the
+   self-test exited 1 post-move (it was green at `95c28b7`). The fixture
+   locates `docs/spec` at the **corpus** root — the nearest ancestor of the
+   suite that holds it, so the equal-roots geometry is unchanged. *Added
+   post-plan, found by the Chunk 5 verification, chartered nowhere; C7.6
+   requires `--self-test` green* — traces to `two-root-linter.md` §2, §4
+11. [x] [implement] **`check_structure()` is not suite-root aware.** It checked
+   `self.root / "skills"` (the corpus root) and never consulted `suite_root`;
+   it predates this cycle and worked only while the two roots coincided, so
+   post-move both hooks reported `.: [structure] skills/ directory not found`
+   and every per-skill rule silently stopped running. `skills` and `agents`
+   bind to the **suite** root per §4's table. The binding is fixed in
+   `check_structure()`, `check_size()` and the `skills/…` / `agents/…` bases of
+   `resolve_backtick_path()` (the same class, same table; `docs/spec/…` stays
+   corpus-bound), with a checked-in self-test case
+   `check_structure_binds_to_the_suite_root` proving it under nested roots and
+   carrying its own inversion. *Added post-plan, found by the Chunk 5
+   verification* — traces to `two-root-linter.md` §3, §4
+12. [x] [implement] **The stale `exclude:` regex.** `.pre-commit-config.yaml`
+   still spelled `tools/fixtures/`; the fixtures live at
+   `plugins/sdd/tools/fixtures/`, so upstream hygiene hooks could rewrite bytes
+   those fixtures need frozen. Re-spelled. *Added post-plan, found by the Chunk
+   5 verification* — traces to `pre-commit.md` §Two-Root Amendment
+13. [x] [implement] **Spec amendment: `skill_dir_of()`'s root binding.** Neither
+   §3 nor §4 of `docs/spec/two-root-linter.md` assigned `skill_dir_of()` a
+   root, and that silence produced the regression C3.10 fixed in code. §4 now
+   states that it binds to the root the file was walked from — the same rule as
+   `rel()` — together with the other `skills`/`agents`-keyed helpers, so a
+   future edit cannot silently reintroduce it. *Added post-plan, found by the
+   Chunk 5 verification* — traces to `two-root-linter.md` §4
+14. [x] [implement] **Q-IMPL for the fifth population line.**
+   `--print-population` prints five table lines while §6 states a closed
+   four-table enumeration; the Chunk 4 verifier ruled the extra
+   `TEMPLATE_PAIRS=4` line a benign deviation from §6's letter requiring a
+   record. Minted as `Q-IMPL-PACKAGING-001` in `docs/spec/two-root-linter.md`
+   per the deviation protocol (tier 2), reading §6's enumeration as a required
+   **subset**. *Added post-plan, found by the Chunk 5 verification* — traces to
+   `two-root-linter.md` §6, `deviation-protocol.md`
+15. [x] [implement] **Reconcile `C7.3`'s wording with C6.14.** C7.3 said the flag
+   "prints the **four** run-time-derived populations", which is false as
+   written once the fifth line is recorded. Restated as a superset check naming
+   the four required lines and their values, without weakening it to "prints
+   something". *Added post-plan, found by the Chunk 5 verification* — traces to
+   `two-root-linter.md` §6
 **Entry criteria**: Chunk 5 complete (the move commit exists).
 **Exit criteria**: Scoped to what this chunk's tasks actually check (carried
 note M7 — the earlier "no skill body **or spec** carries a pre-move spelling"
@@ -610,8 +657,13 @@ against the moved tree.
    `two-root-linter.md` §3 (REQ-PKG-PACKAGING-004)
 3. [ ] [verify] `python3 plugins/sdd/tools/skill-lint.py --print-population` exits 0,
    prints the `corpus: FILES_SWEPT=<n>  policed-areas=<n>` line (asserted by
-   **shape**, not number), and prints the four run-time-derived populations
-   `REQUIRED=40 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13`. This is the one
+   **shape**, not number), and prints one run-time-derived line per rule table
+   whose set **includes** the four required populations `REQUIRED=40
+   VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13` — each of the four asserted
+   present **by name and by that exact value**, so a missing line or a changed
+   value fails; the additional `TEMPLATE_PAIRS` line, recorded as
+   Q-IMPL-PACKAGING-001 in `two-root-linter.md`, does not (restated at C6.15;
+   the pre-C6.14 wording said "the four" and was false as written). This is the one
    place in the corpus where a row population is compared against a number, and
    it is the regression check on Chunk 2 task 3's retarget — traces to
    `two-root-linter.md` §6 (REQ-LINT-PACKAGING-007, REQ-LINT-PACKAGING-004)
