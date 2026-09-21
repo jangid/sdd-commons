@@ -1755,11 +1755,11 @@ separately, record it in the chunk's notes as a hook artefact naming the hook an
 the path, and re-assert. A rewrite that a hook did **not** produce is a real
 violation and is treated as one.
 **Tasks**:
-1. [ ] [verify] `python3 plugins/sdd/tools/skill-lint.py --self-test` and
+1. [x] [verify] `python3 plugins/sdd/tools/skill-lint.py --self-test` and
    `python3 plugins/sdd/tools/gc.py --self-test` exit 0; both are still in the
    committed `.pre-commit-config.yaml` hook set, asserted **by parsing that
    file** — traces to REQ-PKG-CONSUMERGEOMETRY-001 acceptance 4
-2. [ ] [verify] **The committed hook set is byte-identical across the cycle** —
+2. [x] [verify] **The committed hook set is byte-identical across the cycle** —
    a *different* assertion from task 1's presence check and from Chunk 5 task 6's
    deliberate declining, which is about **geometry**, not identity; the three
    must not be conflated. Asserted by `git diff` over
@@ -1770,16 +1770,16 @@ violation and is treated as one.
    hook under this delta makes this red — traces to `pre-commit.md`
    §Consumer-Geometry Acceptance Criteria (third box), REQ-PC-PACKAGING-001
    unchanged
-3. [ ] [verify] `pre-commit run --all-files` is green over the whole corpus,
+3. [x] [verify] `pre-commit run --all-files` is green over the whole corpus,
    including both tools' self-tests, **green on the post-Chunk-7 tree** — the
    per-edit half of this claim is already carried by each chunk's own exit
    criteria and is not decidable by a single run here — traces to
    `pre-commit.md` §Consumer-Geometry Acceptance Criteria
-4. [ ] [verify] In-repo `python3 plugins/sdd/tools/skill-lint.py .` reports
+4. [x] [verify] In-repo `python3 plugins/sdd/tools/skill-lint.py .` reports
    `GEOMETRY: nested` and its run-time-derived swept-file count; `python3
    plugins/sdd/tools/gc.py --report --root .` raises no new finding class
    — traces to `two-root-linter.md` §CG-8
-5. [ ] [verify] Re-run the §CG-8 disjoint construction end to end one final time
+5. [x] [verify] Re-run the §CG-8 disjoint construction end to end one final time
    on the post-Chunk-7 tree, so the repair is confirmed against the tree that
    ships and not only against the tree Chunk 5 closed on — traces to
    `two-root-linter.md` §CG-8
@@ -1788,6 +1788,80 @@ violation and is treated as one.
 to the run-explicitly set; the hook set byte-identical from `3bac4af`;
 `pre-commit run --all-files` green; the nested case and the disjoint construction
 both green on the shipping tree. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
+
+**Notes** (Chunk 8, 2026-09-22):
+- **Task 1 — presence, not identity.** `python3 plugins/sdd/tools/skill-lint.py
+  --self-test` → `SELF-TEST OK: …`, exit 0; `python3 plugins/sdd/tools/gc.py
+  --self-test` → `SELF-TEST OK: …`, exit 0. Both are still **hook entries**,
+  asserted by parsing `.pre-commit-config.yaml`: under `repo: local`, ids
+  `skill-lint-self-test` (entry `python3 plugins/sdd/tools/skill-lint.py
+  --self-test`) and `drift-sweep-self-test` (entry `python3
+  plugins/sdd/tools/gc.py --self-test`), alongside `drift-sweep` and
+  `skill-lint`, plus the four upstream hygiene hooks — eight entries. Parsed
+  textually rather than with PyYAML, which is not importable in this
+  environment; the parse reads the `- id:` / `entry:` / `- repo:` / `rev:` lines,
+  which is the whole hook set's identity surface.
+- **Task 2 — byte-identity from the entry sha, a different comparand from task
+  1's and from Chunk 5 task 6's.** `git diff 3bac4af HEAD --
+  .pre-commit-config.yaml` is **empty**, and the blob is the same object at all
+  three points: `3bac4af:.pre-commit-config.yaml`, `HEAD:.pre-commit-config.yaml`
+  and `git hash-object .pre-commit-config.yaml` all give
+  `689d689eef7c759dc538d0b4cf5b9e9fb19f744a`. The extracted entry lists at the
+  two shas diff clean. No entry added, removed or re-rooted — which is what this
+  delta authorises, none. Chunk 5 task 6's declining is about **geometry** and is
+  not cited here.
+- **Task 3 — the gate, and the one thing this sandbox cannot assert.** `pre-commit
+  run --all-files --show-diff-on-failure`: `drift sweep (fast profile)` Passed,
+  `skill linter` Passed, `skill linter self-test` Passed, `drift sweep self-test`
+  Passed, `trim trailing whitespace` Passed, **`fix end of files` Failed**,
+  `check yaml` Passed, `check json` Passed. The failure is not a finding: it is
+  the known sandbox write-denial, verbatim —
+  `PermissionError: [Errno 1] Operation not permitted: '.claude/settings.json'`
+  raised from `end_of_file_fixer.py:61` at `open(filename, 'rb+')` — on a file
+  wholly outside this cycle's write scope, which must not be touched; precedent
+  in `docs/ws/marketplace/verification.md`. **Coverage recovered with `--files`**:
+  `pre-commit run end-of-file-fixer --files <every tracked file but that one>`
+  (208 paths) → **Passed**; `end-of-file-fixer` and `trailing-whitespace` over
+  the **23** files this cycle changed (`git diff --name-only --diff-filter=d
+  3bac4af HEAD`) → both **Passed**. `.claude/settings.json` already ends in byte
+  `0a`, so even the un-assertable file would pass on content; what is refused is
+  the hook's read-write open, not the check. **What can be asserted**: seven of
+  eight hooks green over the whole corpus, and the eighth green over every
+  tracked file except one whose content independently satisfies it. **What
+  cannot**: a single green `pre-commit run --all-files` process in this
+  environment.
+- **No hook artefact landed.** The read-only form was preferred per handling rule
+  (i), and `git status --short` was empty after every hook run, so rule (ii)
+  never fired. The only modified path in this chunk is
+  `docs/ws/consumer-geometry/traceability.md`, this chunk's declared write scope,
+  plus this section of the plan.
+- **Task 4 — the nested case and the sweep, both unregressed.** In-repo
+  `python3 plugins/sdd/tools/skill-lint.py .` → `GEOMETRY: nested
+  swept-roots=2  suite-rows-root=<repo>/plugins/sdd` then `OK: 25 file(s) clean`,
+  exit 0 — the count read off the run, never pinned as a literal. `python3
+  plugins/sdd/tools/gc.py --report --root .` → exit 0, `OK: 9 sweep(s) clean, 0
+  warning(s), 39 info`; `--fast --root .` → exit 0, `OK: 3 sweep(s) clean, 0
+  warning(s), 29 info`. **No new finding class**: the only classes present are
+  `[qimpl-unreferenced]` and `[stale-chain]`, both pre-existing, and the set of
+  rule-class literals in `gc.py` is unchanged from `3bac4af`. Two `[stale-chain]`
+  *instances* are new — `marketplace-packaging.md` and `pre-commit.md` now older
+  than `docs/requirements/integration/packaging.md` (2026-09-22), which Chunk 7
+  wrote — but they are new instances of an old class, informational, and not
+  routed at DONE; recorded here so the verify stage sees them rather than
+  discovers them.
+- **Task 5 — §CG-8 re-run end to end on the shipping tree.** `cp -R
+  plugins/sdd "$TMPDIR/cg/far"` (the installed cache never touched), then the far
+  `skill-lint.py "$REPO"` → `GEOMETRY: nested  swept-roots=2
+  suite-rows-root=<repo>/plugins/sdd`, `OK: 25 file(s) clean`, exit 0, **no
+  `[structure] skills/ directory not found` finding**, non-zero swept count; the
+  far `gc.py --report --root "$REPO"` → exit 0, **zero** `[structure]` findings
+  passed through, same forwarded `GEOMETRY:` line, `OK: 9 sweep(s) clean, 0
+  warning(s), 39 info` — byte-equal to the in-repo run. The repair is therefore
+  confirmed against the tree that ships, not only against the tree Chunk 5 closed
+  on.
+- **No regression found**, so nothing is routed back to an owning chunk. No
+  production file was edited by any task in this chunk.
+
 
 ---
 
