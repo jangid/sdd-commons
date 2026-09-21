@@ -929,9 +929,140 @@ at round 2 with three reverted-binding mutations demonstrated green.
 named mutations applied in turn, the failing gate and its message recorded, and
 the tree restored; `pre-commit run --all-files` passes with the two new hooks.
 
+### Chunk 10: Implement-stage repairs, round 3
+
+**Depends on**: Chunk 9.
+
+*Provenance*: every task below comes from the **implement-stage review, round 3**
+(iteration 3 of 3 — the last) of the packaging cycle, following the pattern the
+round-3 reviewer endorsed for Chunk 9. Round 2's repairs held: all five
+mutations it recorded were re-run here and all five still fail a gate. Round 3's
+blocking finding was the orchestrator's own: round 2 added two self-test hooks
+to `.pre-commit-config.yaml` after checking `REQ-PC-MARKETPLACE-004`'s
+three-name grep and **not** `REQ-PC-MARKETPLACE-001`, which closes the hook set
+— parsed ids became 8 against a required union of 6. The operator's decision was
+to keep the hooks and amend the requirement and the spec, the two self-tests
+being the control that catches this cycle's defect class. The rest of the chunk
+closes five further unguarded bindings and states one boundary the four-gate
+harness cannot observe. The standard is Chunk 9's, unchanged: **reverting any
+binding, default or dedupe this chunk touches must fail a gate**, demonstrated
+by running the mutation. Task numbers are the `C10.<n>` refs used in
+`docs/ws/packaging/traceability.md`. These are repairs to committed work, not
+new scope.
+
+1. [x] [implement] **Pin `check_structure()`'s `seen_dirs` dedupe (B2b, first of
+   two).** The file carries **three** deduplications, not one; §6's amended
+   paragraph covered only `walk()`'s. `seen_dirs` was deletable with all four
+   gates green, the deletion re-reporting every skill directory once per
+   repeated root. New case `check_structure_dedupes_repeated_roots`, the
+   `walk_dedupes_repeated_roots` shape (monkeypatch `swept_roots()` to `[r, r]`,
+   the only path from production to the loop) — traces to `two-root-linter.md`
+   §6 (REQ-LINT-PACKAGING-005)
+2. [x] [implement] **Pin `check_size()`'s `seen_size` dedupe (B2b, second of
+   two).** Same hole, same shape; new case
+   `check_size_dedupes_repeated_roots` — traces to `two-root-linter.md` §6
+   (REQ-LINT-PACKAGING-005)
+3. [x] [implement] **Pin `swept_base()`'s two documented properties (B2c).**
+   The docstring asserts corpus-first resolution order and deepest-root
+   fallback as deliberate, and neither was guarded:
+   `backtick_bases_bind_to_the_swept_roots` uses fixtures in which at most ONE
+   swept root holds the span, so the tiebreak never fires. New case
+   `swept_base_order_and_fallback` seeds the same relative path under **both**
+   roots of a nested geometry so the order decides, and asks for a path under
+   neither so the fallback decides. Pinned rather than softened — traces to
+   `two-root-linter.md` §4 (REQ-PKG-PACKAGING-005)
+4. [x] [implement] **Pin `rel()`'s and `skill_dir_of()`'s documented raise
+   (S1).** `rel()`'s docstring says a path under no swept root raises
+   `ValueError` "exactly as the former single-root rendering did", and
+   `flag()`'s docstring leans on that raise to explain why a per-entry-bound
+   check must supply its own rendering; `skill_dir_of()` states the same. New
+   case `rel_raises_outside_the_swept_roots` drives both against a disjoint
+   geometry. Pinned rather than softened. *Recorded, not claimed*: mutating
+   `rel()`'s root set to suite-only remains survivable and is
+   **behaviour-preserving**, not a defect — the corpus fallback returns the
+   same rendering the union would — traces to `two-root-linter.md` §2
+   (REQ-PKG-PACKAGING-002)
+5. [x] [implement] **Pin `suite_contained()`'s equality clause (S2).** §2 states
+   equality counts as containment, and `check_links()` reads the predicate to
+   decide whether the `TEMPLATE_PAIRS` spec side is checked at all. New case
+   `equal_roots_count_as_contained` pins the property. *Recorded, not claimed*:
+   deleting the `suite == corpus or` disjunct still survives and **cannot** be
+   killed — `Path(p).is_relative_to(p)` is already `True`, so the disjunct is
+   redundant with the clause beside it and its deletion is behaviour-preserving.
+   The case docstring says so rather than implying an invertibility it does not
+   have — traces to `two-root-linter.md` §2 (REQ-PKG-PACKAGING-002)
+6. [x] [implement] **Close `zero_arg_run_sweeps_the_corpus`'s other half
+   (Minor).** The case asserted only the corpus root; the suite root's default
+   to `default_suite_root()` was unasserted, and mutating it to the cwd left
+   the case green. Asserted, and the `built: list[Linter]` annotation — which
+   referenced the name the case rebinds — quoted — traces to
+   `two-root-linter.md` §2 (REQ-PKG-PACKAGING-002)
+7. [x] [implement] **Make requirement, spec and config agree on a closed set of
+   eight (B1, blocking).** `REQ-PC-MARKETPLACE-001` amended in place with a
+   dated note naming the authorising context: the set is eight, one `--self-test`
+   hook per repository tool, and the acceptance's union is restated so **both**
+   sides are still derived by parsing — the local set is derived from each
+   parsed `entry`'s script, each tool appearing exactly twice. No renumbering, no
+   history rewrite. `docs/spec/pre-commit.md` amended through its own
+   §Two-Root Amendment mechanism: a new **§Hook-Set Amendment** records the move
+   and puts its rationale beside the declined `cmp` candidate (proportionality
+   measured against how often the guarded property can break), and §The hook
+   set's heading, count sentence, table and the §Acceptance Criteria bullet are
+   reconciled so no reader is told six by one and eight by another. Both checks
+   re-run: parsed ids == derived union (8 == 8), `validate-config` exit 0, and
+   `REQ-PC-MARKETPLACE-004`'s grep still 0/0/0 — traces to `pre-commit.md`
+   (REQ-PC-MARKETPLACE-001)
+8. [x] [implement] **State the `warn` severity class as a boundary (B2a).**
+   Rebinding `resolve_backtick_path()`'s `docs/spec/…` base to the suite root
+   yields **136 spurious `[path]` warnings and exit 0 on all four gates** — the
+   third row of §4's table, whose other two rows this cycle unioned and pinned.
+   Making the class gateable means changing the linter's exit contract, which is
+   out of scope on the last iteration. Recorded instead in
+   `two-root-linter.md` §Verification as an explicit stated boundary: what it
+   exempts, why the harness cannot observe it, the technique available to a
+   future case, and that it is a known limitation — traces to
+   `two-root-linter.md` §4, §Verification
+9. [x] [implement] **Correct §6's amended paragraph and pin
+   `REQ-PC-MARKETPLACE-004`'s grep strings (B2b prose, S3).** §6 read as though
+   deduplication in this file were closed; it covered one of three, now stated.
+   `REQ-PC-MARKETPLACE-004`'s acceptance said "each of the three tool names"
+   while the prose names them in short form and the config comment spells those
+   short forms — 0/0/0 under one reading, 1/1/1 under the other. The three
+   **script filenames** are pinned as the grep strings in both the requirement
+   and the spec's criterion, so it has one truth value — traces to
+   `two-root-linter.md` §6, `pre-commit.md` (REQ-LINT-PACKAGING-005,
+   REQ-PC-MARKETPLACE-004)
+10. [x] [implement] **Catch traceability and the coverage table up (S4).**
+   `docs/ws/packaging/traceability.md` was last written at Chunk 6 and missed
+   chunks 7–10. Rows extended for `REQ-PKG-PACKAGING-002` (whose evidence cell
+   cited C1/C3 cases while the case its acceptance names landed at C9.2),
+   `REQ-LINT-PACKAGING-005`, `REQ-PKG-PACKAGING-005`, and rows added for
+   `REQ-PC-MARKETPLACE-001` and `REQ-PC-MARKETPLACE-004`, whose evidence this
+   workstream delivered. §Requirement → Task Coverage below extended with the
+   `C8.*` / `C9.*` / `C10.*` refs under its own rule — the owning task is the
+   one that lands the checked-in case — traces to `ws-traceability.md`
+11. [x] [implement] **Forward pointer on the stale YAML sample (Minor).**
+   `pre-commit.md` §The two local hooks shows un-prefixed, two-entry YAML 240
+   lines before the two corrections; a bracketed note now names both amendments
+   and says to read the sample as the shape of a local entry, not the entry set
+   — traces to `pre-commit.md`
+
+**Entry criteria**: Chunk 9 complete; the implement-stage review returned REJECT
+at round 3 with one blocking finding (the orchestrator's own hook-set error),
+two further blocking items and four suggestions.
+**Exit criteria**: all four gates exit 0 before and after; `pre-commit run
+--all-files` passes; the parsed-hook-id set equals the derived union and
+`REQ-PC-MARKETPLACE-004`'s three-filename grep is 0/0/0; every mutation this
+chunk's pins target applied in turn with the failing gate and its message
+recorded, plus the five round-2 classes re-run and still killed; any surviving
+mutation reported as a finding rather than claimed as a repair.
+
+
 ## Requirement → Task Coverage
 
-All 22 approved requirements, each mapped to the tasks that reach it. This table
+All 22 approved requirements, each mapped to the tasks that reach it, plus the
+two `REQ-PC-MARKETPLACE-*` rows this workstream delivered evidence for at
+chunks 9 and 10. This table
 lives here rather than in `docs/ws/packaging/traceability.md` because that
 matrix's shape is pinned at six columns by `docs/spec/ws-traceability.md` — a
 seventh `Task` cell makes every row unparseable and the drift sweep drops it
@@ -943,10 +1074,10 @@ not merely the one that exercises the behaviour.
 | Requirement | Spec | Tasks |
 |---|---|---|
 | REQ-PKG-PACKAGING-001 | two-root-linter.md | C5.1, C5.2, C5.3, C5.5 (`git ls-tree` + `git log --follow` at the **pre-move sha**), C6.9 |
-| REQ-PKG-PACKAGING-002 | two-root-linter.md | C1.1, C1.2, C1.3, C1.6, C1.7 (`two_roots_construct_distinct_and_equal`, `equal_roots_sweep_set_unchanged`, `sweep_is_duplicate_free`), C7.1 |
+| REQ-PKG-PACKAGING-002 | two-root-linter.md | C1.1, C1.2, C1.3, C1.6, C1.7 (`two_roots_construct_distinct_and_equal`, `equal_roots_sweep_set_unchanged`, `sweep_is_duplicate_free`), C7.1, **C9.2** (`zero_arg_run_sweeps_the_corpus` — the case the acceptance names), **C10.6** (its suite-default half), **C10.4** (`rel_raises_outside_the_swept_roots`), **C10.5** (`equal_roots_count_as_contained`) |
 | REQ-PKG-PACKAGING-003 | two-root-linter.md | C1.5, C7.1 |
 | REQ-PKG-PACKAGING-004 | two-root-linter.md | C2.3, C2.5, **C2.6** (equal-roots comparison vs the **pre-change baseline** of C0.1), C7.2 (post-move confirmation) |
-| REQ-PKG-PACKAGING-005 | skill-lint-v5.md | C6.3, C6.6 |
+| REQ-PKG-PACKAGING-005 | skill-lint-v5.md | C6.3, C6.6, C8.1, **C8.2** (`check_size_binds_to_the_swept_roots`), **C9.1** (`check_structure_binds_to_the_swept_roots`), **C9.3** (`backtick_bases_bind_to_the_swept_roots`), **C10.3** (`swept_base_order_and_fallback`) |
 | REQ-PKG-PACKAGING-006 | two-root-linter.md | C3.1, C3.7 |
 | REQ-PKG-PACKAGING-007 | two-root-linter.md | C3.2, C3.7 |
 | REQ-PKG-PACKAGING-008 | two-root-linter.md | C3.4, C3.5, C3.8 |
@@ -956,11 +1087,13 @@ not merely the one that exercises the behaviour.
 | REQ-LINT-PACKAGING-002 | two-root-linter.md | C2.2, **C3.9** (`template_pairs_bind_per_side`, three geometries + the both-sides-to-suite negative control) |
 | REQ-LINT-PACKAGING-003 | two-root-linter.md | C3.3 |
 | REQ-LINT-PACKAGING-004 | two-root-linter.md | C4.1, C4.2 (three greps, **pre-move** `tools/skill-lint.py`), C7.3, **C7.8** (same three greps, **post-move** `plugins/sdd/tools/skill-lint.py`) |
-| REQ-LINT-PACKAGING-005 | two-root-linter.md | C1.4, C1.7 (`sweep_is_duplicate_free`), C3.5, C3.8 |
+| REQ-LINT-PACKAGING-005 | two-root-linter.md | C1.4, C1.7 (`sweep_is_duplicate_free`), C3.5, C3.8, **C9.4** (`walk_dedupes_repeated_roots`), **C10.1**, **C10.2** (the other two deduplications) |
 | REQ-LINT-PACKAGING-006 | two-root-linter.md | C3.6, C3.7 |
 | REQ-LINT-PACKAGING-007 | two-root-linter.md | C4.1, **C4.3** (`print_population_shape`), C7.3 |
 | REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | C0.2, C0.4, C7.5 |
 | REQ-PC-PACKAGING-001 | pre-commit.md | C5.4, C5.7, **C5.8** (membership: the entry run verbatim sweeps a `docs/spec/` path), C7.6 |
+| REQ-PC-MARKETPLACE-001 | pre-commit.md | C9.4 (the two self-test hooks), **C10.7** (closed set amended to eight; parsed ids == derived union) |
+| REQ-PC-MARKETPLACE-004 | pre-commit.md | C9.4 (three-name grep re-run), **C10.9** (grep strings pinned to the three script filenames) |
 | REQ-DOCS-PACKAGING-001 | project-docs.md | C6.2, C6.6 (incl. the positive `README.md` clause) |
 | REQ-DOCS-PACKAGING-002 | project-docs.md | C0.3, C0.4, C6.9 (root-doc path spellings, marker sections untouched) |
 | REQ-DOCS-PACKAGING-003 | project-docs.md | C6.4, C6.5, C6.7 |

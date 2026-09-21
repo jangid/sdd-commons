@@ -216,6 +216,20 @@ case `walk_dedupes_repeated_roots` closes that by monkeypatching
 `walk()` — and asserting each path comes back once and the guard stays silent
 (C9.4, implement-stage review round 2).
 
+**There are three such deduplications, not one, and all three are now pinned.**
+The paragraph above was written as though `walk()` were the file's only one; it
+is the only one the §6 guard backstops, which is not the same thing.
+`check_structure()` and `check_size()` each carry their own resolved-path
+`seen` set over the swept-root union, and each was unreachable from production
+input for exactly the reason stated above — so each could be deleted with all
+four gates green, the deletion re-reporting every skill directory, and
+re-measuring every `SKILL.md`, once per repeated root. The cases
+`check_structure_dedupes_repeated_roots` and
+`check_size_dedupes_repeated_roots` close those two by the same monkeypatch,
+asserting the seeded finding is reported exactly once (C10.1, C10.2,
+implement-stage review round 3). A future edit that removes any of the three
+deduplications contradicts this paragraph.
+
 **Live zero-sweep detection is deliberately given up.** A bare `FILES_SWEPT >=
 1` is wrong (an empty sweep is legitimate in a consumer repository) and the
 conditioned form reads its condition through the binding it tests, so a
@@ -334,8 +348,11 @@ verification or review finding, each named in its own docstring — are
 `duplicate_guard_negative_case`, `skill_dir_of_binds_per_root`,
 `forbidden_allow_files_root_correct`,
 `check_structure_binds_to_the_swept_roots`,
-`check_size_binds_to_the_swept_roots`, `walk_dedupes_repeated_roots` and
-`backtick_bases_bind_to_the_swept_roots`.
+`check_size_binds_to_the_swept_roots`, `walk_dedupes_repeated_roots`,
+`backtick_bases_bind_to_the_swept_roots`,
+`check_structure_dedupes_repeated_roots`, `check_size_dedupes_repeated_roots`,
+`swept_base_order_and_fallback`, `rel_raises_outside_the_swept_roots` and
+`equal_roots_count_as_contained`.
 
 **Every design-time name is now landed.** `zero_arg_run_sweeps_the_corpus`
 was the last outstanding one: round 1 of the implement-stage review recorded
@@ -346,6 +363,54 @@ mis-rooting that *"nothing downstream can distinguish this mis-rooting from a
 correct run"*, and mutating the default to `default_suite_root()` did in fact
 leave both self-tests at 0. The case landed at C9.2 (review round 2) and
 drives `main()`'s own argument path with the cwd set to a fixture corpus.
+
+**A second, narrower boundary, recorded for the same reason.**
+`suite_contained()`'s `suite == corpus or` disjunct cannot be pinned by any
+case: `Path(p).is_relative_to(p)` is already `True`, so the disjunct is
+redundant with the clause beside it and deleting it is behaviour-preserving,
+not a defect. `equal_roots_count_as_contained` pins the **property** §2 states
+— equality counts as containment, which `check_links()` reads to decide
+whether the `TEMPLATE_PAIRS` spec side is checked at all — and its docstring
+says plainly that the disjunct itself is documentary. Likewise, mutating
+`rel()`'s root set to the suite alone survives every gate because the corpus
+fallback returns the same rendering the union would; what
+`rel_raises_outside_the_swept_roots` pins is the documented raise, which is
+what `flag()`'s docstring leans on.
+
+**Stated boundary: the `warn` severity class is outside what the four-gate
+harness can observe.** Recorded here as a limitation rather than left as a
+silent exemption, because a silent exemption is the defect class this cycle
+spent three review rounds on.
+
+The linter emits findings at two severities. `fail` decides the exit code;
+`warn` is printed and never does. Every check in §4's binding table whose
+finding is `fail` — `check_structure()`, `check_size()`, the `skills/…` and
+`agents/…` bases of `resolve_backtick_path()`, `skill_dir_of()`,
+`check_retired_prefix()`, the `TEMPLATE_SOURCE` side — has its binding pinned
+by a self-test case above, and reverting that binding fails
+`skill-lint.py --self-test`. The table's third row does not and cannot be
+pinned the same way: `resolve_backtick_path()`'s `docs/spec/<file>.md` span is
+corpus-bound and `warn`, deliberately, so that the linter never assumes a
+consumer repository carries this repository's layout. Rebinding that base to
+the suite root was run as a mutation on 2026-09-21 and produced **136 spurious
+`[path]` warnings with exit 0 on all four gates** — `skill-lint.py`,
+`skill-lint.py --self-test`, `gc.py --fast` and `gc.py --self-test`. Nothing
+in the harness observes it, because nothing in the harness reads warning
+*counts*: the gates read exit codes, and a `warn` finding by construction does
+not change one.
+
+What this exempts, precisely: the root binding of the one `warn`-severity
+backtick class, and any future check whose findings are `warn`-only. What it
+does not exempt: every `fail`-severity binding above, and the `warn` findings
+the self-test asserts by name and location (`template_pairs_bind_per_side`
+reads the absent-spec warnings out of `Linter.findings` directly, which is the
+technique available to any future case that needs a `warn` pinned).
+
+Closing the gap in general means changing the linter's exit contract — a
+`--strict` mode, or a warning-count comparand — and a change to the exit
+contract is not something to land on the last iteration of a fix loop. It is
+recorded here as a known limitation, in scope for a later cycle, and it is a
+**boundary of the harness**, not an oversight in the bindings.
 
 ### Manual
 

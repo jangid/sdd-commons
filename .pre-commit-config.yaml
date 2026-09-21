@@ -37,13 +37,15 @@ repos:
         pass_filenames: false
         always_run: true
 
-      # Both tools' own self-tests, added at implement-stage review round 2.
+      # Both tools' own self-tests, added at implement-stage review round 2 and
+      # made part of the closed hook set at round 3 — REQ-PC-MARKETPLACE-001 is
+      # amended to eight entries, docs/spec/pre-commit.md §Hook-Set Amendment.
       # They are NOT among the three heavier self-tests REQ-PC-MARKETPLACE-004
       # keeps out of the gate: that requirement's acceptance greps this file
-      # for the names of three OTHER contributor tools (the scope-check, the
-      # telemetry and the evaluation tools — deliberately not spelled here, so
-      # this comment cannot itself turn that grep non-zero), and neither entry
-      # below is one of them. The reason they belong here: the
+      # for the script filenames of three OTHER contributor tools (the
+      # scope-check, the telemetry and the evaluation tools — their filenames
+      # deliberately not spelled here), and neither entry below runs one of
+      # them. The reason they belong here: the
       # corpus sweeps above exercise no two-root fixture geometry, so a wrong
       # root binding stays green in both of them, and `gc.py` embeds the
       # linter, so a linter change can turn `gc.py --self-test` red while

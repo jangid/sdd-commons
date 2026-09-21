@@ -33,11 +33,35 @@ or a skill.
 ### REQ-PC-MARKETPLACE-001: `.pre-commit-config.yaml` exists and is valid
 The repository must carry a `.pre-commit-config.yaml` at its root, parseable as
 YAML, declaring the hooks required by REQ-PC-MARKETPLACE-002 and
-REQ-PC-MARKETPLACE-003 and no others. (see kickoff §Scope part 1)
+REQ-PC-MARKETPLACE-003, one **self-test** hook per repository tool, and no
+others — a closed set of **eight**. (see kickoff §Scope part 1)
 **Acceptance**: `pre-commit validate-config .pre-commit-config.yaml` exits 0; the
-set of hook ids parsed from the file equals the union of the two sets named by
-REQ-PC-MARKETPLACE-002 and REQ-PC-MARKETPLACE-003, derived by parsing the file
-rather than by comparing against a written-out list.
+set of hook ids parsed from the file equals the union of the set named by
+REQ-PC-MARKETPLACE-003 and the set derived from the parsed `repo: local`
+entries — each of the two repository tools of REQ-PC-MARKETPLACE-002 appearing
+exactly twice, once in its sweep invocation and once with `--self-test`, the
+pairing derived by parsing each local entry's `entry` value rather than by
+comparing against a written-out list of ids.
+[Updated: 2026-09-21 — the closed set grows from **six** to **eight**, the two
+added entries being one `--self-test` hook per repository tool
+(`skill-lint-self-test`, `drift-sweep-self-test`); the acceptance's derivation
+is restated over the parsed local entries so both sides are still derived.
+The requirement was written before this cycle discovered the need: the two
+corpus sweeps exercise no two-root fixture geometry, so a wrong root binding
+stays green in both, and `gc.py` embeds the linter, so a linter change can turn
+`gc.py --self-test` red while every other gate passes. Both happened inside this
+cycle, twice. The two self-test hooks are the control that catches that defect
+class, and a control a contributor must remember to run is discipline, which is
+what failed. Nothing is weakened: the set is still **closed** and still derived
+by parsing, and the three heavier self-tests REQ-PC-MARKETPLACE-004 keeps out
+stay out — the grep that requirement states was re-run after the addition and
+is still zero for all three. REQ-PC-MARKETPLACE-006 is unaffected: each added
+entry invokes one of the two repository tools, whose rules live in their own
+requirement domains, and `--self-test` is a mode selector exactly as `--fast`
+is, not an `args` value that narrows or extends a rule. Authorising context:
+the implement-stage review of workstream `packaging`, round 2 finding S2-r2 and
+the operator's round-3 decision to keep the hooks and amend the requirement
+rather than delete them.]
 [Priority: must]
 
 ### REQ-PC-MARKETPLACE-002: The two repository tools run as local hooks
@@ -75,8 +99,20 @@ contributor runs explicitly when touching the corresponding tool or fixture, so
 that excluding them from the gate does not make them invisible.
 (see kickoff §Scope part 1)
 **Acceptance**: a run-time grep of `.pre-commit-config.yaml` for each of the
-three tool names returns zero matches; `CONTRIBUTING.md` names all three with the
+three **script filenames** — `scope-check-selftest.py`, `telemetry.py`,
+`eval.py` — returns zero matches; `CONTRIBUTING.md` names all three with the
 command that runs them.
+[Updated: 2026-09-21 — the criterion said "each of the three tool names" while
+the prose above names them in short form ("the scope-check self-test, the
+telemetry tool's self-test and the evaluation tool"), and the configuration's
+explanatory comment spells those short forms. The criterion therefore read
+0/0/0 under the filename interpretation and 1/1/1 under the short-form one —
+two truth values for one criterion. The three grep strings are pinned above as
+the **script filenames**, which is what "must not appear in the configuration"
+has always meant: a hook that ran one of these tools would have to name its
+script. A comment that discusses a tool is not a hook that runs it. No hook set
+changes; only the criterion's ambiguity is removed. Authorising context: the
+implement-stage review of workstream `packaging`, round 3 finding S3.]
 [Priority: must]
 
 ### REQ-PC-MARKETPLACE-005: The first full run is normalised inside this cycle

@@ -2523,8 +2523,8 @@ def self_test() -> int:
             global Linter
             za = root / "zeroarg"
             _fixture_skill(za, "cwd-skill", "Body. Skip for Y.\n")
-            built: list[Linter] = []
-            shipped_linter = Linter
+            built: list["Linter"] = []            # annotated on the shipped class,
+            shipped_linter = Linter               # not on the name `capture` rebinds
 
             def capture(*a: object, **kw: object) -> Linter:
                 lin = shipped_linter(*a, **kw)   # type: ignore[arg-type]
@@ -2555,6 +2555,16 @@ def self_test() -> int:
             check(got != default_suite_root().resolve(),
                   f"a zero-argument run must NOT root the corpus at the script's own "
                   f"plugin root ({default_suite_root().resolve()})")
+            # The other half of §2's zero-argument default, which the case
+            # asserted only by implication: the SUITE root still defaults to
+            # the script's own plugin root. Mutating `suite_root=None`'s
+            # default to the cwd would leave every corpus assertion above
+            # green while collapsing the two roots in every consumer geometry
+            # (added post-plan from implement-stage review round 3).
+            check(Path(built[0].suite_root).resolve() == default_suite_root().resolve(),
+                  f"a zero-argument run must default the SUITE root to the script's "
+                  f"own plugin root ({default_suite_root().resolve()}), got "
+                  f"{Path(built[0].suite_root).resolve()}")
 
         def walk_dedupes_repeated_roots() -> None:
             """C9.4: `walk()`'s deduplication, exercised against production.
@@ -2657,6 +2667,164 @@ def self_test() -> int:
                   "must be reported unresolved against the consumer's tree:\n"
                   + "\n".join(dtexts))
 
+        def check_structure_dedupes_repeated_roots() -> None:
+            """C10.1: `check_structure()`'s `seen_dirs` dedupe, reached from production.
+
+            The same hole `walk_dedupes_repeated_roots` closed for `walk()`,
+            in the second of the file's three deduplications. `swept_roots()`
+            appends the suite term only when it differs from the corpus, so no
+            geometry yields two walk terms over the same subtree and
+            `seen_dirs` can be deleted with all four gates green — the
+            deletion then re-reports every skill directory once per repeated
+            root. This case monkeypatches `swept_roots()` to return one root
+            twice, the only way to reach the loop from production code, and
+            asserts the seeded frontmatter violation is reported exactly once.
+
+            **Mutation that breaks it:** deleting the `seen_dirs` guard (added
+            post-plan from implement-stage review round 3).
+            """
+            sdd = root / "structdedupe"
+            d = sdd / "skills" / "dupe-mismatch"
+            d.mkdir(parents=True, exist_ok=True)
+            (d / "SKILL.md").write_text(
+                "---\nname: not-the-dir\ndescription: >\n  Use for X. Skip for Y.\n"
+                "---\n\n# s\n\nBody. Skip for Y.\n", encoding="utf-8")
+            lin = Linter(sdd, sdd, suite_rules=False)
+            lin.swept_roots = lambda: [sdd, sdd]   # type: ignore[method-assign]
+            lin.check_structure()
+            texts = [t for _, t in lin.findings]
+            hits = [t for t in texts if _loc(t) == "skills/dupe-mismatch/SKILL.md"
+                    and "not-the-dir" in t]
+            check(len(hits) == 1,
+                  f"check_structure() must visit each skill directory once when the "
+                  f"same root appears twice, got {len(hits)}:\n" + "\n".join(texts))
+
+        def check_size_dedupes_repeated_roots() -> None:
+            """C10.2: `check_size()`'s `seen_size` dedupe, reached from production.
+
+            The third of the file's three deduplications, and unreachable from
+            production input for the same reason as the other two, so
+            `seen_size` can be deleted with all four gates green — the deletion
+            then measures and reports the same oversized `SKILL.md` once per
+            repeated root. Monkeypatching `swept_roots()` to return one root
+            twice is the only way to reach the loop from production code.
+
+            **Mutation that breaks it:** deleting the `seen_size` guard (added
+            post-plan from implement-stage review round 3).
+            """
+            szd = root / "sizededupe"
+            _fixture_skill(szd, "dupe-big", "Body. Skip for Y.\n",
+                           lines=SIZE_FAIL_LINES + 40)
+            lin = Linter(szd, szd, suite_rules=False)
+            lin.swept_roots = lambda: [szd, szd]   # type: ignore[method-assign]
+            lin.check_size()
+            texts = [t for _, t in lin.findings if "[size]" in t]
+            check(len(texts) == 1,
+                  f"check_size() must measure each SKILL.md once when the same root "
+                  f"appears twice, got {len(texts)}:\n" + "\n".join(texts))
+
+        def swept_base_order_and_fallback() -> None:
+            """C10.3: `swept_base()`'s corpus-first order and deepest-root fallback.
+
+            Both properties are asserted as deliberate by the method's
+            docstring and neither was guarded:
+            `backtick_bases_bind_to_the_swept_roots` uses fixtures in which at
+            most ONE swept root holds the span, so the tiebreak never fires and
+            `for r in roots` reversed (suite-first) survives, as does
+            `return roots[-1]` replaced by `roots[0]` (shallowest fallback).
+            This case seeds the SAME relative path under both roots of a nested
+            geometry so the order decides, and asks for a path under neither so
+            the fallback decides.
+
+            **Mutations that break it.** `for r in reversed(roots)` — the
+            corpus-first clause; `return roots[0]` — the deepest-root fallback
+            clause (added post-plan from implement-stage review round 3).
+            """
+            sb = root / "sweptbaseorder"
+            sb_suite = sb / "plugins" / "sdd"
+            shared = "skills/both/references/x.md"
+            for r in (sb, sb_suite):
+                (r / shared).parent.mkdir(parents=True, exist_ok=True)
+                (r / shared).write_text("# x\n", encoding="utf-8")
+            lin = Linter(sb, sb_suite, suite_rules=False)
+            check(lin.swept_roots() == [sb, sb_suite],
+                  f"the fixture must be the nested geometry with TWO swept roots, "
+                  f"got {[str(r) for r in lin.swept_roots()]}")
+            check(lin.swept_base(shared) == sb,
+                  f"when MORE THAN ONE swept root holds the path, swept_roots()' own "
+                  f"order decides and the corpus root wins, got "
+                  f"{lin.swept_base(shared)}")
+            missing = "skills/nowhere/references/y.md"
+            check(lin.swept_base(missing) == sb_suite,
+                  f"when NO swept root holds the path the DEEPEST swept root is "
+                  f"returned, so the unresolved-path fix advice names the root such a "
+                  f"file would live under, got {lin.swept_base(missing)}")
+
+        def rel_raises_outside_the_swept_roots() -> None:
+            """C10.4: `rel()` and `skill_dir_of()` raise on a path under no swept root.
+
+            Both docstrings assert the raise — `rel()`'s "a path under no swept
+            root raises `ValueError` exactly as the former single-root
+            rendering did", which `flag()`'s docstring in turn leans on to
+            explain why a per-entry-bound check must supply its own rendering —
+            and neither was guarded. The fixture is the disjoint geometry,
+            where `swept_roots()` is the corpus alone and a suite-root file is
+            under no swept root.
+
+            **Mutations that break it.** Replacing either method's final
+            `relative_to()` fallback with a pass-through `return f` (added
+            post-plan from implement-stage review round 3).
+            """
+            rr = root / "relraise"
+            rr_corpus = rr / "corpus"
+            rr_suite = rr / "suite"
+            _fixture_skill(rr_corpus, "own", "Body. Skip for Y.\n")
+            outside = _fixture_skill(rr_suite, "outside",
+                                     "Body. Skip for Y.\n") / "SKILL.md"
+            lin = Linter(rr_corpus, rr_suite, suite_rules=False)
+            check(not lin.suite_contained(),
+                  "the raise fixture must be the disjoint geometry")
+            for label, call in (("rel", lambda: lin.rel(outside)),
+                                ("skill_dir_of", lambda: lin.skill_dir_of(outside))):
+                try:
+                    got = call()
+                except ValueError:
+                    continue
+                check(False, f"{label}() must raise ValueError on a path under no "
+                             f"swept root, as its docstring states; got {got}")
+            # The documented pass-throughs stay: a relative path is returned as
+            # given, and a path under a swept root renders against it.
+            check(lin.rel(Path("skills/own/SKILL.md")) == Path("skills/own/SKILL.md"),
+                  "rel() must pass a relative path through unchanged")
+
+        def equal_roots_count_as_contained() -> None:
+            """C10.5: equality counts as containment (§2).
+
+            §2 states the containment gate with "equality counting as
+            containment", and `check_links()` reads `suite_contained()` to
+            decide whether the `TEMPLATE_PAIRS` spec side is checked at all —
+            an equal-root run that took the disjoint branch would silently stop
+            checking it. The property is pinned here.
+
+            **Honest note on invertibility, recorded rather than implied.**
+            Deleting the `suite == corpus or` disjunct from
+            `suite_contained()` does NOT fail this case, and cannot fail any
+            case: `Path(p).is_relative_to(p)` is already True, so the disjunct
+            is redundant with the clause beside it and its deletion is
+            behaviour-preserving. What is pinned is the PROPERTY §2 states, not
+            the disjunct's presence; the disjunct is documentary (added
+            post-plan from implement-stage review round 3).
+            """
+            eq = root / "eqcontained"
+            (eq / "docs").mkdir(parents=True, exist_ok=True)
+            lin = Linter(eq, eq, suite_rules=False)
+            check(lin.suite_contained(),
+                  "equal roots must count as contained (§2), or check_links() takes "
+                  "the disjoint branch and stops checking the TEMPLATE_PAIRS spec side")
+            check(lin.swept_roots() == [eq],
+                  f"equal roots must degenerate to today's single walk, got "
+                  f"{[str(r) for r in lin.swept_roots()]}")
+
         for _case in (two_roots_construct_distinct_and_equal,
                       equal_roots_sweep_set_unchanged,
                       sweep_is_duplicate_free,
@@ -2677,7 +2845,12 @@ def self_test() -> int:
                       check_size_binds_to_the_swept_roots,
                       zero_arg_run_sweeps_the_corpus,
                       walk_dedupes_repeated_roots,
-                      backtick_bases_bind_to_the_swept_roots):
+                      backtick_bases_bind_to_the_swept_roots,
+                      check_structure_dedupes_repeated_roots,
+                      check_size_dedupes_repeated_roots,
+                      swept_base_order_and_fallback,
+                      rel_raises_outside_the_swept_roots,
+                      equal_roots_count_as_contained):
             _case()
 
     if failures:
