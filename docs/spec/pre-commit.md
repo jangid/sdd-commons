@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 requires:
   - REQ-PC-MARKETPLACE-001
   - REQ-PC-MARKETPLACE-002
