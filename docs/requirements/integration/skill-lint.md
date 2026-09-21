@@ -1,15 +1,16 @@
 ---
 domain: LINT
-last_updated: 2026-09-20
+last_updated: 2026-09-21
 status: Approved
-research_refs: [RS-008, RS-HARNESSP4-001, RS-HARNESSP5-001, RS-HARNESSP6-001]
+research_refs: [RS-008, RS-HARNESSP4-001, RS-HARNESSP5-001, RS-HARNESSP6-001, RS-PACKAGING-002, RS-PACKAGING-003]
+workstream: harness-p2, packaging
 ---
 
-# Requirements: Skill Lint (`tools/sdd-skill-lint.py`)
+# Requirements: Skill Lint (`tools/skill-lint.py`)
 
 ## Overview
 
-Changes to `tools/sdd-skill-lint.py` so it mechanically enforces the new
+Changes to `tools/skill-lint.py` so it mechanically enforces the new
 harness-hardening contracts (HARN domain) and acts as a teacher rather than a
 gate — every finding says how to fix it (catalogue G16), and the entry-point
 SKILL.md files stay small enough to read as a table of contents (catalogue C10).
@@ -135,7 +136,7 @@ ws-orchestration.md` pins the picker to `SKILL.md` and Q-IMPL entries are
 append-only, so a **superseding Q-IMPL entry** must be added (never an edit).
 `docs/.sdd-version` must remain mentioned in `SKILL.md` (`VERSION_GATED_SKILLS`
 check). (see RS-008 Q4 section table; catalogue C10)
-**Acceptance**: `tools/sdd-skill-lint.py` exits 0 after the move; every moved
+**Acceptance**: `tools/skill-lint.py` exits 0 after the move; every moved
 section has a stub containing "UNCHANGED" (or equivalent marker-3 sentence) and a
 resolving link (REQ-LINT-004); `ws-orchestration.md` has a new Q-IMPL entry
 citing Q-IMPL-016; `sdd-orchestrate/SKILL.md` after this cycle — the marker-4
@@ -216,7 +217,7 @@ allowlist. Operator documentation (`skills/sdd-orchestrate/USAGE.md`,
 [Priority: must]
 
 ### REQ-LINT-HARNESSP4-001: `[template-drift]` — fenced leaf bodies restated in specs stay byte-identical
-`tools/sdd-skill-lint.py` must gain a `[template-drift]` rule that extracts the
+`tools/skill-lint.py` must gain a `[template-drift]` rule that extracts the
 fenced bodies of the named pairs — the CHUNK VERIFIER dispatch, verdict rule and
 `RETURN:` block of `skills/sdd-orchestrate/references/dispatch-templates.md`
 against `docs/spec/harness-chunk-verifier.md`, and the RED TEAM dispatch and
@@ -271,11 +272,11 @@ fences kept satisfied (a row may be re-pointed to the new file, never dropped).
 The size evidence is RS-HARNESSP5-001 §Decided (measured 2026-09-19). Decided
 at DISCUSS: the target is lint warn-clean. (workstream `harness-p5`; kickoff
 §Scope item 3; p4 red R7/R8)
-**Acceptance**: `python3 tools/sdd-skill-lint.py` exits 0 and its summary line
+**Acceptance**: `python3 tools/skill-lint.py` exits 0 and its summary line
 matches `OK: N file(s) clean` with **no** warning clause — the linter appends
 `, W warning(s)` only when `W > 0`, so a warn-clean run prints no count at all
 and a `0 warning(s)` expectation is unsatisfiable; do not "restore" that
-wording; `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`
+wording; `python3 tools/skill-lint.py | grep -c '\[size\]'`
 prints 0; `wc -l skills/*/SKILL.md` shows every file < 400; every new
 `references/*.md` is linked from its stub and resolves.
 [Priority: must]
@@ -288,7 +289,7 @@ baseline reads **none** (no `[size]` warning on the shipped skill set) and the
 `sdd-orchestrate` bound reads **under 400**, matching the `[Updated]` notes on
 those two requirements in this file; the p4 accepted reds R7 and R8 close on
 this edit. (workstream `harness-p5`; see `docs/ws/harness-p4/verification.md`
-§Issues Found → Minor R7, R8 — reproduce: `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'`,
+§Issues Found → Minor R7, R8 — reproduce: `python3 tools/skill-lint.py | grep -c '\[size\]'`,
 `wc -l skills/sdd-orchestrate/SKILL.md`)
 **Acceptance**: `grep -n '450\|exactly .sdd-orchestrate. and .sdd-migrate' docs/spec/skill-lint-v5.md`
 returns nothing (file-wide); the R7/R8 `reproduce:` commands
@@ -322,12 +323,12 @@ requirements-side split of `functional/telemetry.md` proposed in `index.md`
 **Acceptance**: `wc -l docs/spec/telemetry*.md` shows no file over ~800 lines
 (amended bound, above);
 `python3 tools/sdd-telemetry.py --self-test` passes `test_schema_table_agrees`;
-`python3 tools/sdd-gc.py --report` raises no `qimpl-broken-ref` or broken-link
-finding on the split files; `python3 tools/sdd-skill-lint.py` exits 0.
+`python3 tools/gc.py --report` raises no `qimpl-broken-ref` or broken-link
+finding on the split files; `python3 tools/skill-lint.py` exits 0.
 [Priority: should]
 
 ### REQ-LINT-HARNESSP6-001: REQUIRED row — `PLAN:` stated in `loop-control.md` and `SKILL.md`
-`tools/sdd-skill-lint.py` must carry a `REQUIRED` row pair for the `PLAN:` gate
+`tools/skill-lint.py` must carry a `REQUIRED` row pair for the `PLAN:` gate
 token, mirroring the existing pairs for the other gate tokens. `PLAN:` is today
 the only gate token with no `REQUIRED` row, so deleting it from
 `skills/sdd-orchestrate/references/loop-control.md` §6 is unguarded while the
@@ -341,7 +342,7 @@ REQ-HARN-HARNESSP6-001. RS-HARNESSP6-001 Q2 recommended it land alongside the
 `PLAN:` row so the two share one lint change; it is adopted here rather than
 declined, since a `GIT_STATE` line deleted from `write-scope.md` would otherwise
 be as unguarded as `PLAN:` is today.
-**Acceptance**: `python3 tools/sdd-skill-lint.py` exits 0 on the corpus as it
+**Acceptance**: `python3 tools/skill-lint.py` exits 0 on the corpus as it
 stands; with the `PLAN:` line removed from `loop-control.md` §6 it exits
 non-zero naming that `REQUIRED` row, and likewise with the token removed from
 `SKILL.md`; and the same holds for the `GIT_STATE` name removed from
@@ -362,19 +363,241 @@ Steps and closed here)
 **Acceptance**: REQ-LINT-007 carries an `[Updated: 2026-09-20 …]` note naming
 REQ-LINT-HARNESSP5-001 as the authorising requirement for the moved items; a
 reader of the two requirements in sequence finds no contradiction;
-`python3 tools/sdd-skill-lint.py` and `python3 tools/sdd-gc.py --report` are
+`python3 tools/skill-lint.py` and `python3 tools/gc.py --report` are
 unchanged in their findings on this file.
 [Priority: must]
 
 ### REQ-LINT-HARNESSP6-003: REQUIRED row pair — `CONVERGENCE:` stated in `loop-control.md` and `SKILL.md`
-`tools/sdd-skill-lint.py` must carry a `REQUIRED` row pair for the
+`tools/skill-lint.py` must carry a `REQUIRED` row pair for the
 `CONVERGENCE:` gate token of REQ-ORCH-HARNESSP6-001, mirroring the two rows that
 guard the `COMMIT:` token: one asserting the producer (the token's definition
 and position in `loop-control.md` §5) and one the consumer (its mention in
 `SKILL.md` §The gate). This, REQ-LINT-HARNESSP6-001 and the `GIT_STATE`
 row adopted into it are the cycle's only lint changes, and they land together. (workstream `harness-p6`; RS-HARNESSP6-001 Q4(d)
 cost table)
-**Acceptance**: `python3 tools/sdd-skill-lint.py` exits 0 once the token ships,
+**Acceptance**: `python3 tools/skill-lint.py` exits 0 once the token ships,
 and exits non-zero naming the respective row when the token is removed from
 either file.
+[Priority: must]
+
+### REQ-LINT-PACKAGING-001: The retired-prefix scope binds per entry, not per root
+`retired_scope_files()` today walks `RETIRED_SCOPE_DIRS` and
+`RETIRED_SCOPE_FILES` under one root. After the `plugins/sdd/` move
+(REQ-PKG-PACKAGING-001) each entry must carry its own root binding:
+
+| Scope entry | Root |
+|---|---|
+| `skills`, `tools`, `agents` | suite root |
+| `docs/spec`, `docs/requirements` | corpus root |
+| `.claude-plugin` | **both** — the deduplicated union |
+| `CLAUDE.md`, `README.md`, `CONTRIBUTING.md`, `LICENSE`, `.pre-commit-config.yaml` | **both** — the deduplicated union |
+
+**Ordering note:** the scope-file row above already shows the **five**-name
+list this entry has *after* REQ-LINT-PACKAGING-008 drops the sixth name from
+`RETIRED_SCOPE_FILES`; while that removal is outstanding the live tuple carries
+six, so this table is the post-`-008` state and `-008` must land first (or in
+the same change) for the two to agree.
+
+The union is taken over **resolved absolute paths** and deduplicated, so when
+the two roots are equal the entry set is exactly today's. `.claude-plugin` must
+be union-bound because after the move it exists at both roots —
+`marketplace.json` stays at the corpus root, `plugin.json` moves to the suite
+root — and a one-root binding silently drops whichever manifest the other root
+holds, `marketplace.json` being the one file the move itself edits. The root
+files are union-bound because `CLAUDE.md` and `.pre-commit-config.yaml` are
+edited by the move and may exist at either root. The three suite-history
+directories are suite-bound because `check_retired_prefix()` polices this
+repository's own rename history, which has no meaning in a consumer tree
+(REQ-PKG-PACKAGING-005 exception (i)). The existing self-test block that pins
+the two constants against literal name tuples is **retained unchanged**: it
+catches an area dropped from the enumeration, and it cannot catch a wrong root
+binding, because directory names survive one intact. A per-root policed-**file
+count** must not be added, for the reason REQ-LINT-PACKAGING-004 gives.
+**Per-entry path rendering.** Each entry's findings must render their path
+relative to the root that entry is bound to — a union-bound entry relative to
+whichever root supplied the file. REQ-PKG-PACKAGING-002's per-root rule covers
+the generic walk only and does not reach this check: `check_retired_prefix()`
+(`tools/skill-lint.py:772`) and `retired_scope_files()` (`:756`, `:760`) each do
+`f.relative_to(self.root)`, which raises `ValueError` on a suite-root file once
+a second root is in the set — so without this clause the requirement is
+unimplementable literally. (see RS-PACKAGING-003 D2, confidence medium)
+**Acceptance**: with a nested root pair, the set returned by
+`retired_scope_files()` contains the suite-root spellings of `skills`, `tools`
+and `agents` and the corpus-root spellings of `docs/spec` and
+`docs/requirements`, each asserted by membership on a seeded file **and each
+finding's rendered path asserted relative to the root its entry is bound to**;
+no construction with two distinct roots raises `ValueError`; and on a fixture
+tree carrying both `skills/` and `docs/`, with the two roots set equal to that
+tree, the returned set is identical to the pre-change single-root result over
+that same fixture, compared as a set derived at run time.
+[Priority: must]
+
+### REQ-LINT-PACKAGING-002: `TEMPLATE_PAIRS` binds per side, and its `spec` side is skipped under disjoint roots
+`TEMPLATE_PAIRS` is the second dual-rooted check and must bind each side to the
+root its paths follow: the `TEMPLATE_SOURCE` side —
+`skills/orchestrate/references/dispatch-templates.md` — moves and binds to the
+**suite root**; every row's `spec` key is a `docs/spec/…` path that stays and
+binds to the **corpus root**. Binding the gated check wholesale to the suite
+root would resolve the spec side under the suite, where it will not exist, and
+an absent spec file **warns rather than fails** — so all four rows would
+silently degrade to warnings the moment the move lands, which is the
+silent-disable class REQ-PKG-PACKAGING-003 rejects. When the two roots are
+**disjoint** the `spec` side must be **skipped, not warned**, because warning
+there names this suite's spec files inside a consumer's tree — the defect
+REQ-PKG-PACKAGING-004 retargets the rows to avoid. Under containment the spec
+side is checked and an absent spec keeps warning, unchanged.
+(see RS-PACKAGING-003 D2; RS-PACKAGING-001 flagged the dual rooting)
+**Acceptance**: with a nested root pair after the move, no `TEMPLATE_PAIRS` row
+emits an absent-spec warning and none fails; binding both sides to the suite
+root makes all four rows emit that warning, which the self-test asserts must not
+happen; with disjoint roots no `template-drift` finding of any severity appears.
+[Priority: must]
+
+### REQ-LINT-PACKAGING-003: A set-membership assertion over both manifest paths detects a wrong root binding
+The self-test must assert, in a two-root fixture, that the set returned by
+`retired_scope_files()` contains **both** `<suite_root>/.claude-plugin/plugin.json`
+and `<corpus_root>/.claude-plugin/marketplace.json`. Any one-root binding drops
+exactly one of the two, so the assertion fails on precisely the defect it exists
+for. A count-based assertion must not be used in its place: files under a
+policed area grow by ordinary contribution, so a pinned count false-positives on
+a correct change and an unpinned one proves nothing.
+(see RS-PACKAGING-003 D2 §What detects a wrong binding)
+**Acceptance**: both paths are members of the returned set in the two-root
+fixture; binding `.claude-plugin` to the suite root alone, and to the corpus
+root alone, each makes the self-test fail naming the missing path.
+[Priority: must]
+
+### REQ-LINT-PACKAGING-004: No absolute corpus count is asserted; `FILES_SWEPT=<n>` stays informational
+No acceptance criterion and no assertion may pin the number of files swept from
+a real corpus. Every formulation that encodes it fails: a literal fails on
+ordinary contribution; a `git ls-files` comparand compares a working-tree walk
+against a tracked list and hard-codes a path meaningless in a consumer
+repository; and re-deriving the comparand from the corpus root re-implements the
+sweep's own `rglob` and asserts it against itself. A swept-file count is
+therefore **barred as an acceptance criterion**. It is not barred as output:
+the `corpus: FILES_SWEPT=<n>  policed-areas=<n>` line is **introduced**, not
+retained — no such line exists under `tools/` or `docs/spec/` today, only as a
+sample block in RS-PACKAGING-002 labelled "Proposed shape, not observed output"
+— and it is emitted **under REQ-LINT-PACKAGING-007's `--print-population`
+flag**, as informational output with no pinned comparand, so the number stays
+readable without being asserted. The two jobs a pinned count would have done —
+catching a walk bound to a root that sweeps zero files, and catching a tree
+swept twice — are taken over by REQ-LINT-PACKAGING-005 and -006.
+(see RS-PACKAGING-003 D3, confidence medium)
+**Acceptance** (the emission half is evaluated **after** REQ-LINT-PACKAGING-007
+lands the flag — a plan ordering constraint): a run-time grep of the corpus for
+an assertion comparing a sweep count against a literal or against
+`git ls-files` returns zero matches outside REQ-LINT-PACKAGING-006's fixtures;
+and `python3 plugins/sdd/tools/skill-lint.py --print-population` emits the
+line, asserted by matching the line's shape rather than its number.
+[Priority: must]
+
+### REQ-LINT-PACKAGING-005: A live duplicate-freeness construction guard, reported as a `fail`-severity finding
+Every run, in any repository, must assert that the swept list resolved to
+absolute paths contains no path twice — `len(swept) == len({p.resolve() for p in
+swept})`. This cannot fail for an implementation built as specified, because the
+walk is a set union over resolved absolute paths: it is a **construction
+guard**, pinning that the union stays a set and is never rebuilt as list
+concatenation by a later edit. The double-sweep mode it guards is realizable
+only when the two roots are equal, which is the geometry
+REQ-PKG-PACKAGING-008 exercises. On failure the observable must be a
+**`fail`-severity finding in the run's own findings list** — the `flag()`
+default — not a warning, not an exception and not a bare exit code.
+**Live zero-sweep detection is deliberately given up**, and this must be
+recorded rather than quietly patched: a bare `FILES_SWEPT >= 1` is wrong because
+an empty sweep is legitimate in a consumer repository with no `skills/`, and the
+conditioned form — a floor applied only when the corpus root contains `skills/`
+— reads its condition through the same root binding it is meant to test, so a
+mis-bound root makes it vacuous instead of failing. Zero-sweep is caught at
+self-test time only, by REQ-LINT-PACKAGING-006 and the fixtures of
+REQ-PKG-PACKAGING-006..008. (see RS-PACKAGING-003 D3)
+**Acceptance**: the assertion runs on every invocation; rebuilding the union as
+list concatenation over two **equal** roots produces a finding whose severity is
+`fail` and whose text names the duplicated path; no `--print-population`,
+`--self-test` or plain run can skip it.
+[Priority: must]
+
+### REQ-LINT-PACKAGING-006: Each two-root fixture asserts an exact, fixture-local sweep count
+Each fixture of REQ-PKG-PACKAGING-006..008 must seed a known number of `.md`
+files and the self-test must assert the sweep returns **exactly** that number. A
+literal is sound here and only here: a fixture does not grow by contribution. A
+zero sweep from a mis-bound root fails this immediately, which is what replaces
+the retired live count of REQ-LINT-PACKAGING-004.
+(see RS-PACKAGING-003 D3 assertion 2)
+**Acceptance**: each fixture's assertion names its own seeded count; adding a
+file to a fixture tree without updating its count makes the self-test fail;
+binding the corpus walk to a root containing no corpus makes the count
+assertion fail.
+[Priority: must]
+
+### REQ-LINT-PACKAGING-007: `--print-population` emits the row populations, and states the population criterion
+The skill linter must grow a `--print-population` flag that prints the
+per-table row populations (the suite-gated tables and the ungated `FORBIDDEN`
+table) together with the informational
+`corpus: FILES_SWEPT=<n>  policed-areas=<n>` line of
+REQ-LINT-PACKAGING-004. The flag does not exist today — argparse exposes only
+the positional root and `--self-test`.
+
+**The population criterion, stated here rather than referenced.** The flag's
+output must report the four rule-table populations carried from
+RS-PACKAGING-002 — `REQUIRED=40`, `VERSION_GATED=9`, `V4_CONTRACT=7`,
+`FORBIDDEN=13` — each count derived from its table at run time rather than
+written into the flag. This is the only place in the corpus where a row
+population is compared against a number; REQ-PKG-PACKAGING-004's "carried, not
+re-measured" governs the populations **as evidence** and explicitly reserves
+this one comparison as a regression check on the retarget, and
+REQ-LINT-PACKAGING-004's ban applies to swept-**file** counts from a live
+corpus, not to static in-code rule-table rows. A previous drafting of this
+requirement referred to a "headline 40-row criterion" that was stated nowhere;
+that dangling reference is replaced by the criterion above.
+
+**Ordering constraint.** The task that produces the flag must precede any task
+that evaluates the population criterion above — that is, the acceptance of
+**this** requirement, REQ-LINT-PACKAGING-007, is the consuming side, and no
+other requirement's acceptance names it. This is part of the requirement, not a
+scheduling preference: a criterion written against a flag that does not exist
+cannot be evaluated at all.
+(see RS-PACKAGING-003 §Recommended Next Step, sequencing constraint confirmed)
+**Acceptance** (evaluated **after** the move of REQ-PKG-PACKAGING-001, at
+`plugins/sdd/tools/skill-lint.py`): `python3
+plugins/sdd/tools/skill-lint.py --print-population` exits 0 and
+prints one line per rule table with its row count, each count derived from the
+table at run time rather than written into the flag; the printed counts are
+`REQUIRED=40 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13`; the plan orders the
+task producing the flag before the task evaluating this criterion.
+[Priority: must]
+
+### REQ-LINT-PACKAGING-008: The retired front door's filename is dropped from both tuples together
+The retired front door's filename —
+
+```
+README.org
+```
+
+— must be removed from `RETIRED_SCOPE_FILES`
+and from the self-test's independent `policed_files` tuple **in the same
+change**, leaving five names in each. The two tuples are compared against each
+other by the scope-drift check, so editing one alone trips it; the entry is
+behaviour-neutral today only because the walk never finds a file by that name.
+The union binding of REQ-LINT-PACKAGING-001 is unchanged by the removal.
+`docs/spec/skill-namespace-rename.md:76` documents the same tuple by name and
+must drop the retired filename **in the same change**, or the spec contradicts
+the code it documents. This
+repair is carried unchanged from the marketplace cycle, where it was recorded as
+
+```
+Q-IMPL-MARKETPLACE-017
+```
+
+(see `docs/ws/packaging/kickoff.md` §Carried repairs;
+`docs/spec/project-docs.md`; RS-PACKAGING-003 D2)
+**Acceptance** (evaluated **after** the move of REQ-PKG-PACKAGING-001, at
+`plugins/sdd/tools/skill-lint.py`): a run-time grep of
+`plugins/sdd/tools/skill-lint.py` for the retired
+filename — the grep pattern is the name fenced above, `README` followed by
+`.org` — returns zero matches; the same grep over
+`docs/spec/skill-namespace-rename.md` returns zero matches and that file's
+tuple lists five names; both tuples have five entries and are equal;
+`python3 plugins/sdd/tools/skill-lint.py --self-test` passes, and removing the
+name from only one tuple makes it fail naming the scope drift.
 [Priority: must]

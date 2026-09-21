@@ -166,8 +166,10 @@ cells back to `pass` and regenerates the aggregate in the same bookkeeping step
 — this skill never performs that flip.
 
 **gc criterion for these cells (REQ-REDB-HARNESSP4-001).** The check is that
-`python3 tools/gc.py --report --root .` raises no new finding **on a `pending-red`
-cell**. The one `[traceability-aggregate]` warning that appears between this
+`python3 <plugin-dir>/tools/gc.py --report --root .` raises no new finding **on
+a `pending-red` cell** (`<plugin-dir>` = this plugin's own root, so the tool
+that ships with the suite runs; `--root .` keeps the operator's own working
+directory the subject of the sweep, never the suite — `two-root-linter.md` §8). The one `[traceability-aggregate]` warning that appears between this
 per-workstream write and the orchestrator's post-gate regeneration of the
 aggregate (`docs/spec/ws-traceability.md` §Aggregate Regeneration Ownership,
 REQ-WS-HARNESSP3-001) is the **designed handshake** — expected, and not a

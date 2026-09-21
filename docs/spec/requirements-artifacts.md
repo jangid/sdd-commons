@@ -335,7 +335,13 @@ widened this far without the section's own prose reading as live.
 
 Every occurrence the screen finds is reported **live** unless a bracketed dated
 marker of the form below sits **at or above** it — on the occurrence's own line
-`L`, or on the line `L-1` immediately preceding it, and nowhere else:
+`L`, or on the line `L-1` immediately preceding it, and nowhere else
+[**superseded, 2026-09-21, packaging** — the `L`/`L-1` window is replaced by
+REQ-DOCS-PACKAGING-003's **item-scoped** rule stated in §Item-Scoped Liveness
+(2026-09-21, packaging) below; `project-docs.md` §Carried Documentation Repairs
+is the contract. The paragraphs from here to §Item-Scoped Liveness are retained
+as the superseded text they are, not rewritten in place, so the two rules stay
+comparable]:
 
 ```
 (\*\*\[|_\()(?i:superseded|closed|struck)[^\]\)]*20[0-9]{2}-[0-9]{2}-[0-9]{2}
@@ -373,6 +379,56 @@ deferrals" instruction is unfalsifiable at a gate; an adjacent-marker rule is a
 grep an operator can run and a reviewer can reproduce, which is the property that
 makes a terminal cycle's closing condition checkable at all.
 
+#### Item-Scoped Liveness (2026-09-21, packaging)
+
+**The liveness rule is item-scoped** (REQ-DOCS-PACKAGING-003;
+`project-docs.md` §Carried Documentation Repairs). A marker suppresses **only
+the item it belongs to**. An *item* is
+
+1. the bullet's own line — `-`, `*`, or `N.`, at any indentation; plus
+2. its continuation lines — every following line that is neither a new bullet
+   nor blank; plus
+3. the standalone marker lines **immediately preceding** the bullet, if any: a
+   non-bullet, non-blank line that matches the marker regex and abuts the
+   bullet (directly, or through a run of such lines) introduces or closes
+   *that* item, which is the convention this corpus already writes
+   (`docs/ws/harness-p4/verification.md` §Next Steps). **Downward attachment
+   wins**: such a line joins the item below it, never continuing the item
+   above — otherwise a marker written between two bullets would be read as
+   closing the wrong one, which is the very confusion this rule removes.
+
+An occurrence at line `L` is **not live** exactly when a marker matching the
+regex above sits inside `L`'s own item, on a line at or above `L`.
+Everything else is unchanged: the phrase table above and the marker regex above
+stay where they are and are **read from this spec** rather than retyped
+anywhere else, and the screen's standing qualification — it is a screen over
+observed backlog vocabulary, not a proof of absence — still holds.
+
+What changes, and only this: the old window reached across an item boundary, so
+a marker on the **last line of the preceding item** suppressed an occurrence on
+the **first line of the next one**. A marker introducing or closing one item can
+no longer satisfy the rule for its neighbour. The block-level consequence above
+survives intact and is strengthened: a marker introducing several items still
+satisfies none of them, because it belongs to no item's own lines.
+
+**The distinguishing fixture.** Two adjacent items, the first carrying a
+bracketed dated marker and the second a backlog phrase with no marker of its
+own:
+
+```
+- The reader's recall target **[Closed 2026-09-20]**
+- Backlog: fold the liveness screen into a tool
+```
+
+The phrase `backlog:` (row 18) sits on the second item's own line, `L`. The
+marker sits on `L-1` — but that line is the **first** item's own bullet line,
+not a standalone marker line abutting the second, so clause 3 does not pull it
+into the second item. Under the superseded
+`L`/`L-1` rule the occurrence is scored **not live**; under the item-scoped
+rule it is scored **live**, because the marker lies outside its item. The
+fixture therefore distinguishes the two rules rather than merely passing under
+the new one.
+
 ### File Size Management
 
 When a category file approaches 300 lines, the skill should:
@@ -391,9 +447,10 @@ exists. Several bullets below have backing gc rules and several do not. The
 durable artifact for a bullet without one is this spec, which pins both sides
 of the check verbatim so an independent reader can reproduce it.*
 - Validate that no entry in `index.md` §Out of Scope, and no item in a
-  `verification.md` §Next Steps, matches a deferral phrasing without an adjacent
-  bracketed dated `Superseded | Closed | Struck` marker on its own or the
-  preceding line (REQ-REQ-HARNESSP6-001).
+  `verification.md` §Next Steps, matches a deferral phrasing without a bracketed
+  dated `Superseded | Closed | Struck` marker **inside its own item**, at or
+  above the matched line (REQ-REQ-HARNESSP6-001, as superseded by
+  REQ-DOCS-PACKAGING-003 — §Item-Scoped Liveness).
 - Validate that a block-level marker introducing several items does **not**
   satisfy the rule for those items (REQ-REQ-HARNESSP6-001).
 - Validate that §Q-REQ Resolutions prose is outside the checked scopes

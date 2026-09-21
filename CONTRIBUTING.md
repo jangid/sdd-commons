@@ -64,23 +64,47 @@ Run it over everything before a first commit or after a large change:
 pre-commit run --all-files
 ```
 
-The gate runs the two whole-corpus sweeps (`python3 tools/gc.py --fast` and
-`python3 tools/skill-lint.py`) plus upstream file-hygiene hooks. It is a runner,
+The gate runs the two whole-corpus sweeps (`python3 plugins/sdd/tools/gc.py --fast` and
+`python3 plugins/sdd/tools/skill-lint.py`), both tools' own self-tests
+(`python3 plugins/sdd/tools/skill-lint.py --self-test` and
+`python3 plugins/sdd/tools/gc.py --self-test`), plus upstream file-hygiene hooks. It is a runner,
 not a source of policy — every rule it enforces is stated in a requirement, a
 skill, or one of the two tools' own rule tables.
 
-### The three heavier checks, run explicitly
+### The heavier checks, run explicitly
 
-Three self-tests stay **out** of the commit path: they are slow, their inputs
+Some self-tests stay **out** of the commit path: they are slow, their inputs
 are frozen fixtures, and a fixture-driven proof does not change between commits
 that do not touch the fixture. Run the matching one yourself when you touch its
 tool or its fixture:
 
 | When you touch | Run |
 |---|---|
-| `tools/scope-check-selftest.py` or its fixtures | `python3 tools/scope-check-selftest.py --self-test` |
-| `tools/telemetry.py` or `tools/fixtures/` telemetry data | `python3 tools/telemetry.py --self-test` |
-| `tools/eval.py` or its fixture | `python3 tools/eval.py --self-test` |
+| `plugins/sdd/tools/scope-check-selftest.py` or its fixtures | `python3 plugins/sdd/tools/scope-check-selftest.py --self-test` |
+| `plugins/sdd/tools/telemetry.py` or `plugins/sdd/tools/fixtures/` telemetry data | `python3 plugins/sdd/tools/telemetry.py --self-test` |
+| `plugins/sdd/tools/eval.py` or its fixture | `python3 plugins/sdd/tools/eval.py --self-test` |
+
+**The linter and the drift sweep are on the gate instead.** Their
+self-tests used to be listed here as a fourth trigger row, on the reasoning
+that `REQ-PC-MARKETPLACE-004` pinned a `--self-test` grep of
+`.pre-commit-config.yaml` at zero matches. **That reasoning was wrong.** The
+requirement's acceptance greps the config for the names of the three tools in
+the table above, not for the string `--self-test`; adding the linter's and the
+drift sweep's self-tests falsifies nothing, and the grep was re-run after
+adding them and is still zero for all three. So they are now gate hooks
+(`skill-lint-self-test`, `drift-sweep-self-test`) and need no discipline from
+a contributor.
+
+They belong on the gate rather than in the table because a trigger row is
+discipline and the defect it was guarding against is exactly a discipline
+failure. `gc.py` embeds the linter: its fixture sweep shells out to
+`skill-lint.py` and passes the findings through, so a change to the linter's
+root bindings can turn `gc.py --self-test` red while `skill-lint.py
+--self-test` and the corpus sweeps all stay green. That happened — nine
+binding changes landed across one cycle without the embedding tool's
+self-test being run. Both self-tests together cost about two seconds, and
+neither reads a frozen fixture large enough to justify the table's cost
+argument.
 
 ## Adding new content
 
@@ -90,19 +114,19 @@ disagree, `CLAUDE.md` is correct and this section is the stale copy.
 
 ### New skill
 
-1. Create `skills/<name>/SKILL.md` with frontmatter and body
+1. Create `plugins/sdd/skills/<name>/SKILL.md` with frontmatter and body
 2. Test the skill by invoking it in a Claude Code session
 3. Commit with: `feat(skills): add <name>`
 
 ### New agent
 
-1. Create `agents/<name>.md` with frontmatter and body
+1. Create `plugins/sdd/agents/<name>.md` with frontmatter and body
 2. Verify the agent can be loaded as a subagent type
 3. Commit with: `feat(agents): add <name>`
 
 ### New tool
 
-1. Create the script in `tools/`
+1. Create the script in `plugins/sdd/tools/`
 2. Ensure it runs standalone
 3. Commit with: `feat(tools): add <name>`
 

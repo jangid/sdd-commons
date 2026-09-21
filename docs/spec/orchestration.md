@@ -571,7 +571,7 @@ uses for every SDD skill; troubleshooting, including the blocked-subagent-write
 labeled-content fallback observed live in RS-005; and the v1 limitations
 (research-entry, sequential, no fan-out).
 
-The project README (`README.org`) introduces the driver and the SDD suite, links
+The project README (`README.md`) introduces the driver and the SDD suite, links
 the operator guide, and documents the `~/.claude/skills/` symlink install
 convention so a new adopter can install the skills (REQ-ORCH-021).
 

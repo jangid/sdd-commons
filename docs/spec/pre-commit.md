@@ -8,6 +8,7 @@ requires:
   - REQ-PC-MARKETPLACE-004
   - REQ-PC-MARKETPLACE-005
   - REQ-PC-MARKETPLACE-006
+  - REQ-PC-PACKAGING-001
 ---
 
 # Pre-Commit Gate
@@ -32,15 +33,23 @@ to every reader of the corpus and to every skill that must comply with it.
 
 ## Design
 
-### The hook set — closed, six entries
+### The hook set — closed, eight entries
 
-The configuration declares exactly six hooks and no others. The set of hook ids
+[Amended 2026-09-21: six at design time, **eight** as amended — see §Hook-Set
+Amendment at the end of this spec for the two added rows and why they were
+added. The two rows marked *[added 2026-09-21]* below are that amendment's; the
+other six are the design-time set, and the reasoning paragraphs in this section
+are the design-time reasoning, preserved rather than rewritten.]
+
+The configuration declares exactly eight hooks and no others. The set of hook ids
 parsed from the file is the contract:
 
 | Hook id | Repo | Role |
 |---|---|---|
 | `drift-sweep` | `local` | the drift sweep in its fast profile |
 | `skill-lint` | `local` | the skill linter |
+| `skill-lint-self-test` | `local` | the skill linter's own self-test *[added 2026-09-21]* |
+| `drift-sweep-self-test` | `local` | the drift sweep's own self-test *[added 2026-09-21]* |
 | `trailing-whitespace` | upstream `pre-commit-hooks` | hygiene |
 | `end-of-file-fixer` | upstream `pre-commit-hooks` | hygiene |
 | `check-yaml` | upstream `pre-commit-hooks` | hygiene |
@@ -50,8 +59,8 @@ parsed from the file is the contract:
 (`marketplace-packaging.md`), which are the only files in the repository whose
 parseability the install depends on.
 
-The set is closed at six **deliberately**, and one candidate was considered and
-declined: a `cmp` assertion on the two tools duplicated into the driver skill.
+The set was closed at six **deliberately** at design time, and one candidate was
+considered and declined: a `cmp` assertion on the two tools duplicated into the driver skill.
 Declining it is not a case of §No rule of the gate's own — REQ-PKG-MARKETPLACE-006
 states that rule already, so a hook enforcing it would be a runner, not a new
 policy. The reasoning is recorded in `marketplace-packaging.md` §Tools: the
@@ -76,6 +85,12 @@ repository's own Python scripts:
   pass_filenames: false
   always_run: true
 ```
+
+[Amended 2026-09-21, twice, and the sample above is the **pre-amendment** form.
+(i) Both `entry` paths now carry the `plugins/sdd/` prefix — §Two-Root
+Amendment below. (ii) Two further `repo: local` entries now sit beside these
+two, one `--self-test` hook per repository tool — §Hook-Set Amendment below.
+Read the sample as the shape of a local entry, not as the current entry set.]
 
 **Why once per commit over the repository, not once per changed file.** Each
 tool is a whole-corpus sweep whose findings are cross-file — a dead cross-link
@@ -174,12 +189,12 @@ tool itself defines as the pre-commit profile, and adds no rule.
 All checks parse `.pre-commit-config.yaml` rather than comparing against a
 written-out list, and derive both sides at run time.
 
-- [ ] `pre-commit validate-config .pre-commit-config.yaml` exits 0; the set of hook ids parsed from the file equals the six-id set defined by §The hook set, derived by parsing the file and the spec's table rather than by a pasted list (REQ-PC-MARKETPLACE-001).
+- [ ] `pre-commit validate-config .pre-commit-config.yaml` exits 0; the set of hook ids parsed from the file equals the eight-id set defined by §The hook set **as amended** by §Hook-Set Amendment, derived by parsing the file and the spec's table rather than by a pasted list (REQ-PC-MARKETPLACE-001).
 - [ ] Both local hooks appear in the parsed config with `pass_filenames: false` and `always_run: true`; `pre-commit run drift-sweep --all-files` and `pre-commit run skill-lint --all-files` each exit 0 at the close of this cycle; introducing a deliberate lint violation in a scratch copy (never in this worktree) makes the corresponding hook exit non-zero (REQ-PC-MARKETPLACE-002).
 - [ ] The four hygiene hook ids are present in the parsed config under a `pre-commit-hooks` repo entry whose `rev` is a non-empty explicit string; `pre-commit run --all-files` exits 0 at the close of this cycle (REQ-PC-MARKETPLACE-003).
-- [ ] A run-time grep of `.pre-commit-config.yaml` for each of the three excluded tool names returns zero matches; `CONTRIBUTING.md` names all three together with the command that runs each (REQ-PC-MARKETPLACE-004).
+- [ ] A run-time grep of `.pre-commit-config.yaml` for each of the three excluded tools' **script filenames** — `scope-check-selftest.py`, `telemetry.py`, `eval.py`, pinned as the grep strings so the criterion has one truth value (REQ-PC-MARKETPLACE-004, amended 2026-09-21) — returns zero matches; `CONTRIBUTING.md` names all three together with the command that runs each (REQ-PC-MARKETPLACE-004).
 - [ ] `pre-commit run --all-files` exits 0 **and** `git status --porcelain` is empty when run a second time immediately afterwards; `git diff <cycle entry sha> HEAD -- tools/fixtures/` is empty, so the frozen fixtures are byte-identical to their pre-cycle content (REQ-PC-MARKETPLACE-005).
-- [ ] Every hook entry in the parsed config is either one of the two local tool hooks or one of the four upstream hygiene hooks, and no entry carries an `args` value other than the drift sweep's profile selector (REQ-PC-MARKETPLACE-006).
+- [ ] Every hook entry in the parsed config is either one of the four local tool entries — the two repository tools, each appearing plain and with `--self-test` (§Hook-Set Amendment, 2026-09-21) — or one of the four upstream hygiene hooks; the requirement's own wording, "one of the two repository **tools**", is unchanged by the amendment because the added entries invoke the same two tools. No entry carries an `args` value at all: `--fast` and `--self-test` are mode selectors inside `entry:` (REQ-PC-MARKETPLACE-006).
 - [ ] Every `exclude` pattern in the config is accompanied by a YAML comment stating its reason, checked by reading the file; the set of excluded areas parsed from the config equals the set in §Normalisation happens inside this cycle's exclude table, both sides derived by parsing rather than by a pasted list (REQ-PC-MARKETPLACE-005).
 - [ ] The plan places the config and the whole-repository normalisation inside the rename chunk, ahead of the rename-chunk-close sha, checkable by reading the plan's chunk order; and `git diff <rename-chunk-close sha> HEAD --name-only` lists no path under `docs/ws/`, `docs/research/` or `docs/superpowers/` and no bundled tool, so the normalisation cannot have landed inside the windows REQ-PKG-MARKETPLACE-007 and REQ-NAME-MARKETPLACE-005 measure (REQ-PC-MARKETPLACE-005).
 
@@ -301,3 +316,81 @@ holds: `cmp` between each derived bundled copy and its root source exits 0, so
 no copy carries a normalisation its source does not; and the
 forbidden-directory half of the criterion reports zero violations outside the
 Q-IMPL-MARKETPLACE-003 carve-out.
+
+## Two-Root Amendment (2026-09-21, REQ-PC-PACKAGING-001)
+
+[Changed 2026-09-21: the suite moved to `plugins/sdd/`, so both local hook
+entries take that prefix.] Both `repo: local` entries — the drift sweep and the
+skill linter — have their `entry` script paths prefixed with `plugins/sdd/` in
+the **same change** that performs the move (`two-root-linter.md` §1); editing
+one alone leaves the gate invoking a dead path for the other, failing the
+commit for a reason unrelated to the contributor's change. Every other field is
+unchanged: each hook still runs once per commit over the repository
+(`pass_filenames: false`, `always_run: true`) and still fails the commit
+exactly when its tool exits non-zero. The linter hook's entry stays
+**zero-argument**, the prefix being the only edit — correct only because the
+corpus root defaults to the invocation cwd (`two-root-linter.md` §2): left
+defaulting to the script's own location it would take `plugins/sdd` as its
+corpus and stop sweeping `docs/` silently, with a green exit. The drift sweep's
+root argument is governed by `two-root-linter.md` §8 — the gate sweeps the
+repository, not the suite.
+
+*Criterion*: every `entry` parsed from the two local hooks names a path that
+exists after the move (`test -f` per parsed path); the linter hook's parsed
+`entry` carries no positional root; running that entry verbatim from the
+repository root sweeps a set containing at least one `docs/spec/` path
+(membership, not exit code); `pre-commit run --all-files` exits 0 at the close
+of this cycle; reverting the prefix on either hook alone makes that hook fail
+with a missing-file error (REQ-PC-PACKAGING-001).
+
+## Hook-Set Amendment (2026-09-21, REQ-PC-MARKETPLACE-001)
+
+[Changed 2026-09-21: the closed hook set moves from **six** entries to
+**eight**.] The two added entries are one `--self-test` hook per repository
+tool — `skill-lint-self-test` (`python3 plugins/sdd/tools/skill-lint.py
+--self-test`) and `drift-sweep-self-test` (`python3 plugins/sdd/tools/gc.py
+--self-test`) — declared under `repo: local` with `language: system`,
+`pass_filenames: false` and `always_run: true`, exactly like the two sweep
+hooks they sit beside. The set stays **closed** and stays derived by parsing:
+§The hook set's table is the contract, and its two amended rows are marked as
+such.
+
+**Why, stated beside where §The hook set records the declined candidate.** That
+paragraph declined a `cmp` assertion on the two bundled tools because the
+identity it guards is established once, in one chunk, so a once-per-cycle check
+is proportionate. The two self-tests are the opposite case and the contrast is
+the whole argument: what they guard is not established once but re-decided by
+every edit to either tool's root bindings, and this cycle demonstrated twice
+that the gate as designed cannot see such an edit go wrong. The two corpus
+sweeps exercise no two-root fixture geometry, so a reverted root binding stays
+green in both of them; and `gc.py` embeds the linter — its fixture sweep shells
+out to `skill-lint.py` and passes the findings through — so a linter change can
+turn `gc.py --self-test` red while `skill-lint.py --self-test` and both corpus
+sweeps stay green. Nine binding changes landed across this cycle without the
+embedding tool's self-test on the gate. A declined candidate and an adopted one
+are therefore consistent, not in tension: proportionality is measured against
+how often the guarded property can be broken.
+
+The alternative — keeping the self-tests as a `CONTRIBUTING.md` trigger row —
+was tried first and is what failed: a trigger row is discipline, and the defect
+class it was guarding against is exactly a discipline failure.
+`CONTRIBUTING.md` §The heavier checks, run explicitly records that reversal in
+place.
+
+**What is not weakened.** §What stays out of the commit path is untouched: the
+scope-check self-test, the telemetry tool's self-test and the evaluation tool
+stay out, and the run-time grep REQ-PC-MARKETPLACE-004 states was re-run after
+the two entries landed and is still zero for each of the three. §No rule of the
+gate's own is likewise untouched: each added entry invokes one of the two
+repository tools, whose rules live in their own requirement domains, and
+`--self-test` is a mode selector exactly as `--fast` is — it selects the tool's
+own fixture-driven proof and adds no rule.
+
+*Criterion*: the set of hook ids parsed from `.pre-commit-config.yaml` equals
+the union of the four upstream hygiene ids and the set derived from the parsed
+`repo: local` entries, in which each of the two repository tool scripts appears
+exactly twice — once in its sweep invocation and once with `--self-test` —
+the pairing derived by parsing each local entry's `entry` value rather than
+compared against a pasted list of ids; `pre-commit validate-config` exits 0;
+`pre-commit run --all-files` exits 0 at the close of this cycle
+(REQ-PC-MARKETPLACE-001).

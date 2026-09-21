@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "sdd",
-      "source": "./",
+      "source": "./plugins/sdd",
       "description": "Spec-Driven Development: nine phase skills, an orchestration driver, and three harness agents.",
       "skills": [
         "./skills/implement",

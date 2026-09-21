@@ -7,27 +7,27 @@ A curated collection of reusable tools, skills, and agents for AI-assisted workf
 ```
 .claude-plugin/marketplace.json   — the sdd-commons marketplace manifest
 .claude-plugin/plugin.json        — the sdd plugin manifest
-skills/   — Composable skill definitions (Claude Code SKILL.md format)
-agents/   — Agent configurations and prompt templates
-tools/    — Standalone utilities and helper scripts
-docs/     — Requirements, specs, research and per-workstream execution records
+plugins/sdd/skills/   — Composable skill definitions (Claude Code SKILL.md format)
+plugins/sdd/agents/   — Agent configurations and prompt templates
+plugins/sdd/tools/    — Standalone utilities and helper scripts
+docs/                 — Requirements, specs, research and per-workstream execution records
 ```
 
 The repository ships as the `sdd` plugin of the `sdd-commons` marketplace under
-`"source": "./"`, so the layout above **is** the plugin: nothing is staged or
-copied. `.claude-plugin/marketplace.json` lists the components the plugin
+`"source": "./plugins/sdd"`, so the `plugins/sdd/` subtree above **is** the
+plugin: nothing is staged or copied, and `docs/` stays outside it. `.claude-plugin/marketplace.json` lists the components the plugin
 installs; `.claude-plugin/plugin.json` carries the plugin's own metadata. A new
 skill or agent must be added to the marketplace manifest's component list and to
 `README.md` §Components — the two are compared as sets.
 
 ## Conventions
 
-### Skills (`skills/`)
+### Skills (`plugins/sdd/skills/`)
 
 Each skill lives in its own directory with a `SKILL.md` file:
 
 ```
-skills/<skill-name>/SKILL.md
+plugins/sdd/skills/<skill-name>/SKILL.md
 ```
 
 - **Frontmatter** is required: `name`, `description` (YAML `---` block)
@@ -37,12 +37,12 @@ skills/<skill-name>/SKILL.md
 - Skills describe workflows, not implementation code
 - Keep each SKILL.md cohesive; move bulky detail to a `references/` file (loaded on demand) rather than growing the body — size is a soft signal, not a hard limit
 
-### Agents (`agents/`)
+### Agents (`plugins/sdd/agents/`)
 
 Each agent is a single Markdown file:
 
 ```
-agents/<agent-name>.md
+plugins/sdd/agents/<agent-name>.md
 ```
 
 - **Frontmatter** fields: `name`, `description`, `tools`, `model`, `color` —
@@ -61,7 +61,7 @@ agents/<agent-name>.md
 - Body defines the agent's identity, phases, checklists, and report templates
 - Agents are adversarial or specialized personas — they should be opinionated and thorough
 
-### Tools (`tools/`)
+### Tools (`plugins/sdd/tools/`)
 
 Standalone scripts or utilities. Use the appropriate language for the task. Each tool should:
 
@@ -73,19 +73,19 @@ Standalone scripts or utilities. Use the appropriate language for the task. Each
 
 ### New Skill
 
-1. Create `skills/<name>/SKILL.md` with frontmatter and body
+1. Create `plugins/sdd/skills/<name>/SKILL.md` with frontmatter and body
 2. Test the skill by invoking it in a Claude Code session
 3. Commit with: `feat(skills): add <name>`
 
 ### New Agent
 
-1. Create `agents/<name>.md` with frontmatter and body
+1. Create `plugins/sdd/agents/<name>.md` with frontmatter and body
 2. Verify the agent can be loaded as a subagent type
 3. Commit with: `feat(agents): add <name>`
 
 ### New Tool
 
-1. Create the script in `tools/`
+1. Create the script in `plugins/sdd/tools/`
 2. Ensure it runs standalone
 3. Commit with: `feat(tools): add <name>`
 
@@ -98,14 +98,15 @@ Standalone scripts or utilities. Use the appropriate language for the task. Each
 - Prose describing **another** repository's artifacts (a toy clone, an evidence
   record, a pilot log) must not quote that repository's `Q-IMPL` id tokens
   verbatim — paraphrase them or wrap them in a fenced code block, which
-  `tools/gc.py`'s `qimpl-undefined` sweep already skips (the rule itself is
+  `plugins/sdd/tools/gc.py`'s `qimpl-undefined` sweep already skips (the rule itself is
   unchanged; there is no allowlist)
-- Run `tools/skill-lint.py` after editing any skill — it enforces the checks
+- Run `plugins/sdd/tools/skill-lint.py` after editing any skill — it enforces the checks
   above plus cross-skill contract markers and known drift phrases (exit 0 = clean)
 - Install the commit gate (`pre-commit install`) and run `pre-commit run --all-files`
   after a large change — it runs the drift sweep and the skill linter over the
-  whole corpus; the three heavier self-tests stay out of it and are run explicitly
-  (`CONTRIBUTING.md` §The three heavier checks, run explicitly)
+  whole corpus **and both of their self-tests**; the three contributor-tool
+  self-tests (scope-check, telemetry, evaluation) stay out of it and are run
+  explicitly (`CONTRIBUTING.md` §The heavier checks, run explicitly)
 
 ## Spec-Driven Development (SDD)
 
@@ -173,7 +174,7 @@ one record — counts, enums, shas, timestamps, never finding text — to
 detection; default on, opt-out at KICKOFF; `TELEMETRY: rec <n> | WRITE FAILED | OFF |
 .gitignore updated` are its only gate lines — four members, `rec <n>` the
 positive one; post-cycle reader `python3
-tools/telemetry.py summarize`). At the verify stage the operator may opt in
+plugins/sdd/tools/telemetry.py summarize`). At the verify stage the operator may opt in
 to a **red team** (`red team: off | on`, default off): one read-only leaf attacks
 the weakest acceptance criteria and ends with `RED_VERDICT: BROKEN | HELD`;
 `sdd:verify` then writes `status: pending-red` and `proceed` is withheld until
@@ -182,7 +183,7 @@ every `BROKEN` `Rn` is fixed (`RED_BREAK` packet) or accepted (recorded under
 fix loop a later review round that raises new ground, or regresses without it,
 pauses the stage gate as `REVIEW: CONTRADICTION (round N vs round N+1, class
 b|c)` with `accept round N+1 (fix) | accept round N (proceed, note) | third
-opinion (re-dispatch review) | stop`. `python3 tools/gc.py --report` sweeps
+opinion (re-dispatch review) | stop`. `python3 plugins/sdd/tools/gc.py --report` sweeps
 the docs corpus at entry (one informational `GC:` line) and at DONE (findings
 routed `--fix <rule>` │ `record | ignore` │ note; `record` appends to
 `verification.md` `## Next Steps`); gc never runs between stages, never blocks a
@@ -248,7 +249,7 @@ When `sdd:plan` rewrites a plan or `sdd:replan` makes significant changes, the p
 
 ### Multi-Workstream Layout (v4)
 
-v4 lets a team run several SDD cycles concurrently in one repo — **one branch/issue per workstream** — without artifact collisions, false staleness, ID races, or cross-workstream phase confusion, while keeping requirements/specs/research/traceability a single shared corpus and keeping solo use ceremony-free. `docs/.sdd-version` = `4` is the sole gate that flips every skill to this layout; marker `3` (flat) remains fully supported and is what this repo uses today.
+v4 lets a team run several SDD cycles concurrently in one repo — **one branch/issue per workstream** — without artifact collisions, false staleness, ID races, or cross-workstream phase confusion, while keeping requirements/specs/research/traceability a single shared corpus and keeping solo use ceremony-free. `docs/.sdd-version` = `4` is the sole gate that flips every skill to this layout; marker `3` (flat) remains fully supported.
 
 **Layout — execution artifacts move, the shared corpus stays.** Under marker `4`:
 
