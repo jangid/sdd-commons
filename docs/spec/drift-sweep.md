@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-21
 requires:
   - REQ-GC-HARNESSP2-001
   - REQ-GC-HARNESSP2-002
@@ -16,6 +16,10 @@ requires:
   - REQ-GC-HARNESSP6-002
   - REQ-GC-HARNESSP6-003
   - REQ-GC-HARNESSP6-004
+  - REQ-PKG-CONSUMERGEOMETRY-001
+  - REQ-PKG-CONSUMERGEOMETRY-003
+  - REQ-PKG-CONSUMERGEOMETRY-004
+  - REQ-PKG-CONSUMERGEOMETRY-005
 ---
 
 # Drift Sweep (`tools/sdd-gc.py`)
@@ -637,3 +641,183 @@ acceptance asks for. A hard-coded 6 would have flagged every legacy
 five-column table as a row drop, which §Row-Drop Safety's "no existing rule,
 severity or counting rule changes" forbids.
 **Date**: 2026-09-20 (implement stage, Chunk 4 task 5)
+
+## Consumer-Geometry Amendment (2026-09-21, REQ-PKG-CONSUMERGEOMETRY-003, -004, -005)
+
+**Source line numbers cited in this section identify content, not positions.**
+This amendment cites `gc.py:175`, `:403`, `:507-516`, `:520-537` and
+`:1825-1835`, and `skill-lint.py:516-523` — **all six are source lines the
+implement stage itself moves**, since every one sits in or beside the code this
+delta edits. Each is named alongside the symbol it belongs to (`AGG_FIX`,
+`Gc.__init__`, `lint_command()`, `sweep_lint()`, the argparse block,
+`Linter.__init__`), and **the symbol is what identifies the site**; the numbers
+are a reading aid measured before any change, and no criterion below is stated
+against one. The four sibling amendments carry the same note for their own
+citations.
+
+The sweep's own surface changes in three places under the `consumer-geometry`
+delta. The design and the falsifying constructions live in
+`two-root-linter.md` §Consumer-Geometry Amendment; this section states what
+changes in **this** tool and pins the two things only this spec knows.
+
+### 1. How a suite root enters `gc.py` — the surface, decided here
+
+REQ-PKG-CONSUMERGEOMETRY-003 delegates the surface's **shape** to this stage ("a
+CLI flag on both tools, a `gc.py` pass-through, or a documented second
+positional"). `gc.py` today exposes `--report`, `--fast`, `--workstream`,
+`--fix`, `--root` and `--self-test` (`gc.py:1825-1835`), and `Gc.__init__`
+(`gc.py:403`) takes `root`, `workstream`, `fast` and `lint_suite_rules` — there
+is **no** parameter and **no** flag by which an explicit suite root could enter.
+Without one, neither half of REQ-PKG-CONSUMERGEOMETRY-003 acceptance 3 is
+constructible. **Decision — the surface mirrors the linter's, in both halves:**
+
+```
+gc.py [--report] [--fast] [--workstream ID] [--fix RULE] [--root PATH]
+      [--suite-root PATH] [--self-test]
+  --suite-root PATH : suite root forwarded to the delegated skill lint
+                      (default: none passed — the linter derives its own)
+
+Gc(root, workstream=None, fast=False, lint_suite_rules=True, suite_root=None)
+  suite_root : absolute, or None; stored on the instance and read by
+               lint_command() on both of its return paths
+```
+
+Three properties are load-bearing and are stated rather than implied:
+
+- **The flag and the constructor parameter are the same value**, the flag
+  resolving its argument to an absolute path and handing it to the constructor.
+  No third entry point — no environment variable, no positional — matching §2 of
+  `two-root-linter.md` ("no other root-resolution mechanism is introduced").
+- **The default is "pass nothing", not "pass a guess".** When `--suite-root` is
+  omitted, `lint_command()` builds exactly the vector and shim it builds today
+  plus nothing, and the linter's own tier-2 derivation (`two-root-linter.md`
+  §CG-3) answers. A `gc.py`-side default would be a second derivation, which
+  `two-root-linter.md` §CG-1 rejects.
+- **`gc.py --help` names it.** That is the discoverability half; removing the
+  flag from the parser makes the help assertion red, exactly as the linter's does.
+
+`two-root-linter.md` §CG-2 carries the linter-side half of the same surface and
+cross-references this section for the sweep side.
+
+### 2. `lint_command()` passes that suite root through — on both branches
+
+`lint_command()` has two return paths and both carry the suite root when one is
+supplied to the sweep (i.e. when `self.suite_root` is not `None`; when it is
+`None` both branches are byte-identical to today's). **That byte-identity is
+about the constructed vector and shim *text*, never about the geometry the run
+then resolves**: with no suite root passed, the linter's constructor answers with
+tier 2 or tier 3 (`two-root-linter.md` §CG-3 pins the resolution **inside
+`Linter.__init__`**, which is the only reason the shim — which never enters
+`main()` — inherits the derivation at all). Reading the byte-identity pin as
+"the shim stays on tier 3" would invert §CG-1 and is the misreading this sentence
+exists to block:
+
+- **(i) the `lint_suite_rules` argv branch**, today
+  `[executable, str(lint), str(self.root)]` — the constructed vector gains the
+  suite-root argument. Asserted **on the vector**, not on the subprocess result.
+- **(ii) the `suite_rules=False` `-c` shim branch**, which today builds
+  `Linter(Path(sys.argv[2]), suite_rules=False)` with no suite-root parameter
+  anywhere — the shim passes the same suite root to that constructor. Asserted by
+  parsing the shim text, or by running the shim against a fixture and reading back
+  `suite_contained()`.
+
+Q-IMPL-HARNESSP2-050 records that the fixture lint delegation uses this shim;
+that record is unchanged in substance — the shim keeps `suite_rules=False`, and
+only gains the suite-root parameter. Reverting branch (i) is row 4 of
+REQ-PKG-CONSUMERGEOMETRY-001's enumerated comparand set and is therefore
+demonstrated by running the mutation. Fixing branch (i) alone leaves branch (ii)
+permanently degraded with nothing able to see it, which is why the criterion
+covers both (REQ-PKG-CONSUMERGEOMETRY-003 acceptance 3).
+
+The sweep **derives** no suite root of its own. The derivation lives in
+`skill-lint.py` (`two-root-linter.md` §CG-1 and §CG-3), and the sweep inherits it
+for free because the linter derives its candidate from the corpus root the sweep
+already hands it.
+
+### 3. `sweep_lint()` forwards the `GEOMETRY:` token verbatim
+
+`sweep_lint()` passes through only two-line finding pairs matching its finding
+regex, plus the last non-empty line when it matches `^(OK|FAIL): `; **every other
+line of the linter's stdout is discarded**. The linter's new own-line `GEOMETRY:`
+token (`two-root-linter.md` §CG-6) therefore reaches nobody through the sweep
+unless the sweep forwards it. It must forward it **verbatim, on its own line**,
+and must **not** compute the token itself — the linter is the only process that
+knows its own roots, and a second derivation is a second thing to get wrong.
+
+`§Finding Shape and Summary`'s contract is unaffected: the forwarded token is not
+a finding, is not counted as one, and is not subject to the finding regex.
+
+**The summary check is a prefix match and is therefore safe.** `sweep_lint()`
+tests the last non-empty line with `re.match(r"^(OK|FAIL): ", summary)` —
+unanchored at the right — so the linter's new `— NOTHING SWEPT` suffix cannot make
+it flag `linter exited … without a parseable summary`. No amendment is needed; it
+is audited here because it is the pin an implementer adding a suffix is most
+likely to trip over.
+
+**Falsifying construction**: in the disjoint scratch construction of
+`two-root-linter.md` §CG-8, `python3 "$TMPDIR/cg/far/tools/gc.py" --report --root
+"$REPO"` output contains a line beginning `GEOMETRY: `. It contains none today,
+and removing the forwarding returns it to none
+(REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause).
+
+### 4. `AGG_FIX` names a path that resolves
+
+`AGG_FIX` (`gc.py:175`) tells the reader to run
+`tools/gc.py --fix traceability-aggregate` — a path that resolves for nobody but a
+pre-move in-repo operator. It is corrected to the post-move spelling, as a
+documentation-only edit in scope under REQ-PKG-CONSUMERGEOMETRY-001's permission.
+§`--fix` Whitelist's rule set is unchanged; only the hint string is.
+
+`lint_path()`'s sibling-first resolution is **unchanged** and stays as
+REQ-PKG-PACKAGING-010 froze it. It gains one thing: reordering its candidate tuple
+is half of row 4's mutation, so the ordering is now demonstrated by a
+`gc.py --self-test` case carrying the `cg-row-4:` token rather than only asserted.
+
+### Consumer-Geometry Acceptance Criteria
+
+- [ ] **The surface exists on the sweep too.** `python3
+  plugins/sdd/tools/gc.py --help` names `--suite-root`, and `Gc(...)` accepts a
+  `suite_root` keyword. Removing the flag from the parser, or the keyword from
+  the constructor, makes this red — and it is red today, where neither exists
+  (REQ-PKG-CONSUMERGEOMETRY-003 acceptance 1, sweep half).
+- [ ] **Omitting it changes nothing *in the constructed strings*.** With
+  `--suite-root` absent, the vector `lint_command()` returns and the `-c` shim it
+  builds are byte-identical to today's, asserted by comparing both against the
+  pre-change strings. **The geometry is not frozen with them**: the same shim run
+  over a corpus holding `plugins/sdd/skills/` resolves tier 2 in the
+  constructor and reports `suite_contained() == True`, which
+  `two-root-linter.md` §Consumer-Geometry Acceptance Criteria asserts as its own
+  bullet. An implementation that reads this pin as freezing the shim's geometry
+  makes that bullet red. A
+  `gc.py`-side default guess makes this red and would additionally install the
+  second derivation `two-root-linter.md` §CG-1 rejects
+  (REQ-PKG-CONSUMERGEOMETRY-003 acceptance 2,
+  sweep half).
+- [ ] `lint_command()`'s argv branch returns a vector carrying the suite root,
+  asserted on the vector; its `-c` shim branch constructs its `Linter(...)` with
+  the same suite root, asserted by running the shim against a fixture and reading
+  back `suite_contained()`. Fixing only the argv branch leaves the shim half red
+  (REQ-PKG-CONSUMERGEOMETRY-003 acceptance 3).
+- [ ] `gc.py --self-test` registers a case whose failure string begins
+  `cg-row-4:`, and applying row 4's mutation on a temporary copy — dropping the
+  suite-root pass-through, or reordering `lint_path()`'s candidate tuple — makes
+  the printed `SELF-TEST FAIL:` list contain a line beginning with that token;
+  reverting it returns the run to exit 0 with no such line
+  (REQ-PKG-CONSUMERGEOMETRY-001 acceptances 1, 2).
+- [ ] In `two-root-linter.md` §CG-8's disjoint scratch construction, the far
+  `gc.py --report --root "$REPO"` prints a line beginning `GEOMETRY: ` and raises
+  **no** `[structure] skills/ directory not found` finding, where today it prints
+  no such line and raises exactly one such finding. Removing the forwarding
+  returns the token to absent; reverting `lint_command()` returns the finding
+  (REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause;
+  REQ-PKG-CONSUMERGEOMETRY-006 acceptance 2).
+- [ ] A grep of `gc.py` finds no geometry-deriving expression — the sweep
+  forwards, never computes. Computing the token in the sweep makes this red
+  (REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause).
+- [ ] `AGG_FIX` names a path that resolves in this repository after the
+  correction, asserted by resolving the named path at run time; a path that does
+  not resolve fails this (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 7).
+- [ ] `python3 plugins/sdd/tools/gc.py --self-test` exits 0 after every edit made
+  under REQ-PKG-CONSUMERGEOMETRY-001's permission, and remains in the committed
+  `.pre-commit-config.yaml` hook set, asserted by parsing that file
+  (REQ-PKG-CONSUMERGEOMETRY-001 acceptance 4).

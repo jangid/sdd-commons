@@ -17,6 +17,12 @@ requires:
   - REQ-LINT-PACKAGING-005
   - REQ-LINT-PACKAGING-006
   - REQ-LINT-PACKAGING-007
+  - REQ-PKG-CONSUMERGEOMETRY-001
+  - REQ-PKG-CONSUMERGEOMETRY-002
+  - REQ-PKG-CONSUMERGEOMETRY-003
+  - REQ-PKG-CONSUMERGEOMETRY-004
+  - REQ-PKG-CONSUMERGEOMETRY-005
+  - REQ-PKG-CONSUMERGEOMETRY-006
 ---
 
 # The Suite Root Move and the Two-Root Linter
@@ -731,3 +737,869 @@ and §5 supply their own rendering via `flag(..., rel=…)` precisely because
 root is relying on that invariant, and `gc.py` is frozen, so the invariant
 cannot be renegotiated from the caller's side (C8.6, added post-plan from the
 implement-stage review).
+
+## Consumer-Geometry Amendment (2026-09-21, REQ-PKG-CONSUMERGEOMETRY-001..006)
+
+This amendment is the design for the `consumer-geometry` delta. Its subject is
+the geometry in which the suite root is **disjoint** from the corpus root — the
+only geometry a consumer of the installed plugin ever has, and the geometry in
+which §2's `swept_roots()` union collapses to the corpus root alone so the suite
+is not walked at all. The three-class impact (one loud reduction, four vacuous
+passes, three wrong-tree runs) is carried evidence from RS-CONSUMERGEOMETRY-001
+and is cited, never re-derived.
+
+Three geometry names are used throughout, and they are the same three §7 already
+names: **nested** (suite root contained in the corpus root), **equal**, and
+**disjoint** (suite root outside the corpus root). "Observation geometry" is the
+disjoint case where the corpus is *this* repository and the suite root is an
+out-of-tree copy of the tool; "consumer geometry" is the disjoint case where the
+corpus is a foreign repository.
+
+**Line numbers cited in this delta, reconciled once.**
+REQ-PKG-CONSUMERGEOMETRY-003 and -005 cite this file at `:83`, `:360` and
+`:516-517`, measured before this amendment was appended. Appending it added six
+lines to the frontmatter's `requires:` list, so every citation below the
+frontmatter has shifted by **+6**: the deferral sentence is now `:89`, the
+`skills/orchestrate/tools/` prose is now `:366`, and the three-clause checklist
+item is now `:522-523`. **The content, not the number, identifies each site** —
+every criterion in this amendment is stated against a quoted string so it stays
+decidable after any further shift, and the numbers are given only as a reading
+aid. The same reconciliation for `marketplace-packaging.md` (`+2`) is in that
+file's §Consumer-Geometry Amendment.
+
+### CG-1. Where the derivation lives: `skill-lint.py`, not `gc.py`
+
+REQ-PKG-CONSUMERGEOMETRY-006's body scopes the derivation to `gc.py` ("Where
+`gc.py` obtains a suite root, given it has none today") while its acceptance 1
+asserts on a **directly invoked** `skill-lint.py` that never passes through
+`gc.py`. That is the first of the three items the requirements stage recorded as
+owed to this stage (`docs/requirements/index.md` §Open Questions, the
+`[consumer-geometry, OWED TO SPECS]` entry, item 1). **Decision: the derivation
+lives in `skill-lint.py`, and `gc.py` inherits it for free.** The criterion is
+not weakened; the body sentence is read as satisfied *derivatively*, because the
+suite root `gc.py`'s sweep ends up with is the one the linter derives from the
+corpus root `gc.py` hands it.
+
+Why this way and not the other: of REQ-PKG-CONSUMERGEOMETRY-006's five
+acceptances, 1, 4 and 5 are stated against a `skill-lint.py` invocation and 3 is
+stated against `swept_roots()`, which is the linter's own function. Only
+acceptance 2 goes through `gc.py`, and it goes through it as a *consumer* of the
+linter's behaviour ("the far `gc.py --report` raises no `[structure]` finding").
+A `gc.py`-only derivation would leave four of the five undecidable or
+permanently red and would additionally leave a directly invoked linter — the
+form a contributor types — unrepaired. A linter-side derivation makes all five
+decidable, and assertion 2 follows from assertion 1 by the sweep's
+pass-through rather than by a second implementation.
+
+This decision does **not** absorb REQ-PKG-CONSUMERGEOMETRY-003 assertion 3.
+`gc.py` must still *pass through* an **explicit** operator-supplied suite root on
+both of `lint_command()`'s branches (§CG-2): the derivation covers the case where
+nobody supplied one, and the pass-through covers the case where somebody did.
+The two are different code paths and different precedence tiers (§CG-3), and
+implementing only the derivation leaves the explicit surface unreachable through
+the sweep, which is exactly what assertion 3 turns red on.
+
+### CG-2. The `--suite-root` surface (REQ-PKG-CONSUMERGEOMETRY-003)
+
+§2's sentence "`--suite-root` is **deferred**, not adopted" is **superseded**.
+The surface is adopted. §2's no-`--no-suite-rules` decision is untouched and
+stands.
+
+```
+skill-lint.py [corpus_root] [--suite-root PATH]
+  --suite-root PATH : absolute or cwd-relative; resolved to an absolute path and
+                      passed to Linter(..., suite_root=PATH)
+  omitted           : the derivation of §CG-3 runs
+```
+
+`gc.py` grows the matching pass-through. **How the suite root enters `gc.py` is
+decided in `drift-sweep.md` §1** — a `--suite-root PATH` flag plus a
+`Gc(..., suite_root=None)` constructor parameter carrying the same value, with
+"pass nothing" as the default so the linter's tier-2 derivation answers. Neither
+exists today, and until one does neither half of the criterion below is
+constructible. `lint_command()` has **two** return
+paths and both are in scope, because repairing one leaves the other permanently
+degraded with nothing able to observe it:
+
+- **(i) the `lint_suite_rules` argv branch** returns
+  `[executable, str(lint), str(self.root)]`. The constructed vector must carry
+  the suite root. Asserted **on the vector**, not on the subprocess result, so
+  the assertion does not depend on what the linter then does with it.
+- **(ii) the `suite_rules=False` `-c` shim branch** builds no argv at all: it
+  builds a `-c` program constructing `Linter(Path(sys.argv[2]), suite_rules=False)`
+  with no suite-root parameter anywhere. The shim must pass the same suite root
+  to that constructor. Asserted by parsing the shim text for the parameter **or**
+  by running the shim against a fixture and reading back `suite_contained()`;
+  either is sufficient, and the fixture form is preferred because it also
+  exercises the argument-passing. Q-IMPL-PACKAGING-004 records that this shim is
+  the frozen caller under the two-root interface; that freeze is retired for this
+  edit by REQ-PKG-CONSUMERGEOMETRY-001 row 4.
+
+**What turns each red.** (i): reverting the branch to `[executable, str(lint),
+str(self.root)]` drops the suite root from the vector — that is row 4 of the
+REQ-PKG-CONSUMERGEOMETRY-001 enumeration, so it is demonstrated by running the
+mutation, not asserted. (ii): fixing (i) alone and leaving the shim's
+`Linter(...)` call unchanged leaves the shim's `suite_contained()` reading the
+default-derived root, so the branch-(ii) half is red while the branch-(i) half is
+green. That opposite-direction pair is what makes the two-branch wording
+load-bearing rather than decorative.
+
+**Two sentences in this file assert the surface's absence, not one.**
+REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4 names `two-root-linter.md:516-517`. A
+run-time grep finds a **second** site the requirement does not name: §2's
+"`--suite-root` is **deferred**, not adopted — it mitigates the one unclosed
+vendored-cache case…" (:83). Acceptance 4 is stated as "that file contains no
+sentence asserting the **absence** of a `--suite-root` surface", which is a
+file-wide claim, so both sites are in scope and correcting only the named one
+leaves acceptance 4 red. Recorded here because it is a requirement-side omission
+the implement stage would otherwise discover at the gate.
+
+The two corrections are **not the same edit**:
+
+- **:516-517 — excise one clause, keep the item.** The checklist item reads
+  *"… is empty, the argparse surface exposes no `--suite-root`, and every
+  `suite_rules=False` site is inside the self-test"*. Only the middle clause
+  dies. The `no-suite-rules` grep clause and the `suite_rules=False` containment
+  clause are REQ-PKG-PACKAGING-003 leg (i), which **stands**; retiring the whole
+  item would delete a pin this delta explicitly preserves.
+- **:83 — re-scope the sentence in place**, recording that the deferral held for
+  the `packaging` cycle and is superseded here, in the same shape §2's other
+  superseded claims carry.
+
+Both land under REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4.
+
+### CG-3. The corpus-root derivation and its precedence (REQ-PKG-CONSUMERGEOMETRY-006)
+
+When no explicit suite root is supplied, the linter **derives** a candidate from
+its own corpus root rather than inventing one. This is discovery, not invention:
+the adopted root names a plugin demonstrably present in the tree being linted.
+
+```
+candidate = corpus_root / "plugins" / "sdd"
+adopt candidate  iff  candidate.is_dir()
+                 and  (candidate / "skills").is_dir()
+                 and  candidate.resolve() != default_suite_root().resolve()
+```
+
+**Where the tiers are resolved: inside `Linter.__init__`, not in `main()`.**
+This is load-bearing and is pinned rather than left to the implementer.
+`Linter.__init__` (`skill-lint.py:516-523`) already resolves the tier-3 fallback
+in the constructor — `self.suite_root = default_suite_root() if suite_root is
+None else suite_root` — and **tier 2 joins it there**, in the same expression's
+place, so the resolution order is one piece of code that every construction path
+reaches. Three paths exist and all three must get the same answer:
+
+| Construction path | Reaches tier 2 iff it lives in the constructor |
+|---|---|
+| the CLI (`main()` → `Linter(...)`) | yes either way |
+| **`gc.py`'s branch-(ii) `-c` shim** — `m.Linter(Path(sys.argv[2]), suite_rules=False)` (`gc.py:507-516`) | **only if it lives in the constructor**; the shim never enters `main()` |
+| a self-test fixture constructing `Linter(...)` directly | same |
+
+If tier 2 lived in argument handling, the shim would be frozen on tier 3
+**permanently** — and `drift-sweep.md` §2's "with `suite_root is None` both
+branches are byte-identical to today's" would freeze it there by contract rather
+than by accident. That pin is about the **constructed argv vector and shim
+text**, not about the geometry the shim then resolves: the shim passes no suite
+root, and the constructor answers with tier 2 or tier 3 exactly as the CLI would.
+This is also the whole content of §CG-1's "`gc.py` inherits the derivation for
+free" — it is true **only** under constructor resolution, so the two statements
+stand or fall together.
+
+**Precedence, in order** — exactly three tiers, and no fourth:
+
+1. an explicit operator-supplied suite root (`--suite-root`, or the constructor
+   parameter, or `gc.py`'s pass-through of either) — always wins, adopted
+   without any existence test, so an operator can still name a root the
+   derivation would have rejected;
+2. the corpus-derived candidate above, when all three conditions hold;
+3. today's `default_suite_root()` — `Path(__file__).resolve().parent.parent`.
+
+The third condition of tier 2 is not cosmetic: for an **in-repo** copy the
+candidate and `default_suite_root()` are the same directory, so tier 2 must
+decline and leave tier 3 to answer, or a contained case risks being re-rooted or
+double-counted. REQ-PKG-CONSUMERGEOMETRY-006 acceptance 4 is the assertion that
+it does not.
+
+**The literal `plugins/sdd` is a stated limitation.** A foreign tree that holds
+`plugins/sdd/skills/` — a fork of this repository, or an identically laid out
+marketplace — **will** fire tier 2 and be re-rooted onto its own copy. That is
+correct for a fork and tolerable for a look-alike, since the adopted root is a
+plugin actually present in the tree being linted. What it must never do is fire
+on a tree that has no such directory.
+
+### CG-4. The owed criterion: the derivation's **positive** direction
+
+Second of the three owed items. REQ-PKG-CONSUMERGEOMETRY-002's consumer bullet
+cites REQ-PKG-CONSUMERGEOMETRY-006 acceptances 3 and 5 as asserting "both
+directions" of the fork/look-alike exception. **They do not.** Acceptance 3 is
+"no `plugins/sdd/` → does not fire" and acceptance 5 is "`plugins/sdd/` present
+but no `skills/` → does not fire" — both negative. The positive case, a foreign
+tree that *does* hold `plugins/sdd/skills/` being re-rooted onto it, is the one
+behaviour REQ-PKG-CONSUMERGEOMETRY-002 admits departs from "today's union,
+unchanged", and it has no fixture. This section supplies the criterion and the
+fixture shape.
+
+**Fixture D — the look-alike corpus** (new, in the existing `--self-test`
+scratch-root style, no cache write). A scratch corpus root `F`, disjoint by
+construction from the running tool, holding **both**:
+
+```
+F/skills/<name>/SKILL.md                  # the foreign repo's own skill
+F/plugins/sdd/skills/<name>/SKILL.md      # a look-alike suite, seeded with one
+                                          # walk-class violation (forbidden
+                                          # phrase or bad frontmatter)
+```
+
+The tool is invoked with corpus root `F` and **no** explicit suite root.
+
+**Criterion (REQ-PKG-CONSUMERGEOMETRY-006, acceptance 6 — added by this spec):**
+the derivation fires and is observable in four ways at once —
+`suite_contained()` is `True`; the emitted token reads `GEOMETRY: nested` with
+`swept-roots=2`; `suite-rows-root=` renders `F/plugins/sdd`; and the violation
+seeded under `F/plugins/sdd/skills/**` **is** reported, with its path rendered
+relative to the root it was walked from (so `skills/…`, with no `plugins/sdd/`
+segment), asserted **by name on that seeded path** rather than by a count.
+
+**What turns it red, and that state exists today.** Today no derivation exists:
+the suite root falls to `default_suite_root()`, which for a tool running outside
+`F` is outside `F`, so `suite_contained()` is `False`, the token would read
+`disjoint`, `swept-roots=1`, and the seeded suite-side violation is **not**
+reported. The criterion is therefore red before the change and green after. After
+the change, three separate mutations return it to red: dropping tier 2 of §CG-3's
+precedence; keying tier 2 on the tool's own location instead of the corpus root
+(which is also the mutation acceptance 3 catches, in the opposite direction); and
+rendering the suite seed against the corpus root, which makes the path
+`plugins/sdd/skills/…` and fails the by-name assertion. The last of these is the
+per-root-rendering pin of §7 fixture A, re-exercised in a geometry fixture A
+does not reach.
+
+**REQ-PKG-CONSUMERGEOMETRY-002's citation must be corrected at the same time**,
+and the correction is in scope for the implement stage under this section rather
+than a follow-up. The mechanism is the one this corpus already uses for an
+Approved requirement a later cycle amends: an appended dated
+`[Updated: 2026-09-21c — …]` note beneath REQ-PKG-CONSUMERGEOMETRY-002 in
+`docs/requirements/integration/packaging.md`, recording that acceptances 3 and 5
+assert the **negative** direction only and that the positive direction is
+acceptance 6, specified here. The consumer bullet's own sentence is not rewritten
+— appending a dated note is how every other supersession in that file is
+recorded, and rewriting the sentence would make the record disagree with the
+commit that approved it.
+
+### CG-5. The per-geometry split (REQ-PKG-CONSUMERGEOMETRY-002)
+
+The disjoint geometry gets **two different answers**, because the operator's own
+repository and a foreign consumer's are not the same problem.
+
+- **Observation geometry — Option A.** The invocation reaches an explicit or
+  derived suite root naming the corpus's own `plugins/sdd`. That makes
+  `suite_contained()` true and restores the nested geometry: the walk reaches the
+  working tree's files and all three Class C checks re-root onto the working tree
+  instead of the plugin cache. Option A discharges Class C **for this geometry
+  only**, as a side effect of re-rooting, with **no** rebinding of the 56
+  suite-gated rows. §3's retarget stands unamended.
+- **Consumer geometry — today's union, unchanged**, with the single stated
+  exception of §CG-4's look-alike class. Their corpus root holds their own
+  `skills/`, which §2's union already walks correctly. Their exposure is
+  **signalling only** — which tree the 56 suite rows were evaluated against — and
+  that is §CG-6's job, not a binding's.
+- **Option B is rejected**, and the rejection is *enforced*, not recorded:
+  admitting a disjoint suite root into `swept_roots()` would make the four
+  Class B checks walk the *cache's* `skills/**`, converting a loud reduction into
+  a silent wrong-tree pass. §7 fixture B's `swept_roots() == {corpus_root}`
+  assertion is what fails if Option B is implemented.
+- **C-1 is withdrawn; Class C is not closed for a foreign consumer.** Rebinding
+  the 56 rows to the swept-root union would reverse the gate-pinned invariant
+  C12.1. The narrower proposal — rebinding the **40** `REQUIRED` rows alone,
+  which C12.1 does not pin — was handed to this stage as a separate argued
+  proposal. **This spec declines it.** It is declined on scope, not on merit: the
+  40 rows' binding is currently unasserted in every geometry, so adopting the
+  rebinding would land a behaviour change with no fixture able to falsify it —
+  the defect class this delta exists to close. Supplying that fixture is not in
+  this cycle's requirement set. Recorded in §Open Items below rather than left
+  as a silent non-decision.
+
+### CG-5a. Tier 2 makes one inherited fixture shape unsatisfiable
+
+REQ-PKG-CONSUMERGEOMETRY-002 acceptance 1's second half — "in the same fixture
+with the suite root left to default to a **far** scratch root,
+`len(skill_files())` is zero" — was written before §CG-3's tier 2 existed. Once
+tier 2 lands, a corpus root that holds its suite at **`plugins/sdd`** fires the
+derivation in exactly that half: no explicit root is passed, the candidate
+`corpus_root/plugins/sdd` exists and holds `skills/`, so it is adopted, the walk
+reaches it and `len(skill_files())` is **not** zero. The criterion would be red
+by construction, against a correct implementation.
+
+This is not hypothetical, and it is the trap an implementer walks into: §7
+**fixture A is defined as `suite_root = corpus_root/plugins/sdd`**, so reusing
+fixture A's tree for the -002 criterion reproduces the failure exactly.
+
+**Decision — pin the fixture's spelling, do not restate the criterion.** The
+fixture for REQ-PKG-CONSUMERGEOMETRY-002 acceptance 1 places its suite
+subdirectory under a name **other than `plugins/sdd`** — `vendor/suite` is the
+spelling this spec adopts — so tier 2 **declines by construction** (its first
+condition, `candidate.is_dir()`, is false) and the second half falls to tier 3,
+the far scratch default, with `len(skill_files()) == 0` exactly as the
+requirement words it. Tier 1 is unaffected: an explicitly passed suite root is
+adopted whatever the directory is called, so the first half is unchanged. The
+requirement's wording therefore needs no restatement and none is made.
+
+**Belt and braces, for a reader who meets a `plugins/sdd`-named fixture anyway:**
+in such a fixture the second half yields the **tier-2** root, not the tier-3
+default, and the correct expectation there is `GEOMETRY: nested` with a non-zero
+`skill_files()` — which is §CG-4's fixture D, a different criterion with a
+different verdict. The two must not be conflated, and naming the subdirectory
+differently is what keeps them apart.
+
+**The twin case is already reconciled.** REQ-PKG-CONSUMERGEOMETRY-003
+acceptance 2's "yields the default-derived root" is restated in this spec's
+criterion as "yields the tier-2-or-3 root of §CG-3", which is correct under
+either spelling because that criterion asserts only that the two runs *differ*.
+-002 acceptance 1 asserts a **zero**, which is why it needs the fixture pin and
+-003 acceptance 2 does not.
+
+### CG-6. `GEOMETRY:` and `— NOTHING SWEPT` (REQ-PKG-CONSUMERGEOMETRY-004)
+
+A run that swept nothing must not be spelled like a run that swept everything.
+Two output tokens close that, and their text is fixed verbatim because their
+whole value is that a reader and a fixture can both match on them. One concrete
+instance, printable exactly as shown — the literal line shape, not a schema:
+
+```
+GEOMETRY: disjoint  swept-roots=1  suite-rows-root=<suite root as given>
+OK: 0 file(s) clean — NOTHING SWEPT
+```
+
+- **`GEOMETRY:` is an own-line token emitted immediately before the summary
+  line**, whether or not the run has findings. "Every run" is scoped to runs that
+  print one: the token is emitted **iff** the run prints an `OK:`/`FAIL:` summary
+  line — one token per summary, never two, never one without the other — which
+  excludes `--self-test`, whose banner is not a corpus summary. A self-test case
+  asserts on the token by constructing a sweep and reading that sweep's output.
+  `skill-lint-v5.md` §The `GEOMETRY:` token is not a finding carries the same
+  scoping, and neither restates `--print-population`'s summary behaviour, which
+  is Q-IMPL-PACKAGING-003's. Its value has exactly three
+  members — `nested`, `equal`, `disjoint` — derived from `suite_contained()` and
+  root equality. The spelling `nested | equal | disjoint` appears in **no**
+  output; the enum is prose. `swept-roots=<n>` is `len(swept_roots())`.
+  `suite-rows-root=<path>` is the **effective** suite root — the one the run
+  actually resolved through §CG-3's three tiers, whether it was **given**
+  (tier 1), **derived** (tier 2) or **defaulted** (tier 3). The upstream
+  requirement words it "as given", which has no verdict for a tier-2 run because
+  tier 2 did not exist when it was written; the effective-root reading is the
+  only one that renders a value in all three tiers, and it preserves the field's
+  whole purpose — the answer to "which tree were the 56 suite-gated rows
+  evaluated against", and the whole of what a foreign consumer is owed here. The
+  exclusion is restated to match: the field renders **neither the corpus root,
+  nor `default_suite_root()` when tier 1 or tier 2 supplied a root**. In a
+  tier-3 run it renders `default_suite_root()`, because there the default *is*
+  the effective root. **This re-reading, and the "every run" scoping below, each
+  owe REQ-PKG-CONSUMERGEOMETRY-004 an appended `[Updated:]` note** — §CG-4's rule
+  for a spec that reinterprets an Approved literal applies to -004 exactly as it
+  applies to -002, and §CG-11 carries both notes in the implement stage's
+  requirements-write task.
+- **The `— NOTHING SWEPT` suffix is present iff `len(skill_files()) == 0`**, on
+  **every** summary line. There are **three** print sites and all three are in
+  scope: `skill-lint.py:1186` (`FAIL: …`), `:1189` (`OK: … clean, W warning(s)`,
+  the warn variant) and `:1191` (`OK: … clean`, the clean variant). Patching only
+  the two `OK:` sites leaves the failing path unsuffixed, which is the concrete
+  failure REQ-PKG-CONSUMERGEOMETRY-004 acceptance 4 exists to catch.
+
+**This is not the existing `corpus: FILES_SWEPT=<n>` line promoted.** §6's
+give-up on live zero-sweep detection stands: a swept-file *count* from a live
+corpus still cannot be asserted, the count stays informational, and what becomes
+load-bearing is an **enum** and a **presence-iff suffix**, neither of which is a
+count. REQ-LINT-PACKAGING-004's "`FILES_SWEPT=<n>` is informational" clause is
+unchanged.
+
+**`gc.py` forwards the token verbatim, and derives none of its own.**
+`sweep_lint()` (`gc.py:520-537`) passes through only two-line finding pairs
+matching its finding regex plus the last non-empty line when it matches
+`^(OK|FAIL): `; every other line of the linter's stdout is discarded, so an
+own-line `GEOMETRY:` token reaches nobody through the sweep. `gc.py` must forward
+it on its own line, unmodified. It must **not** compute the token: the linter is
+the only process that knows its own roots, and a second derivation is a second
+thing to get wrong. Falsifying construction: in §CG-8's disjoint scratch
+construction, `gc.py --report` output contains a line beginning `GEOMETRY: `; it
+contains none today, and removing the forwarding returns it to none.
+
+**The sweep's summary check is a prefix match and is therefore safe.**
+`sweep_lint()` tests the linter's last non-empty line with
+`re.match(r"^(OK|FAIL): ", summary)` — unanchored at the right — so the suffix
+cannot make it flag `linter exited … without a parseable summary`. No amendment
+needed; audited here because it is the pin an implementer adding a suffix is most
+likely to trip over.
+
+**The summary-line pins elsewhere: three sites, not two.**
+REQ-PKG-CONSUMERGEOMETRY-004's interaction note names
+`docs/spec/skill-lint-v5.md:427,452` and
+`docs/requirements/integration/skill-lint.md:276`. A run-time grep finds a
+**third** in the same spec, at `skill-lint-v5.md:127`, in §Size Warn-Clean
+Baseline. **Those three numbers are pre-amendment**: appending
+`skill-lint-v5.md` §Consumer-Geometry Amendment added two `requires:` lines, so
+they are now `:129`, `:429` and `:454`, and the content identifies each site —
+all three are `OK: N file(s) clean` pins. The requirements-side `:276` is
+unshifted. All are `OK: N file(s) clean` pins and all are in scope for the
+implement stage's "confirm these matches are not end-anchored" check; amending
+any that is end-anchored is in scope under REQ-PKG-CONSUMERGEOMETRY-004. `N` is
+non-zero on this corpus and the suffix is additive and conditional, so none is
+expected to need amendment — the check is that the expectation is verified rather
+than assumed. `skill-lint-v5.md` §Consumer-Geometry Amendment carries the
+spec-side statement.
+
+### CG-7. The enumerated comparand set and its reporting surface (REQ-PKG-CONSUMERGEOMETRY-001)
+
+Tool source under `plugins/sdd/tools/` may be edited for consumer-geometry
+correctness, over the **enumerated** eight-row set in
+REQ-PKG-CONSUMERGEOMETRY-001's table. The table is the comparand; the count
+"eight" is informational prose and is never a literal a criterion is evaluated
+against. A row is the unit — rows 4, 5 and 7 each cover more than one line of
+source and are each discharged by one `--self-test` case.
+
+**The per-case reporting surface, stated because the criteria are otherwise
+unobservable.** `--self-test` accumulates every failure into one `failures` list
+and prints it as `SELF-TEST FAIL:` followed by one `- <string>` line per failure,
+returning `1` **once, for the process**; the `SELF-TEST OK:` banner is a single
+hand-written prose sentence, not a machine-readable case list. A case does not
+exit — the process does. Therefore:
+
+- Each of the eight rows is bound to a case whose failure string **begins with a
+  stable row token** `cg-row-<n>:`, contributed to that same `failures` list. The
+  **failure-string list is the per-case surface**, and every assertion is stated
+  against it rather than against the banner or the process exit code.
+- The eight tokens are additionally carried in **one named constant inside the
+  tool**, and `--self-test` asserts that every member of that constant is
+  registered and run. Rows 1-3 and 5-8 register in `skill-lint.py --self-test`;
+  row 4 registers in `gc.py --self-test`.
+- **Membership, not the process exit code, is the comparand for every mutation
+  run.** Row 2's mutation — rebinding the 56 gated rows to the corpus root — also
+  trips the pre-existing C12.1 fixture, so a green-to-red transition of the
+  *process* would not show that the new disjoint case fired at all. The assertion
+  is that the printed list contains a line beginning with that row's own
+  `cg-row-<n>:` token.
+- The tool cannot read this table: `docs/` is outside the shipped plugin, so no
+  shipped tool may read it. That is why the set-equality reconciliation between
+  the requirement's table and the tokens `--self-test` prints is a **desk check
+  owned by the verify stage**, recorded in
+  `docs/ws/consumer-geometry/verification.md`, and carries a plan task of its own
+  (the third plan-ordering constraint of `docs/requirements/index.md`).
+
+**The spec-side freeze criterion is repinned under this requirement, not
+under -005.** `docs/spec/marketplace-packaging.md:366` asserts
+REQ-PKG-MARKETPLACE-007's source freeze against the **working tree**, by content
+identity, with an accepted alternative naming `HEAD`; both spellings leave the
+right endpoint unpinned. Row 4 of the enumeration and
+REQ-PKG-CONSUMERGEOMETRY-005's `AGG_FIX` correction each edit
+`plugins/sdd/tools/gc.py`, so that item turns red at the next gate — not because
+the freeze was violated but because it is evaluated outside its own window. It is
+repinned to the packaging cycle's end sha `0bdb076`, asserted **on that named
+item** and never as a file-wide grep (`HEAD` occurs in that file in unrelated
+contexts, and "the working tree" has no grep spelling at all).
+`marketplace-packaging.md` §Consumer-Geometry Amendment carries the edit.
+
+### CG-8. The disjoint scratch construction
+
+Every criterion in this amendment that needs a disjoint geometry uses one
+construction, **disjoint by construction rather than by reference to any in-repo
+path**, because every committed hook and every in-repo invocation is already
+nested:
+
+```bash
+REPO=$(git rev-parse --show-toplevel)
+rm -rf "$TMPDIR/cg" && mkdir -p "$TMPDIR/cg"
+cp -R "$REPO/plugins/sdd" "$TMPDIR/cg/far"     # the installed cache is never touched
+python3 "$TMPDIR/cg/far/tools/skill-lint.py" "$REPO"
+python3 "$TMPDIR/cg/far/tools/gc.py" --report --root "$REPO"
+```
+
+Measured before any change: the far `skill-lint.py` prints
+`.: [structure] skills/ directory not found` then `FAIL: 1 finding(s), 0
+warning(s)`; the far `gc.py --report` passes that same finding through. Required
+after: `GEOMETRY: nested`, no `[structure]` finding, a non-zero swept-file count
+from the linter, and that finding absent from the sweep. The in-repo
+`skill-lint.py` is unchanged at `GEOMETRY: nested` and its 25-file count, derived
+at run time rather than pinned as a literal.
+
+**No assertion is made about the committed hook set, deliberately.** Every
+`.pre-commit-config.yaml` entry runs an in-repo copy, so every one is already
+nested and none can be "left on the degraded default"; an assertion over them
+would describe a state that cannot occur. The only real hook-relevant risk is
+that the change regresses the nested case they all run in, and
+REQ-PKG-CONSUMERGEOMETRY-006 acceptance 4 covers it.
+
+### CG-9. The correction landing sites owned by this file
+
+Two edits to **this** file are owed, under two different requirements, and they
+are named so the plan stage can size them separately:
+
+| Site | Requirement / acceptance | Edit |
+|---|---|---|
+| `two-root-linter.md:83`, now `:89` (§2, "`--suite-root` is **deferred**, not adopted") | REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4 | re-scope in place: the deferral held for the `packaging` cycle and is superseded here |
+| `two-root-linter.md:516-517`, now `:522-523` (§Acceptance Criteria, the middle clause of a three-clause item) | REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4 | excise the middle clause only; the `no-suite-rules` grep and `suite_rules=False` containment clauses stand (REQ-PKG-PACKAGING-003 leg (i)) |
+| `two-root-linter.md:360`, now `:366` (§8 prose, `skills/orchestrate/tools/`) | REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2 (class A) | make true in place: the directory is removed, so the sentence's account of why the bundled sweep was dead is restated in the past tense against the removal |
+
+### CG-10. Plan-ordering constraints — a fourth, and why
+
+Three are recorded in `docs/requirements/index.md`. This is the **fourth**, and
+it settles the third owed item:
+
+> **REQ-PKG-CONSUMERGEOMETRY-004's `GEOMETRY:` token lands before
+> REQ-PKG-CONSUMERGEOMETRY-006's acceptance 1 is evaluated.**
+
+REQ-PKG-CONSUMERGEOMETRY-006 acceptance 2 already explains that it asserts on the
+finding set rather than on the token "because the token's forwarding is a
+separate requirement whose landing order is not fixed here" — while acceptance 1
+asserts `GEOMETRY: nested` **directly**, which is undecidable until -004 lands.
+The requirement offers two remedies; this spec takes the ordering constraint
+rather than splitting acceptance 1, because the split would leave acceptance 1's
+token clause homeless and §CG-4's new acceptance 6 asserts on the token too — so
+a split would have to be repeated for every token-bearing criterion, while one
+ordering constraint covers all of them.
+
+For completeness, acceptance 1's clauses **are** separable and the plan may use
+that as a fallback if the orders conflict: its `[structure] skills/ directory not
+found` clause is decidable the moment the derivation lands and depends on nothing
+from -004; only its `GEOMETRY: nested` clause depends on -004. No such conflict
+is expected — -004 is a print-site change with no dependency on the derivation,
+so it can always be ordered first.
+
+### CG-11. The implement stage writes the shared requirements corpus, and what that costs
+
+**Two** stages write `docs/requirements/integration/packaging.md` in this cycle,
+not one, and the specs stage writes it in neither: requirements are Approved and
+closed to it.
+
+**Implement stage — the appended dated notes.** Three, enumerated:
+
+| Note | Beneath | Why |
+|---|---|---|
+| `[Updated: 2026-09-21c — …]` | REQ-PKG-CONSUMERGEOMETRY-002 | its consumer bullet cites -006 acceptances 3 and 5 as asserting "both directions"; they assert the negative direction only, and the positive is §CG-4's new acceptance 6 |
+| `[Updated: 2026-09-21c — …]` | REQ-PKG-CONSUMERGEOMETRY-004 | §CG-6 re-reads two of its literals — `suite-rows-root=<path>` from "the suite root **as given**" to the **effective** root of §CG-3's three tiers, and "emitted by **every** run" as "iff the run prints an `OK:`/`FAIL:` summary", which excludes `--self-test`. Both re-readings are right and neither is expressible as "the requirement already said this" (S5) |
+| the requirement-side halves paired with §CG-2's and §CG-9's corrections | REQ-PKG-CONSUMERGEOMETRY-003, -005 | already specified in those sections |
+
+The -004 note exists because **§CG-4 establishes this cycle's own rule for
+exactly this situation** — a spec that reinterprets an Approved literal appends a
+dated note rather than leaving the literal standing — and applying that rule to
+-002 while exempting -004 would reproduce, one requirement away, the defect this
+delta diagnoses. No re-reading in this delta is left note-less.
+
+**Verify stage — the REQ-PKG-PACKAGING-003 sha back-fill.** That requirement's
+Approved `[Updated: 2026-09-21]` note (`packaging.md:474`) says its clause (ii)
+"is retired from the close of the `consumer-geometry` implement stage — **whose
+sha the verify stage back-fills into this note**". The literal written is that
+close sha, replacing the future-event phrasing, in the same file. It is named
+here because nothing else in this delta names, sizes or schedules it, and because
+an exclusivity clause that did not know about it would read the back-fill as a
+`SCOPE: VIOLATION` — which is the "criterion assigned to a stage with no task
+behind it is uncollectable debt" hazard §CG-7 names four sections earlier.
+
+Two consequences, stated concretely rather than as a caution.
+
+**(a) The plan must size a requirements write scope, in two places.** Exactly one
+**implement-stage** task owns `docs/requirements/integration/packaging.md` and is
+the only implement task with that path in scope; the **verify-stage** back-fill
+is the one other write and carries a task of its own, in the same file and no
+other. Under the harness's write-scope observation an unexpected touch of that
+path from any **other** chunk is a `SCOPE: VIOLATION`, so both scopes are
+declared where they belong rather than discovered at a gate. Both tasks' content
+is appended or in-place dated notes — never a rewrite of an approved sentence,
+which is why every correction in this delta is specified as a note.
+
+**(b) The edit bumps the requirements corpus's `last_updated`, which can make
+these specs and the plan read as stale mid-cycle.** The staleness rule walks
+`docs/requirements/index.md` → specs → plan, and these five specs and this
+workstream's plan all carry dates at or before that edit. **Expected handling,
+decided here: the requirements note lands in the same commit as the spec and plan
+touches it is paired with**, so no intermediate commit exists in which the
+corpus is newer than the artifacts that trace it. Where a pairing is impossible —
+the note lands alone — the stage that lands it re-dates the affected specs'
+`last_updated` in that same commit, which is a date bump and not a content
+change. A `[stale-chain]` finding raised between those two events is an artefact
+of the split, not a real staleness, and the drift sweep classifies `[stale-chain]`
+as **informational and not routed at DONE**, so it blocks no gate either way —
+that is why same-commit pairing is a discipline here and not a gate assertion.
+
+**Not in scope of this decision**: `docs/requirements/index.md` itself. Nothing in
+this delta edits it, so the requirements-corpus staleness reference the rule
+actually keys on moves only if the implement stage chooses to record the delta
+there, which no section here requires.
+
+
+**The other paths the implement stage writes, and who regenerates the aggregate
+(added at the specs cap gate, 2026-09-21).** §CG-11 above scopes one path
+precisely and left the rest unenumerated, which is a `SCOPE: VIOLATION` hazard
+of the same kind it was written to prevent. REQ-PKG-CONSUMERGEOMETRY-005's
+corrections reach **other workstreams' owned artifacts** —
+`docs/ws/marketplace/traceability.md`, `docs/ws/marketplace/verification.md`,
+`docs/ws/packaging/verification.md`, `docs/ws/packaging/baseline.md`,
+`docs/ws/packaging/plan.md` — plus the shared aggregate
+`docs/requirements/traceability.md` and the shipped
+`plugins/sdd/skills/orchestrate/references/drift-sweep.md`. Two rules, decided
+here because the plan stage must size them:
+
+1. **Cross-workstream writes are authorised for this cycle, by disposition class
+   only.** Under the v4 layout a workstream owns only its own
+   `kickoff`/`plan`/`plan-history`/`verification`/`traceability`, so these are
+   departures and must be declared in the owning task's write scope rather than
+   discovered at a gate. They are permitted **only** in the shape §The three
+   disposition classes fixes: class (B) prose records take an appended dated
+   note, never a rewrite; class (C) traceability rows are corrected in place as
+   data. A cross-workstream write of any other shape is a violation, not a
+   judgement call.
+2. **No leaf regenerates the aggregate.** `docs/requirements/traceability.md` is
+   regenerated wholesale from the per-workstream files by the **orchestrator**,
+   as post-gate bookkeeping — the rule
+   `docs/ws/consumer-geometry/traceability.md`'s own preamble states ("never
+   hand-edited, and never by a leaf"). REQ-PKG-CONSUMERGEOMETRY-005 acceptance
+   4's regenerate-and-diff is therefore split: the leaf corrects the
+   **per-workstream source** row and asserts the aggregate's current row by
+   **reading** it; the orchestrator regenerates at the gate and the diff is
+   evaluated there. A leaf that regenerates is a violation even when its output
+   is correct, because the aggregate's numbering moves and every other stage
+   reads it.
+
+### Consumer-Geometry Acceptance Criteria
+
+- [ ] **The requirements-corpus writes are scoped, enumerated and dated.**
+  Exactly **one implement-stage** task declares
+  `docs/requirements/integration/packaging.md` in its write scope, and exactly
+  **one verify-stage** task declares it for REQ-PKG-PACKAGING-003's sha
+  back-fill; no other task in either stage does. The implement task lands all
+  **three** notes §CG-11 enumerates — beneath REQ-PKG-CONSUMERGEOMETRY-002, -004,
+  and the -003/-005 halves — asserted by grepping the file for a
+  `[Updated: 2026-09-21c` note under each of the named ids, so a note omitted is
+  red rather than silently absent. The commit carrying them also carries the
+  spec/plan touches they pair with, or re-dates the affected specs'
+  `last_updated` in that same commit. Asserted by reading the plan's scope table
+  and `git show --name-only` over the note-bearing commit. A third task touching
+  that path, a missing -004 note, or a commit that lands a note with neither
+  pairing nor re-dating, makes this red (§CG-11; no upstream acceptance — this is
+  a specs-stage consequence of §CG-4, §CG-2, §CG-6 and §CG-9).
+- [ ] **The enumerated set is covered and demonstrated.** For each of the eight
+  rows of REQ-PKG-CONSUMERGEOMETRY-001's table there is a registered case whose
+  failure string begins with that row's `cg-row-<n>:` token (rows 1-3, 5-8 in
+  `skill-lint.py --self-test`, row 4 in `gc.py --self-test`); the tool's named
+  token constant and the set of registered `cg-row-` cases are asserted equal at
+  run time; and for **each** row the mutation in its right-hand column is
+  **applied and run** on a temporary copy of the tool, the printed
+  `SELF-TEST FAIL:` list asserted to contain a line beginning with that row's own
+  token, the mutation then reverted and the run observed to exit 0 with no such
+  line. A described-but-unrun mutation fails this; so does one whose mutation
+  turns the process red without its own token appearing
+  (REQ-PKG-CONSUMERGEOMETRY-001 acceptances 1, 2).
+- [ ] **The desk-check half of the count equality is collected.** At the verify
+  stage, the `cg-row-<n>:` tokens parsed from REQ-PKG-CONSUMERGEOMETRY-001's
+  enumeration table are compared **as a set** against the tokens
+  `skill-lint.py --self-test` and `gc.py --self-test` print, and the comparison
+  — both sets, and their difference — is recorded in
+  `docs/ws/consumer-geometry/verification.md`. Adding a row to the table without
+  adding its token to the tool makes the difference non-empty; adding a token
+  without a row fails it symmetrically. The reconciler is the **verify stage**
+  rather than a gate because `docs/` is outside the shipped plugin, so no shipped
+  tool may read that table (§CG-7), and it carries a plan task of its own — a
+  criterion assigned to a stage with no task behind it is uncollectable debt.
+  **This is the half the in-tool assertion cannot reach**: the tool's own
+  constant-vs-registered check proves the constant and the cases agree with each
+  other, not that either agrees with the requirement
+  (REQ-PKG-CONSUMERGEOMETRY-001 acceptance 3, desk-check half).
+- [ ] **Both tools' gates stay green and stay hooks.** `python3
+  plugins/sdd/tools/skill-lint.py --self-test` and `python3
+  plugins/sdd/tools/gc.py --self-test` exit 0 after every edit made under the
+  permission, and both remain in the committed `.pre-commit-config.yaml` hook
+  set, asserted by parsing that file rather than by recollection
+  (REQ-PKG-CONSUMERGEOMETRY-001 acceptance 4).
+- [ ] **The per-geometry split holds.** In a two-root fixture whose suite root is
+  given explicitly and lies under the corpus root, `len(skill_files()) > 0` and
+  `suite_contained()` is `True`; in the same fixture with the suite root left to
+  a **far** scratch default, `len(skill_files()) == 0` — ignoring the passed
+  value makes the two halves equal and this red. **The fixture's suite
+  subdirectory must not be named `plugins/sdd`** (§CG-5a); §7 fixture A's tree,
+  which is, cannot be reused here. In §7 fixture B's disjoint
+  consumer shape, `swept_roots()` equals exactly `{corpus_root}` and the suite
+  root contributes zero walked files — implementing Option B makes this red,
+  which is how the rejection is enforced rather than recorded. C12.1 passes
+  unmodified, pinning the **16** rows it pins (`VERSION_GATED_SKILLS` 9 +
+  `V4_CONTRACT_SKILLS` 7) and deliberately not 56
+  (REQ-PKG-CONSUMERGEOMETRY-002 acceptances 1-3).
+- [ ] **The surface exists, is discoverable, and reaches the binding.** `python3
+  plugins/sdd/tools/skill-lint.py --help` names the suite-root surface —
+  removing it from the parser makes this red, and this deliberately inverts
+  REQ-PKG-PACKAGING-003's negative-surface grep. In a scratch fixture, invoking
+  with an explicit suite root under the corpus root yields
+  `suite_contained() == True` and a non-empty `skill_files()`, while invoking the
+  same corpus without it yields the tier-2-or-3 root of §CG-3 — accepting the
+  argument and discarding it makes the two runs identical and this red
+  (REQ-PKG-CONSUMERGEOMETRY-003 acceptances 1, 2).
+- [ ] **`gc.py` passes it through on both branches.** Branch (i): the vector
+  `lint_command()` returns carries the suite root, asserted on the vector.
+  Branch (ii): the `-c` shim passes the same suite root to its
+  `Linter(...)` constructor, asserted by running the shim against a fixture and
+  reading back `suite_contained()`. Reverting branch (i) is
+  REQ-PKG-CONSUMERGEOMETRY-001 row 4 and is demonstrated; fixing only branch (i)
+  leaves the branch-(ii) half red (REQ-PKG-CONSUMERGEOMETRY-003 acceptance 3).
+- [ ] **Both absence sentences in this file are corrected, and the surviving
+  clauses survive.** Stated in the two-part shape
+  `marketplace-packaging.md` §The shape every string criterion in this delta
+  takes defines. **Primary, by named sentence**: neither §2's *"`--suite-root` is
+  **deferred**, not adopted — it mitigates the one unclosed vendored-cache case"*
+  nor §Acceptance Criteria's *"the argparse surface exposes no `--suite-root`"*
+  still asserts the surface's absence. Both are present and uncorrected today,
+  which is what makes this red before the change. **Secondary, residual grep**:
+  `docs/spec/two-root-linter.md` contains no other sentence asserting the
+  **absence** of a `--suite-root` surface, outside a fenced code block and outside
+  this §Consumer-Geometry Amendment — which quotes both sentences, in prose and in
+  §CG-9's table, **in order to retire them**, and a table cell cannot be fenced.
+  Every occurrence inside this amendment must be such a citation, never a fresh
+  assertion of absence. The exemption is the same shape
+  REQ-PKG-CONSUMERGEOMETRY-005 grants this cycle's own kickoff — **and** its `no-suite-rules` grep clause and its
+  `suite_rules=False` containment clause are both still present. Landing the
+  surface and leaving either absence sentence standing makes the first half red;
+  deleting the checklist item wholesale makes the second half red. The two halves
+  fail in opposite directions, which is what stops an implementer resolving this
+  with a delete (REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4).
+- [ ] **The suffix is present iff nothing was swept, on all three sites.** Two
+  scratch runs, one over a one-file corpus and one over an empty corpus: the
+  string `— NOTHING SWEPT` appears in the second summary line and not in the
+  first — dropping the suffix makes the two lines identical and this red, and the
+  mutation is run, not described. A scratch run over a corpus sweeping **zero**
+  skill files that nonetheless raises at least one `fail`-severity finding prints
+  `FAIL: … — NOTHING SWEPT`; patching only `:1189` and `:1191` makes this red.
+  The warn variant `:1189` over a non-empty corpus with a warning prints **no**
+  suffix; making the suffix unconditional on any of the three sites makes this
+  red (REQ-PKG-CONSUMERGEOMETRY-004 acceptances 1, 4, 5).
+- [ ] **The enum is rendered, correct, and unconditional.** The far-root fixture
+  prints `GEOMETRY: disjoint`, the nested fixture `GEOMETRY: nested`, the
+  equal-roots fixture `GEOMETRY: equal` — collapsing the derivation to a constant
+  makes at least two of the three red. In the far-root fixture
+  `suite-rows-root=` renders the **effective** suite root — there, the one passed
+  at tier 1 — and not the corpus root; in §CG-4's fixture D it renders the tier-2
+  derived `F/plugins/sdd` and not `default_suite_root()`. Rendering the corpus
+  root in either, or `default_suite_root()` in the tier-2 case, makes this red. A fixture whose run has findings still carries its
+  `GEOMETRY:` line, and a `--self-test` run — which prints no summary — carries
+  none; emitting the token only on the clean path, or emitting it from a run with
+  no summary, makes that red
+  (REQ-PKG-CONSUMERGEOMETRY-004 acceptances 2, 3, negative).
+- [ ] **The token survives the sweep.** In §CG-8's disjoint scratch
+  construction, `gc.py --report` output contains a line beginning `GEOMETRY: `,
+  forwarded verbatim on its own line; it contains none today, and removing the
+  forwarding returns it to none. `gc.py` derives no geometry of its own, asserted
+  by grep for any geometry-deriving expression in `gc.py`
+  (REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause).
+- [ ] **The summary-line pins are confirmed unanchored** — no count written; the
+  set is the `OK: N file(s) clean` pins derived by grep. The three
+  `OK: N file(s) clean` pins in `docs/spec/skill-lint-v5.md` (`:127`, `:427`,
+  `:452` before that file's amendment; `:129`, `:429`, `:454` after it — the
+  content, not the number, identifies them) and
+  `docs/requirements/integration/skill-lint.md:276` are each read at
+  implement time and confirmed to state a prefix or substring match rather than
+  an end-anchored one; any that is end-anchored is amended under
+  REQ-PKG-CONSUMERGEOMETRY-004. The check is recorded as an observation with its
+  command, not asserted (REQ-PKG-CONSUMERGEOMETRY-004 interaction note, extended
+  here from two named sites to three).
+- [ ] **The disjoint invocation is repaired end to end.** In §CG-8's
+  construction the far `skill-lint.py` prints `GEOMETRY: nested` and raises no
+  `[structure] skills/ directory not found` finding — **it prints that finding
+  and `FAIL: 1 finding(s)` today**, so the assertion is red before the change and
+  green after, and reverting the derivation returns it to red. In the same
+  construction the far `gc.py --report --root "$REPO"` raises **no** `[structure]`
+  finding where it raises exactly one today, asserted on the finding set (which
+  is decidable under both landing orders) rather than on the token. Reverting
+  `lint_command()` makes the finding reappear
+  (REQ-PKG-CONSUMERGEOMETRY-006 acceptances 1, 2; §CG-10's ordering constraint
+  makes the token clause of acceptance 1 decidable).
+- [ ] **Every construction path resolves the same tiers.** Asserted on the path
+  no other criterion in these five files reaches: `gc.py`'s branch-(ii) `-c`
+  shim, run in fixture mode over a scratch corpus holding `plugins/sdd/skills/`
+  and with **no** explicit suite root passed, yields `suite_contained() == True`
+  and a non-empty `skill_files()` — the same answer the CLI gives on the same
+  corpus, asserted by comparing the two. Implementing tier 2 in `main()` instead
+  of `Linter.__init__` leaves the shim on tier 3, so `suite_contained()` is
+  `False` and the two paths disagree, which is how this fails; it is also red
+  today, since tier 2 does not exist on any path
+  (REQ-PKG-CONSUMERGEOMETRY-006 acceptances 1 and 3, via §CG-3's
+  constructor-resolution pin; no upstream acceptance covers the shim's geometry
+  under an omitted suite root, which is why the pin is stated here).
+- [ ] **The foreign consumer is untouched, in both negative directions.** In a
+  scratch corpus with its own `skills/` and **no** `plugins/sdd/`, the derivation
+  does not fire: no suite root is adopted at tier 2, `swept_roots()` equals
+  exactly `{corpus_root}`, the token reads `disjoint`, their own `skills/` is
+  still walked and no `— NOTHING SWEPT` suffix appears. With `plugins/sdd/`
+  present but holding no `skills/` directory the candidate is **not** adopted and
+  the run reports `disjoint` rather than naming an empty suite root. Making the
+  derivation unconditional — for instance by falling back to the tool's own
+  location — fires it in the first case and makes it red; dropping the `skills/`
+  existence test makes the second red
+  (REQ-PKG-CONSUMERGEOMETRY-006 acceptances 3, 5).
+- [ ] **The positive direction fires, and is observable four ways.** §CG-4's
+  fixture D: with corpus root `F` holding both `F/skills/**` and
+  `F/plugins/sdd/skills/**`, and no explicit suite root, `suite_contained()` is
+  `True`, the token reads `GEOMETRY: nested` with `swept-roots=2`,
+  `suite-rows-root=` renders `F/plugins/sdd`, and the violation seeded under
+  `F/plugins/sdd/skills/**` is reported with its path rendered `skills/…`
+  relative to the suite root, asserted **by name on the seeded path**. Red today,
+  because no derivation exists and the suite root falls outside `F`; returned to
+  red after the change by dropping tier 2, by keying tier 2 on the tool's own
+  location, or by rendering the suite seed against the corpus root
+  (REQ-PKG-CONSUMERGEOMETRY-006 acceptance 6, added by this spec).
+- [ ] **The nested case is not regressed.** In-repo `python3
+  plugins/sdd/tools/skill-lint.py .` still reports `GEOMETRY: nested` and the
+  same swept-file count it reports today, both derived at run time rather than
+  pinned as literals. A derivation that re-roots or double-counts the already
+  contained case makes this red — a live risk, since the in-repo copy's tier-2
+  candidate and its `default_suite_root()` are the same directory, which is what
+  §CG-3's third condition exists to decline
+  (REQ-PKG-CONSUMERGEOMETRY-006 acceptance 4).
+- [ ] **This file's three correction sites are landed**, as §CG-9's table
+  specifies and under the requirement each names (REQ-PKG-CONSUMERGEOMETRY-003
+  acceptance 4; REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2).
+- [ ] **Machine-dependent observation, not gating.** On a machine with the plugin
+  installed, running the cache's own `skill-lint.py` against this repository
+  reports `GEOMETRY: nested` after the change where it reports the `[structure]`
+  finding today. Recorded at verify as an observation with its command, never as
+  a gate assertion: it depends on an installed cache whose presence and version no
+  gate can guarantee, and the cache is a read-only measurement surface
+  (REQ-PKG-CONSUMERGEOMETRY-006 closing note).
+
+### Consumer-Geometry Open Items
+
+**Recorded at the specs cap gate (2026-09-21) as named plan inputs.** Raised at
+review round 4, verified, and not repaired because the stage's fix-loop cap was
+reached. They are inputs the plan stage must size, not gaps:
+
+- **A decidable comparand for "`gc.py` derives no geometry of its own"**
+  (`drift-sweep.md` §4's criterion and its twin here). "Geometry-deriving
+  expression" has no grep spelling — the same objection this delta raises against
+  "the working tree" in the freeze item. Restate it as a decidable comparand: a
+  grep for the enum literals `nested`/`equal`/`disjoint` and for `suite_contained`
+  in `gc.py` returning zero outside the forwarding pass-through, or a mutation
+  (compute the token in `gc.py`, assert a duplicate `GEOMETRY:` line).
+- **All three `skill-lint-v5.md` summary-line pins name the dead
+  `python3 tools/sdd-skill-lint.py` path, not one.** Measured: `:128`, `:428`,
+  `:453-454`. The stated reason for repairing only the `:454` pin — that the
+  implementer is already reading that line for the end-anchoring check — applies
+  identically to the other two, which the same criterion also requires them to
+  read. Either repair all three in that read, or restate the sentence so the
+  omission is a recorded decision rather than an inaccuracy.
+- **Three minor count/aggregation inconsistencies**: §CG-9 opens "**Two** edits
+  … are owed" above a three-row table (its closing criterion correctly says
+  three); the summary-line pins are counted three ways across two files (three in
+  `skill-lint-v5.md`, four including the requirements-side twin); and the §CG-6
+  acceptance box bundles four distinct assertions — enum rendering,
+  `suite-rows-root=` under tier 1, under tier 2, and unconditional emission —
+  into one checkbox, so a partial pass is invisible to the gate. The third is the
+  one worth splitting; the plan can size it as separate boxes.
+
+
+- `OPEN:` **the 40 `REQUIRED` rows have no binding fixture in any geometry.**
+  REQ-PKG-CONSUMERGEOMETRY-002 hands the narrower C-1 proposal — rebinding those
+  40 rows alone to the swept-root union — to this stage as a separate argued
+  proposal. §CG-5 **declines** it for this cycle, on the ground that the rebinding
+  would land a behaviour change with no fixture able to falsify it. Supplying such
+  a fixture is the closure, and it is not in this cycle's requirement set.
+  Blocking constraint: a requirement authorising the fixture, owned by no artifact
+  in this cycle.
+- `OPEN:` **whether `--suite-root` should also be honoured from an environment
+  variable.** Not adopted, and not proposed: §2's "no other root-resolution
+  mechanism is introduced" stands, and §CG-3's three precedence tiers are
+  exhaustive. Recorded only so that its absence reads as a decision rather than an
+  omission, in the shape REQ-PKG-PACKAGING-003 used for the deferral this
+  amendment supersedes.

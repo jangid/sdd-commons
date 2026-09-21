@@ -13,6 +13,8 @@ requires:
   - REQ-PKG-MARKETPLACE-009
   - REQ-PKG-MARKETPLACE-010
   - REQ-PKG-PACKAGING-010
+  - REQ-PKG-CONSUMERGEOMETRY-001
+  - REQ-PKG-CONSUMERGEOMETRY-005
 ---
 
 # Marketplace and Plugin Packaging
@@ -605,3 +607,404 @@ because the driver dispatches its sibling skills by name — is unchanged and
 still binding; only the placement changes. The exclusions of
 REQ-PKG-MARKETPLACE-004 and -005 remain exclusions from the component list, and
 after the move `docs/` is additionally outside the install.
+
+## Consumer-Geometry Amendment (2026-09-21, REQ-PKG-CONSUMERGEOMETRY-005, -001)
+
+This amendment removes the bundled tool directory this spec's §Tools introduced,
+and corrects every record the removal falsifies — including three checklist items
+in this file's own §Acceptance Criteria. The design for the rest of the
+`consumer-geometry` delta lives in `two-root-linter.md` §Consumer-Geometry
+Amendment; this section is only the removal and its corrections.
+
+**Line numbers cited in this delta, reconciled once.**
+REQ-PKG-CONSUMERGEOMETRY-005 cites this file at `:364`, `:365` and `:565`, and
+REQ-PKG-CONSUMERGEOMETRY-001 at `:366`, all measured before this amendment was
+appended. Appending it added two lines to the frontmatter's `requires:` list, so
+every citation has shifted by **+2**: the vacuous item is now `:366`, the false
+item `:367`, the unpinned freeze item `:368`, and the Q-IMPL-MARKETPLACE-029
+sentence `:567`. **The content, not the number, identifies each site** — each is
+stated below against a quoted string so it stays decidable after any further
+shift.
+
+### The removal (REQ-PKG-CONSUMERGEOMETRY-005)
+
+`plugins/sdd/skills/orchestrate/tools/` is **removed**. It holds `gc.py` and
+`telemetry.py`, each byte-identical to its `plugins/sdd/tools/` counterpart, and
+**no invocation reaches it that works**:
+
+- Running the bundled `gc.py` directly exits on its linter-missing path —
+  `error: linter missing — expected <corpus>/tools/skill-lint.py` — in every
+  geometry this repository or a consumer repository can be in, **because the
+  fallback path exists in neither**. `lint_path()`'s sibling-first candidate looks
+  for `skill-lint.py` next to `gc.py`, and that directory holds none; its second
+  candidate, `<corpus>/tools/skill-lint.py`, was deleted here by the packaging
+  move and never exists in a consumer tree. The claim is deliberately qualified:
+  a consumer who happened to vendor their own `tools/skill-lint.py` would falsify
+  an unqualified one.
+- The six bare `python3 tools/telemetry.py` sites in `orchestrate` resolve
+  **cwd-relative**, to `<corpus>/tools/`, never to the skill directory.
+- Outside `docs/`, the string `orchestrate/tools` appears exactly once, at the
+  shipped `plugins/sdd/skills/orchestrate/references/drift-sweep.md:36`, and there
+  it cites the directory's **existence**, not an invocation.
+
+REQ-PKG-MARKETPLACE-006's duplication clause is already amended to permit this
+(its `[Updated: 2026-09-21b]` note). The removal lands **after** that amendment,
+never before — the second of the plan-ordering constraints recorded in
+`docs/requirements/index.md`.
+
+Removal falsifies every record naming the directory.
+**REQ-PKG-CONSUMERGEOMETRY-005's table is the comparand**, and the file set for
+every criterion below is read from that table at run time rather than from a list
+copied into a check. No count is written down anywhere: two earlier drafts of the
+requirement stated counts and both were wrong.
+
+### The three disposition classes
+
+- **(A) In place — live, shipped and regenerated artifacts.** They describe the
+  present, so they are made true. **Two class (A) sites sit inside a Q-IMPL
+  record**, and "make true in place" is under-specified there:
+  `marketplace-packaging.md:567` is inside Q-IMPL-MARKETPLACE-029's **Decision**
+  text and `pre-commit.md:277` inside Q-IMPL-MARKETPLACE-019's **Context**.
+  Rewriting a recorded decision to describe a later world is precisely the hazard
+  the class (B) policy exists to prevent, so the rule for these two is narrower
+  than for live prose: **a Q-IMPL Decision or Context sentence is made true by
+  re-tensing it and appending an inline dated clause, never by changing what was
+  decided or what it was decided against.** Concretely —
+
+  - `marketplace-packaging.md:567`, today *"delete the bundled
+    `skills/orchestrate/tools/skill-lint.py`, restore `tools/gc.py` to its
+    rename-chunk-close content"*, becomes *"delete the bundled
+    `skills/orchestrate/tools/skill-lint.py`* **(that directory was itself
+    removed on 2026-09-21 under REQ-PKG-CONSUMERGEOMETRY-005; the instruction
+    stands as the record of what this Q-IMPL decided)** *, restore …"* — the
+    decision text is untouched, the clause says only that its object is gone.
+  - `pre-commit.md:277`, today asserting that the two bundled paths *"do not
+    exist at the rename-chunk-close sha"* and are created by the packaging
+    chunk, keeps that sentence and gains the same inline dated clause recording
+    that the directory was removed on 2026-09-21, so the `--name-only` window's
+    bundled-tool half now has an empty population.
+
+  **The escape hatch is stated rather than implied**: if an implementer finds a
+  site where re-tensing plus a dated clause cannot be done without altering what
+  was decided, that site is handled as class (B) — original preserved, dated note
+  appended beneath — and the departure is recorded as a deviation. Silently
+  rewriting the decision is not an option in either direction. The shipped
+  `plugins/sdd/skills/orchestrate/references/drift-sweep.md:36` is class A **and
+  is a plugin file**, so its correction sits in a different write scope from every
+  docs record; the plan stage must not size it as docs-only.
+- **(B) Appended dated note — closed-cycle prose records.**
+  `.pre-commit-config.yaml` excludes `docs/ws/` from every automated rewrite for a
+  stated reason — *"a rewrite makes the record disagree with the commits it
+  describes"*. The original sentence stays exactly as that cycle wrote it and a
+  `[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was
+  removed; this observation was true at <that cycle's sha>]` note is appended
+  beneath it, within three lines of the sentence it supersedes.
+- **(C) In place, as data — traceability rows.** A row in a machine-regenerated
+  table cannot carry an appended prose note and survive regeneration, and the
+  aggregate is regenerated **from** the per-workstream file, so correcting the
+  aggregate alone is undone at the next regeneration. The per-workstream source is
+  corrected **first**. Class C is the one place a `docs/ws/` file is edited in
+  place; the exclusion's rationale protects a *narrative* record, and a
+  traceability row is an index, not a narrative.
+
+### The shape every string criterion in this delta takes, and why
+
+**A criterion about a file must not be decidable by prose the cycle itself writes
+into that file.** Stating it as a bare file-wide grep fails that test twice over:
+the amendments below must *cite* `skills/orchestrate/tools` in order to say which
+sentences to correct, and a citation inside a Markdown table cell cannot be
+fenced. So every string criterion in this delta is stated in **two parts**:
+
+- **Primary — by named quoted sentence.** For each site to be corrected, the
+  criterion quotes the pre-amendment sentence and asserts it no longer asserts the
+  directory's existence. This half is decidable no matter what prose any later
+  cycle adds, and it is what actually catches a skipped correction.
+  **Matching is whitespace-normalised**, because every quoted sentence in this
+  delta spans a line break in its source file and none is greppable as a literal:
+  the target file and the quoted sentence are each passed through
+  `tr '\n' ' '` and had runs of whitespace collapsed to one space before the
+  substring test (`python3 -c "import re,sys; ..."` or
+  `tr '\n' ' ' | tr -s ' ' | grep -F`). Two spans that a naive `grep -F` would
+  miss, named so the normalisation is not left theoretical:
+  `two-root-linter.md` §8's *"the copy bundled under `skills/orchestrate/tools/`
+  … would then run"* crosses `:363-366`, and Q-IMPL-MARKETPLACE-029's *"delete
+  the bundled `skills/orchestrate/tools/skill-lint.py`"* crosses
+  `marketplace-packaging.md:566-567`. Where a shorter single-line anchor exists
+  it may be used instead, provided it is unique in the file — the requirement is
+  mechanical decidability, not a particular spelling.
+- **Secondary — a residual grep with two stated exemptions**: a fenced code block,
+  and the file's own `## Consumer-Geometry Amendment` section. The second
+  exemption is the same shape REQ-PKG-CONSUMERGEOMETRY-005 itself grants
+  `docs/ws/consumer-geometry/kickoff.md` — this cycle's own instruction text,
+  naming the directory in order to retire it, is not a falsified record. The
+  exemption is **bounded**: within an amendment section every occurrence must be a
+  **citation of a site to be corrected**, never an assertion that the directory
+  exists or is required. A live claim reintroduced there is a defect the primary
+  half does not catch and a reviewer must.
+
+This shape is adopted because the bare-grep form is this cycle's signature defect
+— a criterion whose state is decided by the very prose written to satisfy it —
+and fixing the instances without fixing the shape would leave the next amendment
+free to reintroduce it.
+
+Two files in the table are **excluded** and the exclusion is stated rather than
+left as an unexplained grep failure: `docs/ws/consumer-geometry/kickoff.md` (this
+cycle's own kickoff, naming the directory as the question to decide — not a
+falsified record) and the two RS-PACKAGING-001 research records (historical
+records of a measurement, not assertions about the present tree).
+
+### The three checklist items in this file that the removal or the delta falsifies
+
+Named here rather than left to a later reader, with the requirement and
+acceptance each lands under, so the plan stage can size them separately:
+
+| Item | What happens to it | Landing requirement |
+|---|---|---|
+| `marketplace-packaging.md:364`, now `:366` — derives the bundled population from the glob `skills/*/tools/*.py` and asserts `cmp` exit 0 / `test ! -L` per derived pair | after the removal the glob is **empty**, so the item passes **vacuously** — a checklist item that checks nothing while reading as green. Class B vacuity newly introduced *into a gate* by this cycle's own removal, which is the exact defect class this cycle exists to close. **Clause excised, item survives** — the deriving clause goes, not the item: its `git log --follow` and two-sided loss-check clauses are REQ-PKG-MARKETPLACE-006's surviving half (`[Updated: 2026-09-21b]`), and retiring the item whole would delete the only live pin for them. Not left to pass over the empty set either | REQ-PKG-CONSUMERGEOMETRY-005 acceptance 5 |
+| `marketplace-packaging.md:365`, now `:367` — asserts at least one drift-sweep invocation under the skills tree resolves to the **bundled** copy and that the file it names exists | goes **false**, not vacuous — the safer of the two failures and the one a gate surfaces. **Retired** with the same edit | REQ-PKG-CONSUMERGEOMETRY-005 acceptance 5 |
+| `marketplace-packaging.md:366`, now `:368` — REQ-PKG-MARKETPLACE-007's source freeze, asserted by content identity against the **working tree**, with an accepted alternative naming `HEAD` | neither vacuous nor false: **unpinned**. Both spellings leave the right endpoint open, so once row 4 of the REQ-PKG-CONSUMERGEOMETRY-001 enumeration and the `AGG_FIX` correction edit `plugins/sdd/tools/gc.py`, the item turns red at the next gate — not because the freeze was violated but because it is evaluated outside its own window. **Repinned** to the packaging cycle's end sha `0bdb076`: `git show 3ddfdb3:tools/<tool> \| cmp - <(git show 0bdb076:plugins/sdd/tools/<tool>)`, or equivalently the blob-sha equality | REQ-PKG-CONSUMERGEOMETRY-001 acceptance 5 |
+
+The freeze-item repin is asserted **on that named item** and never as a file-wide
+grep: `HEAD` occurs in this file in unrelated contexts, and "the working tree" has
+no grep spelling at all. That is the same defect
+REQ-PKG-MARKETPLACE-007's own `[Updated: 2026-09-21]` note corrects on the
+requirement side; leaving its spec-side twin unpinned would reproduce it one
+artifact away.
+
+`marketplace-packaging.md:565`, now `:567` (inside Q-IMPL-MARKETPLACE-029's decision text,
+naming the bundled `skills/orchestrate/tools/skill-lint.py`) is a **class A**
+correction under REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2 — made true in place,
+not retired, since that Q-IMPL's decision about the reverted consumer-repository
+extension is otherwise unaffected.
+
+### The dead REQ-PKG-MARKETPLACE-007 comparand travels with this correction
+
+`git diff 3ddfdb3 HEAD -- tools/gc.py tools/telemetry.py` — the un-re-runnable
+form that requirement's `[Updated: 2026-09-21]` note restates — is re-derived
+verbatim in three further places, and nothing else in this delta binds them:
+the **REQ-PKG-MARKETPLACE-007 row of `docs/requirements/traceability.md`** and
+its per-workstream source `docs/ws/marketplace/traceability.md:57` (both class C,
+corrected in place to the pinned blob-sha form, **the source first**), and
+`docs/ws/marketplace/verification.md:59,102,280,457,458` (class B, one appended
+note covering the five). Note `docs/ws/marketplace/traceability.md:56` is the
+REQ-PKG-MARKETPLACE-006 row carrying the bundled-path string and `:57` is the
+REQ-PKG-MARKETPLACE-007 row carrying the dead comparand — two different rows, two
+different corrections.
+
+**The aggregate's line numbers are cited by requirement id, not by number.**
+REQ-PKG-CONSUMERGEOMETRY-005 cites `docs/requirements/traceability.md:317` and
+`:318`; the aggregate was regenerated at `71998e4` (six new `consumer-geometry`
+rows), so the REQ-PKG-MARKETPLACE-006 row is now `:323` and the
+REQ-PKG-MARKETPLACE-007 row `:324`. **Both numbers can move again before the
+implement stage**, because the aggregate is regenerated by the orchestrator from
+the per-workstream files whenever any workstream's rows change, and that
+regeneration is outside every stage's write scope. So the two rows are identified
+**by their requirement id** in every criterion below, and the numbers are given
+once, here, as a reading aid only. The per-workstream source's `:56`/`:57` are
+stable — that file is hand-owned by the `marketplace` workstream and nothing
+regenerates it.
+
+**What the REQ-PKG-MARKETPLACE-006 rows' Evidence cell says after the correction
+— specified, not left to the implementer.** For the -007 rows the replacement is
+stated exactly (the pinned blob-sha form); the -006 rows need the same treatment
+or the two sides of the regeneration can disagree. Today that cell names
+`skills/orchestrate/tools/gc.py` and `skills/orchestrate/tools/telemetry.py` as
+the two duplicated copies the `cmp` / `test ! -L` evidence was gathered over.
+**The replacement keeps the historical evidence and dates its retirement**, in
+one cell, in this shape:
+
+> `plugins/sdd/tools/gc.py`, `plugins/sdd/tools/telemetry.py` (bundled copies
+> under `skills/orchestrate/tools/` removed 2026-09-21,
+> REQ-PKG-CONSUMERGEOMETRY-005; duplication evidence historical)
+
+Three properties are why it is worded that way: it names paths that **resolve
+today**, so the row is not an index into nothing; it does **not** claim the
+duplication still holds, which is what removal falsified; and it carries the
+authorising id, so a reader who meets the row knows which cycle retired it
+without opening a verification report. The parenthetical is the **only**
+permitted departure from naming live paths, and it must read identically in the
+per-workstream source and in the aggregate — the source is edited first and the
+aggregate's copy is whatever regeneration produces from it, which is what
+acceptance 4's regenerate-and-diff proves.
+
+### Consumer-unreachable strings corrected as the same family
+
+Documentation-only edits, in scope under REQ-PKG-CONSUMERGEOMETRY-001's
+permission:
+
+- `gc.py`'s `AGG_FIX` string (`gc.py:175`), which tells the reader to run
+  `tools/gc.py --fix traceability-aggregate` — a path that resolves for nobody
+  but a pre-move in-repo operator.
+- the six bare `python3 tools/telemetry.py` sites in `orchestrate`
+  (`USAGE.md:159,439,572`; `references/telemetry.md:484,577,602`).
+
+**The telemetry spelling, decided here, with its reconciliation and its residue.**
+These six differ from `AGG_FIX` in kind: they are operator-facing invocations
+inside a **shipped skill body**, so this spec's §Root resolution for skill-side
+invocations owns them. **Decision: the script path becomes
+`python3 plugins/sdd/tools/telemetry.py`, and the telemetry *file* path stays
+absent — the tool keeps its cwd-relative `.sdd/telemetry.jsonl` default.**
+
+- **Reconciliation with REQ-PKG-MARKETPLACE-007.** That requirement's
+  prohibition is on the telemetry **file** path — "must **not** be given a
+  plugin-relative path, because the telemetry file is written into and read from
+  the operator's repository", and its acceptance is "no telemetry invocation in
+  `skills/` passes a **file path** that begins with a skill or plugin directory".
+  It says nothing about the **script** path, and the drift sweep's sibling
+  requirement REQ-PKG-PACKAGING-009 already re-rooted the *sweep's* script path
+  the same way. The decision therefore touches the script path only and leaves
+  -007's actual binding untouched, which is asserted rather than assumed below.
+- **Reconciliation with REQ-PKG-MARKETPLACE-008.** `plugins/sdd/` is a literal
+  relative path, not the plugin-root environment variable, so the no-plugin-root
+  rule is untouched. -008 is also why the consumer-resolving spelling is
+  unavailable: the one mechanism that would resolve from an installed plugin is
+  the variable -008 forbids in a skill body.
+- **The residue, stated because a grep-satisfying string would hide it.**
+  `plugins/sdd/tools/telemetry.py` resolves **in this repository, from the
+  repository root** — which is what REQ-PKG-CONSUMERGEOMETRY-005 acceptance 7
+  asks ("name a path that exists **in this repository** after the correction") —
+  and resolves for **no consumer of the installed plugin**. This delta does not
+  close the consumer half, and the corrected sites must not be read as though it
+  did. In the one cycle about consumers, that is recorded as an OPEN rather than
+  spelled over.
+
+`OPEN:` **no spelling of a skill-body tool invocation resolves for a consumer of
+the installed plugin.** A bare relative path resolves against the operator's cwd
+(where no `tools/` exists); a `plugins/sdd/`-prefixed path resolves only in a tree
+laid out like this repository; and the plugin-root variable, the only mechanism
+that would resolve from an installed plugin, is forbidden in a skill body by
+REQ-PKG-MARKETPLACE-008 on the ground that its expansion in skill-body text is
+unattested. Blocking constraint: either an attested skill-body expansion for the
+plugin root, or a requirement authorising some other mechanism — neither owned by
+any artifact in this cycle. Recorded here rather than left implicit because the
+decided spelling satisfies acceptance 7 while leaving the consumer case exactly
+where it was.
+
+### Consumer-Geometry Acceptance Criteria (removal half)
+
+- [ ] **Gone.** `test ! -d plugins/sdd/skills/orchestrate/tools` succeeds, and a
+  run-time grep for the string `orchestrate/tools` over the repository
+  **excluding `docs/`** returns **zero** matches — where it returns one today, at
+  the shipped `references/drift-sweep.md:36`. Removing the directory and leaving
+  that citation makes this red (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 1).
+- [ ] **Every class (A) and class (C) file is made true — primary half, by named
+  sentence.** For each file REQ-PKG-CONSUMERGEOMETRY-005's table marks **A** or
+  **C**, the file set read from that table at run time, the specific
+  pre-amendment sentence is asserted to no longer assert the directory's
+  existence. The three class (A) spec sentences are quoted here so the assertion
+  has a target that no later prose can move: in `two-root-linter.md` §8, *"the
+  copy bundled under `skills/orchestrate/tools/` (REQ-PKG-MARKETPLACE-006's
+  duplicated-not-symlinked rule) would then run"*; in this file's
+  Q-IMPL-MARKETPLACE-029, *"delete the bundled
+  `skills/orchestrate/tools/skill-lint.py`"*; in `pre-commit.md`'s
+  Q-IMPL-MARKETPLACE-019, *"`skills/orchestrate/tools/gc.py` and
+  `skills/orchestrate/tools/telemetry.py` do not exist at the
+  rename-chunk-close sha"*. **All three span line breaks in their source files,
+  so the match is whitespace-normalised** as §The shape every string criterion in
+  this delta takes specifies. Each is present and uncorrected today, which is what
+  makes this red before the change; adding a row to the table without correcting
+  its file makes it red after (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2).
+- [ ] **Secondary half — residual grep, with both exemptions stated.** For each
+  class (A)/(C) file, a run-time grep for `skills/orchestrate/tools` returns zero
+  matches outside (i) a fenced code block and (ii) that file's own
+  `## Consumer-Geometry Amendment` section, and every occurrence inside the
+  exempted section is a **citation of a site to be corrected** rather than an
+  assertion that the directory exists. §The shape every string criterion in this
+  delta takes gives the reasoning; a live claim reintroduced inside an amendment
+  section is what the bounded half exists to catch. **Class (B) files are
+  deliberately outside this grep's scope** — they keep their original sentences by
+  policy, and the preserved originals hold unfenced occurrences, so a
+  whole-repository grep could never return zero while the policy was obeyed
+  (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2).
+- [ ] **Every class (B) record carries its note, and its original survives.** For
+  each file the table marks **B**: (i) a `[Superseded 2026-09-21 —
+  REQ-PKG-CONSUMERGEOMETRY-005` note appears within three lines of each falsified
+  sentence, and (ii) the original sentences are **unchanged**, asserted by
+  `git diff` over that file **across the correction commit alone** — never an
+  open-ended diff against a later `HEAD`, which would measure whatever else
+  touched the file — showing insertions only and zero deletions. A
+  `trailing-whitespace` / `end-of-file-fixer` deletion in an otherwise
+  insertion-only edit is a hook artefact: re-assert over the commit with those
+  hook changes staged separately. Rewriting an original in place makes (ii) red;
+  correcting the prose without the note makes (i) red — opposite directions, which
+  is how the policy is enforced rather than stated
+  (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 3).
+- [ ] **The dead comparand is corrected on both sides of the regeneration.**
+  `docs/ws/marketplace/traceability.md:57` and
+  the **REQ-PKG-MARKETPLACE-007 row** of `docs/requirements/traceability.md`
+  — located by its requirement id, never by line number, because the aggregate is
+  orchestrator-regenerated and its numbering moves (§The dead comparand) — carry
+  the pinned blob-sha form and no `3ddfdb3 HEAD` spelling. **The
+  REQ-PKG-MARKETPLACE-006 rows** on both sides carry the Evidence replacement
+  §The dead comparand specifies, character-for-character identical to each other.
+  Regenerating the aggregate from the per-workstream file afterwards leaves it
+  byte-identical, asserted by **running** the regeneration and diffing.
+  Correcting only the aggregate makes this red at the next regeneration; letting
+  the two -006 cells drift apart makes the diff non-empty, which is the same
+  failure one row over (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 4).
+- [ ] **Neither spec-checklist assertion survives — one by excision, one by
+  retirement.** Stated in the two-part shape of §The shape every string criterion
+  in this delta takes, because the amendment writes the glob into this very file
+  and a file-wide grep would therefore be decided by this cycle's own prose.
+
+  **Primary, by named site.** (i) The item now at `:366` no longer derives a
+  bundled population: its first clause — "every file matching
+  `skills/*/tools/*.py` paired with the **suite-root** file of the same basename
+  … and for **each** derived pair `cmp` exits 0 and `test ! -L` succeeds" — is
+  **excised**, and the item survives. This is a **clause-level excision, not a
+  retirement**, exactly as `two-root-linter.md:522-523` is specified in §CG-9:
+  the item's remaining clauses — `git log --follow` resolving every post-change
+  `plugins/sdd/tools/*.py` to pre-change history, and the two-sided loss check
+  whose sides are spelled separately across the move commit — are
+  REQ-PKG-MARKETPLACE-006's **surviving half**, which its
+  `[Updated: 2026-09-21b]` note preserves in terms ("no tool is lost from the
+  suite's `tools/` directory, compared by identity rather than by name").
+  Retiring the item whole would delete the only live pin for an Approved clause
+  this cycle does not supersede. (ii) The item now at `:367` — asserting a
+  drift-sweep invocation resolves to the bundled copy — is **retired whole**,
+  because it rests entirely on the superseded duplication clause.
+
+  **Secondary, residual.** A run-time grep of
+  `docs/spec/marketplace-packaging.md` for the glob returns matches only inside a
+  fenced code block or inside this file's own `## Consumer-Geometry Amendment`
+  section — the same two exemptions, with the same bound: every occurrence inside
+  the amendment must be a **citation of a site to be corrected**, never an
+  assertion that a bundled population is derived.
+
+  **Why both halves are stated separately:** excising (i) and retiring (ii) are
+  different edits with different failure modes. Leaving (i)'s clause in place
+  makes it pass **vacuously** after the removal — a checklist item that checks an
+  empty set while reading as green — and retiring (i) instead of excising it
+  destroys the surviving loss check. Doing either one alone fails this criterion
+  (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 5).
+- [ ] **The freeze item is repinned, asserted on the named item.**
+  The freeze item's comparand names `0bdb076` as its right
+  endpoint, in place of the working tree / `HEAD` it names today, and the
+  equivalent accepted form is repinned with it. Editing `gc.py` under
+  REQ-PKG-CONSUMERGEOMETRY-001's permission and leaving that item unpinned makes
+  the next gate red, which is how this fails if it is skipped
+  (REQ-PKG-CONSUMERGEOMETRY-001 acceptance 5).
+- [ ] **No invocation regressed *by the removal*.** `python3
+  plugins/sdd/tools/gc.py --report --root .` and the commit gate's hooks raise no
+  new finding and exit with the same status as before the removal, since no
+  working invocation referenced the bundled copy; a hook that breaks falsifies the
+  reachability finding the removal rests on. Evaluated **across the removal commit
+  alone**, never across the cycle. This command is **already nested** — the
+  in-repo copy's `default_suite_root()` is `<repo>/plugins/sdd` — so there is no
+  degraded default here to pin (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 6).
+- [ ] **The corrected strings resolve, and -007's binding is untouched.**
+  `AGG_FIX` and the six telemetry invocation sites name a path that exists in this
+  repository after the correction, asserted by resolving each named path at run
+  time from the repository root — a path that does not resolve fails this.
+  **Separately**, the REQ-PKG-MARKETPLACE-007 acceptance the correction could
+  break is re-run: no telemetry invocation under `plugins/sdd/skills/` passes a
+  **file path** beginning with a skill or plugin directory, asserted by grep. Any
+  repair that moves the script path by also giving the tool a plugin-relative
+  `--file` argument makes that half red, which is the construction that
+  distinguishes the decided spelling from the one -007 forbids
+  (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 7; REQ-PKG-MARKETPLACE-007, unchanged).
+- [ ] **The consumer residue is recorded, not closed.** The `OPEN:` above appears
+  in this spec and names its blocking constraint. Deleting it while the six sites
+  still resolve only in this repository makes the record claim a closure that did
+  not happen — a reviewer check, not a tool one
+  (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 7, residue).

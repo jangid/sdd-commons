@@ -9,6 +9,9 @@ requires:
   - REQ-PC-MARKETPLACE-005
   - REQ-PC-MARKETPLACE-006
   - REQ-PC-PACKAGING-001
+  - REQ-PKG-CONSUMERGEOMETRY-001
+  - REQ-PKG-CONSUMERGEOMETRY-005
+  - REQ-PKG-CONSUMERGEOMETRY-006
 ---
 
 # Pre-Commit Gate
@@ -394,3 +397,68 @@ the pairing derived by parsing each local entry's `entry` value rather than
 compared against a pasted list of ids; `pre-commit validate-config` exits 0;
 `pre-commit run --all-files` exits 0 at the close of this cycle
 (REQ-PC-MARKETPLACE-001).
+
+## Consumer-Geometry Amendment (2026-09-21, REQ-PKG-CONSUMERGEOMETRY-005, -006)
+
+**The hook set does not change.** No entry is added, removed or re-rooted by the
+`consumer-geometry` delta, and §The hook set — closed, eight entries stands.
+
+**No assertion is made about the hook set, and that is deliberate.** Every
+committed entry runs an **in-repo** copy of its tool, so every one is already in
+the **nested** geometry and none can be "left on the degraded default". An
+assertion over them would describe a state that cannot occur — the defect class
+this delta exists to eliminate. What would have to be true for such an assertion
+to be falsifiable is that a hook invoked an out-of-tree copy, which none does and
+none should. The only hook-relevant risk that is real is that the derivation of
+`two-root-linter.md` §CG-3 regresses the nested case they all run in, and
+REQ-PKG-CONSUMERGEOMETRY-006 acceptance 4 covers exactly that.
+
+**One record in this file is falsified by the removal.**
+Q-IMPL-MARKETPLACE-019's context paragraph names
+`skills/orchestrate/tools/gc.py` and `skills/orchestrate/tools/telemetry.py` as
+files the packaging chunk creates. REQ-PKG-CONSUMERGEOMETRY-005's table marks this
+file **class (A)** — made true in place, not annotated — so the paragraph is
+restated against the removal: those two paths no longer exist, and the
+`--name-only` window's bundled-tool half no longer has a population. The Q-IMPL's
+**decision** is unaffected; only its context sentence is. Cited at `:274` before
+this amendment was appended; appending it added three lines to the frontmatter's
+`requires:` list, so the sentence is now at `:277`. **The content, not the number,
+identifies the site**: the criterion below quotes it.
+
+### Consumer-Geometry Acceptance Criteria
+
+- [ ] **Primary, by named sentence.** Q-IMPL-MARKETPLACE-019's context sentence
+  *"`skills/orchestrate/tools/gc.py` and `skills/orchestrate/tools/telemetry.py`
+  do not exist at the rename-chunk-close sha"* no longer asserts those paths as a
+  population the `--name-only` window measures — corrected the way
+  `marketplace-packaging.md` §The three disposition classes specifies for a
+  Q-IMPL **Context** sentence (re-tensed, with an inline dated clause; the
+  recorded context is not rewritten), and matched **whitespace-normalised**
+  because the sentence spans a line break. It is present and uncorrected
+  today — that is what makes this red before the change — and removing the
+  directory while leaving the paragraph makes it red after
+  (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2, class A).
+- [ ] **Secondary, residual grep with both exemptions.** A run-time grep of
+  `docs/spec/pre-commit.md` for `skills/orchestrate/tools` returns zero matches
+  outside (i) a fenced code block and (ii) this §Consumer-Geometry Amendment,
+  which cites the string in order to say which sentence to correct; every
+  occurrence inside this section is such a citation, never an assertion that the
+  directory exists. **No baseline count is written here, deliberately**: this
+  section's own citation lines change whenever it is edited, and a written count
+  has already been wrong twice. The assertion is derived instead — *exactly one*
+  matching line lies **before** this section's heading (the
+  Q-IMPL-MARKETPLACE-019 sentence), every other match lies after it, and the
+  correction is what takes that one to zero. Both halves are computed from the
+  heading's line number at run time.
+  `marketplace-packaging.md` §The shape every string criterion in this delta
+  takes gives the reasoning for the two-part form
+  (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2, class A).
+- [ ] The committed hook set is byte-identical across the cycle, asserted by
+  `git diff` over `.pre-commit-config.yaml`'s hook entries from the cycle's entry
+  sha, **except** for any change the delta explicitly authorises — of which there
+  are none. Adding or re-rooting a hook under this delta makes this red
+  (REQ-PKG-CONSUMERGEOMETRY-006 closing note; REQ-PC-PACKAGING-001 unchanged).
+- [ ] `pre-commit run --all-files` exits 0 at the close of the cycle, and both
+  tool self-tests remain hook entries rather than being moved to the
+  run-explicitly set (REQ-PKG-CONSUMERGEOMETRY-001 acceptance 4;
+  REQ-PKG-CONSUMERGEOMETRY-005 acceptance 6).

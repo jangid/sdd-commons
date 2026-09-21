@@ -17,6 +17,8 @@ requires:
   - REQ-LINT-HARNESSP6-002
   - REQ-LINT-HARNESSP6-003
   - REQ-PKG-PACKAGING-005
+  - REQ-PKG-CONSUMERGEOMETRY-003
+  - REQ-PKG-CONSUMERGEOMETRY-004
 ---
 
 # Skill Lint v5
@@ -651,3 +653,113 @@ reports zero failing blocks; run over the suite source it reports **two**
 failing blocks — the two sites named above, neither of which contains
 `ungated`. Making them pass is the REQ-PKG-PACKAGING-005 implement task, and
 this criterion is discharged only when the scan is clean over **both** sides.
+
+## Consumer-Geometry Amendment (2026-09-21, REQ-PKG-CONSUMERGEOMETRY-003, -004)
+
+The linter's two-root behaviour under a **disjoint** suite root is specified in
+`two-root-linter.md` §Consumer-Geometry Amendment — the `--suite-root` surface
+(§CG-2), the corpus-root derivation and its three precedence tiers (§CG-3), the
+`GEOMETRY:` token and the `— NOTHING SWEPT` suffix (§CG-6). This section records
+only what touches **this** spec's own text.
+
+### The summary-line pins: three sites here, not two
+
+REQ-PKG-CONSUMERGEOMETRY-004's interaction note names `:427` and `:452` in this
+file. A run-time grep finds a **third**, at `:127`, in §Size Warn-Clean Baseline.
+
+**Line numbers cited in this section, reconciled once.** Those three are
+pre-amendment. Appending this section added two lines to the frontmatter's
+`requires:` list, so all three have shifted by **+2**: the §Size Warn-Clean
+Baseline pin is now `:129`, and the two §Verification pins are now `:429` and
+`:454`. **The content, not the number, identifies each site** — all three are
+`OK: N file(s) clean` pins with no warning clause, and the criterion below is
+stated against that string so it stays decidable after any further shift. The
+requirements-side twin, `docs/requirements/integration/skill-lint.md:276`, is in
+another file and is unshifted.
+
+The `— NOTHING SWEPT` suffix is **additive and conditional** — appended only when
+`len(skill_files()) == 0` — and `N` is non-zero on this corpus, so none of the
+four pins is expected to need amendment. The exposure is nonetheless real: an
+**end-anchored** match on that line would break on the zero-sweep path and on the
+`FAIL:` path. The implement stage **confirms** each of the four is a prefix or
+substring match rather than an end-anchored one, recorded as an observation with
+its command; amending any that turns out to be end-anchored is in scope under
+REQ-PKG-CONSUMERGEOMETRY-004 rather than a surprise at the gate.
+REQ-LINT-HARNESSP5-001's "no `0 warning(s)` expectation" rule is untouched by
+either the suffix or this check.
+
+**One of the three pins also names a path that exists under neither spelling.**
+The §Verification checklist pin invokes `python3 tools/sdd-skill-lint.py` — the
+pre-rename basename at the pre-move root, so it resolves neither before the move
+(the file is `tools/skill-lint.py` after REQ-NAME-MARKETPLACE-003) nor after it
+(the suite root is `plugins/sdd/tools/`). The implement stage is already reading
+that exact line for the end-anchoring check, so the dead path is corrected to
+`python3 plugins/sdd/tools/skill-lint.py` **in the same read**, rather than
+scheduled as a separate sweep. This is a spelling repair on a path, not a change
+to what the criterion asserts, and it is in scope under
+REQ-PKG-CONSUMERGEOMETRY-004 for the same reason the end-anchoring confirmation
+is. Other `tools/sdd-skill-lint.py` occurrences elsewhere in this spec are **not**
+in scope here — they are pre-existing and belong to whatever cycle next touches
+them.
+
+### The `GEOMETRY:` token is not a finding
+
+The token is emitted on its own line immediately before the summary, including
+on runs with findings. It is not a finding, carries no severity, is not counted
+in `N`, and does not participate in §Finding Shape and Remediation. Its three
+values are `nested`, `equal` and `disjoint`; the spelling
+`nested | equal | disjoint` appears in no output.
+
+**"Every run" is scoped to runs that print a summary.** The token is emitted
+**iff** the run prints an `OK:` or `FAIL:` summary line, immediately before it —
+one token per summary, never two, never one without the other. That excludes
+`--self-test`, whose `SELF-TEST OK:` / `SELF-TEST FAIL:` banner is not a corpus
+summary and which prints none; a self-test *case* asserts on the token by
+constructing a sweep and reading that sweep's output, not by grepping the
+self-test's own stdout. Whether `--print-population` prints a summary is settled
+by Q-IMPL-PACKAGING-003, not restated here: the rule follows the summary
+wherever it goes, so no second statement can drift from it. Without this scoping
+a fixture asserting "exactly one `GEOMETRY:` line" over a self-test run would be
+undecidable.
+
+### The amended F11 target is unchanged by this delta
+
+§Two-Root Amendment's re-scoping of the F11 sentence to the **ungated** set, with
+its two named exceptions, stands exactly as REQ-PKG-PACKAGING-005 left it. The
+`consumer-geometry` delta rebinds **no** rule table: the 56 suite-gated rows keep
+the suite-root binding of `two-root-linter.md` §3, and C12.1 passes unmodified.
+What changes is signalling — which root those rows were evaluated against is now
+printed — not scope.
+
+### Consumer-Geometry Acceptance Criteria
+
+- [ ] The four summary-line pins — the three `OK: N file(s) clean` pins in this
+  file (`:127`, `:427`, `:452` pre-amendment; `:129`, `:429`, `:454` after it, the
+  string identifying them either way) and
+  `docs/requirements/integration/skill-lint.md:276` — are each read at implement
+  time and confirmed not end-anchored, recorded as an observation with its
+  command; any that is end-anchored is amended. **In the same read**, the
+  §Verification checklist pin's dead `python3 tools/sdd-skill-lint.py`
+  invocation is corrected to `python3 plugins/sdd/tools/skill-lint.py`, asserted
+  by resolving the named path at run time — it resolves under neither the pre-
+  nor the post-move spelling today, which is what makes that half red before the
+  change. Leaving an end-anchored pin in place makes the zero-sweep and `FAIL:`
+  runs of REQ-PKG-CONSUMERGEOMETRY-004 acceptances 1 and 4 red against it; a
+  still-unresolvable path makes the other half red
+  (REQ-PKG-CONSUMERGEOMETRY-004 interaction note, extended here from two named
+  sites to three).
+- [ ] A run over this corpus emits **exactly one** `GEOMETRY:` line, on its own
+  line, immediately before the summary, and that line contributes to no finding
+  count. The no-contribution half is asserted **by mutation**, the shape the rest
+  of the delta uses: on a temporary copy with the emission removed, the finding
+  count and the `N` of the summary line are unchanged from the unmutated run —
+  "without the token present" has no construction once the token lands, so the
+  mutation supplies one. A run of `--self-test`, which prints no summary, emits
+  **no** token. Emitting the token inside a finding, counting it in `N`, emitting
+  it only on the clean path, or emitting it from a run with no summary makes this
+  red (REQ-PKG-CONSUMERGEOMETRY-004 acceptance 2 and its negative).
+- [ ] `grep -n 'no-suite-rules' plugins/sdd/tools/skill-lint.py` is still empty
+  and every `suite_rules=False` construction site is still inside the self-test —
+  REQ-PKG-PACKAGING-003 leg (i), which this delta preserves while superseding its
+  `--suite-root` deferral. Adding a disable switch alongside the new surface makes
+  this red (REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4, second half).
