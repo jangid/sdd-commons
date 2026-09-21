@@ -10,8 +10,13 @@ plan_ref: docs/ws/marketplace/plan.md
 
 ## Summary
 
-**This is a re-verification at `d2741f1`, not the first pass.** The first pass
-ran at `a576316`; since then a red round found four breaks, all four were
+**This is a re-verification at `2530104` (HEAD), not the first pass.** The
+first pass
+ran at `a576316`; since then two red rounds and an operator-directed reversal
+have landed (`d2741f1`, `143ecdc`, `2530104`). The paragraph that follows
+records the state at `d2741f1` and **is partly withdrawn — see ¶3 below**; the
+numbers in it that survive have been re-derived at HEAD. Since the first pass a
+red round found four breaks, all four were
 repaired, and an operator-directed change made the bundled drift sweep usable
 from a consumer repository. Four acceptance criteria were **amended** by those
 repairs, so the earlier pass's assertions about them no longer describe what the
@@ -19,14 +24,20 @@ criteria say. Every one of the 37 `REQ-*-MARKETPLACE-*` requirements has been
 re-walked against the criteria **as they now read**, with both sides of every
 comparison derived at run time and no corpus count carried forward as a literal.
 
-Result: **37/37 pass, 0 Critical, 0 Material, 6 Minor.** The eight plan chunks
-are complete (59 typed tasks, all `[x]`, 0 open), the quality gates are green,
-and the regression diff against the workstream branch point `7be04f8` is 95
-files with no path outside this cycle's declared areas. Two assertions the first
-pass made are no longer true as written and are corrected here rather than
-repeated: the bundled tools are no longer byte-frozen against `3ddfdb3` (the
-sweep carries one provenance conditional, which is exactly what the narrowed
-REQ-PKG-MARKETPLACE-007 now permits), and the skill-body spec-citation count is
+Result: **37/37 pass, 0 Critical, 0 Material, 7 live Minor** (re-derived at
+HEAD: §Issues Found lists 8 Minor bullets, of which 1 is struck as `REVERTED`).
+The eight plan chunks are complete (59 typed tasks, all `[x]`, 0 open), the
+quality gates are green (all eleven re-run at HEAD, not inherited), and the
+regression diff against the workstream branch point `7be04f8`, re-measured at
+HEAD, is **94 files changed, 11052 insertions(+), 692 deletions(-)** with no
+path outside this cycle's declared areas. Two assertions the first pass made are
+no longer true as written and are corrected here rather than repeated:
+**[WITHDRAWN 2026-09-21 by the reversal — see ¶3; at HEAD the bundled tools
+*are* byte-frozen against `3ddfdb3` again and REQ-PKG-MARKETPLACE-007 reads
+unamended]** ~~the bundled tools are no longer byte-frozen against `3ddfdb3`
+(the sweep carries one provenance conditional, which is exactly what the
+narrowed REQ-PKG-MARKETPLACE-007 now permits)~~, and the skill-body
+spec-citation count is
 151 at HEAD rather than 150 — the one added citation arrived with the red repair,
 **after** the packaging change the criterion is scoped to, which still measures
 150 == 150. Two new Minors are recorded that the first pass did not have.
@@ -58,8 +69,12 @@ red round is open.
 
 ## Quality Gates
 
-All run from the worktree root at `d2741f1`, with nested `.worktrees/` and
-`.git/` pruned on **relative** path parts.
+All **re-run at HEAD `2530104`** — the reversal commit itself changed
+`tools/gc.py` and `tools/skill-lint.py`, which are two of these gates' own
+subjects, so the earlier `d2741f1` run is not inherited. Run from the worktree
+root, with nested `.worktrees/` and `.git/` pruned on **relative** path parts.
+Every row below was observed in that HEAD re-run; the notes are the HEAD
+outputs.
 
 | Gate | Status | Notes |
 |------|--------|-------|
@@ -245,17 +260,32 @@ only two differences a line-number shift and the designed
 
 ## Red Round 2 — Dispositions
 
-Four breaks (`R1`, `R2`, `R4`, `R5`); all four **fixed**, none accepted. Each is
+Four breaks (`R1`, `R2`, `R4`, `R5`); all four **fixed**, none accepted. The
+numbering gap is not an omission: round 2's `R3` was a **HELD**, not a break, so
+it has no disposition among the four below — the dispositions enumerate the
+round's `BROKEN` findings only. Each is
 recorded with the command that proves it, re-run after the repair. All mutation
 happened in `$TMPDIR` clones; the worktree was never mutated.
 
 ### R1 (BROKEN → fixed) — the provenance conditional took the OFF branch inside this repository
 
-`Gc.bundled_run()` keyed on where the running **script** lived, so the bundled
-copy sweeping **this** repository — the invocation the driver skill documents —
-silently disabled this repository's own REQUIRED and version-gate contract rows.
+> **Withdrawn whole by the reversal (2026-09-21).** R1's entire subject was the
+> root-keyed provenance predicate, and the reversal removed it. Everything below
+> is **kept as the record of what was tried** and is **no longer true at HEAD**:
+> the predicate is not keyed to the root being swept (there is no predicate);
+> `bundled_run()` is not "removed rather than left dead" in a surviving design
+> (the whole extension is gone); the before/after table describes code that no
+> longer exists; and the consumer measurement it re-confirms has been superseded
+> by the HEAD measurement in §Resulting behaviour (exit **2**, linter missing).
+> Re-derived at HEAD: `git diff 3ddfdb3 HEAD -- tools/gc.py` is **0 lines** and
+> `grep -n 'suite_root\|bundled_run' tools/gc.py` has **no match**.
 
-**Fix**: the predicate is keyed to the **root being swept** — suite rules are on
+~~`Gc.bundled_run()` keyed on where the running **script** lived, so the bundled
+copy sweeping **this** repository — the invocation the driver skill documents —
+silently disabled this repository's own REQUIRED and version-gate contract
+rows.~~ *(withdrawn — see banner)*
+
+**Fix** *(withdrawn — the fix below was reverted whole)*: the predicate is keyed to the **root being swept** — suite rules are on
 iff `<root>/tools/skill-lint.py` is a file. `bundled_run()` is removed, not left
 dead. Recorded as Q-IMPL-MARKETPLACE-027; the §One narrowing design text and the
 REQ-PKG-MARKETPLACE-007 criterion's parenthetical were corrected with it.
@@ -275,7 +305,9 @@ The two now agree by construction, and the bundled copy names the seeded
 findings rather than one because the same substitution also drops a REQUIRED
 pattern below its minimum.)
 
-**Consumer measurement re-confirmed**: a scratch `git`-initialised repository
+**Consumer measurement re-confirmed** *(withdrawn 2026-09-21 — superseded by
+the HEAD measurement: exit **2**, `error: linter missing`)*: a scratch
+`git`-initialised repository
 with a `docs/` corpus and no `tools/` directory, swept with the bundled
 invocation, exits **1** (non-2) and its rule set is `[structure]`,
 `[traceability-aggregate]` — **no** finding from a rule keyed to this
@@ -398,9 +430,17 @@ each, now also enforced by the `bundled-drift` rule itself.
 
 ## Red Round 3 — Dispositions: closed BY REVERSAL
 
-Round 3 raised **three** breaks. All three lie inside the consumer-repository
-extension — the bundled linter, the drift sweep's provenance predicate, and the
-`bundled-drift` rule that grew out of it. None is closed by a repair. All three
+Round 3 raised **three** breaks, listed here by id so each maps to its closure:
+
+| Id | What it claimed |
+|---|---|
+| `R1` | this repository's suite-specific contract rows run against **any** foreign tree that happens to contain a file at `tools/skill-lint.py`, and the predicate is spoofable by symlink, since `is_file()` follows links |
+| `R2` | the bundled-drift derivation is blind to nested and non-`.py` copies, and the reverse direction (a bundled copy with no root original) is unpoliced |
+| `R3` | deleting **every** bundled tool empties the derived population, so the criterion passes vacuously |
+
+All three lie inside the consumer-repository extension — the bundled linter, the
+drift sweep's provenance predicate, and the `bundled-drift` rule that grew out
+of it. None is closed by a repair. All three
 are closed **by reversal**: on 2026-09-21 the operator directed that the whole
 extension be removed and the consumer-repository question be taken into a later
 cycle, because the predicate had by then failed in both directions and what it
@@ -408,7 +448,9 @@ needs is an owning-repository marker the swept corpus carries — a design, not 
 third patch.
 
 The closure evidence is common to all three, because the code each break
-concerned no longer exists:
+concerned no longer exists — `R1`'s predicate, `R2`'s derivation and `R3`'s
+derived population were all removed by the same reversal, so one table closes
+all three and each row below is a `reproduce:` any reader can run:
 
 | Claim | `reproduce:` | outcome |
 |---|---|---|
@@ -562,46 +604,78 @@ dated marker sits on `L` or `L-1`.
 The glob `docs/ws/*/verification.md` returned **7** paths and **7** rows were
 walked — the two counts are equal and both derived from the same run.
 
-| Path (§Next Steps) | Phrase hits | Live |
-|---|---|---|
-| `docs/ws/default/verification.md` | 3 | 0 |
-| `docs/ws/harness-p2/verification.md` | 0 | 0 |
-| `docs/ws/harness-p3/verification.md` | 12 | 0 |
-| `docs/ws/harness-p4/verification.md` | 5 | 0 |
-| `docs/ws/harness-p5/verification.md` | 6 | 0 |
-| `docs/ws/harness-p6/verification.md` | 0 | 0 |
-| `docs/ws/marketplace/verification.md` | 0 | 0 |
-| `docs/requirements/index.md` §Out of Scope | 0 | 0 |
+| Path (§Next Steps) | Phrase hits | Live | Run |
+|---|---|---|---|
+| `docs/ws/default/verification.md` | 3 | 0 | both |
+| `docs/ws/harness-p2/verification.md` | 0 | 0 | both |
+| `docs/ws/harness-p3/verification.md` | 12 | 0 | both |
+| `docs/ws/harness-p4/verification.md` | 5 | 0 | both |
+| `docs/ws/harness-p5/verification.md` | 6 | 0 | both |
+| `docs/ws/harness-p6/verification.md` | 0 | 0 | both |
+| **`docs/ws/marketplace/verification.md` (this report)** | **1 → 0** | **0 → 0** | **before → after the re-shaping below** |
+| `docs/requirements/index.md` §Out of Scope | 0 | 0 | both |
 
-**Zero live occurrences.** Stated with the qualification the spec itself
-requires: phrase coverage is a **screen over observed backlog vocabulary, not a
-proof of absence**. A deferral written in vocabulary no cycle has used yet
-passes it, and this zero must not be restated as an absence of latent work. The
-one item in this report's §Next Steps that reads as a future cycle carries its
-bracketed dated `[closed 2026-09-21 …]` marker on the same line as the phrase,
-which is what makes it settled rather than live.
+**The row this report published for itself was wrong, and is corrected here.**
+The earlier table asserted `0 | 0` for this file. A re-run at HEAD over §Next
+Steps as it then stood returned **1 phrase hit**, not 0: the reversal-added
+bullet opening `Carried to a later cycle (operator decision, 2026-09-21)`, which
+matches phrases 2 (`carried to`) and 6 (`a later cycle`). A table must never
+assert a zero it did not measure, so the measured row is published.
+
+**Its liveness was 0 only by an accident of adjacency, which is itself the
+finding.** The bullet's own date sits in **parentheses**, which the marker regex
+does not match. The mechanism nevertheless scored it **not live**, because the
+rule examines `L` and `L-1` and nothing else, and `L-1` happened to be the
+*preceding bullet*, whose own `**[closed 2026-09-21 …]**` marker matched. That is
+exactly the leakage the spec warns about when it says a block-level marker
+introducing several items must not satisfy the rule for those items: read
+mechanically the item passed; read as the spec intends, it did not. Independently
+of the screen, `docs/spec/requirements-artifacts.md` §`## Out of Scope`
+Discipline states in prose that a cycle's §Next Steps must contain **no item
+phrased as carried to a later cycle** — so the bullet was a violation whatever
+the counter said.
+
+**The re-shaping and the second run.** The bullet was rewritten as a **settled
+exclusion with its reasoning** — what this cycle decided and why, with the
+two-round evidence, asserting nothing about what any later cycle will do — and
+given a bracketed dated `**[closed 2026-09-21 …]**` marker on its own line in the
+form the regex recognises. Re-running the identical screen at HEAD after the
+re-shaping returns **0 phrase hits, 0 live** for this file; every other row is
+byte-identical across the two runs. Both runs used the same extractor, the same
+phrase table and the same marker regex, read from
+`docs/spec/requirements-artifacts.md` rather than retyped.
+
+**Result: 0 live occurrences across all 8 scopes, after the fix.** Stated with
+the qualification the spec itself requires: phrase coverage is a **screen over
+observed backlog vocabulary, not a proof of absence**. A deferral written in
+vocabulary no cycle has used yet passes it, and this zero must not be restated
+as an absence of latent work — as this very section demonstrates, the screen's
+zero was wrong once in this report already.
 
 ## User-Perspective Validation
 
 | Scenario | Status | Notes |
 |---|---|---|
 | Operator installs the plugin from a real session | pass (cited) | Chunk 7 task 2: marketplace added, plugin installed to a separate cache copy pinned at `0d2d71eb…`, 10 skills + 3 agents listed, all ten lazily-read `references/*.md` resolved from the installed copy |
-| Consumer runs the bundled drift sweep in **their own** repository | pass (re-measured) | freshly built scratch repo with no `tools/`: exits 1, 3 findings, all derived from the consumer's own corpus, none from this repository's contract rows. Before the repair the same invocation died with `can't open file '<consumer>/tools/gc.py'`; before the provenance conditional it reported 40 spurious `[required]` findings |
-| Consumer's error paths are honest rather than misleading | pass | the failure mode the operator decision removed was a **misleading success** (40 contract-row findings about a stranger's tree, indistinguishable from real ones). What remains is a clean, consumer-attributable finding list |
+| Consumer runs the bundled drift sweep in **their own** repository | **documented limitation, not pass** (re-measured at HEAD) | `git clone --no-hardlinks` into `$TMPDIR`, then a scratch `git init` consumer repo with `docs/.sdd-version` = `4`, `docs/requirements/index.md`, a copy of `skills/orchestrate/` and **no** `tools/` directory: `python3 skills/orchestrate/tools/gc.py --report --root .` prints `error: linter missing — expected <root>/tools/skill-lint.py` and exits **2**. The row the earlier pass recorded here (exit 1, 3 consumer-derived findings) measured the reverted extension and is withdrawn. Recorded as the "restored limitation" Minor under §Issues Found |
+| Consumer's error path is a clean refusal rather than a misleading success | pass (re-argued, not as written) | the honest-failure argument survives the reversal but not in its earlier form. At HEAD the consumer run does **not** produce a finding list at all: it refuses in one line naming the exact missing path, and exits 2 — a distinguishable failure. What the reversal averted is the alternative that was measured and rejected in-cycle: bundling the linter alone turned the refusal into 42 findings, 40 of them `[required]` contract rows about a stranger's tree, indistinguishable from real ones. A clean exit 2 is the better of the two observed behaviours; it is not a working sweep |
 | Contributor runs the commit gate for the first time | pass with a sandbox artefact | `pre-commit validate-config` exit 0; `pre-commit run --all-files` passes five of six hooks with a clean tree, `end-of-file-fixer` blocked only by this sandbox's write denial on `.claude/settings.json` (which already ends in `\n`) |
 | Maintainer narrows the retired-prefix scope by accident | pass | the self-test now fails loudly with a per-area `seeded but unwalked` line, demonstrated by mutation above. Before the repair this silently printed `SELF-TEST OK` |
 | Reader follows a spec citation from an installed skill body | pass, documented | the citations are bare `docs/spec/…` paths that resolve in this repository, not in an install; `CONTRIBUTING.md` §Where the contracts live says so explicitly |
-| Consumer repository with no `skills/` directory | pass (recorded, not fixed) | one additional `[structure] skills/ directory not found` finding — consumer-derived, not a contract row. Carried from the earlier measurement; the scratch repo built here deliberately included a `skills/` directory, so this row cites rather than re-measures |
+| Consumer repository with no `skills/` directory | **unable to verify** | unmeasurable at HEAD: the sweep exits **2** before any structural sweep runs (row 2), so no `[structure] skills/ directory not found` finding can be observed from a consumer repository at all. The earlier `pass (recorded, not fixed)` presumed the sweep ran and is withdrawn with the extension it measured |
 
 ## Regressions
 
 - **None found.** Regression base is the workstream branch point
   `merge-base(marketplace, main)` = `7be04f8`, not `main` HEAD (marker `4`,
-  REQ-WS-018). `git diff --stat 7be04f8 HEAD` = **95 files changed, 11962
-  insertions(+), 694 deletions(-)**. Filtering the changed path list for anything
+  REQ-WS-018). Re-measured at HEAD `2530104`: `git diff --stat 7be04f8 HEAD` =
+  **94 files changed, 11052 insertions(+), 692 deletions(-)** (the earlier
+  `95 files / 11962 / 694` was measured at `d2741f1`, before the reversal).
+  Filtering the changed path list for anything
   outside this cycle's declared areas (`skills/`, `tools/`, `agents/`, `docs/`,
   `CLAUDE.md`, `README.*`, `CONTRIBUTING.md`, `LICENSE`,
-  `.pre-commit-config.yaml`, `.claude-plugin/`, `.gitignore`) leaves **0 paths**.
+  `.pre-commit-config.yaml`, `.claude-plugin/`, `.gitignore`) leaves **0 paths**
+  (re-run at HEAD).
 - Working tree clean (`git status --porcelain` empty) both before and after
   `pre-commit run --all-files`.
 - All eleven quality gates green (one with the documented sandbox artefact).
@@ -639,7 +713,8 @@ which is what makes it settled rather than live.
   break — a misleading success in the first case, a silently disabled rule set in
   the second — so the operator reverted both and carried the question forward.
   What it needs is a marker of the repository that **owns** the suite rules,
-  carried by the swept corpus; that is a design question for a later cycle.
+  carried by the swept corpus — a design question this cycle does not settle and
+  deliberately excludes (§Next Steps records the exclusion and its reasoning).
 - **New in this re-verification.** One drift-sweep invocation under `skills/` is still **cwd-relative**: `skills/verify/SKILL.md:169` spells it `python3 tools/gc.py --report --root .`. It satisfies REQ-PKG-MARKETPLACE-007's letter — it carries an explicit root — and it satisfies REQ-PKG-MARKETPLACE-006's added criterion, which asks only that *at least one* invocation resolve to the bundled copy (8 do). But it is the same class of unreachability R5 found: read out of an installed plugin in a consumer repository that has no `tools/`, that command does not resolve. Behaviour-neutral in this repository. Fix by spelling it `<skill-dir>/tools/gc.py` as the driver skill's eight invocations already do — with the caveat that `skills/verify/` bundles no `tools/` of its own, so the fix needs a decision about where a non-driver skill's bundled copy lives.
 - **New in this re-verification.** The `docs/spec/*.md` citation count over `skills/**/*.md` is **151 at HEAD**, not the 150 the first pass recorded. The delta is one citation added by the R5 repair (`docs/spec/marketplace-packaging.md` §No skill body depends on the plugin-root variable, cited from a driver-skill body). REQ-PKG-MARKETPLACE-009 is scoped to the packaging change and measures 150 == 150 across it, so the criterion holds; this is recorded so the superseded "150 at HEAD" assertion is not inherited as true by a later reader.
 - `CLAUDE.md:251` says marker `3` is "what this repo uses today" while `CLAUDE.md:215` says the repository migrated to marker `4` on 2026-09-17. Pre-existing contradiction, inherited from before this cycle; left alone because §Multi-Workstream Layout (v4) is one of the sections this cycle was forbidden to change in substance (`project-docs.md` §`CLAUDE.md`). Both line numbers re-measured at HEAD.
@@ -666,16 +741,18 @@ cycle, so there is no earlier cycle's report to carry from.
 **Terminal state, re-measured at verification time.** PR #4 against `main` is
 `OPEN` ("Public release as a Claude Code marketplace, plus the pre-commit gate")
 and unmerged. `git ls-remote origin marketplace` resolves to `0d2d71e`, while
-local HEAD is `d2741f1` — the branch is **4 commits ahead of its remote**
-(`56a858a`, `b203613`, `a576316`, `d2741f1`), which includes this report and the
-red repairs. That is a fact about the push, not a defect: the orchestrator pushes
+local HEAD is `2530104` — re-derived at HEAD with
+`git rev-list --count 0d2d71e..HEAD`, the branch is **5 commits ahead of its
+remote** (`b203613`, `a576316`, `d2741f1`, `143ecdc`, `2530104`), which includes
+this report, the red repairs and the reversal. That is a fact about the push, not a defect: the orchestrator pushes
 at the DONE gate. No attribution trailer appears in the PR body or in any of the
 cycle's commits.
 
 ## Next Steps
 
 - **[closed 2026-09-21 — operator decision: accept and document]** Moving `docs/` outside the installed tree in a following cycle: the component list cannot express the exclusion, so a criterion written against the manifest passes while the condition persists — any future assertion must be made against the **materialised install tree**, not the manifest. Cheapest path first: spike whether an exclusion declaration exists before touching the plugin root layout. Recorded as `Q-IMPL-MARKETPLACE-020`.
-- **Carried to a later cycle (operator decision, 2026-09-21): what an installed plugin actually needs, measured against a real install.** One question, two faces — the bundled sweep exits 2 in a consumer repository for want of the contributor-only linter it delegates to, and `docs/` ships inside the install because `"source": "./"` materialises the whole tree. Both were attacked in-cycle from the manifest side and both resisted it: the component list cannot express an exclusion, and a provenance predicate cannot tell whose repository it is sweeping from paths alone. The next cycle should start from a **materialised install tree** and a real consumer repository, and decide whether the suite rules get an owning-repository marker in the swept corpus, whether the linter becomes shippable, or whether the driver stops delegating. Do not re-patch the predicate.
+- **[closed 2026-09-21 — operator decision after red round 3: settled exclusion, not a schedule]**
+  This cycle **does not pursue an owning-repository marker for the suite rules**, and therefore ships the bundled drift sweep as usable only inside this repository. The reasoning, not a date: the provenance predicate was built twice and failed in both directions across two red rounds — keyed to the running script's location it silently disabled this repository's own contract rows under the driver's documented invocation (round 2 `R1`), and keyed to the root being swept it could not tell a stranger's tree from this one, since the only evidence available is the presence of `tools/skill-lint.py`, which any tree may carry and a symlink may fake (round 3 `R1`). Sound provenance needs a marker the swept corpus itself carries, which is a design and not a patch, and this cycle's scope is the packaging rename and the commit gate, not the sweep's provenance model. The resulting limitation is measured and recorded under §Issues Found → Minor (a consumer run exits 2 with `error: linter missing`). Nothing here asserts that the work is scheduled or that anyone will pick it up; two in-cycle attempts were made, both were worse than the limitation, and the exclusion stands on that evidence. The `docs/`-in-the-install question is **not** part of this exclusion — it is closed as an accepted, documented cost by the operator decision recorded in the bullet above.
 - gc note: `skills/verify/SKILL.md:169` — the one remaining cwd-relative drift-sweep invocation in a shipped skill body; decide where a non-driver skill's bundled tool copy lives, then spell it skill-directory-relative.
 - gc note: `docs/spec/orchestration.md:574` — name the project README by its current filename.
 - gc note: `tools/skill-lint.py:381` **and** `tools/skill-lint.py:1252` — drop the deleted front door's filename from `RETIRED_SCOPE_FILES` and from the self-test's independent `policed_files` tuple together (`Q-IMPL-MARKETPLACE-017`); behaviour-neutral, but editing one alone trips the scope-drift check.
