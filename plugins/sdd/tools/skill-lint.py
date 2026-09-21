@@ -3150,6 +3150,10 @@ def main() -> int:
     ap.add_argument("root", nargs="?", default=None,
                     help="corpus root to lint (default: the invocation cwd); the "
                          "suite root is the plugin root holding this script")
+    ap.add_argument("--suite-root", metavar="PATH",
+                    help="explicit suite root (tier 1): absolute or cwd-relative, "
+                         "resolved and adopted as given; omit it to let the "
+                         "derived/default tiers answer")
     ap.add_argument("--self-test", action="store_true",
                     help="run built-in fixture tests instead of linting")
     ap.add_argument("--print-population", action="store_true",
@@ -3165,9 +3169,17 @@ def main() -> int:
     if not root.is_dir():
         print(f"error: {root} is not a directory", file=sys.stderr)
         return 2
+    # Tier 1 (§CG-3): the explicit suite root. Absolute or cwd-relative, always
+    # resolved to an absolute path, and adopted **without any existence test** —
+    # an operator may legitimately name a root the tier-2 derivation would
+    # reject, and a guard here would silently demote them to a lower tier.
+    # Omitted, it stays `None` so the constructor's own tier-2/tier-3
+    # resolution answers; this is the single place tier 1 is read.
+    suite_root = Path(args.suite_root).resolve() if args.suite_root else None
     if args.print_population:
-        return print_population(root, default_suite_root())
-    return Linter(root, default_suite_root()).run()
+        return print_population(root, suite_root if suite_root is not None
+                                else default_suite_root())
+    return Linter(root, suite_root).run()
 
 
 if __name__ == "__main__":

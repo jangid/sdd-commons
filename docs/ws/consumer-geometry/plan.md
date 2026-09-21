@@ -434,28 +434,28 @@ which builds no argv at all.
 **Write scope**: `plugins/sdd/tools/skill-lint.py`, `plugins/sdd/tools/gc.py`,
 `docs/ws/consumer-geometry/traceability.md`.
 **Tasks**:
-1. [ ] [implement] `skill-lint.py [corpus_root] [--suite-root PATH]`: absolute or
+1. [x] [implement] `skill-lint.py [corpus_root] [--suite-root PATH]`: absolute or
    cwd-relative, resolved to an absolute path, passed to
    `Linter(..., suite_root=PATH)`. Tier 1 is adopted **without any existence
    test**, so an operator can still name a root the derivation would reject
    — traces to `two-root-linter.md` §CG-2, §CG-3
-2. [ ] [implement] `gc.py` grows the matching surface as `drift-sweep.md` §1
+2. [x] [implement] `gc.py` grows the matching surface as `drift-sweep.md` §1
    decides: a `--suite-root PATH` flag plus a `Gc(..., suite_root=None)`
    constructor parameter carrying the same value, with "pass nothing" as the
    default so the linter's tier-2 derivation answers — traces to
    `drift-sweep.md` §1
-3. [ ] [implement] `lint_command()` **branch (i)**, the `lint_suite_rules` argv
+3. [x] [implement] `lint_command()` **branch (i)**, the `lint_suite_rules` argv
    branch: the constructed vector carries the suite root. Asserted **on the
    vector**, not on the subprocess result — traces to `drift-sweep.md` §2,
    `two-root-linter.md` §CG-2
-4. [ ] [implement] `lint_command()` **branch (ii)**, the `suite_rules=False` `-c`
+4. [x] [implement] `lint_command()` **branch (ii)**, the `suite_rules=False` `-c`
    shim: the shim passes the same suite root to its `Linter(...)` constructor.
    Asserted by running the shim against a fixture and reading back
    `suite_contained()` (the preferred form, because it also exercises the
    argument-passing). Fixing branch (i) alone leaves this half red while (i) is
    green — that opposite-direction pair is what makes the two-branch wording
    load-bearing — traces to `drift-sweep.md` §2, `two-root-linter.md` §CG-2
-5. [ ] [implement] `lint_path()`'s candidate tuple — the second half of -001
+5. [x] [implement] `lint_path()`'s candidate tuple — the second half of -001
    row 4 — is, like rows 6–8, **fixture-only in the D2 sense**, and this task
    says so rather than leaving a reader hunting for a change that is not there:
    REQ-PKG-PACKAGING-010 already pins sibling-first precedence, so the tuple's
@@ -464,13 +464,13 @@ which builds no argv at all.
    If the implement stage finds the pinned order is *not* what the source has,
    that is a new finding and this task becomes a real edit — traces to
    REQ-PKG-CONSUMERGEOMETRY-001 row 4, REQ-PKG-PACKAGING-010
-6. [ ] [implement] Register case `cg-row-4:` in **`gc.py --self-test`** (not the
+6. [x] [implement] Register case `cg-row-4:` in **`gc.py --self-test`** (not the
    linter's). **Mutations run, both**: revert branch (i) to `[executable,
    str(lint), str(self.root)]` → the row-4 token appears in `gc.py`'s printed
    list; reorder the `lint_path()` candidate tuple → the same. Membership in the
    printed list, **not the process exit code**, is the comparand — traces to
    `two-root-linter.md` §CG-7, REQ-PKG-CONSUMERGEOMETRY-001 row 4
-7. [ ] [verify] `python3 plugins/sdd/tools/skill-lint.py --help` names the
+7. [x] [verify] `python3 plugins/sdd/tools/skill-lint.py --help` names the
    suite-root surface; removing it from the parser makes this red. This
    deliberately **inverts** REQ-PKG-PACKAGING-003's negative-surface grep. In a
    scratch fixture, invoking with an explicit suite root under the corpus root
@@ -478,7 +478,7 @@ which builds no argv at all.
    invoking the same corpus without it yields the tier-2-or-3 root — accepting
    the argument and discarding it makes the two runs identical and this red
    — traces to `two-root-linter.md` §Acceptance Criteria
-8. [ ] [verify] **The sweep's half of the same surface, which task 7 does not
+8. [x] [verify] **The sweep's half of the same surface, which task 7 does not
    reach.** `python3 plugins/sdd/tools/gc.py --help` names `--suite-root`,
    **and** `Gc(...)` accepts a `suite_root` keyword. **Both mutations run**:
    removing the flag from the parser makes this red; removing the keyword from
@@ -489,10 +489,10 @@ which builds no argv at all.
    surface as a plan defect at Chunk 9 task 4, the last possible moment
    — traces to `drift-sweep.md` §Consumer-Geometry Acceptance Criteria (first
    box), REQ-PKG-CONSUMERGEOMETRY-003 acceptance 1 sweep half
-9. [ ] [verify] `drift-sweep.md` §Acceptance Criteria's omission half: with
+9. [x] [verify] `drift-sweep.md` §Acceptance Criteria's omission half: with
    `suite_root is None` both `lint_command()` branches are byte-identical to
    today's constructed strings — traces to `drift-sweep.md` §1, §2
-10. [ ] [verify] **REQ-PKG-PACKAGING-003 leg (i) is preserved while its
+10. [x] [verify] **REQ-PKG-PACKAGING-003 leg (i) is preserved while its
    `--suite-root` deferral is superseded** — the two greps, run here in the chunk
    that adds the surface, because this is where a disable switch would be added
    and therefore where the write scope to remove one exists: `grep -n
@@ -507,6 +507,64 @@ which builds no argv at all.
 `cg-row-4` registered; **both tools'** `--help` name the surface and `Gc(...)`
 accepts the keyword, each with its own mutation run; both leg-(i) greps run and
 recorded with their commands. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
+
+**Notes** (Chunk 2):
+
+- **Task 5 confirmed fixture-only (plan D2).** `lint_path()`'s candidate tuple
+  is `(Path(__file__).resolve().parent / "skill-lint.py", self.root / "tools" /
+  "skill-lint.py")` — sibling first, exactly the order REQ-PKG-PACKAGING-010
+  pins. Nothing about the tuple changed; what is new is the case that observes
+  it, whose mutation is the reorder. No new finding.
+- **Mutations run, all six, each observed rather than asserted.**
+  Branch (i) reverted to `[sys.executable, str(lint), str(self.root)]` →
+  `gc.py --self-test`'s printed list carries
+  `cg-row-4: branch (i) does not carry the suite root: [...]` and **nothing**
+  from branch (ii). Branch (ii)'s shim constructor reverted to
+  `m.Linter(Path(sys.argv[2]), suite_rules=False)` → the list carries the three
+  branch-(ii) lines (`GEOMETRY: disjoint … suite-rows-root=<this repo>/plugins/sdd`)
+  and **nothing** from branch (i). That opposite-direction pair is the evidence
+  the two-branch wording is load-bearing. `lint_path()`'s tuple reordered →
+  `cg-row-4: lint_path() must prefer the sibling …, got <corpus>/tools/skill-lint.py`.
+  The linter's `--suite-root` removed from its parser → task 7's `--help`
+  assertion red. `Linter.__init__` made to discard the argument
+  (`self.suite_root = default_suite_root()`) → task 7's fixture half red
+  (`suite_contained()` False under an explicit root inside the corpus).
+  `gc.py`'s flag removed from its parser and, independently, `suite_root`
+  removed from the `Gc` constructor signature → task 8 red on each, separately.
+  Membership of the printed failure list was the comparand throughout, never a
+  process exit code.
+- **Task 9's omission half holds byte-exactly.** With `suite_root is None`,
+  branch (i) is `[sys.executable, str(lint), str(root)]` and branch (ii)'s
+  program string is character-identical to the one at the entry sha `3bac4af`,
+  compared against a transcription of that source rather than against the
+  current file. The shim is therefore assembled **conditionally** (two ctor
+  spellings, `sys.argv[3]` appended only when a root is passed) instead of
+  always reading an extra argv slot — the always-read form would have changed
+  the default string and failed this task.
+- **Task 10's two greps, run here with their commands.**
+  `grep -n 'no-suite-rules' plugins/sdd/tools/skill-lint.py` → **exit 1, no
+  output**: leg (i) is preserved, no disable switch was added alongside the new
+  surface. `grep -n 'suite_rules=False' plugins/sdd/tools/skill-lint.py` → every
+  `Linter(...)` construction site is at line 1342 or inside `self_test()`
+  (lines 1346-3092). **Observation worth recording, not a defect**: line 1342
+  sits in `_run_capture()`, a module-level *helper* defined just above
+  `self_test()` and lexically outside it. Its only callers are inside
+  `self_test()` (checked: no call site below line 1346 is absent and none above
+  it exists), so no production path constructs with `suite_rules=False`. A
+  future reader running the grep literally will see one line outside the
+  self-test's line range; the binding is "no production construction site", and
+  it holds.
+- **Q-IMPL-shaped observation (no id — plan §Conventions; Chunk 7 mints the
+  heading).** *Provisional description*: `print_population()` takes a
+  `suite_root` positional and `main()` must therefore decide tier 1 twice — once
+  for `print_population(root, …)` and once for `Linter(root, suite_root)` — with
+  the `--print-population` path passing `default_suite_root()` explicitly where
+  the lint path passes `None` and lets the constructor resolve. Once Chunk 3
+  lands tier 2 **in the constructor**, the `--print-population` path will be the
+  only caller that bypasses that resolution and will report a tier-3 root where
+  the lint path reports tier 2. Candidate resolution: have `print_population()`
+  build its `Linter` from `(corpus_root, suite_root_or_None)` so the one
+  resolution serves both. Not acted on here: Chunk 3 owns the constructor.
 
 ---
 

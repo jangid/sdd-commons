@@ -400,8 +400,15 @@ class Gc:
     """One run over one repository root.  Findings are (severity, text)."""
 
     def __init__(self, root: Path, workstream: str | None = None, fast: bool = False,
-                 lint_suite_rules: bool = True):
+                 lint_suite_rules: bool = True, suite_root: Path | None = None):
         self.root = root
+        # The explicit suite root the sweep hands to the linter (drift-sweep.md
+        # §1). `None` means **pass nothing** — not "pass a guess": with no
+        # explicit root the constructed command is byte-identical to the one
+        # built before this surface existed and the linter's own tier-2/tier-3
+        # resolution answers. A sweep-side default would be a second derivation,
+        # which §1 rejects.
+        self.suite_root = suite_root
         self.docs = root / "docs"
         self.fast = fast
         self.findings: list[tuple[str, str]] = []
@@ -505,14 +512,34 @@ class Gc:
         return None
 
     def lint_command(self, lint: Path) -> list[str]:
+        """The command the delegated lint sweep runs — on BOTH its branches.
+
+        Branch (i) is the ordinary argv branch; branch (ii) is the
+        `suite_rules=False` `-c` shim, which builds no argv at all and so needs
+        the suite root threaded into its **program string** rather than appended
+        to a vector. Fixing (i) alone leaves (ii) on the default root.
+
+        With `self.suite_root is None` both branches are byte-identical to the
+        strings built before this surface existed (drift-sweep.md §1's omission
+        half), which is why the shim is assembled conditionally instead of
+        always reading an extra `sys.argv` slot.
+        """
         if self.lint_suite_rules:
-            return [sys.executable, str(lint), str(self.root)]
+            cmd = [sys.executable, str(lint), str(self.root)]
+            if self.suite_root is not None:
+                cmd += ["--suite-root", str(self.suite_root)]
+            return cmd
         # Fixture mode: same linter, same output, suite-specific rows off.
-        shim = ("import importlib.util, sys; from pathlib import Path; "
-                "s = importlib.util.spec_from_file_location('sdd_skill_lint', sys.argv[1]); "
-                "m = importlib.util.module_from_spec(s); s.loader.exec_module(m); "
-                "sys.exit(m.Linter(Path(sys.argv[2]), suite_rules=False).run())")
-        return [sys.executable, "-c", shim, str(lint), str(self.root)]
+        prologue = ("import importlib.util, sys; from pathlib import Path; "
+                    "s = importlib.util.spec_from_file_location('sdd_skill_lint', sys.argv[1]); "
+                    "m = importlib.util.module_from_spec(s); s.loader.exec_module(m); ")
+        tail = [str(lint), str(self.root)]
+        if self.suite_root is None:
+            ctor = "m.Linter(Path(sys.argv[2]), suite_rules=False)"
+        else:
+            ctor = "m.Linter(Path(sys.argv[2]), Path(sys.argv[3]), suite_rules=False)"
+            tail.append(str(self.suite_root))
+        return [sys.executable, "-c", prologue + f"sys.exit({ctor}.run())", *tail]
 
     def sweep_lint(self) -> None:
         """Invoke tools/skill-lint.py and pass its findings through."""
@@ -1421,8 +1448,10 @@ def _tree_bytes(d: Path) -> dict[str, bytes]:
 #
 # Populated INCREMENTALLY (plan D1); empty at the close of Chunk 0, which is
 # why cg_reconcile() carries its own falsifiability demonstration rather than
-# passing by holding nothing.
-CG_ROW_TOKENS: tuple[str, ...] = ()
+# passing by holding nothing. Row 4 landed with Chunk 2 — and row 4 is the
+# whole of this tool's share, so this tuple is complete at one member and never
+# grows to eight.
+CG_ROW_TOKENS: tuple[str, ...] = ("cg-row-4:",)
 
 
 def cg_reconcile(constant: tuple[str, ...], ran: set[str], failures: list[str]) -> None:
@@ -1790,6 +1819,79 @@ def self_test() -> int:
         check(code == 1 and f3["qimpl-undefined"] == 1 and gid in fence_out,
               f"an undefined unfenced reference no longer fails (exit {code}):\n{fence_out}")
 
+        # -- 13. cg-row-4 — the delegated-lint half of the enumerated rows
+        #    (§CG-7, REQ-PKG-CONSUMERGEOMETRY-001 row 4). This is the ONLY
+        #    enumerated row whose case lives in gc.py: rows 1-3 and 5-8 register
+        #    in skill-lint.py's own --self-test and are named by that tool's
+        #    constant. The comparand throughout is MEMBERSHIP of the printed
+        #    failure list (each line begins `cg-row-4:`), never this process's
+        #    exit code — a mutation can trip a pre-existing fixture too, so a
+        #    green-to-red transition of the process would not show this row
+        #    fired at all.
+        #
+        #    Mutations that make it red, each run at implementation time:
+        #      (a) reverting branch (i) to `[sys.executable, str(lint),
+        #          str(self.root)]` — the vector no longer carries the root;
+        #      (b) dropping the shim's suite-root argument — branch (ii) falls
+        #          back to the default root and the geometry reads `disjoint`;
+        #      (c) reordering `lint_path()`'s candidate tuple — the decoy under
+        #          the corpus wins over the sibling (REQ-PKG-PACKAGING-010).
+        cg4 = tmp / "cgrow4"
+        cg4_corpus = cg4 / "corpus"
+        _w(cg4_corpus, "skills/a-skill/SKILL.md",
+           "---\nname: a-skill\ndescription: Fixture skill. Use when sweeping a "
+           "fixture. Skip for real corpora.\n---\n\n# a-skill\n\nBody.\n")
+        # The suite root lies UNDER the corpus root, so a run that receives it
+        # reports `nested` while the same corpus without it falls back to this
+        # tool's own plugin root and reports `disjoint`.
+        cg4_suite = cg4_corpus / "suite"
+        _w(cg4_suite, "skills/b-skill/SKILL.md",
+           "---\nname: b-skill\ndescription: Suite-side fixture skill. Use when "
+           "sweeping a fixture. Skip for real corpora.\n---\n\n# b-skill\n\nBody.\n")
+
+        # (c) lint_path() precedence: sibling-first, as REQ-PKG-PACKAGING-010
+        #     pins it. A decoy at <corpus>/tools/skill-lint.py must NOT win.
+        _w(cg4_corpus, "tools/skill-lint.py", "raise SystemExit(0)\n")
+        sibling = Path(__file__).resolve().parent / "skill-lint.py"
+        got_lint = Gc(cg4_corpus, lint_suite_rules=False).lint_path()
+        cg_check(4, got_lint is not None and Path(got_lint).resolve() == sibling,
+                 f"lint_path() must prefer the sibling {sibling}, got {got_lint}")
+
+        # (a) branch (i): assert on the CONSTRUCTED VECTOR, never on the
+        #     subprocess result — the sweep's own contract is what it builds.
+        g4_argv = Gc(cg4_corpus, lint_suite_rules=True, suite_root=cg4_suite)
+        vec = g4_argv.lint_command(sibling)
+        cg_check(4, "--suite-root" in vec and str(cg4_suite) in vec,
+                 f"branch (i) does not carry the suite root: {vec}")
+        # The omission half: pass nothing, not a guess (drift-sweep.md §1).
+        vec_none = Gc(cg4_corpus, lint_suite_rules=True).lint_command(sibling)
+        cg_check(4, vec_none == [sys.executable, str(sibling), str(cg4_corpus)],
+                 f"with no explicit suite root branch (i) must be byte-identical "
+                 f"to today's vector, got {vec_none}")
+
+        # (b) branch (ii): the `-c` shim builds NO argv, so it is asserted by
+        #     RUNNING it against the fixture and reading `suite_contained()`
+        #     back off the GEOMETRY token — which also exercises the passing.
+        def cg4_geometry(sr: Path | None) -> str:
+            g_ = Gc(cg4_corpus, lint_suite_rules=False, suite_root=sr)
+            proc = subprocess.run(g_.lint_command(sibling), capture_output=True, text=True)
+            for ln in proc.stdout.splitlines():
+                if ln.startswith("GEOMETRY: "):
+                    return ln
+            return f"<no GEOMETRY token>\n{proc.stdout}\n{proc.stderr}"
+
+        geo_given, geo_omitted = cg4_geometry(cg4_suite), cg4_geometry(None)
+        cg_check(4, geo_given.startswith("GEOMETRY: nested"),
+                 f"branch (ii) did not reach the shim's Linter(...): {geo_given!r}")
+        cg_check(4, f"suite-rows-root={cg4_suite}" in geo_given,
+                 f"branch (ii) resolved a suite root other than the one passed: {geo_given!r}")
+        cg_check(4, geo_omitted.startswith("GEOMETRY: disjoint"),
+                 f"with no suite root the shim must fall through to the default "
+                 f"root, got {geo_omitted!r}")
+        cg_check(4, geo_given != geo_omitted,
+                 "accepting the suite root and discarding it makes the two shim "
+                 f"runs identical: {geo_given!r}")
+
     finally:
         _LINT_SUITE_RULES = True
         shutil.rmtree(tmp, ignore_errors=True)
@@ -1893,6 +1995,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="apply one whitelisted rewrite and print the paths changed")
     ap.add_argument("--root", metavar="PATH",
                     help="repository root (default: git rev-parse --show-toplevel)")
+    ap.add_argument("--suite-root", metavar="PATH",
+                    help="explicit suite root passed through to the linter (tier 1); "
+                         "omit it and the sweep passes nothing, leaving the linter's "
+                         "own derivation to answer")
     ap.add_argument("--self-test", action="store_true",
                     help="build the temporary fixture tree and assert the sweep contracts")
     args = ap.parse_args(argv)
@@ -1924,7 +2030,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"error: {kind}{args.fix} is not a fixable rule (fixable: {', '.join(FIXABLE)})")
             return 2
 
-    gc = Gc(root, workstream=args.workstream, fast=args.fast, lint_suite_rules=_LINT_SUITE_RULES)
+    gc = Gc(root, workstream=args.workstream, fast=args.fast,
+            lint_suite_rules=_LINT_SUITE_RULES,
+            suite_root=Path(args.suite_root).resolve() if args.suite_root else None)
     if args.fix is not None:
         return gc.fix(args.fix)
     if gc.lint_path() is None:
