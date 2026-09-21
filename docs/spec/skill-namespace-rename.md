@@ -74,7 +74,7 @@ all. At the close of this cycle those areas are:
 
 ```
 skills/   tools/   agents/   .claude-plugin/   docs/spec/   docs/requirements/
-CLAUDE.md   README.md   README.org   CONTRIBUTING.md   LICENSE   .pre-commit-config.yaml
+CLAUDE.md   README.md   CONTRIBUTING.md   LICENSE   .pre-commit-config.yaml
 ```
 
 The set is **open**: it was six areas when it was first written, and grew when

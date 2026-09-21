@@ -378,7 +378,7 @@ RETIRED_SELF_EXEMPT = (
 # which is the failure mode the enumeration exists to prevent.
 RETIRED_SCOPE_DIRS = ("skills", "tools", "agents", ".claude-plugin",
                       "docs/spec", "docs/requirements")
-RETIRED_SCOPE_FILES = ("CLAUDE.md", "README.md", "README.org", "CONTRIBUTING.md",
+RETIRED_SCOPE_FILES = ("CLAUDE.md", "README.md", "CONTRIBUTING.md",
                        "LICENSE", ".pre-commit-config.yaml")
 RETIRED_SCOPE_EXCLUDE_DIRS = ("fixtures",)
 RETIRED_SCOPE_EXCLUDE_FILES = ("docs/requirements/traceability.md",)
@@ -1249,7 +1249,7 @@ def self_test() -> int:
         #        assertion would be vacuous again.
         policed_dirs = ("skills", "tools", "agents", ".claude-plugin",
                         "docs/spec", "docs/requirements")
-        policed_files = ("CLAUDE.md", "README.md", "README.org", "CONTRIBUTING.md",
+        policed_files = ("CLAUDE.md", "README.md", "CONTRIBUTING.md",
                          "LICENSE", ".pre-commit-config.yaml")
         check(tuple(RETIRED_SCOPE_DIRS) == policed_dirs,
               f"retired-prefix scope dirs drifted from the policed population: "

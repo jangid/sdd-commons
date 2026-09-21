@@ -29,7 +29,7 @@ row per requirement in this table, keyed by the same ids.
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
 | REQ-DOCS-PACKAGING-001 | project-docs.md | packaging | | | |
-| REQ-DOCS-PACKAGING-002 | project-docs.md | packaging | | | |
+| REQ-DOCS-PACKAGING-002 | project-docs.md | packaging | marker string-equality vs `docs/.sdd-version` (C0.4) | `CLAUDE.md` §Multi-Workstream Layout (C0.3) |  |
 | REQ-DOCS-PACKAGING-003 | project-docs.md | packaging | | | |
 | REQ-LINT-PACKAGING-001 | two-root-linter.md | packaging | | | |
 | REQ-LINT-PACKAGING-002 | two-root-linter.md | packaging | | | |
@@ -38,7 +38,7 @@ row per requirement in this table, keyed by the same ids.
 | REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging | | | |
 | REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging | | | |
 | REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging | | | |
-| REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | | | |
+| REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | `skill-lint.py --self-test` retired-prefix scope drift | `tools/skill-lint.py`:381,:1252; `skill-namespace-rename.md`:76 (C0.2) |  |
 | REQ-PC-PACKAGING-001 | pre-commit.md | packaging | | | |
 | REQ-PKG-PACKAGING-001 | two-root-linter.md | packaging | | | |
 | REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging | | | |

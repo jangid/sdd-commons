@@ -66,7 +66,7 @@ reconciliation belongs in this chunk because it must not ride on the move
 commit, so the Goal names it rather than leaving task 3 unaccounted for.
 **Depends on**: None.
 **Tasks**:
-1. [ ] [implement] Capture the **pre-change baseline** as a scratch artifact the
+1. [x] [implement] Capture the **pre-change baseline** as a scratch artifact the
    later verify tasks read: the current HEAD sha (recorded under the name
    `pre-change baseline`), `git ls-tree -r --name-only HEAD` restricted to
    `skills/`, `agents/`, `tools/`, `.claude-plugin/plugin.json`, and the full
@@ -86,7 +86,7 @@ commit, so the Goal names it rather than leaving task 3 unaccounted for.
    `a1ab5ba` would report specs-stage drift as a two-root regression. The task
    writes both shas into the baseline artifact and names the one it used
    — traces to `two-root-linter.md` §1, §Acceptance Criteria
-2. [ ] [implement] **The paired edit — one change, three files.** Drop the retired
+2. [x] [implement] **The paired edit — one change, three files.** Drop the retired
    front door's filename from `RETIRED_SCOPE_FILES` (`tools/skill-lint.py:381`),
    from the self-test's independent `policed_files` tuple (`:1252`) and from the
    documented tuple at `docs/spec/skill-namespace-rename.md:76`, leaving five
@@ -94,13 +94,13 @@ commit, so the Goal names it rather than leaving task 3 unaccounted for.
    the spec contradicting the code — do not split this across tasks or chunks
    — traces to `skill-namespace-rename.md` §Two-Root Amendment
    (REQ-LINT-PACKAGING-008)
-3. [ ] [implement] Reconcile `CLAUDE.md`'s two contradictory marker statements
+3. [x] [implement] Reconcile `CLAUDE.md`'s two contradictory marker statements
    (§Phase Detection says marker `4`; §Multi-Workstream Layout says marker `3`
    "is what this repo uses today") to the marker `docs/.sdd-version` actually
    carries, keeping "marker `3` remains supported" and removing the false
    this-repository claim. No other substance changes — traces to
    `project-docs.md` §`CLAUDE.md` (REQ-DOCS-PACKAGING-002)
-4. [ ] [verify] `python3 tools/skill-lint.py --self-test` passes after task 2;
+4. [x] [verify] `python3 tools/skill-lint.py --self-test` passes after task 2;
    removing the name from only one tuple makes it fail naming the scope drift
    (invertibility). The marker named as this repository's own in `CLAUDE.md`
    string-equals the trimmed contents of `docs/.sdd-version`, read at run time,

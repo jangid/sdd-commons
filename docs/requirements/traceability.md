@@ -231,7 +231,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-DOCS-MARKETPLACE-004 | project-docs.md | marketplace | Chunk 6 task 8 — four owed statements present as sections; cross-spec criteria re-run | `CONTRIBUTING.md` | pass |
 | REQ-DOCS-MARKETPLACE-005 | project-docs.md | marketplace | Chunk 6 task 9 — retired-prefix grep zero; both manifest paths named; diff shows only name substitution outside the three edited sections | `CLAUDE.md` | pass |
 | REQ-DOCS-PACKAGING-001 | project-docs.md | packaging |  |  |  |
-| REQ-DOCS-PACKAGING-002 | project-docs.md | packaging |  |  |  |
+| REQ-DOCS-PACKAGING-002 | project-docs.md | packaging | marker string-equality vs `docs/.sdd-version` (C0.4) | `CLAUDE.md` §Multi-Workstream Layout (C0.3) |  |
 | REQ-DOCS-PACKAGING-003 | project-docs.md | packaging |  |  |  |
 | REQ-EVAL-HARNESSP2-001 | evaluation.md | harness-p2 | Chunk 7 task 4 guards: grep -rn decision_by skills/ = references/telemetry.md only; never-auto-advance sentence at sdd-orchestrate/SKILL.md §The gate + §Rules; REQ-ORCH-011 text unamended; no decision_by: policy record | docs/spec/evaluation.md §Evaluation Mode — Defined, Not Built (definition only; no skill implements the policy) | pass |
 | REQ-EVAL-HARNESSP2-002 | evaluation.md | harness-p2 | python3 tools/sdd-eval.py --self-test (six-record fixture yields fields 1–9 + aggregate; empty/missing file → N = 0); --help; derivation table = 9 rows | tools/sdd-eval.py (load, score_run, aggregate, evaluate, render); skills/sdd-orchestrate/references/telemetry.md §6 | pass |
@@ -286,7 +286,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging |  |  |  |
 | REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging |  |  |  |
 | REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging |  |  |  |
-| REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | `skill-lint.py --self-test` retired-prefix scope drift | `tools/skill-lint.py`:381,:1252; `skill-namespace-rename.md`:76 (C0.2) |  |
 | REQ-NAME-MARKETPLACE-001 | skill-namespace-rename.md | marketplace | Chunk 1 task 4 — 10 skill dirs, basename free of retired prefix, frontmatter `name` == basename | `skills/*/SKILL.md` | pass |
 | REQ-NAME-MARKETPLACE-002 | skill-namespace-rename.md | marketplace | Chunk 1 task 4 — cross-skill path-reference greps return zero | `skills/**/*.md` | pass |
 | REQ-NAME-MARKETPLACE-003 | skill-namespace-rename.md | marketplace | Chunk 1 tasks 4–5 — `--help` exit 0 per tool; self-reference grep zero; `git log --follow` resolves each tool | `tools/*.py` | pass |

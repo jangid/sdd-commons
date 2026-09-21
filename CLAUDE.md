@@ -248,7 +248,7 @@ When `sdd:plan` rewrites a plan or `sdd:replan` makes significant changes, the p
 
 ### Multi-Workstream Layout (v4)
 
-v4 lets a team run several SDD cycles concurrently in one repo — **one branch/issue per workstream** — without artifact collisions, false staleness, ID races, or cross-workstream phase confusion, while keeping requirements/specs/research/traceability a single shared corpus and keeping solo use ceremony-free. `docs/.sdd-version` = `4` is the sole gate that flips every skill to this layout; marker `3` (flat) remains fully supported and is what this repo uses today.
+v4 lets a team run several SDD cycles concurrently in one repo — **one branch/issue per workstream** — without artifact collisions, false staleness, ID races, or cross-workstream phase confusion, while keeping requirements/specs/research/traceability a single shared corpus and keeping solo use ceremony-free. `docs/.sdd-version` = `4` is the sole gate that flips every skill to this layout; marker `3` (flat) remains fully supported.
 
 **Layout — execution artifacts move, the shared corpus stays.** Under marker `4`:
 
