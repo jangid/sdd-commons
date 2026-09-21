@@ -699,59 +699,81 @@ class Linter:
     def check_structure(self) -> None:
         """Every skill dir has a SKILL.md; frontmatter well-formed; name matches dir.
 
-        `skills` and `agents` bind to the SUITE root (two-root-linter.md §4's
-        binding table). This predates the cycle and worked only while the two
-        roots coincided; `self.root` is the corpus root, so after the move it
-        named a `skills/` that does not exist there and the check degraded to a
-        single `[structure] skills/ directory not found` finding — every
-        per-skill frontmatter and naming rule silently stopped running
-        (C6.11, added post-plan from the Chunk 5 verification).
+        `skills` and `agents` bind to the **swept-root union** — the same
+        `swept_roots()` set that `walk()`, `rel()` and `skill_dir_of()` use —
+        never to a single root. `self.root` (the corpus root) named a `skills/`
+        that does not exist there after the move, so the check degraded to a
+        single `[structure] skills/ directory not found` finding and every
+        per-skill frontmatter and naming rule silently stopped running (C6.11).
+        Rebinding it to `self.suite_root` alone fixed that symptom but made
+        frontmatter a silent third exception to REQ-PKG-PACKAGING-005 — which
+        puts frontmatter on the **corpus** root with exactly two stated
+        exceptions — and raised an uncaught `ValueError` out of `rel()` under
+        the disjoint geometry, whose suite root is outside `swept_roots()`.
+        The union is what -005 and §4 together support: nested and equal roots
+        reach the suite's `skills/` exactly as the suite binding did, the
+        corpus's own `skills/` is policed again, and a disjoint suite is not
+        walked, so no finding can name a path `rel()` cannot render
+        (C8.1, added post-plan from the implement-stage review).
         """
-        skills_dir = self.suite_root / "skills"
-        if not skills_dir.is_dir():
-            self.flag(self.root, None, "structure", "skills/ directory not found",
-                      "run the linter from the repo root or pass REPO_ROOT")
+        roots = self.swept_roots()
+        skills_dirs = [r / "skills" for r in roots if (r / "skills").is_dir()]
+        if not skills_dirs:
+            self.flag(self.corpus_root, None, "structure", "skills/ directory not found",
+                      "lint a root that holds skills/, or one containing the suite "
+                      "root that does — the corpus root is the CLI positional and "
+                      "defaults to the invocation cwd")
             return
-        for d in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
-            sk = d / "SKILL.md"
-            if not sk.is_file():
-                self.flag(d, None, "structure", "skill directory has no SKILL.md",
-                          "add a SKILL.md with name/description frontmatter or delete the directory")
-                continue
-            fm = self.frontmatter(sk.read_text(encoding="utf-8"))
-            if fm is None:
-                self.flag(sk, 1, "frontmatter", "missing or malformed YAML frontmatter",
-                          "start the file with a `---` block carrying name: and description:")
-                continue
-            name = fm.get("name", "")
-            if not name:
-                self.flag(sk, 1, "frontmatter", "frontmatter has no `name:`", NAME_FIX)
-            elif name != d.name:
-                self.flag(sk, 1, "frontmatter", f"name `{name}` != directory `{d.name}`",
-                          NAME_FIX)
-            if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name or "x"):
-                self.flag(sk, 1, "frontmatter", f"name `{name}` is not kebab-case",
-                          "rename the directory and name: to lowercase kebab-case")
-            desc = fm.get("description", "")
-            if not desc:
-                self.flag(sk, 1, "frontmatter", "frontmatter has no `description:`",
-                          "add a description: stating when to use and when not to use the skill")
-            elif not NOT_USE_RE.search(desc):
-                self.flag(sk, 1, "description",
-                          "description never states when NOT to use the skill "
-                          "(repo quality check)",
-                          "add a `Skip …` / `Do NOT use …` clause to the description")
-        # Agent files must carry frontmatter too (repo quality check).
-        agents_dir = self.suite_root / "agents"
-        if agents_dir.is_dir():
-            for a in sorted(agents_dir.glob("*.md")):
-                fm = self.frontmatter(a.read_text(encoding="utf-8"))
+        seen_dirs: set[Path] = set()
+        for skills_dir in skills_dirs:
+            for d in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
+                if d.resolve() in seen_dirs:
+                    continue
+                seen_dirs.add(d.resolve())
+                sk = d / "SKILL.md"
+                if not sk.is_file():
+                    self.flag(d, None, "structure", "skill directory has no SKILL.md",
+                              "add a SKILL.md with name/description frontmatter or delete the directory")
+                    continue
+                fm = self.frontmatter(sk.read_text(encoding="utf-8"))
                 if fm is None:
-                    self.flag(a, 1, "frontmatter", "agent file missing frontmatter",
-                              "start the agent file with a `---` block carrying name:")
-                elif not fm.get("name"):
-                    self.flag(a, 1, "frontmatter", "agent frontmatter has no `name:`",
-                              "set name: to the agent file's basename")
+                    self.flag(sk, 1, "frontmatter", "missing or malformed YAML frontmatter",
+                              "start the file with a `---` block carrying name: and description:")
+                    continue
+                name = fm.get("name", "")
+                if not name:
+                    self.flag(sk, 1, "frontmatter", "frontmatter has no `name:`", NAME_FIX)
+                elif name != d.name:
+                    self.flag(sk, 1, "frontmatter", f"name `{name}` != directory `{d.name}`",
+                              NAME_FIX)
+                if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", name or "x"):
+                    self.flag(sk, 1, "frontmatter", f"name `{name}` is not kebab-case",
+                              "rename the directory and name: to lowercase kebab-case")
+                desc = fm.get("description", "")
+                if not desc:
+                    self.flag(sk, 1, "frontmatter", "frontmatter has no `description:`",
+                              "add a description: stating when to use and when not to use the skill")
+                elif not NOT_USE_RE.search(desc):
+                    self.flag(sk, 1, "description",
+                              "description never states when NOT to use the skill "
+                              "(repo quality check)",
+                              "add a `Skip …` / `Do NOT use …` clause to the description")
+        # Agent files must carry frontmatter too (repo quality check).
+        # Union-bound for the same reason as `skills` above.
+        seen_agents: set[Path] = set()
+        for agents_dir in (r / "agents" for r in roots):
+            if agents_dir.is_dir():
+                for a in sorted(agents_dir.glob("*.md")):
+                    if a.resolve() in seen_agents:
+                        continue
+                    seen_agents.add(a.resolve())
+                    fm = self.frontmatter(a.read_text(encoding="utf-8"))
+                    if fm is None:
+                        self.flag(a, 1, "frontmatter", "agent file missing frontmatter",
+                                  "start the agent file with a `---` block carrying name:")
+                    elif not fm.get("name"):
+                        self.flag(a, 1, "frontmatter", "agent frontmatter has no `name:`",
+                                  "set name: to the agent file's basename")
 
     def check_forbidden(self) -> None:
         """The one production call site of the §7 counting function.
@@ -929,19 +951,31 @@ class Linter:
 
         Line count uses `wc -l` semantics (number of newline characters).
         Only entry points are checked — `references/*.md` and `USAGE.md` are exempt.
-        `skills` binds to the suite root (§4), as in `check_structure()`.
+        `skills` binds to the **swept-root union**, as in `check_structure()`:
+        a suite-root-only binding made size a silent exception to
+        REQ-PKG-PACKAGING-005 (which puts size on the corpus root) and, under
+        the disjoint geometry, measured the *live installed suite* instead of
+        the corpus being linted — which is exactly how `gc.py`'s fixture shim
+        (`gc.py` `lint_command()`, frozen by REQ-PKG-MARKETPLACE-007, passes a
+        corpus root only) stopped seeing its own oversized fixture file and
+        turned `gc.py --self-test` red. See Q-IMPL-PACKAGING-004
+        (C8.1, added post-plan from the implement-stage review).
         """
-        skills_dir = self.suite_root / "skills"
-        if not skills_dir.is_dir():
-            return
-        for sk in sorted(skills_dir.glob("*/SKILL.md")):
-            n = sk.read_text(encoding="utf-8").count("\n")
-            if n > SIZE_FAIL_LINES:
-                self.flag(sk, None, "size", f"SKILL.md is {n} lines (> {SIZE_FAIL_LINES})",
-                          SIZE_FIX)
-            elif n > SIZE_WARN_LINES:
-                self.flag(sk, None, "size", f"SKILL.md is {n} lines (> {SIZE_WARN_LINES})",
-                          SIZE_FIX, "warn")
+        seen_size: set[Path] = set()
+        for skills_dir in (r / "skills" for r in self.swept_roots()):
+            if not skills_dir.is_dir():
+                continue
+            for sk in sorted(skills_dir.glob("*/SKILL.md")):
+                if sk.resolve() in seen_size:
+                    continue
+                seen_size.add(sk.resolve())
+                n = sk.read_text(encoding="utf-8").count("\n")
+                if n > SIZE_FAIL_LINES:
+                    self.flag(sk, None, "size", f"SKILL.md is {n} lines (> {SIZE_FAIL_LINES})",
+                              SIZE_FIX)
+                elif n > SIZE_WARN_LINES:
+                    self.flag(sk, None, "size", f"SKILL.md is {n} lines (> {SIZE_WARN_LINES})",
+                              SIZE_FIX, "warn")
 
     def check_links(self) -> None:
         """Relative paths must resolve on disk.
@@ -1695,6 +1729,30 @@ def self_test() -> int:
             modes = Linter(tr_corpus, tr_corpus, suite_rules=False)
             modes.skill_files()
             check(modes._guard_done, "skill_files() must run the construction guard")
+            # ...and the observable is REACHABLE in every mode, not merely run.
+            # `--print-population` calls the union builder and then discarded
+            # its findings, so the guard could fire there and be seen by
+            # nobody. Drive a duplicate-yielding walk through that mode and
+            # require the finding on stdout and a non-zero exit
+            # (C8.3, added post-plan from the implement-stage review).
+            orig_walk = Linter.walk
+
+            def _dup_walk(self: Linter) -> list[Path]:
+                self._guard_duplicate_free([tr_alpha, tr_alpha])
+                return [tr_alpha, tr_alpha]
+
+            Linter.walk = _dup_walk  # type: ignore[method-assign]
+            try:
+                pbuf = io.StringIO()
+                with contextlib.redirect_stdout(pbuf):
+                    prc = print_population(tr_corpus, tr_corpus)
+                pout = pbuf.getvalue()
+            finally:
+                Linter.walk = orig_walk  # type: ignore[method-assign]
+            check(prc != 0 and "[sweep-duplicate]" in pout
+                  and str(tr_alpha.resolve()) in pout,
+                  f"--print-population must surface the guard's finding and exit "
+                  f"non-zero, got rc={prc}:\n{pout}")
 
         def retired_scope_binds_per_entry() -> None:
             """Per-entry binding and rendering (two-root-linter.md §4).
@@ -2239,6 +2297,55 @@ def self_test() -> int:
                   "inversion: a root with no skills/ must yield exactly the "
                   "not-found finding:\n" + "\n".join(inv_texts))
 
+        def check_size_binds_to_the_swept_roots() -> None:
+            """C8.2: `check_size()` measures the swept-root UNION, not one root.
+
+            The invertible case the size check never had. `_run_capture()` sets
+            both roots equal, so every pre-existing size fixture is
+            geometry-blind: `self.root`, `self.suite_root` and the union are
+            indistinguishable there, and a wrong binding stays green. The two
+            halves below pin distinct roots, and each half fails under a
+            different wrong binding.
+
+            **Mutation that breaks it.** Rebinding the loop to
+            `self.suite_root` alone drops `skills/big-corpus/SKILL.md` from the
+            nested half AND makes the disjoint half report the suite's file
+            instead of the corpus's — the exact defect that measured the live
+            installed suite from inside `gc.py`'s fixture run and turned
+            `gc.py --self-test` red. Rebinding it to `self.corpus_root` /
+            `self.root` alone drops `skills/big-suite/SKILL.md` from the nested
+            half (added post-plan from the implement-stage review).
+            """
+            over = SIZE_FAIL_LINES + 40
+            # -- nested: an oversized SKILL.md at EACH root is measured.
+            nz = root / "sizegeom" / "nested"
+            nz_suite = nz / "plugins" / "sdd"
+            _fixture_skill(nz, "big-corpus", "Body. Skip for Y.\n", lines=over)
+            _fixture_skill(nz_suite, "big-suite", "Body. Skip for Y.\n", lines=over)
+            lin = Linter(nz, nz_suite, suite_rules=False)
+            lin.check_size()
+            texts = [t for _, t in lin.findings if "[size]" in t]
+            check(any(_loc(t) == "skills/big-corpus/SKILL.md" for t in texts),
+                  "nested: the CORPUS root's oversized SKILL.md must be measured "
+                  "(REQ-PKG-PACKAGING-005 puts size on the corpus root):\n"
+                  + "\n".join(texts))
+            check(any(_loc(t) == "skills/big-suite/SKILL.md" for t in texts),
+                  "nested: the contained SUITE root's oversized SKILL.md must be "
+                  "measured (§4's binding table):\n" + "\n".join(texts))
+            # -- disjoint: the suite root is outside swept_roots(), so it is
+            # neither measured nor renderable — the consumer geometry, and the
+            # geometry `gc.py`'s frozen fixture shim constructs.
+            dz_corpus = root / "sizegeom" / "dis-corpus"
+            dz_suite = root / "sizegeom" / "dis-suite"
+            _fixture_skill(dz_corpus, "big-corpus", "Body. Skip for Y.\n", lines=over)
+            _fixture_skill(dz_suite, "big-suite", "Body. Skip for Y.\n", lines=over)
+            dlin = Linter(dz_corpus, dz_suite, suite_rules=False)
+            dlin.check_size()          # must not raise ValueError out of rel()
+            dtexts = [t for _, t in dlin.findings if "[size]" in t]
+            check(len(dtexts) == 1 and _loc(dtexts[0]) == "skills/big-corpus/SKILL.md",
+                  "disjoint: exactly the CORPUS root's oversized file is measured; "
+                  "a disjoint suite root is not swept:\n" + "\n".join(dtexts))
+
         def print_population_shape() -> None:
             """C4.3 — `--print-population`'s output asserted by SHAPE, not by value.
 
@@ -2268,6 +2375,21 @@ def self_test() -> int:
                     check(int(m.group(1)) == n,
                           f"{label} must print its run-time row count, not a literal: "
                           f"printed {m.group(1)}, table holds {n}")
+            # C8.4 — §6's population criterion, asserted rather than evaluated
+            # once by hand. `population_tables()` is the same live table read
+            # on both sides above, so that loop passes for ANY row count; these
+            # four are the pinned comparands §6 states ("the one place in the
+            # corpus where a row population is compared against a number"), and
+            # they are the regression check on §3's retarget. A row dropped or
+            # duplicated in any of the four now fails the self-test rather than
+            # a one-off evaluation nobody re-runs
+            # (added post-plan from the implement-stage review).
+            pinned = {"REQUIRED": 40, "VERSION_GATED": 9, "V4_CONTRACT": 7,
+                      "FORBIDDEN": 13}
+            for label, want in pinned.items():
+                check(f"{label}={want}" in lines,
+                      f"§6 pins {label}={want}; --print-population printed "
+                      f"{[l for l in lines if l.startswith(label + '=')]}")
             corpus_line = lines[-1] if lines else ""
             check(re.fullmatch(r"corpus: FILES_SWEPT=([0-9]+)  policed-areas=([0-9]+)",
                                corpus_line) is not None,
@@ -2290,7 +2412,8 @@ def self_test() -> int:
                       print_population_shape,
                       skill_dir_of_binds_per_root,
                       forbidden_allow_files_root_correct,
-                      check_structure_binds_to_the_suite_root):
+                      check_structure_binds_to_the_suite_root,
+                      check_size_binds_to_the_swept_roots):
             _case()
 
     if failures:
@@ -2331,10 +2454,24 @@ def print_population(corpus_root: Path, suite_root: Path) -> int:
     """
     for label, count in population_tables():
         print(f"{label}={count}")
-    swept = Linter(corpus_root, suite_root).skill_files()
+    lin = Linter(corpus_root, suite_root)
+    swept = lin.skill_files()
     policed = len(RETIRED_SCOPE_DIRS) + len(RETIRED_SCOPE_FILES)
     print(f"corpus: FILES_SWEPT={len(swept)}  policed-areas={policed}")
-    return 0
+    # REQ-LINT-PACKAGING-005: the duplicate-freeness construction guard's
+    # observable is a `fail`-severity finding in the run's own findings list
+    # that NO invocation mode can skip. This mode calls the union builder
+    # (`skill_files()`), which runs the guard — and then discarded its
+    # findings, making this the one mode in which the guard was unobservable.
+    # The findings are printed here and a `fail` exits non-zero; the flag's
+    # "exits 0" (§6) still holds for every run in which nothing fired, which
+    # is every run of a correctly constructed union. See Q-IMPL-PACKAGING-003.
+    n_fail = 0
+    for severity, text in lin.findings:
+        print(("WARN " if severity == "warn" else "") + text)
+        if severity == "fail":
+            n_fail += 1
+    return 1 if n_fail else 0
 
 
 def main() -> int:

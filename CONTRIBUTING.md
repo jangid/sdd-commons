@@ -71,7 +71,7 @@ skill, or one of the two tools' own rule tables.
 
 ### The three heavier checks, run explicitly
 
-Three self-tests stay **out** of the commit path: they are slow, their inputs
+Some self-tests stay **out** of the commit path: they are slow, their inputs
 are frozen fixtures, and a fixture-driven proof does not change between commits
 that do not touch the fixture. Run the matching one yourself when you touch its
 tool or its fixture:
@@ -81,6 +81,25 @@ tool or its fixture:
 | `plugins/sdd/tools/scope-check-selftest.py` or its fixtures | `python3 plugins/sdd/tools/scope-check-selftest.py --self-test` |
 | `plugins/sdd/tools/telemetry.py` or `plugins/sdd/tools/fixtures/` telemetry data | `python3 plugins/sdd/tools/telemetry.py --self-test` |
 | `plugins/sdd/tools/eval.py` or its fixture | `python3 plugins/sdd/tools/eval.py --self-test` |
+| `plugins/sdd/tools/skill-lint.py` **or** `plugins/sdd/tools/gc.py` | **both** `python3 plugins/sdd/tools/skill-lint.py --self-test` and `python3 plugins/sdd/tools/gc.py --self-test` |
+
+**Why the last row names both tools for either edit.** `gc.py` embeds the
+linter: its fixture sweep shells out to `skill-lint.py` and passes the
+findings through, so a change to the linter's root bindings can turn
+`gc.py --self-test` red while `skill-lint.py --self-test` and
+`pre-commit run --all-files` both stay green. That happened — nine binding
+changes landed across one cycle without the embedding tool's self-test being
+run. The commit gate runs `gc.py`'s **corpus sweep** (`--fast`), never its
+`--self-test`, and a corpus sweep exercises none of the fixture geometry
+where the two roots differ, so the gate cannot substitute for this row.
+
+**On this section's name.** The heading still reads *three* while the table
+now carries four trigger rows. The name is cited verbatim from `CLAUDE.md`
+§Quality Checks, `docs/spec/project-docs.md` and
+`docs/requirements/integration/project-docs.md`, so renaming it is a
+coordinated change across those files rather than an edit here; the row count
+is the table's, not the heading's. Read the heading as the section's name and
+the table as its content.
 
 ## Adding new content
 

@@ -682,8 +682,12 @@ against the moved tree.
    returns zero matches and that file's tuple lists five names; both tuples have
    five entries and are equal — traces to `skill-namespace-rename.md`
    §Two-Root Amendment (REQ-LINT-PACKAGING-008)
-6. [x] [verify] `python3 plugins/sdd/tools/skill-lint.py --self-test` passes (all
-   fourteen cases) and `pre-commit run --all-files` exits 0 and leaves the
+6. [x] [verify] `python3 plugins/sdd/tools/skill-lint.py --self-test` passes (the
+   whole named-case runner — the case set is enumerated in
+   `two-root-linter.md` §Verification → Automated, which is the single
+   authoritative statement of it; this task deliberately does **not** restate
+   a count, the earlier "all fourteen cases" wording having drifted from the
+   runner, repaired at C8.7) and `pre-commit run --all-files` exits 0 and leaves the
    working tree clean on an immediate second run — traces to
    `two-root-linter.md` §Acceptance Criteria, `pre-commit.md`
 7. [x] [verify] Manual: re-run REQ-PKG-MARKETPLACE-010's real-install observation
@@ -727,6 +731,103 @@ tracks `main`, where the move is unmerged.
 **Entry criteria**: Chunk 6 complete.
 **Exit criteria**: Every after-the-move criterion across the 22 requirements has
 been evaluated against the moved tree, with its result recorded.
+
+### Chunk 8: Implement-stage repairs
+
+**Depends on**: Chunk 7.
+
+*Provenance*: every task below comes from the **implement-stage review** of the
+packaging cycle (verdict REJECT, iteration 1 of 3), which found that the
+Chunk 6/7 rebinding of `check_structure()` and `check_size()` from `self.root`
+to `self.suite_root` had turned `python3 plugins/sdd/tools/gc.py --self-test`
+red at `581a81e` — a tool no gate in this cycle ran. These are repairs to
+committed work, not new scope.
+
+1. [x] [implement] **Bind `check_structure()` and `check_size()` to the
+   swept-root union.** Both take `swept_roots()` — the set `walk()`, `rel()`
+   and `skill_dir_of()` already use — and render through the per-root `rel()`,
+   never `self.suite_root` alone. Three consequences close together: `gc.py
+   --self-test` returns to exit 0; the checks stop being a silent third and
+   fourth exception to `REQ-PKG-PACKAGING-005`, which puts frontmatter and
+   size on the **corpus** root with exactly two stated exceptions; and the
+   uncaught `ValueError` that `rel()`'s final `relative_to(self.corpus_root)`
+   raised on the first such finding under **disjoint** roots is gone
+   (reproduced before the fix against an empty corpus + a disjoint suite
+   holding one oversized, name-mismatched skill; neither check raises after)
+   — traces to `two-root-linter.md` §2, §4 (REQ-PKG-PACKAGING-005,
+   REQ-PKG-PACKAGING-002)
+2. [x] [implement] **The invertible size case the check never had.** Land
+   `check_size_binds_to_the_swept_roots` in the self-test runner: a **nested**
+   half asserting the oversized `SKILL.md` at each of two distinct roots is
+   measured, and a **disjoint** half asserting exactly the corpus root's is —
+   the geometry `gc.py`'s frozen shim constructs. `_run_capture()` sets both
+   roots equal, so every pre-existing size fixture is geometry-blind and stays
+   green under either wrong binding; both mutations (`self.suite_root` alone,
+   `self.corpus_root` alone) were run and both fail this case — traces to
+   `two-root-linter.md` §Verification → Automated (REQ-PKG-PACKAGING-005)
+3. [x] [implement] **Make the duplicate-freeness guard's observable reachable
+   under `--print-population`.** That mode called the union builder, which runs
+   the guard, and then discarded the findings, so the one mode `REQ-LINT-
+   PACKAGING-005` says cannot skip the observable was the one mode that did.
+   `print_population()` now prints its own findings and exits non-zero on a
+   `fail`; `sweep_is_duplicate_free` is strengthened from "`_guard_done`
+   flipped" to driving a duplicate-yielding walk through that mode and
+   requiring the finding on stdout. Recorded as `Q-IMPL-PACKAGING-003` —
+   traces to `two-root-linter.md` §6 (REQ-LINT-PACKAGING-005)
+4. [x] [implement] **The four populations, asserted durably.**
+   `print_population_shape` compared the flag's output against
+   `population_tables()` — the same live tables — so it passed for any row
+   count, and §6's `REQUIRED=40 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13`
+   was compared exactly once, at C7.3. §6 calls that comparison a regression
+   check on §3's retarget; one that cannot be re-run is not one. The four
+   value assertions are now in the case — traces to `two-root-linter.md` §6
+   (REQ-LINT-PACKAGING-007, REQ-LINT-PACKAGING-004)
+5. [x] [implement] **Mint the Q-IMPL for the `retired_scope_entries()`
+   substitution.** `REQ-PKG-PACKAGING-002`'s "sweeps at least one `docs/spec/`
+   path" is unsatisfiable against `walk()` as §2 defines it; C7.1 closed it by
+   asserting on `retired_scope_entries()` instead, recorded only in a commit
+   body. Recorded as `Q-IMPL-PACKAGING-002` — traces to `two-root-linter.md`
+   §2, §Implementation Questions (REQ-PKG-PACKAGING-002)
+6. [x] [implement] **Resolve the frozen-`gc.py` caller conflict.** `gc.py`'s
+   shim passes a corpus root only while `REQ-PKG-MARKETPLACE-007` freezes its
+   source. Resolution: the freeze holds and `gc.py` is **not** edited — under
+   the union binding of task 1 the single-root call is sound, because a
+   disjoint suite root is excluded from `swept_roots()` and so unreachable by
+   any ungated check. The invariant a future edit must preserve — *no ungated
+   check binds to `self.suite_root` alone* — is recorded as
+   `Q-IMPL-PACKAGING-004` — traces to `two-root-linter.md` §2,
+   §Implementation Questions (REQ-PKG-MARKETPLACE-007)
+7. [x] [implement] **Reconcile the self-test case count (M1).** Three
+   statements disagreed: `two-root-linter.md` §Verification said twelve, C7.6
+   said fourteen, the runner invoked seventeen. §Verification is now the single
+   authoritative statement — the runner tuple **is** the enumeration and no
+   number is pinned in prose — C7.6 points at it, and the one design-time name
+   never landed (`zero_arg_run_sweeps_the_corpus`) is recorded there rather
+   than left as a silent gap — traces to `two-root-linter.md` §Verification
+8. [x] [implement] **`<plugin-dir>` as a stated convention (M2).**
+   `verify/SKILL.md`'s gc criterion writes `<plugin-dir>` where
+   `orchestrate/SKILL.md` writes `<skill-dir>`. One sentence in
+   `two-root-linter.md` §8 states the convention — `<plugin-dir>` for the whole
+   installed plugin root, `<skill-dir>` for one skill's own directory — so the
+   two read as different referents rather than a divergence — traces to
+   `two-root-linter.md` §8 (REQ-PKG-PACKAGING-009)
+9. [x] [implement] **Close the gate hole (S5) and repair the stale remediation
+   text (M3).** `CONTRIBUTING.md` §The three heavier checks gains a trigger row:
+   touching `skill-lint.py` **or** `gc.py` requires running **both**
+   `--self-test`s, with the reason (`gc.py` embeds the linter; the gate runs
+   `gc.py --fast`, a corpus sweep that exercises no two-root fixture geometry).
+   `gc.py --self-test` is **not** added to `.pre-commit-config.yaml`: not for
+   cost (1.6s), but because `REQ-PC-MARKETPLACE-004`'s Approved acceptance pins
+   a `--self-test` grep of that config at zero matches, already verified pass —
+   amending it is a requirements change outside this packet. `check_structure()`'s
+   remediation string ("run the linter from the repo root or pass REPO_ROOT")
+   is replaced: `REPO_ROOT` no longer exists and the advice is wrong after the
+   cwd/two-root change — traces to `pre-commit.md`, `two-root-linter.md` §2
+
+**Entry criteria**: Chunk 7 complete; the implement-stage review returned REJECT.
+**Exit criteria**: all four of `skill-lint.py --self-test`, `skill-lint.py`,
+`gc.py --self-test` and `gc.py --fast` exit 0, each observed and recorded; every
+review finding is either applied or recorded as a Q-IMPL with its resolution.
 
 ## Requirement → Task Coverage
 

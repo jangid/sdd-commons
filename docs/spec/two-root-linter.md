@@ -256,7 +256,15 @@ The drift-sweep invocation in the verify skill's gc criterion must come out of
 the move with **both** halves correct: its script path resolves to the tool
 inside the suite, and its root argument still names the operator's own working
 directory, never the suite. A bare `tools/gc.py` path is what the move breaks;
-an implicit root would silently retarget the sweep. The repair is **sequenced
+an implicit root would silently retarget the sweep.
+
+**Placeholder convention, stated here once.** A skill body that must name the
+suite root it ships inside writes `<plugin-dir>` when the referent is the
+whole installed plugin root (the tree holding `tools/`, `agents/` and
+`skills/` — `verify/SKILL.md`'s gc invocation) and `<skill-dir>` when it is
+that one skill's own directory (`orchestrate/SKILL.md`'s `references/` links).
+The two are different referents, not a divergence; each occurrence still
+expands its placeholder inline at first use. The repair is **sequenced
 after** §2, §4 and §5 — done first it would pin a spelling those bindings then
 change.
 
@@ -271,15 +279,34 @@ table being the post-removal five-name state.
 
 ### Automated
 
-Twelve self-test cases covering the acceptance criteria below — several
-criteria carry more than one — each asserted **invertible** (swapping its
-expectation fails the self-test):
+**The named-case runner in `self_test()` — the `for _case in (…)` tuple — is
+the single authoritative enumeration of the self-test cases, and its
+membership is the count.** No number is pinned in prose here or anywhere else:
+the set grows whenever a post-plan repair lands a case, and a number restated
+in a second place is drift, not a check. Any other statement of the case set
+(the plan's C7.6 included) points at that tuple rather than counting. Every
+case is asserted **invertible** — swapping its expectation fails the
+self-test.
+
+Twelve cases were specified at design time, covering the acceptance criteria
+below (several criteria carry more than one):
 `two_roots_construct_distinct_and_equal`, `equal_roots_sweep_set_unchanged`,
 `nested_roots_render_per_root`, `zero_arg_run_sweeps_the_corpus`,
 `retired_scope_binds_per_entry`, `manifest_pair_membership`,
 `template_pairs_bind_per_side`, `sweep_is_duplicate_free`,
 `fixture_counts_exact`, `case_c_counts_once`, `print_population_shape`,
-`retarget_seeds_an_ungated_finding`.
+`retarget_seeds_an_ungated_finding`. Cases added after the plan — each from a
+verification or review finding, each named in its own docstring — are
+`disjoint_suite_walk_excluded`, `case_c_negative_double_count`,
+`duplicate_guard_negative_case`, `skill_dir_of_binds_per_root`,
+`forbidden_allow_files_root_correct`, `check_structure_binds_to_the_suite_root`
+and `check_size_binds_to_the_swept_roots`.
+
+**One design-time name was never landed**: `zero_arg_run_sweeps_the_corpus`.
+The cwd default it would assert is implemented and exercised by the
+zero-argument commit-gate entry (`pre-commit.md` §Two-Root Amendment) and by
+the plan's C1.1, but no named runner case pins it. Recorded here rather than
+left as a silent gap between this list and the runner.
 
 ### Manual
 
@@ -418,3 +445,72 @@ that makes them the one asserted population in the corpus, exactly as approved.
 The Chunk 4 verifier raised the extra line as a deviation from §6's letter;
 this entry is that record (C6.14, added post-plan from the Chunk 5
 verification).
+
+### Q-IMPL-PACKAGING-002: `REQ-PKG-PACKAGING-002`'s `docs/spec/` sweep membership
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §2 The linter's two-root interface — `walk() ->
+deduplicated union of <root>/skills/**/*.md over swept_roots()`; and
+REQ-PKG-PACKAGING-002 §Acceptance, "sweeps at least one `docs/spec/` path"
+**Decision**: that acceptance clause is **unsatisfiable against `walk()` as §2
+defines it** — the walk is scoped to `<root>/skills/**/*.md` and reaches no
+`docs/` path in any geometry. C7.1 evaluated it instead against
+`retired_scope_entries()`, the one production surface that does bind a
+`docs/spec` scope entry to the corpus root (§4's binding table), asserting
+that a corpus-rooted run's entry set contains a `docs/spec/` path. The
+substituted observable is kept; the criterion's literal wording is not.
+**Impact**: the criterion is satisfied by a **different** surface from the one
+its wording names, so a reader checking it against `walk()` finds nothing. Any
+restatement must say `retired_scope_entries()`, not `walk()`. Recorded here
+because the substitution had lived only in a commit body — a deviation from an
+Approved acceptance criterion, which §Verification requires be traceable in
+the spec (C8.5, added post-plan from the implement-stage review).
+
+### Q-IMPL-PACKAGING-003: `--print-population` prints the guard's findings and may exit non-zero
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §6 Counts — "On failure the observable is a
+`fail`-severity finding in the run's own findings list … and no invocation
+mode can skip it", against the same section's "`--print-population` … Exits 0"
+**Decision**: `print_population()` prints the findings its own
+`skill_files()` call accumulated and returns 1 when any carries `fail`
+severity. The two §6 sentences are in tension only for this mode:
+`print_population()` invokes the union builder — which runs the
+duplicate-freeness guard — and then discarded the findings, so the guard could
+fire in that mode and be observed by nobody, which is exactly what
+"no invocation mode can skip it" forbids. The unconditional-`exit 0` reading
+is the weaker of the two: it is stated of the flag's *normal* behaviour, in a
+paragraph whose subject is that the flag asserts no count, whereas the guard's
+observability is stated as an absolute. Every run of a correctly constructed
+union still prints nothing extra and still exits 0, so no green path changes.
+**Rationale**: the guard is a construction guard whose whole value is that a
+later edit rebuilding the union as concatenation is *seen*. A mode that
+computes the guard and throws the answer away is the one way that value is
+lost silently (C8.3, added post-plan from the implement-stage review).
+
+### Q-IMPL-PACKAGING-004: the frozen `gc.py` shim under the two-root interface
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §2 The linter's two-root interface;
+REQ-PKG-MARKETPLACE-007 (`gc.py` source frozen)
+**Decision**: `gc.py` is **not edited**; the repair belongs entirely on the
+linter side, and the freeze is left intact. `gc.py`'s fixture shim
+(`lint_command()`) constructs `Linter(Path(sys.argv[2]), suite_rules=False)` —
+a corpus root only, so `suite_root` falls back to `default_suite_root()`, the
+**live installed suite**, disjoint from the fixture tree. Under the two-root
+interface that is a *correct* call: §2 makes `suite_root` default to the
+script's own plugin root, and the disjoint geometry excludes it from
+`swept_roots()`. The hazard was never the shim — it was two checks
+(`check_structure()`, `check_size()`) bound to `self.suite_root` instead of the
+swept-root union, which made a disjoint suite root reachable by a check that
+had no business reaching it: `check_size()` then measured the live suite from
+inside a gc fixture run, `gc.py --self-test` went red, and a finding naming a
+path outside `swept_roots()` raised an uncaught `ValueError` out of `rel()`.
+With both checks on the union (§4, and REQ-PKG-PACKAGING-005's corpus-root
+binding for size and frontmatter), the frozen shim's single-root call is
+sound as written and needs no counterpart to `_run_capture()`'s guard.
+**Impact**: the invariant a future edit must preserve is that **no ungated
+check binds to `self.suite_root` alone**. Ungated checks take
+`swept_roots()`; the suite-gated rows (§3) and the per-entry bindings of §4
+and §5 supply their own rendering via `flag(..., rel=…)` precisely because
+`rel()` cannot render a disjoint suite root's file. A caller that passes one
+root is relying on that invariant, and `gc.py` is frozen, so the invariant
+cannot be renegotiated from the caller's side (C8.6, added post-plan from the
+implement-stage review).
