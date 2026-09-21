@@ -191,7 +191,7 @@ pre-change observations every later criterion is red against are pinned.
 **Write scope**: `plugins/sdd/tools/skill-lint.py`, `plugins/sdd/tools/gc.py`,
 `docs/ws/consumer-geometry/traceability.md`.
 **Tasks**:
-1. [ ] [implement] Add the named row-token constant to `skill-lint.py` and its
+1. [x] [implement] Add the named row-token constant to `skill-lint.py` and its
    mirror to `gc.py` — **each holding only the rows whose cases live in that
    tool** (`skill-lint.py`: rows 1-3, 5-8; `gc.py`: row 4 alone), never eight in
    each, since a constant naming a row with no case in that tool fails its own
@@ -204,7 +204,7 @@ pre-change observations every later criterion is red against are pinned.
    incrementally; it is empty at this task's close and the completeness
    assertion is therefore vacuous, so task 2 supplies its falsifiability
    — traces to `two-root-linter.md` §CG-7
-2. [ ] [implement] Make the completeness assertion falsifiable rather than
+2. [x] [implement] Make the completeness assertion falsifiable rather than
    vacuous: register a self-check that (a) a token present in the constant with
    no registered case fails naming that token, and (b) a registered `cg-row-`
    case whose token is absent from the constant fails symmetrically. **Mutation
@@ -213,12 +213,12 @@ pre-change observations every later criterion is red against are pinned.
    token → the symmetric line appears. Without this the constant-vs-registered
    equality would pass by holding nothing, which is the vacuity class this whole
    delta exists to close — traces to `two-root-linter.md` §CG-7
-3. [ ] [implement] Add the §CG-8 disjoint scratch helper to the self-test
+3. [x] [implement] Add the §CG-8 disjoint scratch helper to the self-test
    fixture layer: build a scratch far root by copying `plugins/sdd` into
    `$TMPDIR`, disjoint by construction and never referencing any in-repo path,
    and never the installed cache. Every later chunk's disjoint fixture calls it
    — traces to `two-root-linter.md` §CG-8, kickoff constraint 1
-4. [ ] [verify] Pin the pre-change observations, derived at run time and recorded
+4. [x] [verify] Pin the pre-change observations, derived at run time and recorded
    in the chunk's notes (not as literals in any criterion): in §CG-8's
    construction the far `skill-lint.py` prints `.: [structure] skills/ directory
    not found` then `FAIL: 1 finding(s), 0 warning(s)`, and the far `gc.py
@@ -226,7 +226,7 @@ pre-change observations every later criterion is red against are pinned.
    **no** line beginning `GEOMETRY: ` and reports its current swept-file count.
    These are the red-before states every Chunk 3/5 criterion asserts against
    — traces to `two-root-linter.md` §CG-8
-5. [ ] [verify] `python3 plugins/sdd/tools/skill-lint.py --self-test` and
+5. [x] [verify] `python3 plugins/sdd/tools/skill-lint.py --self-test` and
    `python3 plugins/sdd/tools/gc.py --self-test` exit 0, and both remain in the
    committed `.pre-commit-config.yaml` hook set, asserted by **parsing that
    file** rather than by recollection — traces to
@@ -236,6 +236,47 @@ pre-change observations every later criterion is red against are pinned.
 **Exit criteria**: Both self-tests exit 0; the constant-vs-registered assertion
 is falsifiable in both directions with both mutations run; the disjoint helper is
 callable from a fixture; the four pre-change observations are recorded. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
+
+**Notes** (Chunk 0, 2026-09-22):
+
+- **Pre-change observations (task 4), derived at run time.** In §CG-8's disjoint
+  scratch construction (`cp -R plugins/sdd "$TMPDIR/cg/far"`, corpus root = the
+  repo):
+  - the far `skill-lint.py` prints `.: [structure] skills/ directory not found`
+    (with its `fix:` line) then `FAIL: 1 finding(s), 0 warning(s)`, exit 1;
+  - the far `gc.py --report --root "$REPO"` passes that same finding through as
+    the first line of its report and ends `FAIL: 1 finding(s), 0 warning(s),
+    34 info`, exit 1;
+  - the in-repo `skill-lint.py .` emits **no** line beginning `GEOMETRY: `
+    (count 0) and reports `OK: 25 file(s) clean`.
+  These are the red-before states the Chunk 3 and Chunk 5 criteria assert
+  against. They are recorded here, not written as literals into any criterion.
+- **Falsifiability of the constant-vs-registered equality (task 2), both
+  mutations run on a temporary copy of `skill-lint.py`:**
+  - (a) a ninth token added to `CG_ROW_TOKENS` with no registered case → the
+    printed list carries `- cg-row-9: named in CG_ROW_TOKENS but no registered
+    case ran it`;
+  - (b) a registered `cg_check(9, …)` case with that token absent from the
+    constant → `- cg-row-9: ran as a registered case but is absent from
+    CG_ROW_TOKENS`;
+  - control: token **and** case together → no `cg-row-` line at all.
+  Per §CG-7 the comparand is **membership of the printed failure list**, not the
+  process exit code: a copy run from outside the repo raises unrelated
+  pre-existing failures (so all three runs exit 1), and the cg surface is
+  nonetheless clean in the control and carries exactly the expected line in each
+  mutation.
+- **Provisional observation, no id** (its `### Q-IMPL-…` heading is born in
+  Chunk 7, §Conventions): `gc.py` cannot import `skill-lint.py` — it invokes it
+  as a subprocess — so `disjoint_scratch_suite()` and `cg_reconcile()` exist
+  once per tool rather than once. The two copies are byte-equivalent in
+  behaviour and nothing asserts they stay so; if a later chunk edits one half,
+  the drift is silent. Worth a recorded decision (accept the duplication, or
+  assert the pair) rather than an accident.
+- **Task 5, asserted by parsing `.pre-commit-config.yaml`** (read-only): the
+  committed hook set still contains `python3 plugins/sdd/tools/skill-lint.py`,
+  `… skill-lint.py --self-test`, `python3 plugins/sdd/tools/gc.py --fast` and
+  `… gc.py --self-test` (hook ids `skill-lint`, `skill-lint-self-test`,
+  `drift-sweep`, `drift-sweep-self-test`). Both self-tests exit 0.
 
 ---
 

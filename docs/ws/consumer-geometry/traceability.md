@@ -1,6 +1,6 @@
 ---
 workstream: consumer-geometry
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 ---
 
 # Traceability — consumer-geometry
@@ -39,9 +39,9 @@ number and a renumbering cannot silently misroute them.
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-PKG-CONSUMERGEOMETRY-001 | `two-root-linter.md` §CG-7 + criteria; `marketplace-packaging.md` §CG "The three checklist items…" (freeze repin); `drift-sweep.md` §2, §4; `pre-commit.md` §CG | consumer-geometry | | | |
+| REQ-PKG-CONSUMERGEOMETRY-001 | `two-root-linter.md` §CG-7 + criteria; `marketplace-packaging.md` §CG "The three checklist items…" (freeze repin); `drift-sweep.md` §2, §4; `pre-commit.md` §CG | consumer-geometry | `skill-lint.py --self-test` / `gc.py --self-test`: `cg_reconcile()` asserts constant-vs-registered both ways; falsifiability demonstrated by two mutation runs (Chunk 0 task 2 — token-without-case and case-without-token each print their own `cg-row-` line) | `plugins/sdd/tools/skill-lint.py`: `CG_ROW_TOKENS` (rows 1-3, 5-8), `cg_check()` registration, `cg_reconcile()`; `plugins/sdd/tools/gc.py`: the same surface for row 4 alone. Both constants empty at Chunk 0 close (plan D1, incremental population) | |
 | REQ-PKG-CONSUMERGEOMETRY-002 | `two-root-linter.md` §CG-4 (citation correction), §CG-5, §CG-5a | consumer-geometry | | | |
 | REQ-PKG-CONSUMERGEOMETRY-003 | `two-root-linter.md` §CG-2, §CG-9 (the `:89` and `:522-523` rows); `drift-sweep.md` §1, §2; `skill-lint-v5.md` §CG criteria | consumer-geometry | | | |
 | REQ-PKG-CONSUMERGEOMETRY-004 | `two-root-linter.md` §CG-6; `drift-sweep.md` §3; `skill-lint-v5.md` §CG "The summary-line pins", "The GEOMETRY: token is not a finding" | consumer-geometry | | | |
 | REQ-PKG-CONSUMERGEOMETRY-005 | `marketplace-packaging.md` §CG "The removal", "The three disposition classes", "The shape every string criterion…", "The three checklist items…", "Consumer-unreachable strings…"; `two-root-linter.md` §CG-9 (the `:366` row); `drift-sweep.md` §4; `pre-commit.md` §CG | consumer-geometry | | | |
-| REQ-PKG-CONSUMERGEOMETRY-006 | `two-root-linter.md` §CG-1, §CG-3, §CG-4, §CG-8, §CG-10; `pre-commit.md` §CG | consumer-geometry | | | |
+| REQ-PKG-CONSUMERGEOMETRY-006 | `two-root-linter.md` §CG-1, §CG-3, §CG-4, §CG-8, §CG-10; `pre-commit.md` §CG | consumer-geometry | `disjoint_scratch_suite()` is callable from either tool's self-test fixture layer; the §CG-8 construction was run and its four pre-change observations pinned in the plan's Chunk 0 Notes | `plugins/sdd/tools/skill-lint.py` and `plugins/sdd/tools/gc.py`: `disjoint_scratch_suite(dest)` copies this tool's own plugin dir into `$TMPDIR`, disjoint by construction, never the installed cache | |

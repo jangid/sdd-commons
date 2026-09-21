@@ -1409,6 +1409,54 @@ def _tree_bytes(d: Path) -> dict[str, bytes]:
     return {str(p.relative_to(d)): p.read_bytes() for p in sorted(d.rglob("*")) if p.is_file()}
 
 
+# ---------------------------------------------------------------------------
+# The consumer-geometry per-case reporting surface (two-root-linter.md §CG-7)
+# ---------------------------------------------------------------------------
+#
+# The mirror of skill-lint.py's surface, for the rows whose cases live in THIS
+# tool. That is row 4 (lint_path()/lint_command()) ALONE — rows 1-3 and 5-8
+# register in skill-lint.py --self-test and are named by that tool's own
+# constant. An eight-member constant here would fail this tool's
+# constant-vs-registered equality on seven members.
+#
+# Populated INCREMENTALLY (plan D1); empty at the close of Chunk 0, which is
+# why cg_reconcile() carries its own falsifiability demonstration rather than
+# passing by holding nothing.
+CG_ROW_TOKENS: tuple[str, ...] = ()
+
+
+def cg_reconcile(constant: tuple[str, ...], ran: set[str], failures: list[str]) -> None:
+    """Assert the row-token constant and the registered cases agree, BOTH ways.
+
+    Direction (a): a token named in the constant that no registered case ran.
+    Direction (b): a registered `cg-row-` case whose token is absent from the
+    constant. Every appended string begins with the offending row's own token,
+    keeping the printed failure list the per-case surface §CG-7 requires.
+    """
+    for tok in constant:
+        if tok not in ran:
+            failures.append(f"{tok} named in CG_ROW_TOKENS but no registered case ran it")
+    for tok in sorted(ran):
+        if tok not in constant:
+            failures.append(f"{tok} ran as a registered case but is absent from CG_ROW_TOKENS")
+
+
+def disjoint_scratch_suite(dest: Path) -> Path:
+    """Build a suite root DISJOINT from any corpus root, by construction (§CG-8).
+
+    Copies this tool's own plugin directory (the parent of `tools/`) into
+    `dest`, which callers site under `$TMPDIR`. Disjoint by construction rather
+    than by reference to any in-repo path; the installed plugin cache is a
+    read-only measurement surface and is never touched (kickoff constraint 1).
+    Returns the far suite root, so a caller runs `<returned>/tools/gc.py`.
+    """
+    src = Path(__file__).resolve().parent.parent
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(src, dest)
+    return dest
+
+
 def self_test() -> int:
     global _LINT_SUITE_RULES
     failures: list[str] = []
@@ -1416,6 +1464,17 @@ def self_test() -> int:
     def check(cond: bool, msg: str) -> None:
         if not cond:
             failures.append(msg)
+
+    # Registration for the enumerated consumer-geometry rows (§CG-7) whose
+    # cases live in this tool. A case calls cg_check() instead of check(); the
+    # call records the row as RUN and prefixes any failure with its token.
+    cg_ran: set[str] = set()
+
+    def cg_check(row: int, cond: bool, msg: str) -> None:
+        tok = f"cg-row-{row}:"
+        cg_ran.add(tok)
+        if not cond:
+            failures.append(f"{tok} {msg}")
 
     tmp = Path(tempfile.mkdtemp(prefix="gc-selftest-"))
     _LINT_SUITE_RULES = False
@@ -1734,6 +1793,8 @@ def self_test() -> int:
     finally:
         _LINT_SUITE_RULES = True
         shutil.rmtree(tmp, ignore_errors=True)
+
+    cg_reconcile(CG_ROW_TOKENS, cg_ran, failures)
 
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))

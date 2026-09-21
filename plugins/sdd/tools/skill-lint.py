@@ -1197,6 +1197,73 @@ class Linter:
 # linter reports each rule (and that a clean fixture passes).
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# The consumer-geometry per-case reporting surface (two-root-linter.md §CG-7)
+# ---------------------------------------------------------------------------
+#
+# Each enumerated row of REQ-PKG-CONSUMERGEOMETRY-001's table is bound to a
+# --self-test case whose failure string BEGINS WITH a stable `cg-row-<n>:`
+# token, contributed to the same `failures` list --self-test already prints as
+# `SELF-TEST FAIL:` + one `- <string>` line per failure. That list — not the
+# banner and not the process exit code — is the per-case surface every
+# consumer-geometry mutation asserts against: a mutation can trip a
+# pre-existing fixture too, so a green-to-red transition of the *process* would
+# not show that the new case fired at all.
+#
+# CG_ROW_TOKENS names exactly the rows whose cases live in THIS tool: rows 1-3
+# and 5-8. Row 4 (lint_path()/lint_command()) is the only enumerated row with a
+# case in gc.py, and gc.py carries its own constant holding that row ALONE —
+# naming a row here that has no case here fails the reconciliation below on
+# that row, in the direction that names the token.
+#
+# The constant is populated INCREMENTALLY, one entry per row-landing task (plan
+# D1): a row's case is authored in the same task as the behaviour it observes,
+# so the constant-vs-registered equality is green at every chunk close rather
+# than red for most of the cycle. It is EMPTY here, at the close of Chunk 0 —
+# which is why cg_reconcile() is falsifiable in both directions on demand
+# (Chunk 0 task 2) rather than merely passing by holding nothing.
+CG_ROW_TOKENS: tuple[str, ...] = ()
+
+
+def cg_reconcile(constant: tuple[str, ...], ran: set[str], failures: list[str]) -> None:
+    """Assert the row-token constant and the registered cases agree, BOTH ways.
+
+    Direction (a): a token named in the constant that no registered case ran —
+    the completeness half. Direction (b): a registered `cg-row-` case whose
+    token is absent from the constant — the symmetric half, without which a
+    case could discharge a row the constant never claims. Every appended string
+    begins with the offending row's own token, so the printed failure list
+    stays the per-case surface §CG-7 requires.
+    """
+    for tok in constant:
+        if tok not in ran:
+            failures.append(f"{tok} named in CG_ROW_TOKENS but no registered case ran it")
+    for tok in sorted(ran):
+        if tok not in constant:
+            failures.append(f"{tok} ran as a registered case but is absent from CG_ROW_TOKENS")
+
+
+def disjoint_scratch_suite(dest: Path) -> Path:
+    """Build a suite root DISJOINT from any corpus root, by construction (§CG-8).
+
+    Copies this tool's own plugin directory (the parent of `tools/`) into
+    `dest`, which callers site under `$TMPDIR`. Disjoint by construction rather
+    than by reference to any in-repo path: no committed hook and no in-repo
+    invocation can reach a geometry where the copy lies under the corpus root.
+    The installed plugin cache is a read-only measurement surface and is never
+    read or written here (kickoff constraint 1) — the copy source is always
+    this checkout's own source tree.
+
+    Returns the far suite root, i.e. `dest` itself (a `skills/` and a `tools/`
+    live directly under it), so a caller runs `<returned>/tools/skill-lint.py`.
+    """
+    src = Path(__file__).resolve().parent.parent
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(src, dest)
+    return dest
+
+
 def _fixture_skill(root: Path, name: str, body: str, *, lines: int | None = None) -> Path:
     """Write a minimal clean skill dir under `root/skills/<name>` and return its dir.
 
@@ -1237,6 +1304,17 @@ def self_test() -> int:
     def check(cond: bool, msg: str) -> None:
         if not cond:
             failures.append(msg)
+
+    # Registration for the enumerated consumer-geometry rows (§CG-7). A case
+    # calls cg_check() instead of check(); the call records the row as RUN and
+    # prefixes any failure with that row's stable token.
+    cg_ran: set[str] = set()
+
+    def cg_check(row: int, cond: bool, msg: str) -> None:
+        tok = f"cg-row-{row}:"
+        cg_ran.add(tok)
+        if not cond:
+            failures.append(f"{tok} {msg}")
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -2917,6 +2995,8 @@ def self_test() -> int:
                       rel_raises_outside_the_swept_roots,
                       equal_roots_count_as_contained):
             _case()
+
+    cg_reconcile(CG_ROW_TOKENS, cg_ran, failures)
 
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
