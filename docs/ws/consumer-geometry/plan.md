@@ -235,7 +235,7 @@ pre-change observations every later criterion is red against are pinned.
 **Entry criteria**: None (first chunk).
 **Exit criteria**: Both self-tests exit 0; the constant-vs-registered assertion
 is falsifiable in both directions with both mutations run; the disjoint helper is
-callable from a fixture; the four pre-change observations are recorded.
+callable from a fixture; the four pre-change observations are recorded. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -314,7 +314,7 @@ the behaviour changes, by OC4.**
 **Exit criteria**: Both self-tests exit 0; `cg-row-3` registered and its mutation
 demonstrated; the four split assertions recorded with (c) explicitly owed to
 Chunk 3; the three suffix sites each demonstrated; the count-invariance mutation
-run and the finding count and `N` observed unchanged.
+run and the finding count and `N` observed unchanged. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -398,7 +398,7 @@ which builds no argv at all.
 `gc.py` branches carry the root, each demonstrated by its own mutation;
 `cg-row-4` registered; **both tools'** `--help` name the surface and `Gc(...)`
 accepts the keyword, each with its own mutation run; both leg-(i) greps run and
-recorded with their commands.
+recorded with their commands. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -487,7 +487,7 @@ path — CLI, `gc.py`'s `-c` shim, a direct fixture — gets the same answer.
 (OC4), so acceptance 1's token clause is decidable.
 **Exit criteria**: Both self-tests exit 0; fixture D green with all four
 observations; both negative directions green; the shim and the CLI agree; the
-nested case unregressed; `cg-row-1` and `cg-row-2` registered and demonstrated.
+nested case unregressed; `cg-row-1` and `cg-row-2` registered and demonstrated. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -528,7 +528,7 @@ registered case with its mutation run. Per **D2**, rows 6–8 are fixture-only.
 **Entry criteria**: Chunk 3 exit criteria met.
 **Exit criteria**: All eight `cg-row-` tokens registered; every one of the eight
 mutations **applied, run, and reverted**, with the printed-list assertion made
-each time; both self-tests exit 0.
+each time; both self-tests exit 0. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -608,7 +608,7 @@ tools.
 **Exit criteria**: Both self-tests exit 0; §CG-8's construction green on both
 tools with the reverting mutations run; the geometry-derivation criterion has a
 decidable comparand in `drift-sweep.md` with its mutation demonstrated;
-`drift-sweep.md`'s `last_updated` re-dated in the same commit as that edit.
+`drift-sweep.md`'s `last_updated` re-dated in the same commit as that edit. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -918,7 +918,7 @@ item repinned on its named item; every corrected string resolves from the
 repository root **and** -007's no-plugin-relative-`--file` grep re-run green; the
 `OPEN:` consumer residue still present with its blocking constraint named;
 `gc.py --report` unregressed; the aggregate **read and recorded, not
-regenerated**.
+regenerated**. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -1080,7 +1080,7 @@ clauses present, **and the residual absence grep green in its exempted
 run-time-derived form**; all three `skill-lint-v5.md` dead-path pins repaired; the
 end-anchoring check recorded with its command; the two count inconsistencies
 corrected; exactly one implement task in the plan declares the packaging
-requirements file.
+requirements file. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -1135,7 +1135,7 @@ violation and is treated as one.
 **Exit criteria**: Both self-tests green and still hook entries rather than moved
 to the run-explicitly set; the hook set byte-identical from `3bac4af`;
 `pre-commit run --all-files` green; the nested case and the disjoint construction
-both green on the shipping tree.
+both green on the shipping tree. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
 
@@ -1202,7 +1202,7 @@ observation.
 exists (task 2 needs it).
 **Exit criteria**: `verification.md` carries both token sets and their
 difference, the four split §CG-6 results, and the machine-dependent observation;
-the sha back-fill landed by a single, separately scoped task.
+the sha back-fill landed by a single, separately scoped task. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ## Requirement → Chunk Coverage
 
