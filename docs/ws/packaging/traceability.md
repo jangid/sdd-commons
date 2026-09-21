@@ -18,6 +18,14 @@ at the requirements stage on 2026-09-21 and are not yet specced or implemented,
 and the `Spec` column was filled by `sdd:specs` on 2026-09-21; `Test`,
 `Implementation` and `Verified` are intentionally blank.
 
+**Requirement → plan task.** The matrix shape is fixed at the six columns of
+`docs/spec/ws-traceability.md` §The Per-Workstream File, so the plan stage adds
+no `Task` column — a seventh cell makes every row unparseable and the drift
+sweep drops it from the regenerated aggregate (`[traceability-rowdrop]`). The
+per-requirement task mapping `sdd:plan` produced on 2026-09-21 therefore lives
+in `docs/ws/packaging/plan.md` §Requirement → Task Coverage, which carries one
+row per requirement in this table, keyed by the same ids.
+
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
 | REQ-DOCS-PACKAGING-001 | project-docs.md | packaging | | | |
