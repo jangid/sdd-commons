@@ -28,6 +28,15 @@ skill's phase detection), and the three contributor tools stay out of the plugin
 (Q2 — from an installed plugin they would root on the plugin's own copy and
 report a false green about the user's repository).
 
+Both exclusions are exclusions from the plugin's **component list** — the set
+Claude Code loads as skills and agents. They are not exclusions from what an
+install copies: under `"source": "./"` the installed plugin carries the whole
+repository tree, `docs/` and the contributor tools included. The real-session
+install of REQ-PKG-MARKETPLACE-010 measured `docs/` at 144 files and 48,462
+lines, most of the install's ~5 MB. That copy is inert — no component is loaded
+from it and no skill body can reach it — so the exclusions still hold as
+statements about loading, which is what they were written to guarantee.
+
 Standing constraints: the §Decided list in `docs/ws/marketplace/kickoff.md`
 (marketplace `sdd-commons`, plugin `sdd`, components surfacing as
 `sdd:orchestrate`) is inherited, not re-litigated. No requirement here changes
@@ -79,7 +88,8 @@ inside the driver skill is part of that skill's own directory, not a skill
 directory of its own, so it is neither listed separately nor counted as a missing
 component. Enumeration
 is required rather than a wildcard because the exclusions of
-REQ-PKG-MARKETPLACE-005 and of `docs/` are expressed by absence from this list.
+REQ-PKG-MARKETPLACE-005 and of `docs/` are expressed by absence from this list —
+absence from what Claude Code **loads**, not from what the install copies.
 (see RS-MARKETPLACE-001 Q1 Recommendation, Q3 Evidence)
 **Acceptance**: a check derives both sides at run time — the set of skill
 directory basenames listed in the manifest equals the set of directories under
@@ -89,7 +99,7 @@ the set of `*.md` files directly under `agents/`; no listed path begins with
 `docs/`. No count is written into the criterion.
 [Priority: must]
 
-### REQ-PKG-MARKETPLACE-004: `docs/` stays in the repository and ships to no installing user
+### REQ-PKG-MARKETPLACE-004: `docs/` stays in the repository and is loaded as no plugin component
 `docs/` must remain in the repository unchanged — it is the corpus this
 repository's own cycles read and `tools/sdd-gc.py` sweeps — and must be absent
 from the plugin's component list. The system must not require `docs/` to be
@@ -97,6 +107,16 @@ present in an installed plugin: every `docs/…` citation inside a skill body is
 **bare relative path** that resolves against the operator's own project working
 directory, which is where the installing user's own SDD corpus lives.
 (see RS-MARKETPLACE-001 Q1 Evidence)
+
+Absence from the component list means `docs/` is loaded as no component; it does
+not mean `docs/` is withheld from the install. Under `"source": "./"` the
+installed plugin contains a copy of `docs/` — 144 files, 48,462 lines as
+measured by the REQ-PKG-MARKETPLACE-010 install — and that copy is inert,
+because no component is loaded from it and every skill-body citation resolves
+outside it. The acceptance criteria below are true of the manifest and of skill
+bodies, which is what this requirement guarantees; they establish nothing about
+the install's file inventory, and the install's carrying `docs/` is an accepted,
+documented cost rather than a violation.
 **Acceptance**: a run-time grep over `skills/` for `docs/` citations that are
 absolute, home-rooted, or rooted on a plugin path variable returns zero matches;
 the manifest component check of REQ-PKG-MARKETPLACE-003 shows no `docs/` path.
@@ -104,9 +124,10 @@ the manifest component check of REQ-PKG-MARKETPLACE-003 shows no `docs/` path.
 
 ### Tools
 
-### REQ-PKG-MARKETPLACE-005: Contributor tools are excluded from the plugin
+### REQ-PKG-MARKETPLACE-005: Contributor tools are loaded as no plugin component
 The skill-lint, scope-check self-test and evaluation tools must stay in the
-repository and must be absent from the plugin's component list. They are
+repository and must be absent from the plugin's component list — which, as
+above, keeps them from being loaded, not from being copied into the install. They are
 repository-maintenance tools: none is ever invoked from a skill body, the
 linter's suite rules are keyed to this repository's own skill set, and its root
 is its own script location — so from an installed plugin it would lint the

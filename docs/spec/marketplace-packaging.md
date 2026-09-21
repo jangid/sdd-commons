@@ -26,11 +26,21 @@ it is what lets the rename (`skill-namespace-rename.md`) land first as an
 independently verifiable step without any reference being edited twice
 (REQ-NAME-MARKETPLACE-007).
 
-Two exclusions are deliberate statements rather than omissions: `docs/` stays
-in the repository and is not a plugin component (REQ-PKG-MARKETPLACE-004), and
-the three contributor tools stay out of the plugin (REQ-PKG-MARKETPLACE-005).
-Both are expressed by **absence from an explicit component list**, which is why
-the list is enumerated rather than wildcarded.
+Two exclusions are deliberate statements rather than omissions: `docs/` is not
+a plugin component (REQ-PKG-MARKETPLACE-004), and the three contributor tools
+are not plugin components (REQ-PKG-MARKETPLACE-005). Both are expressed by
+**absence from an explicit component list**, which is why the list is
+enumerated rather than wildcarded.
+
+**What that absence does and does not mean.** The component list governs what
+Claude Code **loads as a component** — what a session surfaces as a skill or an
+agent. It does not govern what is **copied into the install**: under
+`"source": "./"` the whole repository tree is materialised into the installed
+plugin, `docs/` and contributor tools included. The real-session install
+observation measured this directly (Q-IMPL-MARKETPLACE-020): the install carries
+144 files and 48,462 lines of `docs/`, most of its ~5 MB, while
+`claude plugin details` reports zero components from it. The shipped copy is
+inert — see §`docs/` stays behind for why it cannot shadow anything.
 
 This spec assumes the rename has already landed, so every name it uses is the
 post-rename name: skills are `skills/<name>/` with no prefix, tools are
@@ -98,7 +108,9 @@ moves zero files and keeps both steps separable.
 
 The component list is **explicit**: every shipped skill directory and every
 shipped agent file is named. It is not a wildcard, because the `docs/` and
-contributor-tool exclusions are expressed by absence from it.
+contributor-tool exclusions are expressed by absence from it — absence from the
+set Claude Code loads, not absence from the copied tree (§Overview,
+Q-IMPL-MARKETPLACE-020).
 
 The list is checked by deriving **both sides at run time** — never against a
 count or a written-out list:
@@ -120,6 +132,15 @@ count or a written-out list:
 `docs/` remains in the repository unchanged — it is the corpus this
 repository's own cycles read and the drift sweep sweeps — and is absent from
 the component list.
+
+"Stays behind" is a statement about **loading**, not about copying. An install
+made under `"source": "./"` carries the repository tree including `docs/` — the
+observed cost is 144 files and 48,462 lines, most of the install's ~5 MB — and
+that copy is **inert**: no manifest entry names it, `claude plugin details`
+reports zero components from it, and no skill body can reach it, because every
+`docs/…` citation in a skill body is a bare relative path resolving against the
+operator's own working directory. The shipped copy therefore cannot shadow an
+installing user's own corpus.
 
 The system must not require `docs/` to be present in an installed plugin.
 Every `docs/…` citation inside a skill body is a **bare relative path**, which
@@ -241,6 +262,11 @@ A failed install once a mechanism has been used is a **replan trigger for this
 cycle**, not a documented limitation. A mechanism merely being unavailable is
 not a trigger.
 
+The local-path mechanism carries one property worth knowing before it is reused:
+it copies the working tree verbatim, gitignored content included, so its install
+cache can hold local state a git-sourced install would never carry
+(Q-IMPL-MARKETPLACE-021).
+
 ## Acceptance Criteria
 
 Every criterion derives both sides at run time. No corpus-measured count is
@@ -301,3 +327,52 @@ driver skill's `tools/` subdirectory copies their own `docs/spec/…` strings un
 to follow. The two populations were measured separately to confirm the whole
 difference is exactly the bundled copies' own strings and nothing in any skill
 body moved.
+
+### Q-IMPL-MARKETPLACE-020: The component list governs loading, not copying — `docs/` ships inside the install
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Overview; §The component list and its derivation rule; §`docs/` stays behind
+**Decision**: Keep the layout and the acceptance criteria unchanged, and correct
+the text that read the component list as an exclusion from what is *copied*. The
+list expresses what Claude Code **loads as a component**; under `"source": "./"`
+the whole repository tree is materialised into the install, `docs/` included.
+The requirement and spec text now say so plainly, at the measured cost. Operator
+decision, 2026-09-21: accept and document.
+**Rationale**: The real-session install observation (plan Chunk 7 task 2)
+measured the installed copy directly: 144 files and 48,462 lines of `docs/`,
+most of the install's ~5 MB. The acceptance criteria as written passed — they
+parse the manifest, and the manifest does name no `docs/` path — so they were
+true but measured the wrong object, the same species of false criterion this
+cycle's measurement discipline warns about. They are therefore left intact and
+what they do not establish is stated rather than the criteria weakened. This is
+not a correctness defect: every `docs/…` citation in a skill body is a bare
+relative path that resolves against the operator's own project, so the plugin's
+copy is unreachable from any skill and `claude plugin details` reports zero
+components from it.
+**Carried forward, not settled.** The operator's decision closes this *cycle*,
+not the question: `docs/` is to be moved outside the install in a following
+cycle. The decisive constraint for whoever designs that change is the one this
+entry records — the component list cannot express it, so a criterion written
+against the manifest will pass while the condition persists, exactly as these
+did. Assert against the **materialised install tree**. Cheapest path first: spike
+whether the plugin format offers an exclusion declaration at all, before
+considering a subdirectory plugin root, which would move every skill and agent
+file and forfeit the zero-files-moved property this cycle's chunk ordering rests
+on.
+
+### Q-IMPL-MARKETPLACE-021: A local-path install copies the working tree verbatim, gitignored content included
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Install verification, the local-path mechanism
+**Decision**: Record, as a property of the local-path **verification mechanism**,
+that it copies the working tree as-is — including untracked and gitignored files
+— so a future cycle verifying by local path knows its install cache can carry
+local state. No change to the packaging, and no change to what a marketplace
+user receives.
+**Rationale**: The install cache produced by the Chunk 7 observation contains
+`.sdd/telemetry.jsonl` with that cycle's 30 telemetry records, although `.sdd/`
+is gitignored and holds zero tracked files; the cache has no `.git`, confirming a
+plain directory copy rather than a clone or an archive. A GitHub-sourced install
+clones and therefore carries neither untracked nor ignored files, so the property
+is confined to the local-path mechanism and never reaches a user installing from
+the marketplace. Informational: it changes no contract, but silently reusing a
+local-path install without knowing it would be a way to leak local state into a
+copy that looks like a clean install.

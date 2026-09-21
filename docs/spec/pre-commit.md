@@ -126,11 +126,13 @@ recorded as Q-IMPL-MARKETPLACE-003 below: the acting workstream's own
 execution artifacts under `docs/ws/<ws>/` necessarily change after the
 rename-chunk-close sha, so the `--name-only` check excepts that one directory,
 exactly as `skill-namespace-rename.md` already excepts it for
-REQ-NAME-MARKETPLACE-005. A second carve-out is needed on the bundled-tool half
-of that same window and is recorded as Q-IMPL-MARKETPLACE-019 below: the
+REQ-NAME-MARKETPLACE-005. The bundled-tool half of that same window needs no
+carve-out at all, because it is not checked as a `--name-only` listing: the
 packaging chunk *creates* the bundled copies after the rename-chunk-close sha,
-so the check measures modification of bundled-tool content, not the mere
-appearance of a newly added copy. The plan must carry this ordering as an
+so the half is stated instead as a path-limited diff over the two
+repository-root tools the requirement freezes, which is empty exactly when the
+requirement holds. Q-IMPL-MARKETPLACE-019 below records the earlier
+reinterpretation of the listing and the review that superseded it. The plan must carry this ordering as an
 explicit chunk constraint — it is not inferable from the chunk list alone. It is also why the
 YAML sample in §The two local hooks already spells the **post-rename** tool
 names: the config is authored inside the rename chunk, after the tool filenames
@@ -145,7 +147,7 @@ recorded as Q-IMPL-MARKETPLACE-009 below):
 |---|---|
 | `tools/fixtures/` | frozen fixtures whose bytes are part of what they test — silently normalising one would change what the fixture proves while leaving every test green |
 | `docs/superpowers/` | vendored third-party corpus, not this repository's text to normalise; it is also one of the three areas REQ-NAME-MARKETPLACE-005 forbids the implementing change to touch |
-| `docs/ws/`, `docs/research/` | historical execution records of closed cycles, excluded for the same reason `skill-namespace-rename.md` excludes them from the rename: a rewrite makes the record disagree with the commits it describes — and REQ-NAME-MARKETPLACE-005 forbids the implementing change from listing a path under either |
+| `docs/ws/`, `docs/research/` | execution records of closed cycles, excluded for the same reason `skill-namespace-rename.md` excludes them from the rename: a rewrite makes the record disagree with the commits it describes — and REQ-NAME-MARKETPLACE-005 forbids the implementing change from listing a path under either. The pattern is a whole-subtree one, so it also covers the **active** workstream, which is a live record rather than a closed one; that is deliberate — the gate must not rewrite a plan mid-cycle |
 
 Excluding the last three areas is what lets the normalisation sit inside the
 rename chunk without violating REQ-NAME-MARKETPLACE-005: with them excluded, a
@@ -235,6 +237,17 @@ a non-empty reason comment. Read "YAML comment" in that criterion as "comment in
 the configuration file".
 
 ### Q-IMPL-MARKETPLACE-019: the bundled-tool half of the `--name-only` window measures modification, not creation
+**Status**: superseded at the implement-stage review of 2026-09-21 — the
+reinterpretation below is no longer what the plan checks. Chunk 7 task 3 now
+states the bundled-tool half as its own **path-limited** diff,
+`git diff <rename-chunk-close sha> HEAD -- <drift sweep> <telemetry tool>` is
+empty — the form Chunk 5 task 10 already used. That is strictly better than
+this entry's reading: it names the two repository-root paths the requirement
+actually freezes, so nothing has to be reinterpreted about what "lists no
+bundled tool" means, and the check is the same one a reader would write from
+the requirement alone. The entry is kept, not deleted: it records the reading
+the criterion was first closed under, and its Impact paragraph's three
+observations still hold.
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Normalisation happens inside this cycle — "lists no path
 under `docs/ws/`, `docs/research/` or `docs/superpowers/` and no bundled tool"

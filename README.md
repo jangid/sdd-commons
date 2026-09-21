@@ -23,7 +23,10 @@ each one.
 
 The first command registers this repository as a marketplace; the second
 installs the `sdd` plugin from it. Restart the session afterwards so the skills
-and agents load.
+and agents load. The `owner/repo` shorthand resolves the repository's **default
+branch**, so these commands apply once the work has landed there; to install
+from a branch that is still open in a pull request, add the marketplace by its
+branch-qualified git URL or by a local path instead.
 
 ## Usage
 

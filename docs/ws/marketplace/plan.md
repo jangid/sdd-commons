@@ -48,6 +48,12 @@ The cycle's terminal state is an **open PR against `main`**, not a merge
 - **No chunk changes any skill's or the driver's behavioural contract.** This
   cycle moves, renames and packages them. A rename that changes a contract is a
   defect, not scope (kickoff §Out of scope).
+- **Reference shas (recorded 2026-09-21).** The **cycle entry sha** is `d1ef8f2`
+  and the **rename-chunk-close sha** is `3ddfdb3` — Chunk 3's close sha
+  (§Ordering Constraints 2). Both are recorded here, not only in a chunk return,
+  because five later criteria are stated as comparisons against them (Chunk 5
+  tasks 10, 11 and 12; Chunk 7 task 3); with them written down no later stage
+  re-derives either by reading commit subjects.
 
 ### Execution context (binding on every chunk)
 
@@ -720,7 +726,7 @@ reaches its terminal state — an open PR against `main`.
    writing upstream configuration (the sandbox denies `.git/config`); the ref
    transfer itself succeeded, which is what the `ls-remote` check establishes
    independently of that error.
-2. [ ] [verify] Install the pushed branch as a marketplace **in a real session**
+2. [x] [verify] Install the pushed branch as a marketplace **in a real session**
    using one of the two valid mechanisms — a local path
    `/plugin marketplace add <absolute path to the worktree>`, or the
    branch-qualified git URL
@@ -733,42 +739,96 @@ reaches its terminal state — an open PR against `main`.
    plugin is the one packaging assumption research could not observe directly —
    traces to `docs/spec/marketplace-packaging.md` §Install verification
    (REQ-PKG-MARKETPLACE-010).
-   **BLOCKED 2026-09-21, and deliberately left unticked.** Both mechanisms are
-   available in principle — the branch is pushed, so the branch-qualified URL
-   resolves, and the local path exists — but `claude plugin marketplace add`
-   writes `~/.claude/plugins/known_marketplaces.json`, which this session's
-   sandbox refuses (`EPERM`), and a retry outside the sandbox was refused by the
-   permission system. No workaround was sought: the refusal protects the
-   operator's own Claude Code configuration, and the honest state of this task
-   is *not performed*. The replan trigger for this requirement fires on an
-   install that **fails once a mechanism has been used**; a mechanism being
-   *unavailable to this session* is expressly not a trigger, so the cycle pauses
-   here rather than replanning. The operator completes it with, from the
-   worktree root:
-   `claude plugin marketplace add "$(pwd)"`, then
-   `claude plugin install sdd@sdd-commons`, then
-   `claude plugin details sdd@sdd-commons` for the component inventory, and
-   finally a read of one `references/*.md` file from the installed copy.
+   **Done 2026-09-21**, performed by the operator in a real session — the
+   install commands write the operator's own Claude Code configuration, which a
+   dispatched leaf's sandbox refuses, so the observation was made outside the
+   pipeline and is recorded here verbatim.
+
+   - Install command run (local-path mechanism, chosen because the branch-
+     qualified URL was unnecessary once the local path was available):
+       `claude plugin marketplace add /Users/pankaj/work/github/jangid/tools-skills-agents/.worktrees/marketplace`
+       -> "Successfully added marketplace: sdd-commons (declared in user settings)"
+       `claude plugin install sdd@sdd-commons`
+       -> "Successfully installed plugin: sdd@sdd-commons (scope: user)"
+   - The marketplace registered with a local-path source shape the public
+     documentation does not specify:
+       `"source": {"source": "directory", "path": "<worktree path>"}`
+     against `{"source": "github", "repo": "..."}` for the three GitHub-sourced
+     marketplaces already present.
+   - The plugin materialised into a SEPARATE cache copy, not a pointer at the
+     worktree: `~/.claude/plugins/cache/sdd-commons/sdd/0.1.0`, pinned to
+     `gitCommitSha` `0d2d71eb7e2e8091b98cea18d78eec405c92459a`. This is what makes
+     the reference-resolution observation meaningful rather than circular.
+   - Namespaced component inventory as the session listed it
+     (`claude plugin details sdd@sdd-commons`):
+       Skills (10): implement, migrate, orchestrate, plan, replan, requirements,
+                    research, review, specs, verify
+       Agents (3):  reviewer, red-team, chunk-verifier
+       Hooks 0, MCP servers 0, LSP servers 0. Always-on cost ~1,728 tokens.
+     This set equals the manifest's 13 declared components exactly.
+   - THE ASSUMPTION UNDER TEST, CONFIRMED: all ten of the driver's lazily-read
+     `references/*.md` files resolve from the installed copy —
+     `dispatch-templates.md`, `drift-sweep.md`, `fan-out.md`, `isolation.md`,
+     `loop-control.md`, `phase-detection.md`, `return-contract.md`,
+     `telemetry.md`, `v4-workstreams.md`, `write-scope.md` — present under
+     `<install path>/skills/orchestrate/references/`. Skill-directory-relative
+     reads DO resolve from an installed plugin. The replan trigger did not fire.
+
+   The observation also **falsified a claim** the requirement and spec text
+   carried: `docs/` does ship inside the installed plugin (144 files, 48,462
+   lines) because `"source": "./"` materialises the whole repository tree. It is
+   not a correctness defect — every `docs/` citation in a skill body is a bare
+   relative path resolving against the operator's own project, and
+   `claude plugin details` reports zero components from it — and the operator's
+   decision on 2026-09-21 was **accept and document**. The over-claiming text in
+   `docs/requirements/integration/packaging.md` and
+   `docs/spec/marketplace-packaging.md` was corrected in this task to state what
+   the component list actually governs; the acceptance criteria were left intact,
+   because they are true of the manifest. Recorded as Q-IMPL-MARKETPLACE-020.
+   A second, informational finding — a local-path install copies the working
+   tree verbatim, including gitignored content such as `.sdd/telemetry.jsonl` —
+   is recorded as Q-IMPL-MARKETPLACE-021; it is a property of this verification
+   mechanism only, never of a user installing from the marketplace.
 3. [x] [verify] Final whole-repository gate, all in one run: the skill linter
    and its `--self-test` exit 0; `pre-commit run drift-sweep --all-files` and
    `pre-commit run skill-lint --all-files` each exit 0; `pre-commit run
    --all-files` exits 0 and a second immediate run leaves `git status
    --porcelain` empty; the drift sweep's report raises no finding absent from
-   Chunk 0's recorded entry sweep. **And the `--name-only` half of
+   Chunk 0's recorded entry sweep. **And the window half of
    REQ-PC-MARKETPLACE-005**, which is measurable only here because HEAD is final
-   at this task: `git diff <rename-chunk-close sha> HEAD --name-only` lists no
-   bundled tool and no path under `docs/ws/`, `docs/research/` or
-   `docs/superpowers/`, **except paths under `docs/ws/marketplace/`**. The
-   exception is applied **by the checking script**, never by a pasted count or a
+   at this task, checked as **two path-limited assertions**, not one: (a) the
+   **bundled-tool half** is `git diff <rename-chunk-close sha> HEAD --
+   <drift sweep> <telemetry tool>` is **empty** — the same path-limited form
+   Chunk 5 task 10 already uses, naming the two repository-root sources the
+   requirement actually freezes rather than asking a `--name-only` listing to
+   mean something other than what it says; (b) the **excluded-areas half** is
+   `git diff <rename-chunk-close sha> HEAD --name-only` lists no path under
+   `docs/ws/`, `docs/research/` or `docs/superpowers/`, **except paths under
+   `docs/ws/marketplace/`**. The exception in (b) is applied **by the checking
+   script**, never by a pasted count or a
    hand-waved allowance: this workstream's own `plan.md`, `traceability.md` and
    `verification.md` necessarily change after the rename-chunk-close sha, so the
    criterion as literally written is unsatisfiable without it. The carve-out is
    recorded as `Q-IMPL-MARKETPLACE-003` in `docs/spec/pre-commit.md`
    §Implementation Questions, mirroring the carve-out
-   `skill-namespace-rename.md` already carries for REQ-NAME-MARKETPLACE-005 —
+   `skill-namespace-rename.md` already carries for REQ-NAME-MARKETPLACE-005;
+   splitting (a) off as its own path-limited diff is what retires the reading
+   recorded as Q-IMPL-MARKETPLACE-019, whose entry is amended in place to say so —
    traces to `docs/spec/pre-commit.md`
    §Acceptance Criteria (REQ-PC-MARKETPLACE-001, REQ-PC-MARKETPLACE-002, REQ-PC-MARKETPLACE-003,
    REQ-PC-MARKETPLACE-005, REQ-PC-MARKETPLACE-006, REQ-NAME-MARKETPLACE-005).
+   **Done 2026-09-21, re-run as reworded at the implement-stage review.** The
+   earlier wording asked one `--name-only` listing to show "no bundled tool",
+   which cannot hold: Chunk 5 *creates* the two bundled copies after the
+   rename-chunk-close sha, so they appear in that listing by construction. The
+   criterion is now split; both halves were re-run and both pass. (a)
+   `git diff 3ddfdb3 HEAD -- tools/gc.py tools/telemetry.py` produces no output
+   — the repository-root sources the requirement freezes are untouched inside
+   the window. (b) the `--name-only` listing filtered to the three excluded
+   areas yields only `docs/ws/marketplace/plan.md`, which the script-applied
+   exception carves out; nothing under `docs/research/` or `docs/superpowers/`
+   appears at all. The tool and gate runs of the first half of this task were
+   re-run in the same session and all exit 0.
 4. [x] [implement] Open a PR from `marketplace` against `main` with a full body
    describing the rename, the gate, the agents, the manifests and the documents,
    and **do not merge** — the operator reviews the migration diff. No
