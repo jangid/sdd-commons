@@ -261,11 +261,11 @@ orchestrator's **own** bookkeeping commit — dirty-flag driven, run after the
 snapshot window closes, never written by a leaf:
 [`references/write-scope.md`](references/write-scope.md) §7.
 
-**Presentation (only).** Render the gate block **verbatim as text** — it is a
-fixture and its signal order is the contract — then collect the decision
-through the host's option picker when the session has one; the picker never
-replaces, reorders or adds to its options. That and the approve-with-fixes
-shortcut: [`references/loop-control.md`](references/loop-control.md) §5a.
+**Rendering and collecting.** Render the gate block **verbatim as text** — a
+fixture whose signal order is the contract — then collect the decision through
+the host's option picker when one exists. **Rendering is not asking**: a turn
+ending on a rendered block without a picker call leaves the loop ungated.
+Picker rules, fallback, shortcut: [`references/loop-control.md`](references/loop-control.md) §5a.
 
 **Gate signals — REQ-ORCH-034 order (pointers only).** The **canonical** order
 and every per-signal rule live in

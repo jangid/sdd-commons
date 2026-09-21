@@ -623,7 +623,7 @@ and no `CONVERGENCE:` line ever pauses the gate or changes an option, and the
 "renders last before the options" clause that governs item 7 covers 6c in the
 same enumeration.
 
-### 5a. Presentation of the gate block — from §The gate
+### 5a. Rendering the gate block and collecting the decision — from §The gate
 
 Render the gate block **verbatim as text**: it is a fixture and its signal
 order is the contract. Then collect the decision through the host's option
@@ -632,6 +632,14 @@ fall back to plain text when it does not. The picker never replaces, summarizes
 or reorders the block above it, and never adds an option the gate does not
 offer. This binds nothing about the loop: the options, their meaning and the
 caps are unchanged.
+
+**Rendering is not asking.** The block's closing `Options:` line is part of the
+fixture; it is never the prompt. A turn that ends on a rendered gate block
+without a picker call has not put the decision to the operator — the gate is
+unasked and the loop is ungated, however complete the block looks. In a session
+that has a picker, the picker call belongs in the **same turn** as the block it
+closes. The plain-text fallback is for sessions with no picker, not for a turn
+that has already rendered the options as text.
 
 **Approve-with-fixes shortcut.** For `APPROVE_WITH_FIXES` (`review`: "fix
 the named findings, then proceed without re-review") `loop-back-to-fix` offers
