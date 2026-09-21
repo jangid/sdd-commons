@@ -1,5 +1,5 @@
 ---
-version: "21.3"
+version: "22.0"
 status: Approved
 last_updated: 2026-09-21
 traceability: traceability.md
@@ -171,7 +171,7 @@ tools-skills-agents repository. Covers thirteen scopes:
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
 | integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008 | Approved | 2026-09-21 |
 | integration | [naming.md](integration/naming.md) | NAME | REQ-NAME-MARKETPLACE-001..010 | Approved | 2026-09-21 |
-| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..009 | Approved | 2026-09-21 |
+| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..010 | Approved | 2026-09-21 |
 | integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006, REQ-PC-PACKAGING-001 | Approved | 2026-09-21 |
 | integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005, REQ-DOCS-PACKAGING-001..003 | Approved | 2026-09-21 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
@@ -523,7 +523,11 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 > REQ-PKG-PACKAGING-001..009, REQ-LINT-PACKAGING-001..008,
 > REQ-PC-PACKAGING-001 and REQ-DOCS-PACKAGING-001..003 are the
 > RS-PACKAGING-003 delta added at the requirements phase on 2026-09-21, under
-> four existing domains — no new domain prefix and no new category file. Their
+> four existing domains — no new domain prefix and no new category file.
+> **REQ-PKG-PACKAGING-010 was added on the same date as a narrow addendum**,
+> taking the delta to 22: it states an existing behavioural contract of
+> `tools/gc.py` surfaced by this cycle's **specs-stage review**, and is the
+> one delta requirement that is **not** derived from RS-PACKAGING-003. Their
 > ids carry the `PACKAGING` workstream token per `docs/spec/ws-ids.md`; their
 > traceability rows are owned by `docs/ws/packaging/traceability.md` and
 > aggregated into `traceability.md`. They are **not yet specced or
@@ -569,7 +573,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 > output; and the carried `skills/verify/SKILL.md` repair
 > (REQ-PKG-PACKAGING-009) lands **after** the root bindings of
 > REQ-PKG-PACKAGING-002 and REQ-LINT-PACKAGING-001..002.
-> **File size:** `integration/packaging.md` (531 lines) and
+> **File size:** `integration/packaging.md` (591 lines) and
 > `integration/skill-lint.md` (597 lines) are both over the 300-line split
 > threshold. A split is deferred, not skipped (§Open Questions) — ids are
 > permanent across one, so waiting costs no renumbering.
@@ -598,6 +602,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Carried repair — the paired `tools/skill-lint.py:381` + `:1252` edit | REQ-LINT-PACKAGING-008 |
 | Carried repair — `CLAUDE.md:251` vs `:215` marker reconciliation | REQ-DOCS-PACKAGING-002 |
 | Carried repair — **both** `.pre-commit-config.yaml` hook entries | REQ-PC-PACKAGING-001 |
+| Specs-stage review (not a findings item) — the drift sweep's sibling-first linter resolution | REQ-PKG-PACKAGING-010 |
 
 ## Domain Prefixes
 

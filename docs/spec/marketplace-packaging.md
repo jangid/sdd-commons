@@ -12,6 +12,7 @@ requires:
   - REQ-PKG-MARKETPLACE-008
   - REQ-PKG-MARKETPLACE-009
   - REQ-PKG-MARKETPLACE-010
+  - REQ-PKG-PACKAGING-010
 ---
 
 # Marketplace and Plugin Packaging
@@ -192,7 +193,11 @@ travel together into `plugins/sdd/tools/`, so the sibling candidate resolves and
 the corpus-rooted candidate, which after the move never exists in this
 repository, is never reached. The earlier text here predicted a `linter missing`
 exit 2 for the gate's own sweep; that prediction was wrong about the existing
-behaviour and is retired. **The move changes no tool source**: sibling-first
+behaviour and is retired. This resolution order — sibling first,
+`<root>/tools/skill-lint.py` as the fallback, `linter missing` when neither
+exists — is the contract of **REQ-PKG-PACKAGING-010**, which states it as a
+requirement of the existing code so it is not silently reordered later.
+**The move changes no tool source**: sibling-first
 resolution is already implemented, so REQ-PKG-MARKETPLACE-007's source freeze
 still binds and the move is a rename with zero content hunks. The residual
 consumer-repository case is unchanged: a consumer invoking a sweep that has

@@ -542,3 +542,50 @@ argument naming the operator's working directory; the invocation in the verify
 skill runs from a scratch consumer repository without resolving its root to the
 suite.
 [Priority: must]
+
+### REQ-PKG-PACKAGING-010: The drift sweep resolves its linter sibling-first
+The drift sweep must resolve the skill linter **sibling-first**: the copy beside
+its own script file (`<gc.py dir>/skill-lint.py`) is tried first and takes
+precedence; `<root>/tools/skill-lint.py`, resolved against the swept corpus
+root, is the fallback; and when neither candidate is a file the sweep must keep
+its existing `linter missing` behaviour — exit 2 with an `error: linter missing`
+diagnostic — rather than silently skipping the structural sweeps.
+
+This ordering is **load-bearing after the move**, not incidental. Under
+REQ-PKG-PACKAGING-001 the sweep and the linter travel together into
+`plugins/sdd/tools/`, so `<root>/tools/skill-lint.py` ceases to exist in this
+repository and the sibling candidate becomes the **only** one that ever
+resolves here. A root-first or root-only resolution would therefore break the
+commit gate's own drift-sweep hook in this repository while a consumer tree
+carrying a corpus-rooted linter kept working — a failure visible only here. The
+move changes no tool source (REQ-PKG-MARKETPLACE-007), so this requirement
+freezes behaviour that already exists rather than requesting a change.
+
+**Source**: a behavioural contract of existing code, confirmed at
+`tools/gc.py:501-502` (`lint_path()`), surfaced by the **specs-stage review of
+this cycle**. It is **not** a finding of RS-PACKAGING-003 and rests on none of
+its decisions. `docs/spec/marketplace-packaging.md` §Tools carries the prose.
+
+**Acceptance** (evaluated **after** the move of REQ-PKG-PACKAGING-001) — three
+assertions, each stated with the construction that makes it fail:
+1. **Precedence.** With a distinguishable linter stub at **both** candidate
+   locations (each printing its own marker), a sweep run invokes the sibling
+   one, asserted on the marker observed. Reordering the candidate tuple in
+   `lint_path()` makes the root marker appear and this assertion fail.
+2. **Fallback.** With the sibling copy absent and only
+   `<root>/tools/skill-lint.py` present, `lint_path()` resolves to the root
+   candidate. Deleting the second tuple entry makes it return `None` and this
+   assertion fail.
+3. **Neither present.** With both absent, the run exits 2 and prints
+   `error: linter missing` — unchanged from today. Making `lint_path()` return
+   a path that does not exist makes the run fail elsewhere, not here, and this
+   assertion fail.
+
+**Reviewer-checkable residue**, stated rather than implied: (a) assertion 1
+constructs both candidates artificially, so it does not show that the post-move
+repository has exactly one — that is checked by REQ-PKG-PACKAGING-001's own
+move criteria, not here; (b) nothing here pins the working directory the commit
+gate's hook invokes the sweep from, which is REQ-PC-PACKAGING-001's binding;
+(c) the `linter missing` diagnostic names only the corpus-root candidate in its
+text — that wording is out of scope and deliberately left unchanged.
+[Priority: must]

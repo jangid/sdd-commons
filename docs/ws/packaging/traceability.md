@@ -41,3 +41,4 @@ and the `Spec` column was filled by `sdd:specs` on 2026-09-21; `Test`,
 | REQ-PKG-PACKAGING-007 | two-root-linter.md | packaging | | | |
 | REQ-PKG-PACKAGING-008 | two-root-linter.md | packaging | | | |
 | REQ-PKG-PACKAGING-009 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-010 | marketplace-packaging.md | packaging | | | |
