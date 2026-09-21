@@ -168,7 +168,7 @@ carry no surviving script-location-default claim outside the amendment section.
 **Goal**: Every check that names a path knows which root that path follows.
 **Depends on**: Chunk 1.
 **Tasks**:
-1. [ ] [implement] `retired_scope_files()` binds **per entry**, not per root:
+1. [x] [implement] `retired_scope_files()` binds **per entry**, not per root:
    `skills` / `tools` / `agents` → suite root; `docs/spec` / `docs/requirements`
    → corpus root; `.claude-plugin` and the five root files (`CLAUDE.md`,
    `README.md`, `CONTRIBUTING.md`, `LICENSE`, `.pre-commit-config.yaml`) → the
@@ -179,27 +179,27 @@ carry no surviving script-location-default claim outside the amendment section.
    requirement is unimplementable literally. The existing self-test block
    pinning the two constants against literal name tuples is **retained
    unchanged** — traces to `two-root-linter.md` §4 (REQ-LINT-PACKAGING-001)
-2. [ ] [implement] `TEMPLATE_PAIRS` binds **per side**: the `TEMPLATE_SOURCE` side
+2. [x] [implement] `TEMPLATE_PAIRS` binds **per side**: the `TEMPLATE_SOURCE` side
    (`skills/orchestrate/references/dispatch-templates.md`) to the suite root,
    every row's `spec` key (`docs/spec/…`) to the corpus root. Under **disjoint**
    roots the spec side is **skipped, not warned** — warning there names this
    suite's spec files inside a consumer's tree. Under containment the spec side
    is checked and an absent spec keeps warning, unchanged — traces to
    `two-root-linter.md` §5 (REQ-LINT-PACKAGING-002)
-3. [ ] [implement] Retarget the 56 suite-gated rows (`REQUIRED` 40,
+3. [x] [implement] Retarget the 56 suite-gated rows (`REQUIRED` 40,
    `VERSION_GATED_SKILLS` 9, `V4_CONTRACT_SKILLS` 7) to resolve their path keys
    against the **suite root**. `FORBIDDEN`'s 13 ungated rows, frontmatter, links,
    size and drift phrases keep resolving against the corpus root. Preserve every
    row — the population comparison in Chunk 4 is the regression check on exactly
    this edit — traces to `two-root-linter.md` §3 (REQ-PKG-PACKAGING-004)
-4. [ ] [verify] **Lands the named checked-in self-test case
+4. [x] [verify] **Lands the named checked-in self-test case
    `retired_scope_binds_per_entry`** (`two-root-linter.md` §Verification):
    per-entry binding and rendering hold on a seeded file under each root; no
    construction with two distinct roots raises `ValueError`; on a fixture tree
    carrying both `skills/` and `docs/` with the roots set equal, the returned
    set is identical to the pre-change single-root result — traces to
    `two-root-linter.md` §Verification, §Acceptance Criteria
-5. [ ] [verify] **Lands the named checked-in self-test case
+5. [x] [verify] **Lands the named checked-in self-test case
    `retarget_seeds_an_ungated_finding`** (`two-root-linter.md` §Verification) —
    the retarget check, with a seeded ungated violation. On a scratch
    tree whose corpus root has no `skills/` and whose suite root does, seed
@@ -209,7 +209,7 @@ carry no surviving script-location-default claim outside the amendment section.
    and whose tag is `[retired-prefix]`, asserted by name. The seeded finding is
    what distinguishes a correct retarget from a linter whose checks are all off
    — traces to `two-root-linter.md` §Acceptance Criteria
-6. [ ] [verify] **REQ-PKG-PACKAGING-004's equal-roots comparison, run here and not
+6. [x] [verify] **REQ-PKG-PACKAGING-004's equal-roots comparison, run here and not
    after the move (carried note M1).** With the live pre-change tree still on
    disk and the two roots set **equal**, the finding set of the retargeted
    linter is identical — compared as a set derived at run time — to the

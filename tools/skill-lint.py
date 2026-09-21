@@ -382,6 +382,27 @@ RETIRED_SCOPE_DIRS = ("skills", "tools", "agents", ".claude-plugin",
                       "docs/spec", "docs/requirements")
 RETIRED_SCOPE_FILES = ("CLAUDE.md", "README.md", "CONTRIBUTING.md",
                        "LICENSE", ".pre-commit-config.yaml")
+# Which root each scope entry is bound to (two-root-linter.md §4). `suite` and
+# `corpus` name one root; `both` is the DEDUPLICATED UNION over resolved
+# absolute paths, so with equal roots the entry set is exactly today's.
+# `.claude-plugin` must be union-bound because after the move it exists at both
+# roots and a one-root binding silently drops whichever manifest the other
+# holds; the five root files, because the move edits some of them and they may
+# exist at either root. Every entry of RETIRED_SCOPE_DIRS + RETIRED_SCOPE_FILES
+# has a binding (asserted in the self-test) — an unbound entry is unwalked.
+RETIRED_SCOPE_BINDING = {
+    "skills": "suite",
+    "tools": "suite",
+    "agents": "suite",
+    "docs/spec": "corpus",
+    "docs/requirements": "corpus",
+    ".claude-plugin": "both",
+    "CLAUDE.md": "both",
+    "README.md": "both",
+    "CONTRIBUTING.md": "both",
+    "LICENSE": "both",
+    ".pre-commit-config.yaml": "both",
+}
 RETIRED_SCOPE_EXCLUDE_DIRS = ("fixtures",)
 RETIRED_SCOPE_EXCLUDE_FILES = ("docs/requirements/traceability.md",)
 RETIRED_SUFFIXES = (".md", ".org", ".py", ".txt", ".yaml", ".yml", ".json", ".toml", ".sh")
@@ -479,15 +500,34 @@ class Linter:
     # -- helpers ------------------------------------------------------------
 
     def flag(self, path: Path, line_no: int | None, rule: str, msg: str, fix: str,
-             severity: str = "fail") -> None:
+             severity: str = "fail", *, rel: Path | None = None) -> None:
         """Record a finding. `fix` is a required positional so no code path can
-        emit a finding without remediation (a call without it is a TypeError)."""
+        emit a finding without remediation (a call without it is a TypeError).
+
+        `rel` overrides the generic per-root rendering of `self.rel()` with a
+        path the caller already rendered against the root **that entry or side
+        is bound to** (two-root-linter.md §4, §5). The generic `rel()` covers
+        the walk only, and raises on a file under a root outside `swept_roots()`
+        — a disjoint suite root's file, say — so a per-entry-bound check must
+        supply its own rendering or the binding is unimplementable.
+        """
         assert severity in ("fail", "warn"), severity
-        rel = self.rel(path)
+        rel = self.rel(path) if rel is None else rel
         loc = f"{rel}:{line_no}" if line_no else str(rel)
         self.findings.append((severity, f"{loc}: [{rule}] {msg}\n    fix: {fix}"))
 
     # -- the two roots ------------------------------------------------------
+
+    def suite_contained(self) -> bool:
+        """True iff the suite root is contained in the corpus root (§2).
+
+        Equality counts as containment; the complement is the **disjoint**
+        geometry — the consumer shape, where the suite is an installed plugin
+        cache outside the operator's repository.
+        """
+        corpus = Path(self.corpus_root).resolve()
+        suite = Path(self.suite_root).resolve()
+        return suite == corpus or suite.is_relative_to(corpus)
 
     def swept_roots(self) -> list[Path]:
         """The set of roots the generic walk covers (two-root-linter.md §2).
@@ -501,7 +541,7 @@ class Linter:
         roots = [self.corpus_root]
         corpus = Path(self.corpus_root).resolve()
         suite = Path(self.suite_root).resolve()
-        if suite != corpus and suite.is_relative_to(corpus):
+        if suite != corpus and self.suite_contained():
             roots.append(self.suite_root)
         return roots
 
@@ -668,12 +708,21 @@ class Linter:
                                   rule['fix'], rule.get("severity", "fail"))
 
     def check_required(self) -> None:
+        """The suite-gated rows (§3): `REQUIRED`, `VERSION_GATED_SKILLS` and
+        `V4_CONTRACT_SKILLS` resolve their path keys against the **suite root**.
+
+        The rows name this suite's own files and were never portable style
+        rules; in a consumer environment the suite root is the installed plugin
+        cache, where those files exist, so the rows pass there. Findings render
+        relative to the suite root — `self.rel()` covers the walk only and
+        would raise on a disjoint suite root's file.
+        """
         if not self.suite_rules:
             return
         for rule in REQUIRED:
             rel, pattern, minimum = rule["file"], rule["pattern"], rule["min"]
             severity = rule.get("severity", "fail")
-            f = self.root / rel
+            f = self.suite_root / rel
             if not f.is_file():
                 self.flag(Path(rel), None, "required", "file missing entirely",
                           f"restore the file — {rule['reason']}", severity)
@@ -682,19 +731,23 @@ class Linter:
             if n < minimum:
                 self.flag(f, None, "required",
                           f"`{pattern}` found {n}x, need >= {minimum} — {rule['reason']}",
-                          rule['fix'], severity)
+                          rule['fix'], severity, rel=Path(rel))
         for name in VERSION_GATED_SKILLS:
-            f = self.root / "skills" / name / "SKILL.md"
+            rel = f"skills/{name}/SKILL.md"
+            f = self.suite_root / rel
             if f.is_file() and "docs/.sdd-version" not in f.read_text(encoding="utf-8"):
                 self.flag(f, None, "required", "never reads `docs/.sdd-version` "
                           "(every phase skill gates on the version marker)",
-                          "add the version-gate paragraph that reads `docs/.sdd-version` on entry")
+                          "add the version-gate paragraph that reads `docs/.sdd-version` on entry",
+                          rel=Path(rel))
         for name in V4_CONTRACT_SKILLS:
-            f = self.root / "skills" / name / "SKILL.md"
+            rel = f"skills/{name}/SKILL.md"
+            f = self.suite_root / rel
             if f.is_file() and "common v4 contract" not in f.read_text(encoding="utf-8"):
                 self.flag(f, None, "required",
                           "lost the collapsed v4 ownership summary (audit P1)",
-                          "restore the `common v4 contract` ownership summary paragraph")
+                          "restore the `common v4 contract` ownership summary paragraph",
+                          rel=Path(rel))
 
     @staticmethod
     def fences(text: str) -> list[tuple[int, str]]:
@@ -729,7 +782,10 @@ class Linter:
         """
         if not self.suite_rules:
             return
-        source = self.root / TEMPLATE_SOURCE
+        # Per-side binding (§5): the TEMPLATE_SOURCE side moves with the suite
+        # and binds to the suite root; every row's `spec` key is a `docs/spec/…`
+        # path that stays and binds to the corpus root.
+        source = self.suite_root / TEMPLATE_SOURCE
         if not source.is_file():
             return  # the REQUIRED rows already report a missing source of record
         # newline="" keeps CR/LF bytes as written — the comparison is byte-for-byte.
@@ -737,7 +793,13 @@ class Linter:
         for pair in TEMPLATE_PAIRS:
             anchor = pair["anchor"]
             src = [(n, b) for n, b in src_fences if b.split("\n", 1)[0].startswith(anchor)]
-            spec_path = self.root / pair["spec"]
+            spec_path = self.corpus_root / pair["spec"]
+            if not self.suite_contained():
+                # Disjoint roots: the spec side is SKIPPED, not warned. Warning
+                # (or failing) there names this suite's spec files inside a
+                # consumer's tree — the F11 principle. Under containment the
+                # spec side is checked and an absent spec keeps warning.
+                continue
             if not spec_path.is_file():
                 self.flag(spec_path, None, "template-drift",
                           f"restating spec for the {pair['body']} is absent — pair not checked",
@@ -748,7 +810,8 @@ class Linter:
             if not src:
                 self.flag(source, None, "template-drift",
                           f"no fence opens with `{anchor}` — the {pair['body']} source of record is gone "
-                          f"while {pair['spec']} {pair['section']} still restates it", pair["fix"])
+                          f"while {pair['spec']} {pair['section']} still restates it", pair["fix"],
+                          rel=Path(TEMPLATE_SOURCE))
                 continue
             if not spec_fences:
                 self.flag(spec_path, None, "template-drift",
@@ -874,33 +937,77 @@ class Linter:
             return path, self.root, "warn"
         return None
 
-    def retired_scope_files(self) -> list[Path]:
-        """Every file in the live rename scope the retired-prefix rule walks."""
-        out: list[Path] = []
+    def retired_scope_roots(self, entry: str) -> list[Path]:
+        """The root(s) one retired-prefix scope entry is bound to (§4).
+
+        `suite` / `corpus` name that root alone; `both` is the deduplicated
+        union over resolved absolute paths, corpus first — so with equal roots
+        a union-bound entry degenerates to one root and the entry set is
+        exactly today's.
+        """
+        binding = RETIRED_SCOPE_BINDING[entry]
+        if binding == "suite":
+            return [self.suite_root]
+        if binding == "corpus":
+            return [self.corpus_root]
+        roots = [self.corpus_root]
+        if Path(self.suite_root).resolve() != Path(self.corpus_root).resolve():
+            roots.append(self.suite_root)
+        return roots
+
+    def retired_scope_entries(self) -> list[tuple[Path, Path]]:
+        """Every file in the live rename scope, paired with the root its scope
+        entry is bound to (two-root-linter.md §4).
+
+        The second element is what the file's finding renders against — a
+        union-bound entry against whichever root supplied the file. The list is
+        deduplicated on resolved absolute paths, so the union stays a set.
+        """
+        out: list[tuple[Path, Path]] = []
+        seen: set[Path] = set()
+
+        def add(f: Path, base: Path) -> None:
+            key = f.resolve()
+            if key in seen:
+                return
+            seen.add(key)
+            out.append((f, base))
+
         for d in RETIRED_SCOPE_DIRS:
-            base = self.root / d
-            if not base.is_dir():
-                continue
-            for f in sorted(base.rglob("*")):
-                if not f.is_file() or f.suffix not in RETIRED_SUFFIXES:
+            for base in self.retired_scope_roots(d):
+                area = base / d
+                if not area.is_dir():
                     continue
-                rel_parts = f.relative_to(self.root).parts
-                if any(part in (".git", ".worktrees") or part in RETIRED_SCOPE_EXCLUDE_DIRS
-                       for part in rel_parts):
-                    continue
-                if f.relative_to(self.root).as_posix() in RETIRED_SCOPE_EXCLUDE_FILES:
-                    continue
-                out.append(f)
+                for f in sorted(area.rglob("*")):
+                    if not f.is_file() or f.suffix not in RETIRED_SUFFIXES:
+                        continue
+                    rel = f.relative_to(base)
+                    if any(part in (".git", ".worktrees") or part in RETIRED_SCOPE_EXCLUDE_DIRS
+                           for part in rel.parts):
+                        continue
+                    if rel.as_posix() in RETIRED_SCOPE_EXCLUDE_FILES:
+                        continue
+                    add(f, base)
         for name in RETIRED_SCOPE_FILES:
-            f = self.root / name
-            if f.is_file():
-                out.append(f)
+            for base in self.retired_scope_roots(name):
+                f = base / name
+                if f.is_file():
+                    add(f, base)
         return out
 
+    def retired_scope_files(self) -> list[Path]:
+        """Every file in the live rename scope the retired-prefix rule walks."""
+        return [f for f, _base in self.retired_scope_entries()]
+
     def check_retired_prefix(self) -> None:
-        """Flag retired-prefix skill/tool names in the live rename scope."""
-        for f in self.retired_scope_files():
-            rel = f.relative_to(self.root).as_posix()
+        """Flag retired-prefix skill/tool names in the live rename scope.
+
+        Rendering is per entry (§4): each file is rendered against the root its
+        scope entry is bound to, which is also what the self-exemption and the
+        finding's location string are keyed on.
+        """
+        for f, base in self.retired_scope_entries():
+            rel = f.relative_to(base).as_posix()
             if rel in RETIRED_SELF_EXEMPT:          # skip (2): the rule's own documents
                 continue
             fenced = False
@@ -916,7 +1023,7 @@ class Linter:
                     self.flag(f, no, "retired-prefix",
                               f"`{m.group(0)}` — the retired namespace prefix must not "
                               "appear bare in the live corpus (REQ-NAME-MARKETPLACE-009)",
-                              RETIRED_FIX)
+                              RETIRED_FIX, rel=Path(rel))
 
     # -- driver -------------------------------------------------------------
 
@@ -970,10 +1077,16 @@ def _fixture_skill(root: Path, name: str, body: str, *, lines: int | None = None
 
 
 def _run_capture(root: Path) -> tuple[int, str]:
-    """Run the full driver on a fixture repo (suite-specific rows off) and capture stdout."""
+    """Run the full driver on a fixture repo (suite-specific rows off) and capture stdout.
+
+    The two roots are set EQUAL to the fixture root: a fixture exercising the
+    single-tree semantics must not inherit the live plugin root as its suite
+    root, which the per-entry bindings of two-root-linter.md §4 would otherwise
+    make it walk. The geometry cases below construct their roots explicitly.
+    """
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        code = Linter(root, suite_rules=False).run()
+        code = Linter(root, root, suite_rules=False).run()
     return code, buf.getvalue()
 
 
@@ -1006,7 +1119,7 @@ def self_test() -> int:
             encoding="utf-8",
         )
         (root / "skills" / "orphan-dir").mkdir()             # structure: no SKILL.md
-        linter = Linter(root)
+        linter = Linter(root, root)
         # Scope the fixture run to checks that do not assume the real suite.
         linter.check_structure()
         linter.check_forbidden()
@@ -1025,7 +1138,7 @@ def self_test() -> int:
         # -- 2. clean fixture: zero findings from the same checks
         good_root = root / "clean"
         _fixture_skill(good_root, "good-skill", "1. one\n2. two\n")
-        clean = Linter(good_root)
+        clean = Linter(good_root, good_root)
         clean.check_structure()
         clean.check_forbidden()
         clean.check_ordinals()
@@ -1035,7 +1148,7 @@ def self_test() -> int:
 
         # -- 3. flag() without fix is a TypeError (remediation is mandatory)
         try:
-            Linter(root).flag(Path("x"), 1, "rule", "msg")  # type: ignore[call-arg]
+            Linter(root, root).flag(Path("x"), 1, "rule", "msg")  # type: ignore[call-arg]
             check(False, "flag() accepted a call without fix")
         except TypeError:
             pass
@@ -1107,7 +1220,7 @@ def self_test() -> int:
               f"fenced or glob backtick path flagged:\n{out}")
         check(f"FAIL: {len(missing)} finding(s), 1 warning(s)" in out,
               f"backtick summary wrong:\n{out}")
-        for sev, t in Linter(ref_root, suite_rules=False).findings:
+        for sev, t in Linter(ref_root, ref_root, suite_rules=False).findings:
             check("fix: " in t, f"finding without fix: {t}")
 
         # -- 7. contract-row mutation: copy the real suite, strip one REQUIRED
@@ -1130,7 +1243,7 @@ def self_test() -> int:
                 target.write_text(stripped, encoding="utf-8")
                 buf = io.StringIO()
                 with contextlib.redirect_stdout(buf):
-                    code = Linter(mut_root).run()
+                    code = Linter(mut_root, mut_root).run()
                 out = buf.getvalue()
                 check(code == 1, f"stripping `{rule['pattern']}` from {rule['file']} did not fail:\n{out}")
                 check(rule['fix'] in out,
@@ -1231,7 +1344,7 @@ def self_test() -> int:
                 drift_root = root / "drift"
                 shutil.copytree(real_skills, drift_root / "skills")
                 shutil.copytree(real_spec, drift_root / "docs" / "spec")
-                clean = Linter(drift_root)
+                clean = Linter(drift_root, drift_root)
                 clean.check_template_drift()
                 check(clean.findings == [],
                       "shipped restated bodies are not byte-identical:\n" + "\n".join(t for _, t in clean.findings))
@@ -1249,7 +1362,7 @@ def self_test() -> int:
                                       encoding="utf-8", newline="")
                     buf = io.StringIO()
                     with contextlib.redirect_stdout(buf):
-                        code = Linter(drift_root).run()
+                        code = Linter(drift_root, drift_root).run()
                     out = buf.getvalue()
                     drift_lines = [ln for ln in out.splitlines() if "[template-drift]" in ln]
                     check(code == 1, f"RED TEAM RETURN: mutation did not fail the lint:\n{out}")
@@ -1311,7 +1424,7 @@ def self_test() -> int:
         shipped = FORBIDDEN
         FORBIDDEN = shipped + [synthetic]       # temp copy of the table
         try:
-            af = Linter(af_root, suite_rules=False)
+            af = Linter(af_root, af_root, suite_rules=False)
             af.check_forbidden()
         finally:
             FORBIDDEN = shipped                  # shipped list untouched
@@ -1343,7 +1456,7 @@ def self_test() -> int:
         (rp_root / "docs" / "requirements" / "integration").mkdir(parents=True)
         (rp_root / "docs" / "requirements" / "integration" / "naming.md").write_text(
             f"Pre-marketplace skills were named {token}.\n", encoding="utf-8")
-        rp = Linter(rp_root, suite_rules=False)
+        rp = Linter(rp_root, rp_root, suite_rules=False)
         rp.check_retired_prefix()
         rp_text = "\n".join(t for _, t in rp.findings)
         check(len(rp.findings) == 1,
@@ -1398,7 +1511,7 @@ def self_test() -> int:
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(f"The {token} name appears bare here.\n", encoding="utf-8")
         expected = {rel for rel in seeded if rel not in RETIRED_SELF_EXEMPT}
-        pop = Linter(pop_root, suite_rules=False)
+        pop = Linter(pop_root, pop_root, suite_rules=False)
         pop.check_retired_prefix()
         pop_text = "\n".join(t for _, t in pop.findings)
         for rel in sorted(expected):
@@ -1499,9 +1612,162 @@ def self_test() -> int:
             modes.skill_files()
             check(modes._guard_done, "skill_files() must run the construction guard")
 
+        def retired_scope_binds_per_entry() -> None:
+            """Per-entry binding and rendering (two-root-linter.md §4).
+
+            Geometry: DISJOINT roots — the only one in which a mis-binding is
+            observable at all, since under equality every entry resolves to the
+            same tree. Each policed entry is seeded under the root it is bound
+            to AND under the root it is not, so the case distinguishes "bound
+            correctly" from "bound to both" and from "bound to the other one".
+            """
+            # Every scope entry carries a binding; an unbound entry is unwalked.
+            check(set(RETIRED_SCOPE_BINDING) == set(RETIRED_SCOPE_DIRS) | set(RETIRED_SCOPE_FILES),
+                  f"RETIRED_SCOPE_BINDING does not cover the policed population: "
+                  f"{sorted(set(RETIRED_SCOPE_BINDING) ^ (set(RETIRED_SCOPE_DIRS) | set(RETIRED_SCOPE_FILES)))}")
+
+            rs = root / "retiredscope"
+            rs_corpus = rs / "corpus"
+            rs_suite = rs / "suite"             # disjoint: NOT under rs_corpus
+
+            def seed(base: Path, rel: str) -> None:
+                f = base / rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_text("body\n", encoding="utf-8")
+
+            suite_bound = ("skills/s.md", "tools/t.md", "agents/a.md")
+            corpus_bound = ("docs/spec/s.md", "docs/requirements/r.md")
+            union_bound_suite = (".claude-plugin/plugin.json", "CLAUDE.md", "LICENSE")
+            union_bound_corpus = (".claude-plugin/marketplace.json", "README.md",
+                                  ".pre-commit-config.yaml")
+            for rel in suite_bound + union_bound_suite:
+                seed(rs_suite, rel)
+            for rel in corpus_bound + union_bound_corpus:
+                seed(rs_corpus, rel)
+            # The discriminators: the same relative paths seeded under the WRONG
+            # root. A binding that walked both roots for a one-root entry, or the
+            # other root, picks these up.
+            for rel in suite_bound:
+                seed(rs_corpus, rel.replace(".md", "-wrong.md"))
+            for rel in corpus_bound:
+                seed(rs_suite, rel.replace(".md", "-wrong.md"))
+
+            # No construction with two distinct roots raises ValueError, and
+            # neither does the per-entry walk or the rendering it drives.
+            lin = Linter(rs_corpus, rs_suite, suite_rules=False)
+            try:
+                entries = lin.retired_scope_entries()
+                rendered = {f.relative_to(base).as_posix() for f, base in entries}
+                lin.check_retired_prefix()
+            except ValueError as exc:          # pragma: no cover - the regression
+                check(False, f"two distinct roots raised ValueError: {exc}")
+                return
+            check(lin.findings == [],
+                  f"the clean per-entry fixture must emit no finding: {lin.findings}")
+
+            expected = set(suite_bound + corpus_bound + union_bound_suite + union_bound_corpus)
+            check(rendered == expected,
+                  f"per-entry binding/rendering drifted: missing "
+                  f"{sorted(expected - rendered)}, unexpected {sorted(rendered - expected)}")
+            # Each entry renders against the root it is BOUND to, not merely
+            # against some root that happens to contain the file.
+            by_rel = {f.relative_to(base).as_posix(): base for f, base in entries}
+            for rel in suite_bound + union_bound_suite:
+                check(by_rel.get(rel) == rs_suite,
+                      f"{rel} must render against the suite root, got {by_rel.get(rel)}")
+            for rel in corpus_bound + union_bound_corpus:
+                check(by_rel.get(rel) == rs_corpus,
+                      f"{rel} must render against the corpus root, got {by_rel.get(rel)}")
+            # `.claude-plugin` is union-bound: BOTH manifests are members, and a
+            # one-root binding drops exactly one of them.
+            check({".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"} <= rendered,
+                  f"the union-bound .claude-plugin entry dropped a manifest: {sorted(rendered)}")
+
+            # Equal roots: the returned set is identical to the pre-change
+            # single-root result, derived at run time rather than pinned.
+            def pre_change_scope(r: Path) -> set[Path]:
+                out: set[Path] = set()
+                for d in RETIRED_SCOPE_DIRS:
+                    base = r / d
+                    if not base.is_dir():
+                        continue
+                    for f in sorted(base.rglob("*")):
+                        if not f.is_file() or f.suffix not in RETIRED_SUFFIXES:
+                            continue
+                        rel = f.relative_to(r)
+                        if any(part in (".git", ".worktrees") or part in RETIRED_SCOPE_EXCLUDE_DIRS
+                               for part in rel.parts):
+                            continue
+                        if rel.as_posix() in RETIRED_SCOPE_EXCLUDE_FILES:
+                            continue
+                        out.add(f.resolve())
+                for name in RETIRED_SCOPE_FILES:
+                    f = r / name
+                    if f.is_file():
+                        out.add(f.resolve())
+                return out
+
+            # A fixture tree carrying BOTH skills/ and docs/ — the two halves the
+            # per-entry table splits across roots — plus the live suite itself.
+            eq = root / "retiredscope-equal"
+            for rel in ("skills/s.md", "tools/t.md", "agents/a.md",
+                        "docs/spec/s.md", "docs/requirements/r.md",
+                        ".claude-plugin/plugin.json", ".claude-plugin/marketplace.json",
+                        "CLAUDE.md", "README.md", "CONTRIBUTING.md", "LICENSE",
+                        ".pre-commit-config.yaml", "tools/fixtures/frozen.md"):
+                seed(eq, rel)
+            for r in (eq, default_suite_root()):
+                same = Linter(r, r, suite_rules=False)
+                got = {f.resolve() for f in same.retired_scope_files()}
+                check(got == pre_change_scope(r),
+                      f"equal-roots retired scope of {r} differs from the pre-change set: "
+                      f"{sorted(str(x) for x in got ^ pre_change_scope(r))}")
+                check(len(same.retired_scope_files()) == len(got),
+                      f"equal-roots retired scope of {r} holds a path twice")
+
+        def retarget_seeds_an_ungated_finding() -> None:
+            """The retarget check, with a seeded ungated violation (§3).
+
+            A criterion asserting only "no gated findings" passes equally for a
+            correct retarget and for a linter whose checks are all switched off.
+            The seeded `[retired-prefix]` finding — ungated and corpus-bound —
+            is what distinguishes the two, and it is asserted by path and tag.
+            """
+            rt = root / "retarget"
+            (rt / "docs" / "spec").mkdir(parents=True, exist_ok=True)
+            token = "sdd-" + RETIRED_SKILLS[0]
+            (rt / "docs" / "spec" / "seeded-retired.md").write_text(
+                f"The {token} skill is named bare in prose.\n", encoding="utf-8")
+            # Corpus root: a scratch tree with NO skills/. Suite root: the live
+            # plugin root, which has one — the disjoint consumer geometry.
+            suite = default_suite_root()
+            check(not (rt / "skills").exists(), "the retarget corpus root must have no skills/")
+            check((suite / "skills").is_dir(), "the retarget suite root must have skills/")
+            lin = Linter(rt, suite, suite_rules=True)
+            check(not lin.suite_contained(), "the retarget geometry must be disjoint")
+            with contextlib.redirect_stdout(io.StringIO()):
+                lin.run()
+            texts = [t for _, t in lin.findings]
+            gated = [t for t in texts if "[required]" in t]
+            check(not gated,
+                  f"a suite-gated row fired against the corpus root — the retarget "
+                  f"did not take:\n" + "\n".join(gated))
+            seeded = [t for t in texts
+                      if t.startswith("docs/spec/seeded-retired.md:") and "[retired-prefix]" in t]
+            check(len(seeded) == 1,
+                  f"expected exactly one [retired-prefix] finding at "
+                  f"docs/spec/seeded-retired.md, got {len(seeded)}:\n" + "\n".join(texts))
+            check(all(sev == "fail" for sev, t in lin.findings if t in seeded),
+                  "the seeded ungated finding must keep fail severity")
+            # The disjoint spec side of TEMPLATE_PAIRS is skipped, not warned.
+            check(not any("[template-drift]" in t for t in texts),
+                  f"the spec side must be skipped under disjoint roots:\n" + "\n".join(texts))
+
         for _case in (two_roots_construct_distinct_and_equal,
                       equal_roots_sweep_set_unchanged,
-                      sweep_is_duplicate_free):
+                      sweep_is_duplicate_free,
+                      retired_scope_binds_per_entry,
+                      retarget_seeds_an_ungated_finding):
             _case()
 
     if failures:
