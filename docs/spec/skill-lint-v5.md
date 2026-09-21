@@ -319,7 +319,9 @@ the same edit, the tag after the location as every other rule renders]: the
 pair table is the linter's `TEMPLATE_PAIRS` (four rows, each carrying its one
 `fix` string) with the source of record as the constant `TEMPLATE_SOURCE`, and
 the check runs with the other suite rows only. A restating **spec file absent**
-from the linted root **warns**, never fails — a consumer repo has no
+from the linted **corpus root** — the root the CLI positional names, defaulting
+to the invocation cwd, the suite root being the script's own plugin root
+(`two-root-linter.md` §2) — **warns**, never fails: a consumer repo has no
 `docs/spec/` (the F11 principle, **ungated set only**; exceptions
 `check_retired_prefix` and `TEMPLATE_PAIRS` — §Two-Root Amendment). A **present** spec that has
 lost its anchored fence, or a source of record that has lost its anchored fence
@@ -468,7 +470,9 @@ accidental drop is caught.
 - **Backtick path that is a glob** (`` `references/*.md` ``): skip — only
   literal filenames are resolved.
 - **`docs/spec/` mention in a project without `docs/spec/`** (the linter run
-  on a consumer repo): warn, never fail — the linter must not
+  on a consumer repo — its **corpus root** is the invocation cwd by default,
+  its suite root the plugin root holding the script, `two-root-linter.md` §2):
+  warn, never fail — the linter must not
   assume this repo's layout (existing audit F11 principle). Scoped to the
   **ungated** set, with exceptions `check_retired_prefix` and `TEMPLATE_PAIRS`
   — §Two-Root Amendment.
@@ -569,7 +573,7 @@ contradictions.
 ### Q-IMPL-HARNESSP4-008: `[template-drift]` when a pair side is absent, and the finding's rendered order
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §`[template-drift]` — Fenced Leaf Bodies Restated in Specs Stay Byte-Identical; §Edge Cases ("docs/spec/ mention in a project without docs/spec/", "Producer present, consumer removed")
-**Decision**: the pair table is `TEMPLATE_PAIRS` (four rows, each carrying the one `fix` string) with the source of record as the constant `TEMPLATE_SOURCE`; the check runs with the other suite rows only (`suite_rules=True`). A restating spec file absent from the linted root **warns** (never fails — a consumer repo has no `docs/spec/`, the F11 principle — **ungated set only**; exceptions `check_retired_prefix` and `TEMPLATE_PAIRS`, §Two-Root Amendment); a present spec that has lost its anchored fence, or a source of record that has lost its anchored fence while the spec still restates it, **fails** alone with the counterpart named in the message. Anchors match by `startswith` on the fence's first line (the RED TEAM return-contract fence's first line carries a trailing `# one heading per spec examined` comment). The finding renders through the linter's common `flag()` shape — `<spec>:<line>: [template-drift] fenced body diverges from dispatch-templates.md L<n>` — the rule tag after the location, as every other rule renders; `<line>` is the restating fence's opening line in the spec.
+**Decision**: the pair table is `TEMPLATE_PAIRS` (four rows, each carrying the one `fix` string) with the source of record as the constant `TEMPLATE_SOURCE`; the check runs with the other suite rows only (`suite_rules=True`). A restating spec file absent from the linted **corpus root** (the CLI positional, defaulting to the invocation cwd — `two-root-linter.md` §2; read under that default, not under the retired script-location one) **warns** (never fails — a consumer repo has no `docs/spec/`, the F11 principle — **ungated set only**; exceptions `check_retired_prefix` and `TEMPLATE_PAIRS`, §Two-Root Amendment); a present spec that has lost its anchored fence, or a source of record that has lost its anchored fence while the spec still restates it, **fails** alone with the counterpart named in the message. Anchors match by `startswith` on the fence's first line (the RED TEAM return-contract fence's first line carries a trailing `# one heading per spec examined` comment). The finding renders through the linter's common `flag()` shape — `<spec>:<line>: [template-drift] fenced body diverges from dispatch-templates.md L<n>` — the rule tag after the location, as every other rule renders; `<line>` is the restating fence's opening line in the spec.
 **Rationale**: the spec fixes the message, the fix string and the severity but not the absent-side behaviour or the tag position; reusing `flag()` keeps the "no finding without a fix" signature guarantee and the self-test's fix assertion for this rule.
 **Date**: 2026-09-19 (harness-p4 Chunk 6)
 **Status**: `[folded into §\`[template-drift]\` — Fenced Leaf Bodies Restated in Specs Stay Byte-Identical, 2026-09-19]` (REQ-QIMPL-HARNESSP5-001) — the entry body is unchanged; the section carries the decision as Approved text.

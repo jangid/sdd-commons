@@ -283,7 +283,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-LINT-PACKAGING-002 | two-root-linter.md | packaging |  |  |  |
 | REQ-LINT-PACKAGING-003 | two-root-linter.md | packaging |  |  |  |
 | REQ-LINT-PACKAGING-004 | two-root-linter.md | packaging |  |  |  |
-| REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging | `sweep_is_duplicate_free` (C1.7) | `duplicate_free_findings()` + `_guard_duplicate_free()` in `walk()` (C1.4) |  |
 | REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging |  |  |  |
 | REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging |  |  |  |
 | REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | `skill-lint.py --self-test` retired-prefix scope drift | `tools/skill-lint.py`:381,:1252; `skill-namespace-rename.md`:76 (C0.2) |  |
@@ -317,8 +317,8 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-PKG-MARKETPLACE-009 | marketplace-packaging.md | marketplace | Chunk 5 task 12 + Chunk 6 task 8 — `docs/spec/*.md` citation count 150 == 150 across the packaging change; CONTRIBUTING paragraph present | `CONTRIBUTING.md` §Where the contracts live | pass |
 | REQ-PKG-MARKETPLACE-010 | marketplace-packaging.md | marketplace | Chunk 7 task 2 — real install by the operator; 10 skills + 3 agents listed; all ten `references/*.md` resolve from the installed copy | `.claude-plugin/` manifest pair as installed at cache sha `0d2d71e` | pass |
 | REQ-PKG-PACKAGING-001 | two-root-linter.md | packaging |  |  |  |
-| REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging |  |  |  |
-| REQ-PKG-PACKAGING-003 | two-root-linter.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging | `two_roots_construct_distinct_and_equal`; `--help` grep (C1.7) | `skill-lint.py` `__init__`/`main()` cwd default; `skill-lint-v5.md` REPO_ROOT sentences (C1.1, C1.6) |  |
+| REQ-PKG-PACKAGING-003 | two-root-linter.md | packaging | negative-surface grep: no `--no-suite-rules`/`--suite-root` (C1.5) | `skill-lint.py` argparse unchanged (C1.5) |  |
 | REQ-PKG-PACKAGING-004 | two-root-linter.md | packaging |  |  |  |
 | REQ-PKG-PACKAGING-005 | skill-lint-v5.md | packaging |  |  |  |
 | REQ-PKG-PACKAGING-006 | two-root-linter.md | packaging |  |  |  |

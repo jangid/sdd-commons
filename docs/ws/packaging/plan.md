@@ -116,40 +116,40 @@ five names and agree; `CLAUDE.md` names one marker; self-test green.
 with the two roots equal, reproduces the pre-change sweep exactly.
 **Depends on**: Chunk 0.
 **Tasks**:
-1. [ ] [implement] Add the two roots as **constructor parameters**. `corpus_root`
+1. [x] [implement] Add the two roots as **constructor parameters**. `corpus_root`
    keeps the CLI positional's value and **defaults to the invocation cwd, never
    to the script's location** — the current `parent-of-parent` default
    (`:1308`) names `plugins/sdd` after the move and would silently stop sweeping
    `docs/`. `suite_root` defaults to the script's own plugin root. No
    environment variable, no new CLI option — traces to `two-root-linter.md` §2
    (REQ-PKG-PACKAGING-002)
-2. [ ] [implement] `swept_roots()` — the set union over **resolved absolute paths**,
+2. [x] [implement] `swept_roots()` — the set union over **resolved absolute paths**,
    admitting the suite term only when `suite_root` is contained in
    `corpus_root`, equality counting as containment and degenerating to today's
    single walk. `walk()` returns the deduplicated union of
    `<root>/skills/**/*.md` over that set — traces to `two-root-linter.md` §2
-3. [ ] [implement] `rel(f)` — per-root rendering: each swept file's relative path is
+3. [x] [implement] `rel(f)` — per-root rendering: each swept file's relative path is
    computed against the root it was walked from, not a single fixed root —
    traces to `two-root-linter.md` §2
-4. [ ] [implement] The **duplicate-freeness construction guard** as a *pure function
+4. [x] [implement] The **duplicate-freeness construction guard** as a *pure function
    over a list of paths returning findings*, called on every invocation and
    skippable by no mode (`--self-test`, `--print-population`, plain run). On
    failure the observable is a `fail`-severity finding in the run's own findings
    list naming the duplicated path — the `flag()` default, never a warning, an
    exception or a bare exit code — traces to `two-root-linter.md` §6
    (REQ-LINT-PACKAGING-005)
-5. [ ] [implement] Confirm the negative surface: no `--no-suite-rules` option is
+5. [x] [implement] Confirm the negative surface: no `--no-suite-rules` option is
    added, argparse grows no `--suite-root` this cycle, and every
    `suite_rules=False` construction site stays inside the self-test — traces to
    `two-root-linter.md` §2 (REQ-PKG-PACKAGING-003)
-6. [ ] [implement] **The documented default changes with the code.** Restate the
+6. [x] [implement] **The documented default changes with the code.** Restate the
    positional argument's help string (`:1301-1302`, "repository root to lint
    (default: repo containing this script)") and the `REPO_ROOT` sentences of
    `docs/spec/skill-lint-v5.md` (:322, :469, :566) for the cwd default and the
    two roots. The old wording survives **only** inside `skill-lint-v5.md`
    §Two-Root Amendment, quoted in order to be retired — traces to
    `skill-lint-v5.md` §Two-Root Amendment (REQ-PKG-PACKAGING-002)
-7. [ ] [verify] **Lands three named checked-in self-test cases** of
+7. [x] [verify] **Lands three named checked-in self-test cases** of
    `two-root-linter.md` §Verification — `two_roots_construct_distinct_and_equal`
    (construct the class with distinct roots and with equal roots without
    touching argparse), `equal_roots_sweep_set_unchanged` (with equal roots the

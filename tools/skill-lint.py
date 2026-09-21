@@ -24,7 +24,9 @@ Every finding carries a `fix:` remediation line. Findings have a severity:
 in the summary but never affects the exit code.
 
 Usage:
-  tools/skill-lint.py [REPO_ROOT]   # lint (default: repo containing this script)
+  tools/skill-lint.py [CORPUS_ROOT] # lint (default: the invocation cwd; the
+                                    # suite root defaults to the plugin root
+                                    # containing this script)
   tools/skill-lint.py --self-test   # run built-in fixture tests
   tools/skill-lint.py --help
 
@@ -413,15 +415,66 @@ V4_CONTRACT_SKILLS = [
 NOT_USE_RE = re.compile(r"\b(Skip|Do NOT|Do not use|not for)\b", re.IGNORECASE)
 
 
+DUPLICATE_SWEEP_FIX = ("rebuild the two-root sweep as a set union over resolved "
+                       "absolute paths (two-root-linter.md §2) — never as list "
+                       "concatenation over swept_roots()")
+
+
+def default_suite_root() -> Path:
+    """The script's own plugin root — the directory holding `tools/<this file>`.
+
+    Pre-move that resolves to the repository root; after the suite moves it
+    resolves to `plugins/sdd` (two-root-linter.md §2). It is deliberately NOT
+    the corpus-root default: the corpus root defaults to the invocation cwd.
+    """
+    return Path(__file__).resolve().parent.parent
+
+
+def duplicate_free_findings(paths: list[Path]) -> list[tuple[Path, str, str]]:
+    """The duplicate-freeness construction guard (two-root-linter.md §6).
+
+    A **pure function over a list of paths returning findings**: one
+    `(path, msg, fix)` triple per path occurring more than once once resolved
+    to an absolute path; the empty list means the swept list is a set. It
+    cannot fire for a union built as §2 specifies — it pins that the union
+    stays a set and is never rebuilt as list concatenation by a later edit.
+    """
+    counts: dict[Path, int] = {}
+    order: list[Path] = []
+    for p in paths:
+        key = Path(p).resolve()
+        if key not in counts:
+            counts[key] = 0
+            order.append(key)
+        counts[key] += 1
+    return [(key,
+             f"swept list holds {key} {counts[key]} times — the two-root sweep "
+             f"must be a set union, not a concatenation",
+             DUPLICATE_SWEEP_FIX)
+            for key in order if counts[key] > 1]
+
+
 class Linter:
-    def __init__(self, root: Path, suite_rules: bool = True):
-        self.root = root
+    def __init__(self, corpus_root: Path, suite_root: Path | None = None,
+                 suite_rules: bool = True):
+        # The two roots are constructor parameters and the only root-resolution
+        # mechanism (two-root-linter.md §2): no environment variable, no CLI
+        # option. `corpus_root` carries the CLI positional's value and defaults
+        # (in main()) to the invocation cwd, never to the script's location.
+        self.corpus_root = corpus_root
+        self.suite_root = default_suite_root() if suite_root is None else suite_root
+        # Alias kept for the checks still bound to a single root; they re-bind
+        # per entry / per side in a later chunk.
+        self.root = corpus_root
         # `suite_rules=False` skips the repo-specific contract rows (REQUIRED,
         # VERSION_GATED_SKILLS, V4_CONTRACT_SKILLS) so self-test fixtures can
         # drive `run()` end to end without the real skill suite present.
         self.suite_rules = suite_rules
         # (severity, rendered text) — severity is "fail" or "warn".
         self.findings: list[tuple[str, str]] = []
+        # The construction guard reports at most once per run (`walk()` is
+        # called by many checks); no invocation mode can skip it.
+        self._guard_done = False
 
     # -- helpers ------------------------------------------------------------
 
@@ -430,9 +483,83 @@ class Linter:
         """Record a finding. `fix` is a required positional so no code path can
         emit a finding without remediation (a call without it is a TypeError)."""
         assert severity in ("fail", "warn"), severity
-        rel = path.relative_to(self.root) if path.is_absolute() else path
+        rel = self.rel(path)
         loc = f"{rel}:{line_no}" if line_no else str(rel)
         self.findings.append((severity, f"{loc}: [{rule}] {msg}\n    fix: {fix}"))
+
+    # -- the two roots ------------------------------------------------------
+
+    def swept_roots(self) -> list[Path]:
+        """The set of roots the generic walk covers (two-root-linter.md §2).
+
+        `{corpus_root} | {suite_root if contained in corpus_root}` — a set
+        union computed over **resolved absolute paths**, with equality counting
+        as containment and therefore degenerating to today's single walk. The
+        roots are returned as given (not resolved) in a stable order, corpus
+        first, so rendering keeps the caller's spelling.
+        """
+        roots = [self.corpus_root]
+        corpus = Path(self.corpus_root).resolve()
+        suite = Path(self.suite_root).resolve()
+        if suite != corpus and suite.is_relative_to(corpus):
+            roots.append(self.suite_root)
+        return roots
+
+    def walk(self) -> list[Path]:
+        """The deduplicated union of `<root>/skills/**/*.md` over swept_roots()."""
+        collected: list[Path] = []
+        for r in self.swept_roots():
+            d = r / "skills"
+            if d.is_dir():
+                collected.extend(sorted(d.rglob("*.md")))
+        seen: set[Path] = set()
+        swept: list[Path] = []
+        for f in collected:
+            key = f.resolve()
+            if key in seen:
+                continue
+            seen.add(key)
+            swept.append(f)
+        self._guard_duplicate_free(swept)
+        return swept
+
+    def _guard_duplicate_free(self, swept: list[Path]) -> None:
+        """The union builder's only production call of the §6 guard.
+
+        On failure the observable is a `fail`-severity finding in this run's own
+        findings list naming the duplicated path — the `flag()` default, never a
+        warning, an exception or a bare exit code.
+        """
+        if self._guard_done:
+            return
+        self._guard_done = True
+        for _path, msg, fix in duplicate_free_findings(swept):
+            self.flag(self.corpus_root, None, "sweep-duplicate", msg, fix)
+
+    def rel(self, f: Path) -> Path:
+        """Render `f` relative to the swept root it was walked from (§2).
+
+        The deepest matching root wins, so a file under a nested suite root
+        renders without the nesting segment. A relative path passes through; a
+        path under no swept root raises `ValueError` exactly as the former
+        single-root rendering did.
+        """
+        if not f.is_absolute():
+            return f
+        roots = self.swept_roots()
+        best: Path | None = None
+        for candidate_roots in (roots, [Path(r).resolve() for r in roots]):
+            target = f if candidate_roots is roots else f.resolve()
+            for r in candidate_roots:
+                try:
+                    cand = target.relative_to(r)
+                except ValueError:
+                    continue
+                if best is None or len(cand.parts) < len(best.parts):
+                    best = cand
+            if best is not None:
+                return best
+        return f.relative_to(self.corpus_root)
 
     def skill_dir_of(self, f: Path) -> Path:
         """The `skills/<skill>/` directory a linted file belongs to."""
@@ -440,8 +567,12 @@ class Linter:
         return self.root / "skills" / rel.parts[0]
 
     def skill_files(self) -> list[Path]:
-        """All lintable Markdown files under skills/ (SKILL.md, USAGE.md, references)."""
-        return sorted((self.root / "skills").rglob("*.md")) if (self.root / "skills").is_dir() else []
+        """All lintable Markdown files under skills/ (SKILL.md, USAGE.md, references).
+
+        Delegates to the two-root `walk()`; with equal roots that is exactly
+        today's single sorted walk.
+        """
+        return self.walk()
 
     @staticmethod
     def frontmatter(text: str) -> dict[str, str] | None:
@@ -1283,6 +1414,96 @@ def self_test() -> int:
             check(rel not in pop_text,
                   f"self-exempt {rel} must stay silent although it is walked:\n{pop_text}")
 
+        # -- 10. the two-root constructor interface (two-root-linter.md §2, §6,
+        #        §Verification). Three named, checked-in cases.
+        tr = root / "tworoot"
+        tr_corpus = tr / "corpus"
+        tr_suite = tr_corpus / "plugins" / "sdd"
+        tr_far = tr / "elsewhere"
+        tr_far.mkdir(parents=True, exist_ok=True)
+        _fixture_skill(tr_corpus, "alpha", "Body. Skip for Y.\n")
+        _fixture_skill(tr_suite, "beta", "Body. Skip for Y.\n")
+        # A non-SKILL.md lintable file, so the swept-set comparison below is
+        # sensitive to the walk's glob and not only to its roots.
+        (tr_corpus / "skills" / "alpha" / "references").mkdir(parents=True, exist_ok=True)
+        (tr_corpus / "skills" / "alpha" / "references" / "detail.md").write_text(
+            "# Detail\n", encoding="utf-8")
+        tr_alpha = tr_corpus / "skills" / "alpha" / "SKILL.md"
+        tr_beta = tr_suite / "skills" / "beta" / "SKILL.md"
+
+        def two_roots_construct_distinct_and_equal() -> None:
+            """Construct with distinct and with equal roots, never via argparse."""
+            nested = Linter(tr_corpus, tr_suite, suite_rules=False)
+            check({p.resolve() for p in nested.swept_roots()}
+                  == {tr_corpus.resolve(), tr_suite.resolve()},
+                  "a contained suite root must join swept_roots()")
+            equal = Linter(tr_corpus, tr_corpus, suite_rules=False)
+            check([p.resolve() for p in equal.swept_roots()] == [tr_corpus.resolve()],
+                  "equal roots must degenerate to today's single walk")
+            disjoint = Linter(tr_corpus, tr_far, suite_rules=False)
+            check([p.resolve() for p in disjoint.swept_roots()] == [tr_corpus.resolve()],
+                  "a suite root outside the corpus root must not join the walk")
+            check(Linter(tr_corpus).suite_root == default_suite_root(),
+                  "the suite root must default to the script's own plugin root")
+            # Per-root rendering: neither root's file raises, and the nested
+            # suite file renders with no nesting segment.
+            check(nested.rel(tr_alpha).as_posix() == "skills/alpha/SKILL.md",
+                  f"corpus file mis-rendered: {nested.rel(tr_alpha)}")
+            check(nested.rel(tr_beta).as_posix() == "skills/beta/SKILL.md",
+                  f"suite file mis-rendered: {nested.rel(tr_beta)}")
+
+        def equal_roots_sweep_set_unchanged() -> None:
+            """With equal roots the swept set is the pre-change single-root set.
+
+            The comparand is derived at run time — the walk this linter did
+            before the two-root interface landed — and compared as a set, never
+            against a pinned count.
+            """
+            def pre_change_sweep(r: Path) -> set[Path]:
+                d = r / "skills"
+                return {f.resolve() for f in sorted(d.rglob("*.md"))} if d.is_dir() else set()
+
+            for r in (tr_corpus, default_suite_root()):
+                lin = Linter(r, r, suite_rules=False)
+                got = {f.resolve() for f in lin.walk()}
+                check(got == pre_change_sweep(r),
+                      f"equal-roots sweep of {r} differs from the pre-change set: "
+                      f"{sorted(str(p) for p in got ^ pre_change_sweep(r))}")
+                check(lin.findings == [],
+                      f"equal-roots sweep of {r} must emit no finding: {lin.findings}")
+
+        def sweep_is_duplicate_free() -> None:
+            """The positive half of the §6 guard, plus its negative case."""
+            # Equal roots are the geometry whose union would otherwise repeat
+            # every path; the swept list holds each once and the guard is silent.
+            dup = Linter(tr_corpus, tr_corpus, suite_rules=False)
+            swept = dup.walk()
+            check(len(swept) == len({p.resolve() for p in swept}),
+                  f"swept list holds a path twice: {[str(p) for p in swept]}")
+            check(dup.findings == [],
+                  f"the guard must stay silent on a duplicate-free sweep: {dup.findings}")
+            # Negative case: the pure guard called with a hand-built list
+            # holding one path twice — the shape concatenation produces.
+            fired = duplicate_free_findings([tr_alpha, tr_beta, tr_alpha])
+            check(len(fired) == 1 and fired[0][0] == tr_alpha.resolve(),
+                  f"the guard must name exactly the duplicated path: {fired}")
+            obs = Linter(tr_corpus, tr_corpus, suite_rules=False)
+            obs._guard_duplicate_free([tr_alpha, tr_alpha])
+            check(len(obs.findings) == 1 and obs.findings[0][0] == "fail"
+                  and str(tr_alpha.resolve()) in obs.findings[0][1],
+                  f"the guard's observable must be one fail finding naming the "
+                  f"duplicated path: {obs.findings}")
+            # No mode skips it: the guard is called by the union builder, whose
+            # only caller in the driver is skill_files().
+            modes = Linter(tr_corpus, tr_corpus, suite_rules=False)
+            modes.skill_files()
+            check(modes._guard_done, "skill_files() must run the construction guard")
+
+        for _case in (two_roots_construct_distinct_and_equal,
+                      equal_roots_sweep_set_unchanged,
+                      sweep_is_duplicate_free):
+            _case()
+
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
@@ -1299,17 +1520,21 @@ def main() -> int:
                     "backtick paths, SKILL.md size).",
     )
     ap.add_argument("root", nargs="?", default=None,
-                    help="repository root to lint (default: repo containing this script)")
+                    help="corpus root to lint (default: the invocation cwd); the "
+                         "suite root is the plugin root holding this script")
     ap.add_argument("--self-test", action="store_true",
                     help="run built-in fixture tests instead of linting")
     args = ap.parse_args()
     if args.self_test:
         return self_test()
-    root = Path(args.root).resolve() if args.root else Path(__file__).resolve().parent.parent
+    # The corpus root defaults to the invocation cwd, never to the script's
+    # location: after the move the script's parent-of-parent names the suite,
+    # and that default would silently stop sweeping the operator's corpus.
+    root = Path(args.root).resolve() if args.root else Path.cwd().resolve()
     if not root.is_dir():
         print(f"error: {root} is not a directory", file=sys.stderr)
         return 2
-    return Linter(root).run()
+    return Linter(root, default_suite_root()).run()
 
 
 if __name__ == "__main__":

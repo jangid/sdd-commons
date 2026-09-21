@@ -35,14 +35,14 @@ row per requirement in this table, keyed by the same ids.
 | REQ-LINT-PACKAGING-002 | two-root-linter.md | packaging | | | |
 | REQ-LINT-PACKAGING-003 | two-root-linter.md | packaging | | | |
 | REQ-LINT-PACKAGING-004 | two-root-linter.md | packaging | | | |
-| REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging | | | |
+| REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging | `sweep_is_duplicate_free` (C1.7) | `duplicate_free_findings()` + `_guard_duplicate_free()` in `walk()` (C1.4) |  |
 | REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging | | | |
 | REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging | | | |
 | REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | `skill-lint.py --self-test` retired-prefix scope drift | `tools/skill-lint.py`:381,:1252; `skill-namespace-rename.md`:76 (C0.2) |  |
 | REQ-PC-PACKAGING-001 | pre-commit.md | packaging | | | |
 | REQ-PKG-PACKAGING-001 | two-root-linter.md | packaging | | | |
-| REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging | | | |
-| REQ-PKG-PACKAGING-003 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging | `two_roots_construct_distinct_and_equal`; `--help` grep (C1.7) | `skill-lint.py` `__init__`/`main()` cwd default; `skill-lint-v5.md` REPO_ROOT sentences (C1.1, C1.6) |  |
+| REQ-PKG-PACKAGING-003 | two-root-linter.md | packaging | negative-surface grep: no `--no-suite-rules`/`--suite-root` (C1.5) | `skill-lint.py` argparse unchanged (C1.5) |  |
 | REQ-PKG-PACKAGING-004 | two-root-linter.md | packaging | | | |
 | REQ-PKG-PACKAGING-005 | skill-lint-v5.md | packaging | | | |
 | REQ-PKG-PACKAGING-006 | two-root-linter.md | packaging | | | |
