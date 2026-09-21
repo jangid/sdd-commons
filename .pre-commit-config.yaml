@@ -26,13 +26,13 @@ repos:
     hooks:
       - id: drift-sweep
         name: drift sweep (fast profile)
-        entry: python3 tools/gc.py --fast
+        entry: python3 plugins/sdd/tools/gc.py --fast
         language: system
         pass_filenames: false
         always_run: true
       - id: skill-lint
         name: skill linter
-        entry: python3 tools/skill-lint.py
+        entry: python3 plugins/sdd/tools/skill-lint.py
         language: system
         pass_filenames: false
         always_run: true

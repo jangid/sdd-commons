@@ -389,7 +389,7 @@ the emission half awaits Chunk 7's post-move evaluation.
 exists for every criterion that cites one.
 **Depends on**: Chunk 4.
 **Tasks**:
-1. [ ] [implement] **The `README`/`LICENSE` decision point** (the one standing
+1. [x] [implement] **The `README`/`LICENSE` decision point** (the one standing
    `OPEN:`). Decide whether `plugins/sdd/` carries its own `README`/`LICENSE`
    — 45 versus 47 installed files. Non-blocking by the requirements' own
    reasoning: either answer changes which root supplies those names, not whether
@@ -400,7 +400,7 @@ exists for every criterion that cites one.
    them (45 files) and record the default as the decision taken, with carried
    note m3 discharged by task 5's wording — traces to `two-root-linter.md`
    §Open Items (REQ-PKG-PACKAGING-001)
-2. [ ] [implement] **Perform the move**, recorded by git as a move and not as a
+2. [x] [implement] **Perform the move**, recorded by git as a move and not as a
    delete plus an add (`git log --follow` must resolve each moved file).
    Membership rule: `skills/**`, `agents/**`, `tools/**` and
    `.claude-plugin/plugin.json` move to `plugins/sdd/`; **everything else stays**
@@ -408,12 +408,12 @@ exists for every criterion that cites one.
    `CLAUDE.md`, `.pre-commit-config.yaml`, `README.md`, `LICENSE` and
    `CONTRIBUTING.md`. The "45 move, 154 stay" figure is carried costing, not the
    rule — traces to `two-root-linter.md` §1 (REQ-PKG-PACKAGING-001)
-3. [ ] [implement] In the **same change**: set the plugin entry's `source` in
+3. [x] [implement] In the **same change**: set the plugin entry's `source` in
    `.claude-plugin/marketplace.json` to name the `plugins/sdd` subdirectory
    rather than `./`, and resolve the marketplace-cycle placement amendments the
    move makes due — traces to `marketplace-packaging.md` §Placement
    (REQ-PKG-PACKAGING-001, REQ-PKG-PACKAGING-010)
-4. [ ] [implement] In the **same change**: prefix **both** `repo: local` hook entries
+4. [x] [implement] In the **same change**: prefix **both** `repo: local` hook entries
    in `.pre-commit-config.yaml` with `plugins/sdd/` — the drift sweep (~`:27-32`)
    and the skill linter (~`:33-38`). Editing one leaves the gate invoking a dead
    path. The linter hook's entry stays **zero-argument**
@@ -426,7 +426,7 @@ exists for every criterion that cites one.
    the **script path** is prefixed on that entry. `pass_filenames: false` and
    `always_run: true` are unchanged on both — traces to `pre-commit.md` §Two-Root
    Amendment (REQ-PC-PACKAGING-001)
-5. [ ] [verify] The move criteria, all derived at run time: `test -d plugins/sdd`,
+5. [x] [verify] The move criteria, all derived at run time: `test -d plugins/sdd`,
    `test -f plugins/sdd/.claude-plugin/plugin.json`,
    `test -f .claude-plugin/marketplace.json`,
    `test ! -e plugins/sdd/.claude-plugin/marketplace.json`; the parsed `source`
@@ -446,7 +446,7 @@ exists for every criterion that cites one.
    either answer** to task 1 — `README.md` and `LICENSE` are the only two names
    exempt from the paired `test ! -e` — traces to `two-root-linter.md`
    §Acceptance Criteria (REQ-PKG-PACKAGING-001)
-6. [ ] [verify] **The drift sweep resolves its linter sibling-first** — three
+6. [x] [verify] **The drift sweep resolves its linter sibling-first** — three
    assertions, each with the construction that makes it fail. (1) Precedence:
    with a distinguishable stub at **both** candidate locations, the sweep invokes
    the sibling one; reordering the candidate tuple in `lint_path()` makes the
@@ -457,13 +457,13 @@ exists for every criterion that cites one.
    since `<root>/tools/skill-lint.py` ceases to exist in this repository. Record
    the three residues (a)(b)(c) named in the requirement — traces to
    `marketplace-packaging.md` §Tools (REQ-PKG-PACKAGING-010)
-7. [ ] [verify] Reverting the `plugins/sdd/` prefix on either pre-commit hook alone
+7. [x] [verify] Reverting the `plugins/sdd/` prefix on either pre-commit hook alone
    makes that hook fail with a missing-file error; every `entry` value parsed
    from the two local hook entries names a path that exists, checked by `test -f`
    per parsed path; the linter hook's parsed `entry` carries no positional root
    argument — traces to `pre-commit.md` §Two-Root Amendment
    (REQ-PC-PACKAGING-001)
-8. [ ] [verify] **The membership criterion of `pre-commit.md` §Two-Root Amendment,
+8. [x] [verify] **The membership criterion of `pre-commit.md` §Two-Root Amendment,
    given an owner (carried note M6).** Running the linter hook's parsed `entry`
    **verbatim, from the repository root**, sweeps a set containing **at least
    one `docs/spec/` path** — asserted as **membership on the swept set derived
