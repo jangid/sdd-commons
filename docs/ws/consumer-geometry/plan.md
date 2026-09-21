@@ -576,7 +576,7 @@ path — CLI, `gc.py`'s `-c` shim, a direct fixture — gets the same answer.
 **Write scope**: `plugins/sdd/tools/skill-lint.py`,
 `docs/ws/consumer-geometry/traceability.md`.
 **Tasks**:
-1. [ ] [implement] Add tier 2 **in `Linter.__init__`**, in the place of the
+1. [x] [implement] Add tier 2 **in `Linter.__init__`**, in the place of the
    existing tier-3 expression, so the resolution order is one piece of code every
    construction path reaches:
    `candidate = corpus_root/"plugins"/"sdd"`, adopted **iff** `candidate.is_dir()`
@@ -586,13 +586,13 @@ path — CLI, `gc.py`'s `-c` shim, a direct fixture — gets the same answer.
    (tier 2) → `default_suite_root()` (tier 3). Implementing tier 2 in `main()`
    instead freezes the shim on tier 3 permanently — traces to
    `two-root-linter.md` §CG-1, §CG-3
-2. [ ] [implement] Fixture D, the **look-alike corpus** (new, in the existing
+2. [x] [implement] Fixture D, the **look-alike corpus** (new, in the existing
    `--self-test` scratch-root style, no cache write): a scratch corpus root `F`
    holding both `F/skills/<name>/SKILL.md` and
    `F/plugins/sdd/skills/<name>/SKILL.md`, the latter seeded with one walk-class
    violation (forbidden phrase or bad frontmatter), invoked with corpus root `F`
    and **no** explicit suite root — traces to `two-root-linter.md` §CG-4
-3. [ ] [implement] Register cases `cg-row-1:` and `cg-row-2:` — the Class C
+3. [x] [implement] Register cases `cg-row-1:` and `cg-row-2:` — the Class C
    checks under a disjoint suite root. Row 1: `check_retired_prefix()`, the
    highest-value single item, a live crash that survives all four gates today;
    **mutation run**: rebind its scope walk to the corpus root only. Row 2:
@@ -602,7 +602,7 @@ path — CLI, `gc.py`'s `-c` shim, a direct fixture — gets the same answer.
    fired — the assertion is that the printed list contains a line beginning with
    that row's own token — traces to `two-root-linter.md` §CG-7,
    REQ-PKG-CONSUMERGEOMETRY-001 rows 1, 2
-4. [ ] [verify] **The positive direction fires, observable four ways at once**
+4. [x] [verify] **The positive direction fires, observable four ways at once**
    (REQ-PKG-CONSUMERGEOMETRY-006 acceptance 6, added by the spec; this also
    discharges Chunk 1 task 4(c)): in fixture D, `suite_contained()` is `True`;
    the token reads `GEOMETRY: nested` with `swept-roots=2`; `suite-rows-root=`
@@ -613,7 +613,7 @@ path — CLI, `gc.py`'s `-c` shim, a direct fixture — gets the same answer.
    mutations, **each run**: dropping tier 2; keying tier 2 on the tool's own
    location; rendering the suite seed against the corpus root — traces to
    `two-root-linter.md` §CG-4, §Acceptance Criteria
-5. [ ] [verify] **The foreign consumer is untouched, in both negative
+5. [x] [verify] **The foreign consumer is untouched, in both negative
    directions**: a scratch corpus with its own `skills/` and no `plugins/sdd/` —
    the derivation does not fire, `swept_roots()` equals exactly `{corpus_root}`,
    the token reads `disjoint`, their `skills/` is still walked, no
@@ -622,7 +622,7 @@ path — CLI, `gc.py`'s `-c` shim, a direct fixture — gets the same answer.
    rather than naming an empty suite root. Making the derivation unconditional
    fires it in the first; dropping the `skills/` existence test makes the second
    red — traces to `two-root-linter.md` §Acceptance Criteria
-6. [ ] [verify] **The per-geometry split holds.** In a two-root fixture whose
+6. [x] [verify] **The per-geometry split holds.** In a two-root fixture whose
    suite root is given explicitly and lies under the corpus root,
    `len(skill_files()) > 0` and `suite_contained()` is `True`; with the suite
    root left to a **far** scratch default, `len(skill_files()) == 0`. **The
@@ -635,7 +635,7 @@ path — CLI, `gc.py`'s `-c` shim, a direct fixture — gets the same answer.
    rejection is enforced rather than recorded**. C12.1 passes unmodified, pinning
    the 16 rows it pins and deliberately not 56 — traces to
    `two-root-linter.md` §CG-5, §CG-5a
-7. [ ] [verify] **Every construction path resolves the same tiers**, asserted on
+7. [x] [verify] **Every construction path resolves the same tiers**, asserted on
    the path no other criterion reaches: `gc.py`'s branch-(ii) `-c` shim, run in
    fixture mode over a scratch corpus holding `plugins/sdd/skills/` with **no**
    explicit suite root, yields `suite_contained() == True` and a non-empty
@@ -643,7 +643,7 @@ path — CLI, `gc.py`'s `-c` shim, a direct fixture — gets the same answer.
    by comparing the two. Implementing tier 2 in `main()` leaves the shim on tier 3
    and the two paths disagree — traces to `two-root-linter.md` §CG-3,
    §Acceptance Criteria
-8. [ ] [verify] **The nested case is not regressed**: in-repo `python3
+8. [x] [verify] **The nested case is not regressed**: in-repo `python3
    plugins/sdd/tools/skill-lint.py .` still reports `GEOMETRY: nested` and the
    same swept-file count it reports today, both derived at run time, never pinned
    as literals. A live risk: the in-repo copy's tier-2 candidate and its
@@ -656,6 +656,134 @@ observations; both negative directions green; the shim and the CLI agree; the
 nested case unregressed; `cg-row-1` and `cg-row-2` registered and demonstrated. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
+
+
+**Notes** (Chunk 3):
+
+- **Tier 2 lives in `Linter.__init__`.** The tier-3 expression
+  (`self.suite_root = default_suite_root() if suite_root is None else suite_root`)
+  became an explicit three-tier `if`: explicit parameter (no existence test) →
+  `derived_suite_root(corpus_root)` → `default_suite_root()`. The derivation is
+  a module-level pure function beside `default_suite_root()`, with all three
+  conjuncts required. `gc.py` was not touched and inherits the derivation for
+  free, which is the point — task 7 reads exactly that.
+- **The headline behaviour, measured by §CG-8's construction.** `cp -R
+  plugins/sdd "$TMPDIR/cg/far"` then `python3 "$TMPDIR/cg/far/tools/skill-lint.py"
+  "$REPO"` now prints `GEOMETRY: nested  swept-roots=2
+  suite-rows-root=<repo>/plugins/sdd` and `OK: 25 file(s) clean`, exit 0 — where
+  before the change it printed `.: [structure] skills/ directory not found` and
+  `FAIL: 1 finding(s)`. `python3 "$TMPDIR/cg/far/tools/gc.py" --report --root
+  "$REPO"` passes nothing through from the lint sweep and closes `OK: 9 sweep(s)
+  clean`. The installed cache was never read or written.
+- **Task 4 — fixture D, four observables on one run**, case
+  `derivation_positive_direction`: `suite_contained()` True; the token reads
+  `GEOMETRY: nested` with `swept-roots=2`; `suite-rows-root=` renders
+  `F/plugins/sdd` with `default_suite_root()` asserted **absent** from the line;
+  and the seeded walk-class violation is reported **by name** at
+  `skills/lookalike-skill/SKILL.md` (the corpus's own skill is named
+  `own-skill`, so the by-name assertion discriminates the rendering root). No
+  count is asserted anywhere in the case. **This discharges Chunk 1 task 4(c)**
+  — `suite-rows-root=` under a tier-2 root — which Chunk 1 deferred to here; the
+  deferral is closed.
+- **Task 4's three mutations, each RUN on a `$TMPDIR` scratch copy.** (a) tier 2
+  dropped from the constructor → fixture D reports `GEOMETRY: disjoint
+  swept-roots=1` and six of the case's lines fail. (b) tier 2 keyed on
+  `default_suite_root()` instead of `corpus_root` → identical failure set. (c)
+  `rel()`'s deepest-root rule inverted so the suite seed renders against the
+  corpus root → the by-name line fails with the path spelled
+  `plugins/sdd/skills/lookalike-skill/SKILL.md` (and §7 fixture A's per-root
+  pin fails alongside it, as §CG-4 predicts).
+- **Task 3 — rows 1 and 2 registered, each with its mutation RUN.** Row 1
+  (`cg_row_1_retired_prefix_under_a_disjoint_suite_root`): a disjoint fixture
+  whose suite root holds `skills/suite-retired/SKILL.md` and whose corpus root
+  holds an identically broken `skills/corpus-retired/SKILL.md`; `skills` is a
+  **suite**-bound scope entry, so the suite seed must be reported and the corpus
+  decoy must not. Mutation — `retired_scope_roots()` returning
+  `[self.corpus_root]` → the printed list carries two lines beginning
+  `cg-row-1:`. Row 2
+  (`cg_row_2_required_rows_under_a_disjoint_suite_root`): the disjoint twin of
+  C12.1, covering both populations of the 56 — the 16 gated-table rows (suite
+  seed `verify`, corpus decoy `replan`, differently named so the locations
+  discriminate) and a `REQUIRED` table row present-but-short under the suite
+  root and absent from the corpus, so the mutation flips its message from
+  `found 0x` to `file missing entirely`. Mutation — all three
+  `f = self.suite_root / rel` sites rebound to `self.corpus_root` → the printed
+  list carries four lines beginning `cg-row-2:`. As §CG-7 warns, that same
+  mutation also trips C12.1 and the §3 retarget case, so **membership of the
+  printed list, never the process exit code, was the comparand** for both rows.
+  `skill-lint.py`'s `CG_ROW_TOKENS` now holds
+  `("cg-row-1:", "cg-row-2:", "cg-row-3:")`; rows 5-8 arrive in Chunk 4.
+- **Task 5 — both negative directions, both mutations run.** Case
+  `derivation_declines_for_a_foreign_consumer`. (a) A consumer corpus with its
+  own `skills/` and no `plugins/sdd/`: tier 3 answers, `swept_roots()` is
+  exactly `{corpus_root}`, the token reads `disjoint`, their `skills/` is still
+  walked and no `— NOTHING SWEPT` suffix appears. Mutation — the derivation made
+  **truly** unconditional (both existence tests removed) → the half goes red.
+  Recorded because it is a live trap: removing only `candidate.is_dir()` leaves
+  the `skills/` test guarding the same path, and the case stays green — the
+  mutation has to remove both to be the mutation the requirement names. (b)
+  `plugins/sdd/` present with no `skills/` under it: the candidate is declined
+  and the run reports `disjoint` rather than naming an empty suite root.
+  Mutation — the `skills/` test alone dropped → the half goes red on three
+  lines.
+- **Task 6 — the per-geometry split, on a `vendor/suite` fixture (§CG-5a).**
+  Case `per_geometry_split_holds` builds its own tree and does **not** reuse §7
+  fixture A, whose suite subdirectory is named `plugins/sdd`: with the explicit
+  root, `suite_contained()` is True and `len(skill_files()) > 0`; with no root
+  passed, `derived_suite_root()` returns `None` by construction and
+  `len(skill_files()) == 0`. Fixture B's Option-B tripwire is re-asserted in the
+  same case (`swept_roots() == {corpus_root}`, zero walked files from the suite
+  root); mutation — admitting a disjoint suite root to `swept_roots()` →
+  fourteen lines red, including both of this case's. C12.1 is unmodified and
+  still registered, pinning its 16 rows and deliberately not 56.
+- **Task 7 — the shim and the CLI agree, and the comparison is only sound
+  through `main()`.** Case `shim_and_cli_resolve_the_same_tiers` loads `gc.py`
+  beside the linter, builds its branch-(ii) `-c` command with
+  `Gc(corpus, lint_suite_rules=False).lint_command(...)`, runs it, and compares
+  its `GEOMETRY:` line against the line a **subprocess CLI** run prints on the
+  same corpus. The first draft compared against an in-process `Linter(...)` and
+  was silently vacuous: it would have agreed with the shim even with tier 2
+  implemented in `main()`. Mutation — tier 2 moved out of the constructor into
+  `main()` → the case fails with `shim 'GEOMETRY: disjoint …' vs CLI 'GEOMETRY:
+  nested …'`. Both paths are given the **resolved** corpus root, because
+  `main()` resolves its positional and the shim does not, and a `/tmp` symlink
+  difference would otherwise mask the comparison.
+- **Task 8 — the nested case is unregressed.** In-repo `python3
+  plugins/sdd/tools/skill-lint.py .` still prints `GEOMETRY: nested
+  swept-roots=2` and `OK: 25 file(s) clean`. Case
+  `nested_case_is_not_regressed` pins it structurally rather than by literal:
+  the corpus root is derived from the tool's own location at run time, tier 2 is
+  asserted to **decline** it (third conjunct), and the swept-file count of the
+  implicit construction is compared against the same run built with the root
+  passed explicitly — no number appears in the case.
+- **Carried forward from Chunk 2, acted on here.** `print_population()` took a
+  `suite_root` **positional** and `main()` substituted `default_suite_root()`
+  for `None`, so `--print-population` would have been the one caller bypassing
+  the constructor's tier-2 resolution — the shim's defect class, one caller
+  over. Its parameter is now `Path | None = None` and `main()` passes the
+  tier-1-or-`None` value straight through. The existing `print_population_shape`
+  case passes both roots explicitly and is unaffected. This does not weaken
+  enumerated row 5, whose named mutation (`(root, root)`) still mis-roots the
+  wiring observably.
+- **One pre-existing case was corrected, not deleted.** `two_roots_construct_
+  distinct_and_equal` asserted `Linter(tr_corpus).suite_root ==
+  default_suite_root()` on a fixture whose corpus root holds
+  `plugins/sdd/skills/` — under tier 2 that corpus now correctly resolves to the
+  derived root, so the assertion as written would have asserted the derivation
+  away. Tier 3 is now pinned on `tr_far` (nothing to derive) and tier 2 on
+  `tr_corpus`, so both tiers keep a fixture and neither is asserted on a corpus
+  that selects the other.
+- **Provisional observation, no id.** Every mutation run above was performed on
+  a `cp -R` scratch copy of `plugins/sdd` under `$TMPDIR`; no repository file
+  was edited to test a mutation. The **unmutated** scratch control is red on
+  exactly one pre-existing line — `docs/spec/ not found at the corpus root above
+  the real skill suite` — because `docs/` is outside the shipped plugin, so a
+  copy of the plugin alone cannot satisfy that case. Every additional line in a
+  mutation run is therefore attributable to the mutation, and no control run
+  printed any `cg-row-` line. The revert half of REQ-PKG-CONSUMERGEOMETRY-001
+  acceptance 2 (`exit 0 with no such line`) is observed **in-repo**, where the
+  unmutated self-test exits 0. Whether that pre-existing case should be made
+  skippable outside a full checkout is left to the verify stage.
 
 ### Chunk 4: The remaining enumerated rows — the guards and the wiring
 **Goal**: The Q4-gap rows that are not covered by Chunks 1–3 are each bound to a
@@ -1489,6 +1617,20 @@ Each names the condition, the observation that detects it, and where it routes.
    open to what the work finds; rounds are not.
 
 ## Risks
+
+- **One conjunct of tier 2's adoption test is individually unpinned (observed at
+  Chunk 3's gate, 2026-09-22, by both the implementer and the verifier
+  independently).** `derived_suite_root()` requires three conjuncts; removing
+  `candidate.is_dir()` **alone** leaves the `(candidate/"skills").is_dir()` test
+  guarding the same non-existent path, so no case goes red. Removing both
+  together reds eight lines. So the conjunction is pinned and that single
+  conjunct is not. This is a gap in the mutation set, not a defect in the
+  implementation — but REQ-PKG-CONSUMERGEOMETRY-001's premise is that each named
+  site has a mutation that turns it red, so it is recorded here rather than left
+  to be rediscovered. Closing it needs a fixture whose corpus holds a
+  `plugins/sdd` **file** (not a directory) with a `skills/` path that would
+  otherwise resolve — the only shape where the two conjuncts disagree. Carried to
+  the verify stage's box-walk as a known, argued gap.
 
 - **Cold-reader load (raised at the plan cap gate, 2026-09-22; noted, not
   actioned).** §Conventions and several Chunk 6/7 task bodies are multi-paragraph
