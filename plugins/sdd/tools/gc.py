@@ -413,6 +413,11 @@ class Gc:
         self.fast = fast
         self.findings: list[tuple[str, str]] = []
         self.sweeps_run: list[str] = []
+        # The linter's own-line `GEOMETRY:` token, captured verbatim by
+        # sweep_lint() and re-emitted by run() (drift-sweep.md §3).  It is NOT
+        # a finding: no severity, not counted in the summary, and never derived
+        # here — this tool has no geometry of its own to render.
+        self.forwarded_geometry: str | None = None
         # `lint_suite_rules=False` runs the linter without its repo-specific
         # REQUIRED / version-gate rows so a temp fixture (no real skill suite)
         # can drive the delegated sweep end to end.  Production runs never
@@ -542,7 +547,15 @@ class Gc:
         return [sys.executable, "-c", prologue + f"sys.exit({ctor}.run())", *tail]
 
     def sweep_lint(self) -> None:
-        """Invoke tools/skill-lint.py and pass its findings through."""
+        """Invoke tools/skill-lint.py and pass its findings through.
+
+        It also forwards the linter's own-line `GEOMETRY:` token verbatim
+        (drift-sweep.md §3).  Forwarding, never computing: the linter is the
+        only process that knows its own roots, so a second derivation here
+        would be a second thing to get wrong.  The token is captured as an
+        opaque string and re-emitted by `run()`; nothing in this file parses,
+        rebuilds or reasons about its contents.
+        """
         self.sweeps_run.append("lint")
         lint = self.lint_path()
         assert lint is not None  # main() exits 2 before we get here
@@ -557,6 +570,11 @@ class Gc:
                 self.passthrough(sev, f"{lines[i][len(m.group(1) or ''):]}\n{lines[i + 1]}")
                 i += 2
                 continue
+            # The forwarding pass-through: the token line is carried across
+            # unchanged, matched only by its literal prefix.  The last such
+            # line wins, so one sweep forwards one token.
+            if lines[i].startswith("GEOMETRY: "):
+                self.forwarded_geometry = lines[i]
             i += 1
         summary = next((ln for ln in reversed(lines) if ln.strip()), "")
         if not re.match(r"^(OK|FAIL): ", summary) or proc.returncode not in (0, 1):
@@ -1119,6 +1137,10 @@ class Gc:
             self.sweep_kickoff()
         for severity, text in self.findings:
             print({"warn": "WARN ", "info": "INFO "}.get(severity, "") + text)
+        # The forwarded token, verbatim and on its own line, immediately before
+        # the summary — the position the linter emits it in (drift-sweep.md §3).
+        if self.forwarded_geometry is not None:
+            print(self.forwarded_geometry)
         counts = Counter(sev for sev, _ in self.findings)
         n_fail, n_warn, n_info = counts["fail"], counts["warn"], counts["info"]
         if n_fail:

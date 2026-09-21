@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 requires:
   - REQ-GC-HARNESSP2-001
   - REQ-GC-HARNESSP2-002
@@ -811,9 +811,31 @@ is half of row 4's mutation, so the ordering is now demonstrated by a
   returns the token to absent; reverting `lint_command()` returns the finding
   (REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause;
   REQ-PKG-CONSUMERGEOMETRY-006 acceptance 2).
-- [ ] A grep of `gc.py` finds no geometry-deriving expression — the sweep
-  forwards, never computes. Computing the token in the sweep makes this red
-  (REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause).
+- [ ] **`gc.py` derives no geometry of its own** — the sweep forwards, never
+  computes. "Geometry-deriving expression" has no grep spelling, so this
+  criterion is stated as **two halves, both required**; either alone is weak,
+  the grep because it can be satisfied by renaming and the mutation because it
+  leaves the prose undecidable. The mechanism under test is §3 above
+  (*`sweep_lint()` forwards the `GEOMETRY:` token verbatim*) — **not** §4,
+  which is a separate `AGG_FIX` criterion.
+  - **(a) The grep.** `grep -nE '\bsuite_contained\b|\b(nested|equal|disjoint)\b'
+    plugins/sdd/tools/gc.py`, ignoring comment lines, returns matches **only**
+    inside the forwarding pass-through — that is, only on lines that read a
+    token back off the linter's own stdout. Every other match is a derivation
+    and fails this half. The permitted set is enumerated rather than counted:
+    the `--self-test` assertions of row 4 that compare `cg4_geometry(...)`'s
+    return — a string lifted verbatim from a linter run — against
+    `"GEOMETRY: nested"` / `"GEOMETRY: disjoint"`. A match on any line that
+    computes a member from `Path` comparison, containment or root equality is
+    red.
+  - **(b) The mutation, run and not described.** On a temporary copy of
+    `gc.py`, compute the token inside the sweep (derive a member from the
+    corpus/suite roots and emit a second `GEOMETRY:` line); in §CG-8's disjoint
+    scratch construction the far `gc.py --report --root "$REPO"` output then
+    carries a **duplicate** `GEOMETRY:` line — two where the forwarding alone
+    gives exactly one. Reverting returns the count to one. A `gc.py` that
+    already derived would show the duplicate before the mutation
+    (REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause).
 - [ ] `AGG_FIX` names a path that resolves in this repository after the
   correction, asserted by resolving the named path at run time; a path that does
   not resolve fails this (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 7).

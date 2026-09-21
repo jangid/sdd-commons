@@ -913,14 +913,14 @@ tools.
 **Write scope**: `plugins/sdd/tools/gc.py`, `docs/spec/drift-sweep.md`,
 `docs/ws/consumer-geometry/traceability.md`.
 **Tasks**:
-1. [ ] [implement] `sweep_lint()` forwards the `GEOMETRY:` token **verbatim, on
+1. [x] [implement] `sweep_lint()` forwards the `GEOMETRY:` token **verbatim, on
    its own line**. Today it passes through only two-line finding pairs matching
    its finding regex plus the last non-empty line when it matches
    `^(OK|FAIL): `, discarding every other line, so an own-line token reaches
    nobody. It must **not** compute the token: the linter is the only process that
    knows its own roots, and a second derivation is a second thing to get wrong
    — traces to `drift-sweep.md` §3, `two-root-linter.md` §CG-6
-2. [ ] [implement] **The first recorded plan input: supply a decidable comparand
+2. [x] [implement] **The first recorded plan input: supply a decidable comparand
    for "`gc.py` derives no geometry of its own".** "Geometry-deriving expression"
    has no grep spelling — the same objection this delta raises against "the
    working tree" in the freeze item. **Cite the target by its text, not by a
@@ -939,7 +939,7 @@ tools.
    already holds that file open — traces to `two-root-linter.md`
    §Consumer-Geometry Open Items item 1, `drift-sweep.md` §3 and its acceptance
    bullet *"`gc.py` derives no geometry of its own"*
-3. [ ] [implement] **Re-date `docs/spec/drift-sweep.md`'s `last_updated` in the
+3. [x] [implement] **Re-date `docs/spec/drift-sweep.md`'s `last_updated` in the
    same commit as task 2's edit — which is why it sits IMMEDIATELY AFTER it,
    before the two verify tasks that consume that edit.** Ordered this way because
    an implementer working in task order would otherwise commit task 2 first and
@@ -950,12 +950,12 @@ tools.
    is a date bump rather than a content change. Chunk 7 task 2 does the same for
    the specs it touches; naming it in both places is what keeps the discipline
    from being read as Chunk 7's alone — traces to `two-root-linter.md` §CG-11(b)
-4. [ ] [verify] **The token survives the sweep.** In §CG-8's disjoint scratch
+4. [x] [verify] **The token survives the sweep.** In §CG-8's disjoint scratch
    construction, `gc.py --report` output contains a line beginning `GEOMETRY: `,
    forwarded verbatim on its own line; it contains none today, and **removing the
    forwarding returns it to none** — mutation run — traces to
    `two-root-linter.md` §Acceptance Criteria
-5. [ ] [verify] **The disjoint invocation is repaired end to end.** In §CG-8's
+5. [x] [verify] **The disjoint invocation is repaired end to end.** In §CG-8's
    construction the far `skill-lint.py` prints `GEOMETRY: nested`, raises no
    `[structure] skills/ directory not found` finding, and reports a non-zero
    swept-file count — it prints that finding and `FAIL: 1 finding(s)` today
@@ -966,7 +966,7 @@ tools.
    both landing orders) rather than on the token; reverting `lint_command()`
    makes the finding reappear — traces to `two-root-linter.md` §CG-8,
    §Acceptance Criteria
-6. [ ] [verify] Re-run the §CG-8 construction's nested control: the in-repo
+6. [x] [verify] Re-run the §CG-8 construction's nested control: the in-repo
    `skill-lint.py` is unchanged at `GEOMETRY: nested` and its run-time-derived
    file count. **No assertion is made about the committed hook set's
    *geometry***, deliberately — every `.pre-commit-config.yaml` entry runs an
@@ -982,6 +982,82 @@ tools.
 tools with the reverting mutations run; the geometry-derivation criterion has a
 decidable comparand in `drift-sweep.md` with its mutation demonstrated;
 `drift-sweep.md`'s `last_updated` re-dated in the same commit as that edit. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
+
+**Notes** (Chunk 5, 2026-09-22):
+
+- **Task 1 — the forwarding, and where it prints.** `sweep_lint()` gained one
+  branch in its line loop: a literal `lines[i].startswith("GEOMETRY: ")` test
+  that stores the line **as an opaque string** in `self.forwarded_geometry`
+  (last one wins, so one sweep forwards one token). `run()` prints it on its own
+  line immediately before the summary — the position the linter emits it in. It
+  is not a finding: it never enters `self.findings`, carries no severity and is
+  not counted in the summary's `N`, which is §Finding Shape and Summary's
+  contract left intact. Nothing in `gc.py` parses, rebuilds or reasons about the
+  token's contents.
+- **Tasks 2 and 3 pair.** The restated acceptance bullet in
+  `docs/spec/drift-sweep.md` and that file's `last_updated` bump to 2026-09-22
+  are a single edit pair, made together and (by §CG-11(b)'s pairing discipline,
+  which is not specific to the requirements corpus) belonging in one commit.
+  This leaf does not commit; the pairing is recorded here so the orchestrator's
+  commit carries both.
+- **Task 2 — what was cited, and what was not.** The target was cited **by its
+  text** — the acceptance bullet *"`gc.py` derives no geometry of its own"* —
+  and its mechanism named as `drift-sweep.md` §3 (`sweep_lint()` forwards the
+  token). The spec's own Open Item mis-cites §4 (`AGG_FIX` names a path that
+  resolves), which is a different criterion; §4 was not touched. The
+  `two-root-linter.md` twin of this restatement is **owed to Chunk 7 task 1**,
+  which already holds that file open.
+- **Task 2 — both halves, the mutation run.** Half (a), the grep
+  `grep -nE '\bsuite_contained\b|\b(nested|equal|disjoint)\b'
+  plugins/sdd/tools/gc.py` ignoring comment lines, returns exactly two matches,
+  both inside the forwarding pass-through: the row-4 self-test assertions that
+  compare `cg4_geometry(...)`'s return — a string lifted verbatim off a linter
+  run — against `"GEOMETRY: nested"` / `"GEOMETRY: disjoint"`. Zero matches
+  compute a member from path comparison, containment or root equality. Half (b),
+  the mutation, was **run** on a `$TMPDIR` scratch copy: deriving the member in
+  `gc.py` from the corpus/suite roots and emitting a second token made the far
+  `gc.py --report --root "$REPO"` output carry a **duplicate** `GEOMETRY:` line
+  (count 1 → 2); the unmutated control gives exactly 1.
+- **Task 4 — the token survives the sweep, both directions.** Before the change
+  the far `gc.py --report --root "$REPO"` carried **zero** `GEOMETRY: ` lines;
+  after it, exactly one, verbatim and on its own line. Deleting the pass-through
+  branch on a scratch copy returned the count to zero.
+- **Task 5 — end to end, and one provisional observation with no id.** Far
+  `skill-lint.py "$REPO"`: `GEOMETRY: nested  swept-roots=2`, no `[structure]`
+  finding, `OK: 25 file(s) clean` (non-zero swept count). Reverting the tier-2
+  derivation in `Linter.__init__` on a scratch copy returns it to red —
+  `GEOMETRY: disjoint  swept-roots=1`, the `[structure] skills/ directory not
+  found` finding, and `FAIL: 1 finding(s), 0 warning(s) — NOTHING SWEPT`. Far
+  `gc.py --report --root "$REPO"`: **zero** `[structure]` findings, asserted on
+  the finding set. **Provisional observation (no id, per §Conventions; its
+  durable `### Q-IMPL-…` heading is Chunk 7's to write):** under the landing
+  order actually taken, reverting `lint_command()`'s suite-root pass-through
+  **alone** leaves the finding set empty — the pass-through is inert when no
+  `--suite-root` is supplied, so §CG-8's construction is repaired by the
+  linter's tier-2 derivation, not by the pass-through. Reverting the derivation
+  (with the pass-through already reverted) makes exactly one `[structure]`
+  finding reappear. The plan's clause is decidable **on the finding set** under
+  both landing orders, as written; only the attribution of the repair differs,
+  and it is recorded here rather than left implied. Note also that the forwarded
+  `GEOMETRY:` line is still present in the mutated run (reading `disjoint`) —
+  forwarding is independent of geometry, which is the "forwards, never computes"
+  property observed directly.
+- **Task 6 — the nested control.** In-repo `python3
+  plugins/sdd/tools/skill-lint.py .` is unchanged at `GEOMETRY: nested
+  swept-roots=2` with `OK: 25 file(s) clean`, the count derived at run time and
+  not pinned as a literal. **No assertion is made about the committed hook set's
+  geometry**, deliberately — every `.pre-commit-config.yaml` entry runs an
+  in-repo copy, so every one is already nested. The hook set's byte-identity is
+  a different claim with a different comparand and is Chunk 8 task 2's; the two
+  are not conflated.
+- **Chunk close.** `python3 plugins/sdd/tools/skill-lint.py --self-test` and
+  `python3 plugins/sdd/tools/gc.py --self-test` both exit 0. `python3
+  plugins/sdd/tools/gc.py --report --root .` is `OK: 9 sweep(s) clean, 1
+  warning(s), 34 info` — the one warning is `[traceability-aggregate]`, expected
+  and **not** this leaf's to clear: per plan D4 the aggregate is regenerated by
+  the orchestrator as post-gate bookkeeping and appears in no chunk's write
+  scope. No `[traceability-rowdrop]` finding, so the filled rows still parse at
+  six cells.
 
 ---
 
