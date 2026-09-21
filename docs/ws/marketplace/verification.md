@@ -1,6 +1,6 @@
 ---
 workstream: marketplace
-status: pending-red
+status: pass
 research_id: RS-MARKETPLACE-001
 last_updated: 2026-09-21
 plan_ref: docs/ws/marketplace/plan.md
