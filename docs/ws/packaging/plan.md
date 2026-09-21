@@ -361,9 +361,11 @@ asserted are provably not asserted.
    path** `plugins/sdd/tools/skill-lint.py` at **C7.8**, which is where
    REQ-LINT-PACKAGING-004's acceptance is written. Scope: that one file **only**
    — the linter source and the
-   self-test it carries — excluding the fixture bodies of A, B and case C
-   (identified by §7's fixture function names), whose seeded counts are sound
-   literals. Each returns zero matches:
+   self-test it carries — excluding the self-test's fixture-literal assertions
+   **as a class** (a count over a tree the case seeded itself, or over a
+   hand-built literal path list), not the enumeration "fixtures A, B and case
+   C" this task originally wrote, which the verify-stage red round showed goes
+   stale as cases land — see Chunk 12 and `two-root-linter.md` §Verification. Each returns zero matches:
    `grep -nE '(FILES_SWEPT|files_swept|len\( *swept *\))[^\n]*(==|!=|>=|<=|<|>) *[0-9]+'`;
    `grep -nE '[0-9]+ *(==|!=) *(FILES_SWEPT|files_swept|len\( *swept *\))'`;
    `grep -n 'git ls-files'`. Prose is deliberately out of scope. Record as
@@ -1109,6 +1111,83 @@ have to rediscover it.
    changing the linter's exit contract, which is out of scope for this cycle
    and is carried as a stated boundary rather than as work.
 
+
+### Chunk 12: Red-team repairs
+
+**Provenance.** The verify stage ran with the red team enabled and returned
+`RED_VERDICT: BROKEN` — three breaks against the acceptance criteria this
+cycle wrote (R2 Major, R3 Moderate, R1 Minor), plus one suspicion the round
+did not claim as a break (the AC5 bare-`tools/gc.py` grep). The operator chose
+**fix** for all three and **judge** for the suspicion. Reproductions and
+dispositions are recorded in `docs/ws/packaging/verification.md` §Issues Found;
+`status:` there stays `pending-red` until the orchestrator's flip.
+
+1. [x] [implement] **R2 — re-point orchestrate's drift-sweep invocations at
+   `<plugin-dir>/tools/gc.py`.** All eight `<skill-dir>/tools/gc.py` spellings
+   in `plugins/sdd/skills/orchestrate/` (`SKILL.md` ×2, `USAGE.md` ×2,
+   `references/drift-sweep.md` ×4) become `<plugin-dir>/tools/gc.py`, matching
+   what C6.1 did for `verify/SKILL.md`, and the two prose passages that
+   justified the skill-relative spelling are rewritten to the `<plugin-dir>`
+   convention. The bundled copy under `skills/orchestrate/tools/` is **not**
+   deleted — REQ-PKG-MARKETPLACE-007 freezes it and
+   REQ-PKG-MARKETPLACE-006's duplicated-not-symlinked rule governs its fate.
+   Verified the way the break was found: from a scratch consumer repository
+   with no `tools/` of its own, the re-pointed command exits 1 with findings
+   naming **consumer** paths, while the old spelling still exits 2 with
+   `error: linter missing` (REQ-PKG-PACKAGING-009)
+2. [x] [implement] **R3 — pin `check_required()`'s two gated loops to the
+   suite root.** New checked-in self-test case
+   `check_required_gated_rows_bind_to_the_suite_root`, in the shape C8.1/C8.2
+   use: a nested fixture whose two roots differ, the gated rows' targets
+   present **only** under the suite root, a positive control carrying both
+   markers, and a decoy seeded under the corpus root. Rebinding either loop to
+   `self.corpus_root` fails three of the case's four assertions, so the
+   reversion is gated where before it was a silent no-op across all sixteen
+   rows (REQ-LINT-PACKAGING-002, REQ-PKG-PACKAGING-004)
+3. [x] [implement] **R3 — correct `two-root-linter.md` §6 on what the four
+   pinned populations catch.** The claim that they are "a regression check on
+   §3's retarget, catching a row dropped or duplicated while moving the rows'
+   binding" is false in its second half and is withdrawn: a population is
+   `len(<table>)` and a retarget leaves every row in place. §6 now states that
+   they catch **table** edits only, that bindings are pinned by the invertible
+   geometry cases instead, and names task 2's case as the one covering these
+   sixteen rows (REQ-LINT-PACKAGING-004, -007)
+4. [x] [implement] **R1 — restate the no-pinned-count exclusion as a class.**
+   `two-root-linter.md` §Verification and this plan's Chunk 4 task 2 excluded
+   "fixtures A, B and case C" by name; the first grep now also matches
+   `walk_dedupes_repeated_roots`'s `check(len(swept) == 1, …)`, a sound literal
+   over a hand-built root list that the enumeration does not name, so the
+   criterion was false as written. The exclusion is now the **class** of
+   self-test fixture-literal assertions — a count over a tree the case seeded
+   itself or over a hand-built literal path list — with everything else,
+   including any count over a live corpus root, still a finding. Re-run: grep 1
+   returns the one excluded match, greps 2 and 3 return none
+   (REQ-LINT-PACKAGING-004)
+5. [x] [implement] **AC5 suspicion — correct the criterion's wording, not the
+   strings.** The bare `tools/gc.py` occurrences in
+   `orchestrate/{SKILL.md,USAGE.md,references/drift-sweep.md}` are the `GC:`
+   gate line the driver **prints**, whose wording `docs/spec/drift-sweep.md`
+   owns; they are not invocations, and the criterion read as a literal grep was
+   always false. AC5 now defines an invocation as a command line the body tells
+   the reader to run and puts rendered messages out of scope. `gc.py`'s
+   `AGG_FIX` string is the one a consumer would paste and names a path no
+   consumer has — a real defect, but `gc.py` is frozen to this cycle's write
+   scope, so it is **recorded** against REQ-PKG-PACKAGING-009 for a later cycle
+   rather than repaired (REQ-PKG-PACKAGING-009)
+
+**Standard held.** For every binding this chunk touches, the reversion fails a
+gate: task 2's mutation turns `skill-lint.py --self-test` red (failure text in
+`verification.md` §Issues Found → R3). All four gates — `skill-lint.py`,
+`skill-lint.py --self-test`, `gc.py --fast`, `gc.py --self-test` — were exit 0
+before this chunk and are exit 0 after it.
+
+**Consequence to carry forward.** After task 1, **no invocation anywhere
+resolves to the bundled copy** under `skills/orchestrate/tools/`. That
+falsifies the added criterion `docs/ws/marketplace/verification.md` records for
+REQ-PKG-MARKETPLACE-006 ("at least one invocation resolves to the bundled
+copy"). The copy stays on disk under that requirement's duplication rule; the
+marketplace workstream's record is out of this workstream's write scope and is
+left for the operator.
 
 ## Requirement → Task Coverage
 

@@ -2449,6 +2449,67 @@ def self_test() -> int:
                   "disjoint: exactly the CORPUS root's oversized file is measured; "
                   "a disjoint suite root is not swept:\n" + "\n".join(dtexts))
 
+        def check_required_gated_rows_bind_to_the_suite_root() -> None:
+            """C12.1: `check_required()`'s two gated loops walk the SUITE root.
+
+            The sixteen gated rows — `VERSION_GATED_SKILLS` (9) and
+            `V4_CONTRACT_SKILLS` (7) — resolve `skills/<name>/SKILL.md` against
+            `self.suite_root`, because after the move the skills live inside
+            the suite and a consumer's corpus root has no `skills/` at all
+            (two-root-linter.md §4's binding table).
+
+            **Mutation that breaks it.** Rebinding either loop to
+            `self.corpus_root` / `self.root`. Both loops are guarded by
+            `if f.is_file() and ...`, so a corpus root with no `skills/` makes
+            every gated row a *silent no-op*: no finding, no error, all four
+            gates at exit 0, and all four `--print-population` counts unchanged
+            (a population is `len(<table>)` and cannot see a binding — §6). The
+            verify-stage red round showed a real `[required]` violation going
+            unreported under exactly that mutation. This case is the pin: the
+            fixture's two roots differ, the gated rows' targets exist **only**
+            under the suite root, and the rows are asserted to fire there and
+            **not** to fire on an identically-broken decoy seeded under the
+            corpus root.
+            """
+            gr = root / "gatedbind"
+            gr_suite = gr / "plugins" / "sdd"
+            (gr / "docs").mkdir(parents=True, exist_ok=True)
+            # Seeded under the SUITE root: `verify` is a member of BOTH gated
+            # tables and its body carries neither marker, so both rows fire.
+            _fixture_skill(gr_suite, "verify", "Body. Skip for Y.\n")
+            # Positive control, also under the suite root: `research` carries
+            # both markers, so neither row fires on it. Without this half the
+            # case would pass against a loop that flagged unconditionally.
+            _fixture_skill(gr_suite, "research",
+                           "Body. Skip for Y.\nReads docs/.sdd-version on entry.\n"
+                           "Follows the common v4 contract.\n")
+            # Decoy under the CORPUS root, broken the same way as the suite
+            # seed: under the mutation this is what would be reported instead.
+            _fixture_skill(gr, "replan", "Body. Skip for Y.\n")
+
+            lin = Linter(gr, gr_suite, suite_rules=True)
+            lin.check_required()
+            # Only the two GATED messages: the `REQUIRED` table rows resolve
+            # against the same root and also fire on this fixture (their own
+            # target files are absent from it), so filtering by rule tag alone
+            # would mix the populations and mask the binding under test.
+            gated = [t for _, t in lin.findings
+                     if "never reads" in t or "collapsed v4 ownership summary" in t]
+            seeded = [t for t in gated if _loc(t) == "skills/verify/SKILL.md"]
+            check(any("never reads" in t for t in seeded),
+                  "the VERSION_GATED row must fire on the SUITE root's seeded "
+                  "skills/verify/SKILL.md:\n" + "\n".join(gated))
+            check(any("collapsed v4 ownership summary" in t for t in seeded),
+                  "the V4_CONTRACT row must fire on the SUITE root's seeded "
+                  "skills/verify/SKILL.md:\n" + "\n".join(gated))
+            check(not any(_loc(t) == "skills/research/SKILL.md" for t in gated),
+                  "a gated skill carrying both markers must raise neither row "
+                  "(the rows must be conditional, not unconditional):\n"
+                  + "\n".join(gated))
+            check(not any(_loc(t) == "skills/replan/SKILL.md" for t in gated),
+                  "the gated rows must not resolve against the CORPUS root: the "
+                  "decoy seeded there was reported:\n" + "\n".join(gated))
+
         def print_population_shape() -> None:
             """C4.3 — `--print-population`'s output asserted by SHAPE, not by value.
 
@@ -2846,6 +2907,7 @@ def self_test() -> int:
                       forbidden_allow_files_root_correct,
                       check_structure_binds_to_the_swept_roots,
                       check_size_binds_to_the_swept_roots,
+                      check_required_gated_rows_bind_to_the_suite_root,
                       zero_arg_run_sweeps_the_corpus,
                       walk_dedupes_repeated_roots,
                       backtick_bases_bind_to_the_swept_roots,

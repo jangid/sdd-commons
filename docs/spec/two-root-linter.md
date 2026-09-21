@@ -187,9 +187,27 @@ count, derived from the table at run time rather than written into the flag.
 Its population criterion is stated here and nowhere else: `REQUIRED=40
 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13` — the one place in the corpus where
 a row population is compared against a number, sound because rule-table rows
-are static in-code data. It is a regression check on §3's retarget, catching a
-row dropped or duplicated while moving the rows' binding. The flag lands
-**before** anything evaluates it.
+are static in-code data.
+
+**What the four populations catch, stated exactly.** They catch an edit to the
+rule **tables**: a row dropped, duplicated or added to `REQUIRED`,
+`VERSION_GATED_SKILLS`, `V4_CONTRACT_SKILLS` or `FORBIDDEN` changes a printed
+count and fails the criterion. They do **not** catch anything about the rows'
+**binding**. The earlier wording here — that they are "a regression check on
+§3's retarget, catching a row dropped or duplicated while moving the rows'
+binding" — was false in its second half and is withdrawn: a population is
+`len(<table>)`, read from the table object, and a retarget changes which root a
+row is *resolved against*, leaving every row in place and every count
+identical. The verify-stage red round demonstrated the gap — rebinding
+`check_required()`'s two gated loops from `self.suite_root` to
+`self.corpus_root` turns all sixteen gated rows into silent no-ops (each loop
+is guarded by `if f.is_file()`, and a corpus root with no `skills/` satisfies
+none of them) with all four gates at exit 0 and all four populations unchanged.
+Bindings are pinned by the invertible geometry cases instead, one per bound
+check — `check_required_gated_rows_bind_to_the_suite_root` for these sixteen
+rows, alongside `check_structure_binds_to_the_swept_roots` and
+`check_size_binds_to_the_swept_roots`. The flag lands **before** anything
+evaluates it.
 
 **The duplicate-freeness construction guard.** Every run, in any repository,
 asserts the swept list resolved to absolute paths holds no path twice. It
@@ -330,10 +348,27 @@ an implicit root would silently retarget the sweep.
 **Placeholder convention, stated here once.** A skill body that must name the
 suite root it ships inside writes `<plugin-dir>` when the referent is the
 whole installed plugin root (the tree holding `tools/`, `agents/` and
-`skills/` — `verify/SKILL.md`'s gc invocation) and `<skill-dir>` when it is
-that one skill's own directory (`orchestrate/SKILL.md`'s `references/` links).
-The two are different referents, not a divergence; each occurrence still
-expands its placeholder inline at first use. The repair is **sequenced
+`skills/`) and `<skill-dir>` when it is that one skill's own directory
+(`orchestrate/SKILL.md`'s `references/` links). The two are different
+referents, not a divergence; each occurrence still expands its placeholder
+inline at first use.
+
+**Every gc invocation in every skill body takes `<plugin-dir>`** — the eight
+in `orchestrate/` (`SKILL.md`, `USAGE.md`, `references/drift-sweep.md`)
+alongside the one in `verify/SKILL.md`. The orchestrate eight were written
+`<skill-dir>/tools/gc.py` on the reasoning that the copy bundled under
+`skills/orchestrate/tools/` (REQ-PKG-MARKETPLACE-006's duplicated-not-symlinked
+rule) would then run. That reasoning was wrong and the sweep was dead in every
+install: `gc.py` embeds the linter by sibling-first resolution, that directory
+holds only `gc.py` and `telemetry.py`, and the fallback
+`<root>/tools/skill-lint.py` is exactly the path the move deleted, so the
+documented command printed `error: linter missing` and exited 2 everywhere.
+One convention, one place a consumer's linter is looked for. A consequence to
+carry forward: **no invocation anywhere now resolves to the bundled copy**, so
+REQ-PKG-MARKETPLACE-006's added criterion "at least one invocation resolves to
+the bundled copy" (`docs/ws/marketplace/verification.md`) no longer holds; the
+copy stays on disk under that requirement's duplication rule and its fate is a
+later cycle's decision. The repair is **sequenced
 after** §2, §4 and §5 — done first it would pin a spelling those bindings then
 change.
 
@@ -506,11 +541,28 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
   fixture asserts its own seeded count, adding a file without updating it
   fails, and binding the corpus walk to a root holding no corpus fails the
   count assertion (REQ-LINT-PACKAGING-006).
-- [ ] Over `plugins/sdd/skills/`, a run-time grep for a drift-sweep invocation
-  whose script path is bare `tools/gc.py` is empty, every drift-sweep
-  invocation carries an explicit root argument naming the operator's working
-  directory, and the verify skill's invocation runs from a scratch consumer
-  repository without resolving its root to the suite (REQ-PKG-PACKAGING-009).
+- [ ] Over `plugins/sdd/skills/`, a run-time grep for a drift-sweep
+  **invocation** whose script path is bare `tools/gc.py` is empty; every
+  drift-sweep invocation carries an explicit root argument naming the
+  operator's working directory; and the invocation runs from a scratch consumer
+  repository without resolving its root to the suite — asserted for the verify
+  skill's and for `orchestrate/`'s, both of which now spell the script
+  `<plugin-dir>/tools/gc.py` (§8) (REQ-PKG-PACKAGING-009).
+  **An invocation is a command line the body tells the reader to run** — in
+  practice a `python3 …gc.py …` span. A bare `tools/gc.py` inside a *rendered
+  message* is not one and is out of this criterion's scope: the `GC: F fail, W
+  warn — run tools/gc.py --report` gate line (`orchestrate/SKILL.md`,
+  `USAGE.md`, `references/drift-sweep.md`) is text the driver prints to the
+  operator, whose wording is fixed by `docs/spec/drift-sweep.md`, not a command
+  the skill runs. The distinction is stated here because the criterion read as
+  a literal grep is false and always was — the red round checked it and found
+  those three sites (R1's sibling suspicion at the verify stage). **One
+  recorded residue, not repaired here:** `plugins/sdd/tools/gc.py`'s `AGG_FIX`
+  remediation string also names a bare `tools/gc.py`, and *that* one a
+  consumer would paste, in a repository where the path does not exist. It is a
+  printed message and so outside this criterion, but it is a real consumer
+  defect; `gc.py` was frozen to this cycle's write scope, so it is recorded
+  against `REQ-PKG-PACKAGING-009` for a later cycle rather than fixed.
 - [ ] Per-entry binding and rendering hold, no `ValueError` on two distinct
   roots, equal roots reproduce the pre-change set (REQ-LINT-PACKAGING-001).
   `TEMPLATE_PAIRS`, asserted per geometry rather than delegated: under nesting
@@ -527,9 +579,24 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
 - [ ] **The no-pinned-count check, as three runnable greps.** Scope, stated
   here rather than left to the implementer: `plugins/sdd/tools/skill-lint.py`
   **only** — the linter source and the self-test it carries, which are the only
-  assertion contexts the requirement bars — excluding the self-test bodies of
-  fixtures A, B and case C (identified by §7's fixture function names), whose
-  seeded counts are sound literals. Each returns zero matches: `grep -nE
+  assertion contexts the requirement bars — excluding **as a class, not as a
+  list of case names**, the self-test's *fixture-literal* assertions: a match
+  inside `self_test()` whose counted list was derived entirely from a tree the
+  case itself seeded under the self-test's scratch root, or hand-built inside
+  the case as a literal list of paths. Those counts are sound — such a list
+  cannot grow by contribution, and a literal is the only comparand that catches
+  a mis-bound root sweeping nothing (§7). Everything else is a finding,
+  including any assertion whose counted list comes from a **live** corpus root
+  (a `Linter` built on a path the case did not seed), which is exactly the
+  construction the requirement bars, and including any such assertion outside
+  `self_test()`. The exclusion is deliberately **not** the enumeration
+  "fixtures A, B and case C" it was first written as: that went stale the first
+  time a later case landed a sound fixture literal —
+  `walk_dedupes_repeated_roots`'s `check(len(swept) == 1, …)` over a
+  two-element hand-built root list — which the first grep matches while the
+  enumeration does not name it, making the criterion false as written while
+  nothing was wrong with the code (verify-stage red round, R1). Each returns
+  zero matches **after** that class is set aside: `grep -nE
   '(FILES_SWEPT|files_swept|len\( *swept *\))[^\n]*(==|!=|>=|<=|<|>) *[0-9]+'`;
   `grep -nE '[0-9]+ *(==|!=) *(FILES_SWEPT|files_swept|len\( *swept *\))'`;
   `grep -n 'git ls-files'`. **Prose is deliberately out of scope**: a string
