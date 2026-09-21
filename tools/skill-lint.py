@@ -2163,6 +2163,41 @@ def self_test() -> int:
                   f"the row must still fire on the non-allowlisted suite-root file:\n"
                   + "\n".join(texts))
 
+        def print_population_shape() -> None:
+            """C4.3 — `--print-population`'s output asserted by SHAPE, not by value.
+
+            The fourteenth checked-in case (two-root-linter.md §Verification).
+            **No number is pinned here**: each table line must carry an integer
+            that EQUALS the live table's length read at run time, so the case
+            measures that the flag derives its counts rather than agreeing with
+            a literal on both sides (§6). Inverting the shape — asserting a line
+            the flag does not print — fails the self-test.
+            """
+            pp = root / "population"
+            pp.mkdir(exist_ok=True)
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                code = print_population(pp, pp)
+            lines = buf.getvalue().splitlines()
+            expected = population_tables()
+            check(code == 0, f"--print-population must exit 0, got {code}")
+            check(len(lines) == len(expected) + 1,
+                  f"--print-population must print one line per rule table plus the "
+                  f"corpus line ({len(expected) + 1}), got {len(lines)}: {lines}")
+            for (label, n), line in zip(expected, lines):
+                m = re.fullmatch(rf"{re.escape(label)}=([0-9]+)", line)
+                check(m is not None,
+                      f"the {label} line must read `{label}=<int>`, got {line!r}")
+                if m:
+                    check(int(m.group(1)) == n,
+                          f"{label} must print its run-time row count, not a literal: "
+                          f"printed {m.group(1)}, table holds {n}")
+            corpus_line = lines[-1] if lines else ""
+            check(re.fullmatch(r"corpus: FILES_SWEPT=([0-9]+)  policed-areas=([0-9]+)",
+                               corpus_line) is not None,
+                  f"the corpus line must read "
+                  f"`corpus: FILES_SWEPT=<int>  policed-areas=<int>`, got {corpus_line!r}")
+
         for _case in (two_roots_construct_distinct_and_equal,
                       equal_roots_sweep_set_unchanged,
                       sweep_is_duplicate_free,
@@ -2176,6 +2211,7 @@ def self_test() -> int:
                       duplicate_guard_negative_case,
                       fixture_counts_exact,
                       template_pairs_bind_per_side,
+                      print_population_shape,
                       skill_dir_of_binds_per_root,
                       forbidden_allow_files_root_correct):
             _case()
@@ -2185,6 +2221,42 @@ def self_test() -> int:
         return 1
     print("SELF-TEST OK: all rule classes fire; fix/warn/size/backtick/allow_files/"
           "retired-prefix fixtures pass")
+    return 0
+
+
+def population_tables() -> list[tuple[str, int]]:
+    """The printed rule-table populations, derived from the tables at run time.
+
+    Each row is `(label, len(<table>))` read from the live table object — no
+    count is ever written into this function or into the flag, so a row
+    dropped or duplicated by a later edit (two-root-linter.md §6's regression
+    concern for §3's retarget) changes the OUTPUT instead of silently agreeing
+    with a literal on both sides. The lengths are read at call time so a
+    fixture that swaps a table in is reflected.
+    """
+    return [
+        ("REQUIRED", len(REQUIRED)),
+        ("VERSION_GATED", len(VERSION_GATED_SKILLS)),
+        ("V4_CONTRACT", len(V4_CONTRACT_SKILLS)),
+        ("FORBIDDEN", len(FORBIDDEN)),
+        ("TEMPLATE_PAIRS", len(TEMPLATE_PAIRS)),
+    ]
+
+
+def print_population(corpus_root: Path, suite_root: Path) -> int:
+    """`--print-population`: one line per rule table, plus the corpus line.
+
+    The corpus line is **informational output only** and carries no pinned
+    comparand (two-root-linter.md §6): a swept-file count from a live corpus
+    is never asserted, because a literal fails on ordinary contribution and
+    any re-derived comparand asserts the sweep against itself. Zero-sweep
+    detection therefore lives in §7's fixture counts, not here. Exits 0.
+    """
+    for label, count in population_tables():
+        print(f"{label}={count}")
+    swept = Linter(corpus_root, suite_root).skill_files()
+    policed = len(RETIRED_SCOPE_DIRS) + len(RETIRED_SCOPE_FILES)
+    print(f"corpus: FILES_SWEPT={len(swept)}  policed-areas={policed}")
     return 0
 
 
@@ -2200,6 +2272,9 @@ def main() -> int:
                          "suite root is the plugin root holding this script")
     ap.add_argument("--self-test", action="store_true",
                     help="run built-in fixture tests instead of linting")
+    ap.add_argument("--print-population", action="store_true",
+                    help="print each rule table's run-time row count plus the "
+                         "informational corpus line, then exit (no assertions)")
     args = ap.parse_args()
     if args.self_test:
         return self_test()
@@ -2210,6 +2285,8 @@ def main() -> int:
     if not root.is_dir():
         print(f"error: {root} is not a directory", file=sys.stderr)
         return 2
+    if args.print_population:
+        return print_population(root, default_suite_root())
     return Linter(root, default_suite_root()).run()
 
 

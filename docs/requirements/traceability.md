@@ -282,10 +282,10 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-LINT-PACKAGING-001 | two-root-linter.md | packaging | `retired_scope_binds_per_entry` (C2.4) | `RETIRED_SCOPE_BINDING`, `retired_scope_entries()`, `check_retired_prefix()` (C2.1) |  |
 | REQ-LINT-PACKAGING-002 | two-root-linter.md | packaging | `template_pairs_bind_per_side`, 3 geometries + negative control (C3.9) | `check_template_drift()` per-side; spec-side-only disjoint skip (C2.2, C3.9) |  |
 | REQ-LINT-PACKAGING-003 | two-root-linter.md | packaging | `manifest_pair_membership` (C3.3) | union binding for `.claude-plugin` (C2.1) |  |
-| REQ-LINT-PACKAGING-004 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-004 | two-root-linter.md | packaging | three no-pinned-count greps, pre-move (C4.2); re-run post-move at C7.8 | `print_population()` emission half (C4.1) |  |
 | REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging | `sweep_is_duplicate_free` (C1.7) | `duplicate_free_findings()` + `_guard_duplicate_free()` in `walk()` (C1.4) |  |
 | REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging | `fixture_counts_exact` (C3.6) | per-fixture literal counts (C3.6) |  |
-| REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging | `print_population_shape` (C4.3) | `--print-population`, `population_tables()` (C4.1) |  |
 | REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | `skill-lint.py --self-test` retired-prefix scope drift | `tools/skill-lint.py`:381,:1252; `skill-namespace-rename.md`:76 (C0.2) |  |
 | REQ-NAME-MARKETPLACE-001 | skill-namespace-rename.md | marketplace | Chunk 1 task 4 — 10 skill dirs, basename free of retired prefix, frontmatter `name` == basename | `skills/*/SKILL.md` | pass |
 | REQ-NAME-MARKETPLACE-002 | skill-namespace-rename.md | marketplace | Chunk 1 task 4 — cross-skill path-reference greps return zero | `skills/**/*.md` | pass |

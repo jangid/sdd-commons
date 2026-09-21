@@ -344,7 +344,7 @@ than implied.
 asserted are provably not asserted.
 **Depends on**: Chunk 3.
 **Tasks**:
-1. [ ] [implement] Add the `--print-population` flag. It prints one line per rule
+1. [x] [implement] Add the `--print-population` flag. It prints one line per rule
    table with its row count — **derived from the table at run time, never
    written into the flag** — plus the informational
    `corpus: FILES_SWEPT=<n>  policed-areas=<n>` line, which is **introduced**
@@ -353,7 +353,7 @@ asserted are provably not asserted.
    REQ-LINT-PACKAGING-007, not a scheduling preference) — traces to
    `two-root-linter.md` §6 (REQ-LINT-PACKAGING-007, REQ-LINT-PACKAGING-004
    emission half)
-2. [ ] [verify] **The no-pinned-count check, as three runnable greps** over
+2. [x] [verify] **The no-pinned-count check, as three runnable greps** over
    **`tools/skill-lint.py`** — the pre-move path, because this chunk runs
    before the Chunk 5 move and `plugins/sdd/tools/skill-lint.py` does not exist
    yet (a grep over a missing file exits 2 and this criterion would close on a
@@ -370,7 +370,7 @@ asserted are provably not asserted.
    **reviewer-checkable** that no spec *asserts* a pinned count and that an
    assertion in a spelling none of the three greps matches would not be caught
    — traces to `two-root-linter.md` §6 (REQ-LINT-PACKAGING-004)
-3. [ ] [implement] **Lands the named checked-in self-test case
+3. [x] [implement] **Lands the named checked-in self-test case
    `print_population_shape`** — the fourteenth case, and the one Chunk 3 could
    not land because the flag does not exist until task 1: the case asserts the
    `--print-population` output **by shape**, one line per rule table carrying a
