@@ -708,10 +708,18 @@ reaches its terminal state — an open PR against `main`.
 **Depends on**: Chunk 6.
 **Traces to**: docs/spec/marketplace-packaging.md
 **Tasks**:
-1. [ ] [implement] Push the `marketplace` branch. This is the precondition for
+1. [x] [implement] Push the `marketplace` branch. This is the precondition for
    the branch-qualified install mechanism and therefore for the whole of this
    chunk — traces to `docs/spec/marketplace-packaging.md` §Install verification
    (REQ-PKG-MARKETPLACE-010).
+   **Done 2026-09-21.** `git ls-remote origin marketplace` resolves
+   `refs/heads/marketplace` to `56a858a`, string-equal to local `HEAD`. Executed
+   by the orchestrator rather than a dispatched leaf: the push required
+   selecting between two authenticated GitHub accounts, which is credential
+   handling and therefore orchestrator-only. `git push -u` reported an error
+   writing upstream configuration (the sandbox denies `.git/config`); the ref
+   transfer itself succeeded, which is what the `ls-remote` check establishes
+   independently of that error.
 2. [ ] [verify] Install the pushed branch as a marketplace **in a real session**
    using one of the two valid mechanisms — a local path
    `/plugin marketplace add <absolute path to the worktree>`, or the
@@ -725,6 +733,22 @@ reaches its terminal state — an open PR against `main`.
    plugin is the one packaging assumption research could not observe directly —
    traces to `docs/spec/marketplace-packaging.md` §Install verification
    (REQ-PKG-MARKETPLACE-010).
+   **BLOCKED 2026-09-21, and deliberately left unticked.** Both mechanisms are
+   available in principle — the branch is pushed, so the branch-qualified URL
+   resolves, and the local path exists — but `claude plugin marketplace add`
+   writes `~/.claude/plugins/known_marketplaces.json`, which this session's
+   sandbox refuses (`EPERM`), and a retry outside the sandbox was refused by the
+   permission system. No workaround was sought: the refusal protects the
+   operator's own Claude Code configuration, and the honest state of this task
+   is *not performed*. The replan trigger for this requirement fires on an
+   install that **fails once a mechanism has been used**; a mechanism being
+   *unavailable to this session* is expressly not a trigger, so the cycle pauses
+   here rather than replanning. The operator completes it with, from the
+   worktree root:
+   `claude plugin marketplace add "$(pwd)"`, then
+   `claude plugin install sdd@sdd-commons`, then
+   `claude plugin details sdd@sdd-commons` for the component inventory, and
+   finally a read of one `references/*.md` file from the installed copy.
 3. [x] [verify] Final whole-repository gate, all in one run: the skill linter
    and its `--self-test` exit 0; `pre-commit run drift-sweep --all-files` and
    `pre-commit run skill-lint --all-files` each exit 0; `pre-commit run
@@ -745,11 +769,18 @@ reaches its terminal state — an open PR against `main`.
    traces to `docs/spec/pre-commit.md`
    §Acceptance Criteria (REQ-PC-MARKETPLACE-001, REQ-PC-MARKETPLACE-002, REQ-PC-MARKETPLACE-003,
    REQ-PC-MARKETPLACE-005, REQ-PC-MARKETPLACE-006, REQ-NAME-MARKETPLACE-005).
-4. [ ] [implement] Open a PR from `marketplace` against `main` with a full body
+4. [x] [implement] Open a PR from `marketplace` against `main` with a full body
    describing the rename, the gate, the agents, the manifests and the documents,
    and **do not merge** — the operator reviews the migration diff. No
    attribution trailer is added to any commit message or PR body — traces to
    `docs/ws/marketplace/kickoff.md` §Decided at DISCUSS and §Out of scope.
+   **Done 2026-09-21** — `jangid/sdd-commons` PR #4, base `main`, head
+   `marketplace`, **open and unmerged**. The body covers all five areas and
+   states plainly that the install observation of task 2 is outstanding, so the
+   PR does not read as a complete cycle. No attribution trailer in the body or
+   in any of the nine commits. The active GitHub account was switched to reach
+   the account with write access and restored afterwards, so global `gh` state
+   is as it was found.
 
 **Entry criteria**: Chunk 6 complete; all gates green; working tree clean.
 **Exit criteria**: the branch is pushed; the install observation is recorded
