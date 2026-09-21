@@ -288,7 +288,7 @@ the behaviour changes, by OC4.**
 **Write scope**: `plugins/sdd/tools/skill-lint.py`,
 `docs/ws/consumer-geometry/traceability.md`.
 **Tasks**:
-1. [ ] [implement] Emit the `GEOMETRY:` token as an **own line immediately
+1. [x] [implement] Emit the `GEOMETRY:` token as an **own line immediately
    before** the summary line, **iff** the run prints an `OK:`/`FAIL:` summary —
    one token per summary, never two, never one without the other, and none from
    `--self-test`, whose banner is not a corpus summary. Value has exactly three
@@ -303,17 +303,17 @@ the behaviour changes, by OC4.**
    and renders neither the corpus root, nor `default_suite_root()` when tier 1 or
    tier 2 supplied a root — traces to `two-root-linter.md` §CG-6,
    `skill-lint-v5.md` §The `GEOMETRY:` token is not a finding
-2. [ ] [implement] Add the `— NOTHING SWEPT` suffix, present **iff**
+2. [x] [implement] Add the `— NOTHING SWEPT` suffix, present **iff**
    `len(skill_files()) == 0`, on **all three** print sites: the `FAIL: …` site,
    the `OK: … clean, W warning(s)` warn variant and the `OK: … clean` clean
    variant. Patching only the two `OK:` sites is the concrete failure
    REQ-PKG-CONSUMERGEOMETRY-004 acceptance 4 exists to catch — traces to
    `two-root-linter.md` §CG-6
-3. [ ] [implement] Register case `cg-row-3:` — Class B non-vacuity, a zero-sweep
+3. [x] [implement] Register case `cg-row-3:` — Class B non-vacuity, a zero-sweep
    run distinguishable from a clean one. **Mutation run**: drop the suffix →
    the two summary lines become identical and the case's token appears in the
    printed list; restore → exit 0 — traces to REQ-PKG-CONSUMERGEOMETRY-001 row 3
-4. [ ] [verify] The §CG-6 acceptance box is **split into four separately
+4. [x] [verify] The §CG-6 acceptance box is **split into four separately
    checkable assertions** (the third recorded plan input; §Consumer-Geometry Open
    Items). Each is asserted and recorded separately so a partial pass is visible:
    (a) **enum rendering** — the far-root fixture prints `GEOMETRY: disjoint`, the
@@ -327,7 +327,7 @@ the behaviour changes, by OC4.**
    carries its `GEOMETRY:` line, and a `--self-test` run carries none; emitting
    only on the clean path, or emitting from a run with no summary, makes this red
    — traces to `two-root-linter.md` §CG-6, §Consumer-Geometry Open Items item 3
-5. [ ] [verify] The suffix's three sites, each with its mutation **run**: one
+5. [x] [verify] The suffix's three sites, each with its mutation **run**: one
    scratch run over a one-file corpus and one over an empty corpus — the string
    appears in the second summary line and not the first; a scratch run over a
    corpus sweeping zero skill files that raises at least one `fail`-severity
@@ -335,12 +335,12 @@ the behaviour changes, by OC4.**
    corpus with a warning prints **no** suffix. Making the suffix unconditional on
    any of the three makes that last one red — traces to
    `two-root-linter.md` §Acceptance Criteria
-6. [ ] [verify] Confirm `sweep_lint()`'s summary check is a **prefix** match
+6. [x] [verify] Confirm `sweep_lint()`'s summary check is a **prefix** match
    (`re.match(r"^(OK|FAIL): ", summary)`, unanchored at the right) so the suffix
    cannot make it flag `linter exited … without a parseable summary`. Recorded as
    an observation with its command; no amendment expected — traces to
    `two-root-linter.md` §CG-6
-7. [ ] [verify] **The token contributes to no finding count, asserted by
+7. [x] [verify] **The token contributes to no finding count, asserted by
    mutation** — sized here, in the chunk that owns the emission, because the
    write scope that could repair it exists only here. A run over this corpus
    emits **exactly one** `GEOMETRY:` line, on its own line, immediately before
@@ -356,6 +356,73 @@ the behaviour changes, by OC4.**
 demonstrated; the four split assertions recorded with (c) explicitly owed to
 Chunk 3; the three suffix sites each demonstrated; the count-invariance mutation
 run and the finding count and `N` observed unchanged. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
+
+**Notes** (Chunk 1, 2026-09-22):
+
+- **Task 4 — the §CG-6 acceptance box, as four separately recorded assertions**
+  (so a partial pass is visible):
+  - (a) **enum rendering** — run over three scratch fixtures built from the
+    §CG-8 helper: the far-root fixture printed `GEOMETRY: disjoint
+    swept-roots=1 …`, the nested fixture `GEOMETRY: nested  swept-roots=2 …`
+    and the equal-roots fixture `GEOMETRY: equal  swept-roots=1 …`. **PASS.**
+    The pipe-separated menu spelling appeared in no output of any of the three.
+  - (b) **`suite-rows-root=` under tier 1** — the far-root fixture rendered the
+    root passed to the constructor; the value is `!=` the corpus root and `!=`
+    `default_suite_root()`. **PASS.**
+  - (c) **`suite-rows-root=` under tier 2** — **OWED to Chunk 3 task 4**, where
+    fixture D exists. Tier 2 does not exist yet, so today the effective root is
+    tier 1 or tier 3 and this assertion has no construction. Recorded as owed,
+    not dropped and not faked. **DEFERRED.**
+  - (d) **unconditional emission** — a fixture run *with* findings still
+    carried exactly one `GEOMETRY:` line, immediately before its `FAIL:`
+    summary (the blank separator was moved above the token so the adjacency
+    holds on the failing path too); `skill-lint.py --self-test` carried **zero**
+    lines beginning `GEOMETRY: `, exit 0. **PASS.**
+- **Task 5 — the three suffix sites, each demonstrated, then the mutations
+  run** (all fixtures via `disjoint_scratch_suite()`; comparand is membership of
+  the printed `SELF-TEST FAIL:` list, never the process exit code):
+  - clean variant: one-file corpus → `OK: 1 file(s) clean`; empty corpus →
+    `OK: 0 file(s) clean — NOTHING SWEPT`.
+  - `FAIL:` site: a corpus sweeping zero skill files that raises one `fail`
+    finding → `FAIL: 1 finding(s), 0 warning(s) — NOTHING SWEPT`, exit 1.
+  - warn variant over a non-empty corpus with a `[size]` warning →
+    `OK: 1 file(s) clean, 1 warning(s)`, **no** suffix.
+  - **Mutation 1 (drop the suffix)** on a scratch copy → the printed list
+    carried two `cg-row-3:` lines (`… with the count normalised both summaries
+    read 'OK: N file(s) clean'` and `the zero-sweep summary must carry the
+    suffix, got 'OK: 0 file(s) clean'`).
+  - **Mutation 2 (make the suffix unconditional)** → the printed list carried
+    `cg-row-3: a run that swept a file must carry no suffix, got 'OK: 1 file(s)
+    clean — NOTHING SWEPT'`.
+  - **Control** (unmutated scratch copy) → **no** `cg-row-` line at all; the
+    in-repo `--self-test` exits 0. A scratch copy run from outside the repo
+    exits 1 from unrelated pre-existing fixtures in every one of the three
+    runs, which is exactly why the comparand is list membership.
+- **Task 6 — observation, no amendment.** Command:
+  `grep -n 'without a parseable summary' -B12 plugins/sdd/tools/gc.py`.
+  `gc.py:534-535` reads
+  `summary = next((ln for ln in reversed(lines) if ln.strip()), "")` then
+  `if not re.match(r"^(OK|FAIL): ", summary) or proc.returncode not in (0, 1)`.
+  `re.match` anchors at the left only and the pattern carries no `$`, so the
+  appended suffix cannot make `sweep_lint()` flag
+  `linter exited … without a parseable summary`. **No amendment.** `gc.py` was
+  read only; it is not in this chunk's write scope (its forwarding is Chunk 5).
+- **Task 7 — count invariance, by mutation.** In-repo `skill-lint.py .` emits
+  **exactly one** line beginning `GEOMETRY: `, on its own line, immediately
+  before the summary (`GEOMETRY: nested  swept-roots=2
+  suite-rows-root=…/plugins/sdd` then `OK: 25 file(s) clean`). On two scratch
+  copies run over this repo — one unmutated, one with both
+  `print(self.geometry_line())` calls removed — the finding count (1) and the
+  summary line (`FAIL: 1 finding(s), 0 warning(s) — NOTHING SWEPT`, i.e. its
+  `N`) were **identical**; only the `GEOMETRY:` line count changed, 1 → 0.
+- **Provisional observation, no id** (its `### Q-IMPL-…` heading is born in
+  Chunk 7, §Conventions): the `GEOMETRY:` token is emitted by `Linter.run()`
+  alone, which is what makes "one token per summary, never one without the
+  other" structural rather than asserted. Any future summary printed outside
+  `run()` — a `--print-population` summary, say — would silently break the
+  one-for-one pairing with no fixture to catch it. Worth a recorded decision
+  (keep every summary inside `run()`, or bind the pair in a helper) rather than
+  an invariant held only by where the code happens to live today.
 
 ---
 

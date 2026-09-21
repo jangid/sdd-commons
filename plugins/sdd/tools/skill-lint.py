@@ -582,6 +582,41 @@ class Linter:
             roots.append(self.suite_root)
         return roots
 
+    def geometry(self) -> str:
+        """The three-member geometry enum the `GEOMETRY:` token renders (§CG-6).
+
+        Derived at call time from `suite_contained()` and root equality, never
+        stored: `equal` (the two roots resolve to one directory), `nested` (the
+        suite root lies strictly under the corpus root) and `disjoint` (the
+        consumer shape — the suite is an installed plugin outside the
+        operator's repository). Only the resolved member is ever printed; the
+        pipe-separated menu of the three is prose and appears in no output.
+        """
+        corpus = Path(self.corpus_root).resolve()
+        suite = Path(self.suite_root).resolve()
+        if suite == corpus:
+            return "equal"
+        return "nested" if self.suite_contained() else "disjoint"
+
+    def geometry_line(self) -> str:
+        """The own-line `GEOMETRY:` token, emitted immediately before the summary.
+
+        `swept-roots=<n>` is `len(swept_roots())`. `suite-rows-root=<path>` is
+        the **effective** suite root — the one this run actually resolved,
+        whether it was given (§CG-3 tier 1) or defaulted (tier 3); the tier-2
+        derivation lands in the constructor in a later chunk, so this rendering
+        follows it for free and needs no second resolution. It is never the
+        corpus root, and never `default_suite_root()` once a tier above 3
+        supplied a root.
+
+        The token is not a finding: it carries no severity, is not counted in
+        the summary's `N`, and is emitted by `run()` alone — so it accompanies
+        an `OK:`/`FAIL:` summary one-for-one and no run without a summary
+        (`--self-test`) can emit one.
+        """
+        return (f"GEOMETRY: {self.geometry()}  swept-roots={len(self.swept_roots())}"
+                f"  suite-rows-root={self.suite_root}")
+
     def walk(self) -> list[Path]:
         """The deduplicated union of `<root>/skills/**/*.md` over swept_roots()."""
         collected: list[Path] = []
@@ -1181,14 +1216,25 @@ class Linter:
         n_files = len(self.skill_files())
         n_fail = sum(1 for sev, _ in self.findings if sev == "fail")
         n_warn = len(self.findings) - n_fail
+        # The `— NOTHING SWEPT` suffix is present IFF the run swept no skill
+        # file, on ALL THREE summary print sites — the `FAIL:` site as much as
+        # the two `OK:` variants. Patching only the two `OK:` sites leaves the
+        # failing path unsuffixed, which is the concrete failure
+        # REQ-PKG-CONSUMERGEOMETRY-004 acceptance 4 exists to catch.
+        swept_suffix = " — NOTHING SWEPT" if n_files == 0 else ""
         # Exit 1 iff any `fail`; warnings are reported but never change the code.
         if n_fail:
-            print(f"\nFAIL: {n_fail} finding(s), {n_warn} warning(s)")
+            # The blank separator precedes the token, so the token stays
+            # IMMEDIATELY before the summary line on the failing path too.
+            print()
+            print(self.geometry_line())
+            print(f"FAIL: {n_fail} finding(s), {n_warn} warning(s){swept_suffix}")
             return 1
+        print(self.geometry_line())
         if n_warn:
-            print(f"OK: {n_files} file(s) clean, {n_warn} warning(s)")
+            print(f"OK: {n_files} file(s) clean, {n_warn} warning(s){swept_suffix}")
         else:
-            print(f"OK: {n_files} file(s) clean")
+            print(f"OK: {n_files} file(s) clean{swept_suffix}")
         return 0
 
 
@@ -1222,7 +1268,7 @@ class Linter:
 # than red for most of the cycle. It is EMPTY here, at the close of Chunk 0 —
 # which is why cg_reconcile() is falsifiable in both directions on demand
 # (Chunk 0 task 2) rather than merely passing by holding nothing.
-CG_ROW_TOKENS: tuple[str, ...] = ()
+CG_ROW_TOKENS: tuple[str, ...] = ("cg-row-3:",)
 
 
 def cg_reconcile(constant: tuple[str, ...], ran: set[str], failures: list[str]) -> None:
@@ -2967,7 +3013,45 @@ def self_test() -> int:
                   f"equal roots must degenerate to today's single walk, got "
                   f"{[str(r) for r in lin.swept_roots()]}")
 
-        for _case in (two_roots_construct_distinct_and_equal,
+        def zero_sweep_summary_is_distinguishable(row: int = 3) -> None:
+            """Row 3 — a zero-sweep run is not spelled like a clean one (§CG-6).
+
+            Two scratch runs whose ONLY difference is the swept-file count: a
+            one-file corpus and an empty one. The binding is the presence-iff
+            suffix, so the case asserts the two summary lines DIFFER, that the
+            empty run carries `— NOTHING SWEPT` and that the one-file run does
+            not. Dropping the suffix makes the two lines identical and this
+            case appends a line beginning `cg-row-3:` to the printed failure
+            list — which, not the process exit code, is the comparand (§CG-7).
+            """
+            base = root / "cgrow3"
+            one = base / "one"
+            _fixture_skill(one, "a-skill", "Body.\n")
+            empty = base / "empty"
+            (empty / "skills").mkdir(parents=True, exist_ok=True)
+
+            def summary_of(r: Path) -> str:
+                _code, out = _run_capture(r)
+                lines = [ln for ln in out.splitlines() if ln.strip()]
+                return lines[-1] if lines else ""
+
+            one_sum = summary_of(one)
+            empty_sum = summary_of(empty)
+            # Compared with the swept-file COUNT normalised away: the count is
+            # informational (REQ-LINT-PACKAGING-004) and differs between the
+            # two runs on its own, so comparing the raw lines would pass even
+            # with the suffix dropped — the vacuity this row exists to close.
+            norm = lambda t: re.sub(r"\d+", "N", t)
+            cg_check(row, norm(one_sum) != norm(empty_sum),
+                     f"a zero-sweep run must not be spelled like a clean one; with the "
+                     f"count normalised both summaries read {norm(one_sum)!r}")
+            cg_check(row, "— NOTHING SWEPT" in empty_sum,
+                     f"the zero-sweep summary must carry the suffix, got {empty_sum!r}")
+            cg_check(row, "— NOTHING SWEPT" not in one_sum,
+                     f"a run that swept a file must carry no suffix, got {one_sum!r}")
+
+        for _case in (zero_sweep_summary_is_distinguishable,
+                      two_roots_construct_distinct_and_equal,
                       equal_roots_sweep_set_unchanged,
                       sweep_is_duplicate_free,
                       retired_scope_binds_per_entry,
