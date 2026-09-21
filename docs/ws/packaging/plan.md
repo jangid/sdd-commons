@@ -231,34 +231,34 @@ equal-roots finding set matches the pre-change baseline.
 single-sweep — each geometry proving only what it can prove.
 **Depends on**: Chunk 2.
 **Tasks**:
-1. [ ] [implement] **Fixture A — nested** (`suite_root = corpus_root/plugins/sdd`).
+1. [x] [implement] **Fixture A — nested** (`suite_root = corpus_root/plugins/sdd`).
    Seeds a walk-class violation under **each** root and asserts **both** are
    reported, each rendered relative to the root it was walked from — both as
    `skills/…` with **no** `plugins/sdd/` segment. Two seeds are required: one
    cannot discriminate per-root rendering from suite-rooted rendering. Fixture A
    does **not** pin single-sweep and must not be written as though it did —
    traces to `two-root-linter.md` §7 (REQ-PKG-PACKAGING-006)
-2. [ ] [implement] **Fixture B — disjoint** (suite root outside the corpus root, the
+2. [x] [implement] **Fixture B — disjoint** (suite root outside the corpus root, the
    consumer shape). Asserts (i) a **table-row** violation seeded under the suite
    root **is** reported; (ii) a walk-class violation seeded under
    `suite_root/skills/**` is **not** reported, asserted as a **named absent
    finding for a specific seeded path** while other findings are present. No
    assertion may rest on exit-code silence — traces to `two-root-linter.md` §7
    (REQ-PKG-PACKAGING-007)
-3. [ ] [implement] Add to fixture B the **manifest-pair membership assertion**: the
+3. [x] [implement] Add to fixture B the **manifest-pair membership assertion**: the
    set returned by `retired_scope_files()` contains **both**
    `<suite_root>/.claude-plugin/plugin.json` and
    `<corpus_root>/.claude-plugin/marketplace.json`. Each one-root binding drops
    exactly one and fails naming the missing path. No count-based assertion may
    replace it — traces to `two-root-linter.md` §7 (REQ-LINT-PACKAGING-003)
-4. [ ] [implement] **Case C — equal roots**, reusing fixture A's corpus tree with
+4. [x] [implement] **Case C — equal roots**, reusing fixture A's corpus tree with
    both roots equal. Seeds one walk-class violation under `skills/**` and
    asserts it is counted **exactly once** — the only geometry distinguishing a
    set union from a concatenation. Extract the counting path as a **pure
    function from swept list to findings** (one finding per violation in that
    list), with deduplication staying inside §2's union builder — traces to
    `two-root-linter.md` §7 (REQ-PKG-PACKAGING-008)
-5. [ ] [implement] **The two checked-in negative cases** — carried note m1: the
+5. [x] [implement] **The two checked-in negative cases** — carried note m1: the
    spec's §Verification names twelve self-test cases and these two are not among
    them, so the list becomes **fourteen**. (a) Case C's own negative case calls
    the counting function of task 4 directly with a hand-built swept list holding
@@ -269,10 +269,10 @@ single-sweep — each geometry proving only what it can prove.
    discharging the other, and neither uses source mutation or a manual step —
    traces to `two-root-linter.md` §6, §7 (REQ-PKG-PACKAGING-008,
    REQ-LINT-PACKAGING-005)
-6. [ ] [implement] Each of the three fixtures seeds a known number of `.md` files and
+6. [x] [implement] Each of the three fixtures seeds a known number of `.md` files and
    asserts the sweep returns **exactly** that number. A literal is sound here and
    only here — traces to `two-root-linter.md` §7 (REQ-LINT-PACKAGING-006)
-7. [ ] [verify] Invertibility sweep over **every self-test case that exists at the
+7. [x] [verify] Invertibility sweep over **every self-test case that exists at the
    close of this chunk** (C1.7's three, C2.4's, C2.5's, and this chunk's own —
    thirteen of the fourteen; `print_population_shape` lands at C4.3 and is
    swept there): swapping each case's expectations fails the self-test. Adding a
@@ -280,13 +280,13 @@ single-sweep — each geometry proving only what it can prove.
    walk to a root holding no corpus fails the count assertion. The fourteen-case
    total is asserted once, at C7.6 — traces to `two-root-linter.md`
    §Verification
-8. [ ] [verify] **Carried note M4 — the reviewer-checkable residue, stated as a
+8. [x] [verify] **Carried note M4 — the reviewer-checkable residue, stated as a
    task.** §6 and §7 name it in design prose but not in the acceptance bullets,
    so a task written from the bullet alone loses the obligation: assert by
    inspection that §2's union builder is the **only production call site** of
    the counting function and of the duplicate-freeness guard, and record that
    finding in the chunk's close note — traces to `two-root-linter.md` §6, §7
-9. [ ] [implement] **Lands the named checked-in self-test case
+9. [x] [implement] **Lands the named checked-in self-test case
    `template_pairs_bind_per_side`** — the assertions REQ-LINT-PACKAGING-002
    needs and that C2.2 (an implement task) does not carry. One case per
    geometry, plus its negative control:
@@ -306,6 +306,32 @@ single-sweep — each geometry proving only what it can prove.
    a wholesale one-root binding fails loudly rather than passing quietly
    — traces to `two-root-linter.md` §5, §7, §Verification
    (REQ-LINT-PACKAGING-002)
+10. [x] [implement] **Bind `skill_dir_of()` to the root its files were walked
+    from** — added post-plan from the Chunk 2 verification, which found the
+    defect no chunk task covers. `skill_dir_of()` computed
+    `f.relative_to(self.root / "skills")`, i.e. corpus_root/skills, so after the
+    Chunk 5 move every suite-root file carrying a `` `references/….md` `` span
+    (seven production files route through `resolve_backtick_path`/`check_links`)
+    would raise `ValueError`. §4 binds `skills` to the suite root and §3's
+    "links keep resolving against the corpus root" governs link *targets*, not
+    the location of a swept file's skill directory — neither section assigns
+    `skill_dir_of` a root, and that gap is the defect. Bind it to the root the
+    file was walked from, the same rule `rel()` uses, so it holds under nested,
+    disjoint and equal geometries; landed with the named self-test case
+    `skill_dir_of_binds_per_root`, **in addition** to the fourteen — traces to
+    `two-root-linter.md` §2, §4
+11. [x] [implement] **Make `FORBIDDEN`'s `allow_files` matching root-correct** —
+    added post-plan from the same Chunk 2 verification. `check_forbidden()`
+    computed a corpus-rooted local path and matched `allow_files` entries such
+    as `skills/orchestrate/SKILL.md` against it; under nested roots a suite-root
+    file's corpus-rooted path is `plugins/sdd/skills/orchestrate/SKILL.md`, so
+    the entry silently stops matching and that allowlist row is disabled with no
+    diagnostic. Only the `rule["files"]` substring filter and the `allow_files`
+    exact match are affected — the finding's rendering is already correct
+    through `flag()`'s `self.rel()` default; fix the matching path, not the
+    rendering. Landed with the named self-test case
+    `forbidden_allow_files_root_correct`, **in addition** to the fourteen —
+    traces to `two-root-linter.md` §2, §3
 **Entry criteria**: Chunk 2 complete.
 **Exit criteria**: The thirteen self-test cases landed by Chunks 1–3 are green
 and each is invertible (task 7's sweep is the evidence); the fourteenth,

@@ -42,6 +42,7 @@ import re
 import shutil
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -475,6 +476,40 @@ def duplicate_free_findings(paths: list[Path]) -> list[tuple[Path, str, str]]:
             for key in order if counts[key] > 1]
 
 
+def forbidden_findings(swept: list[Path], rel: Callable[[Path], Path],
+                       rules: list[dict] | None = None,
+                       ) -> list[tuple[Path, Path, int, dict]]:
+    """The counting path as a pure function from a swept list to findings
+    (two-root-linter.md §7) — one `(file, rendered path, line, rule)` per
+    violating line in the list it is given.
+
+    It is NOT the deduplicator: given a path twice it emits its findings twice,
+    which is what makes case C's count-once assertion invertible. Deduplication
+    stays inside §2's union builder. `rel` renders a swept file against the
+    root it was walked from; the rendered path is what the row's `files`
+    substring filter and its `allow_files` exact allowlist match against, so a
+    suite-root file under nested roots matches the same entries it matches
+    under equal roots.
+    """
+    out: list[tuple[Path, Path, int, dict]] = []
+    for f in swept:
+        local = rel(f)
+        local_s = local.as_posix()
+        for rule in (FORBIDDEN if rules is None else rules):
+            if rule["files"] and rule["files"] not in local_s:
+                continue
+            # Per-row file-granular allowlist: the whole file is skipped for
+            # this row only; every other row still scans it.
+            if local_s in rule.get("allow_files", ()):
+                continue
+            pat = re.compile(rule["pattern"])
+            allows = [re.compile(a) for a in rule["allow"]]
+            for no, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+                if pat.search(line) and not any(a.search(line) for a in allows):
+                    out.append((f, local, no, rule))
+    return out
+
+
 class Linter:
     def __init__(self, corpus_root: Path, suite_root: Path | None = None,
                  suite_rules: bool = True):
@@ -602,9 +637,28 @@ class Linter:
         return f.relative_to(self.corpus_root)
 
     def skill_dir_of(self, f: Path) -> Path:
-        """The `skills/<skill>/` directory a linted file belongs to."""
-        rel = f.relative_to(self.root / "skills")
-        return self.root / "skills" / rel.parts[0]
+        """The `skills/<skill>/` directory a linted file belongs to.
+
+        Bound to the root the file was WALKED FROM — the same rule `rel()`
+        uses (two-root-linter.md §2, §4). `self.root / "skills"` alone names
+        the corpus root's tree, which after the move does not exist, so every
+        suite-root file routed through `resolve_backtick_path()` for a
+        `references/…` span raised `ValueError`. §4 binds `skills` to the
+        suite root; §3's "links keep resolving against the corpus root" governs
+        where a link TARGET resolves, not where a swept file's skill directory
+        is located (C3.10, added post-plan from the Chunk 2 verification).
+        """
+        for r in self.swept_roots():
+            base = r / "skills"
+            try:
+                rel = Path(f).resolve().relative_to(Path(base).resolve())
+            except ValueError:
+                continue
+            return base / rel.parts[0]
+        # A file under no swept root: fall back to the corpus binding, which
+        # raises exactly as the former single-root rendering did.
+        rel = f.relative_to(self.corpus_root / "skills")
+        return self.corpus_root / "skills" / rel.parts[0]
 
     def skill_files(self) -> list[Path]:
         """All lintable Markdown files under skills/ (SKILL.md, USAGE.md, references).
@@ -690,22 +744,18 @@ class Linter:
                               "set name: to the agent file's basename")
 
     def check_forbidden(self) -> None:
-        for f in self.skill_files():
-            rel = f.relative_to(self.root).as_posix()
-            for rule in FORBIDDEN:
-                if rule["files"] and rule["files"] not in rel:
-                    continue
-                # Per-row file-granular allowlist: the whole file is skipped for
-                # this row only; every other row still scans it.
-                if rel in rule.get("allow_files", ()):
-                    continue
-                pat = re.compile(rule["pattern"])
-                allows = [re.compile(a) for a in rule["allow"]]
-                for no, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
-                    if pat.search(line) and not any(a.search(line) for a in allows):
-                        self.flag(f, no, "forbidden",
-                                  f"`{rule['pattern']}` — {rule['reason']}",
-                                  rule['fix'], rule.get("severity", "fail"))
+        """The one production call site of the §7 counting function.
+
+        The swept list it passes is exactly §2's union builder's output (via
+        `skill_files()`), and the rendering it passes is the per-root `rel()` —
+        so the row filter and the `allow_files` allowlist match against the
+        root-correct local path (C3.11, added post-plan from the Chunk 2
+        verification).
+        """
+        for f, local, no, rule in forbidden_findings(self.skill_files(), self.rel):
+            self.flag(f, no, "forbidden",
+                      f"`{rule['pattern']}` — {rule['reason']}",
+                      rule['fix'], rule.get("severity", "fail"), rel=local)
 
     def check_required(self) -> None:
         """The suite-gated rows (§3): `REQUIRED`, `VERSION_GATED_SKILLS` and
@@ -794,6 +844,15 @@ class Linter:
             anchor = pair["anchor"]
             src = [(n, b) for n, b in src_fences if b.split("\n", 1)[0].startswith(anchor)]
             spec_path = self.corpus_root / pair["spec"]
+            if not src:
+                # The TEMPLATE_SOURCE side is suite-bound and runs in EVERY
+                # geometry: §5 skips the SPEC side under disjoint roots, not
+                # the row (C3 task 9, resolving C2.2's wider whole-row skip).
+                self.flag(source, None, "template-drift",
+                          f"no fence opens with `{anchor}` — the {pair['body']} source of record is gone "
+                          f"while {pair['spec']} {pair['section']} still restates it", pair["fix"],
+                          rel=Path(TEMPLATE_SOURCE))
+                continue
             if not self.suite_contained():
                 # Disjoint roots: the spec side is SKIPPED, not warned. Warning
                 # (or failing) there names this suite's spec files inside a
@@ -807,12 +866,6 @@ class Linter:
                 continue
             spec_fences = [(n, b) for n, b in self.fences(spec_path.read_text(encoding="utf-8", newline=""))
                            if b.split("\n", 1)[0].startswith(anchor)]
-            if not src:
-                self.flag(source, None, "template-drift",
-                          f"no fence opens with `{anchor}` — the {pair['body']} source of record is gone "
-                          f"while {pair['spec']} {pair['section']} still restates it", pair["fix"],
-                          rel=Path(TEMPLATE_SOURCE))
-                continue
             if not spec_fences:
                 self.flag(spec_path, None, "template-drift",
                           f"no fence opens with `{anchor}` — {pair['section']} no longer restates the "
@@ -1763,11 +1816,368 @@ def self_test() -> int:
             check(not any("[template-drift]" in t for t in texts),
                   f"the spec side must be skipped under disjoint roots:\n" + "\n".join(texts))
 
+        # -- 11. the three fixture geometries and their negative cases
+        #        (two-root-linter.md §6, §7, §Verification). Each fixture seeds a
+        #        known number of `.md` files; a literal count is sound here and
+        #        only here, a fixture not growing by contribution.
+        def _loc(text: str) -> str:
+            """The path part of a rendered finding — `<path>[:<line>]: [rule] …`."""
+            return re.sub(r":\d+$", "", text.split(": [", 1)[0])
+
+        # The seeded walk-class violation is the shipped row's own pattern, so
+        # the seed cannot drift away from what the rule matches.
+        SEED = next(r["pattern"] for r in FORBIDDEN if r["pattern"] == "Co-Authored-By")
+
+        # Fixture A — nested (`suite_root = corpus_root/plugins/sdd`). TWO seeds,
+        # one per root: one seed cannot discriminate per-root rendering from
+        # suite-rooted rendering. Fixture A does NOT pin single-sweep — under
+        # nesting the two walk terms are disjoint subtrees.
+        fa = root / "fixtureA"
+        fa_corpus = fa / "corpus"
+        fa_suite = fa_corpus / "plugins" / "sdd"
+        fa_corpus_skill = _fixture_skill(fa_corpus, "corpus-skill",
+                                         f"Body. Skip for Y.\n{SEED}\n") / "SKILL.md"
+        fa_suite_skill = _fixture_skill(fa_suite, "suite-skill",
+                                        f"Body. Skip for Y.\n{SEED}\n") / "SKILL.md"
+
+        # Fixture B — disjoint (the consumer shape): the suite root is a SIBLING
+        # of the corpus root. The suite-root file carries BOTH a table-row
+        # violation (a REQUIRED row's pattern short of its minimum) and a
+        # walk-class violation, so "reported" and "correctly excluded" are
+        # observed on one seeded path.
+        fb = root / "fixtureB"
+        fb_corpus = fb / "corpus"
+        fb_suite = fb / "suite"
+        fb_row = REQUIRED[0]
+        fb_row_rel = fb_row["file"]
+        fb_table_file = fb_suite / fb_row_rel
+        fb_table_file.parent.mkdir(parents=True, exist_ok=True)
+        fb_table_file.write_text(
+            f"---\nname: {Path(fb_row_rel).parent.name}\ndescription: >\n"
+            f"  Use for X. Skip for Y.\n---\n\nBody.\n{SEED}\n", encoding="utf-8")
+        fb_corpus_skill = _fixture_skill(fb_corpus, "corpus-skill",
+                                         f"Body. Skip for Y.\n{SEED}\n") / "SKILL.md"
+        (fb_suite / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+        (fb_suite / ".claude-plugin" / "plugin.json").write_text("{}\n", encoding="utf-8")
+        (fb_corpus / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+        (fb_corpus / ".claude-plugin" / "marketplace.json").write_text("{}\n", encoding="utf-8")
+
+        def nested_roots_render_per_root() -> None:
+            """Fixture A: both seeds reported, each rendered against its own root."""
+            lin = Linter(fa_corpus, fa_suite, suite_rules=False)
+            lin.check_forbidden()
+            texts = [t for _, t in lin.findings]
+            locs = sorted(_loc(t) for t in texts)
+            check(locs == ["skills/corpus-skill/SKILL.md", "skills/suite-skill/SKILL.md"],
+                  f"fixture A must report one seed per root, rendered per root: {locs}")
+            check(not any("plugins/sdd" in t for t in texts),
+                  f"a per-root rendering carries no nesting segment:\n" + "\n".join(texts))
+
+        def disjoint_suite_walk_excluded() -> None:
+            """Fixture B: the table row fires; the suite-root walk seed does not."""
+            lin = Linter(fb_corpus, fb_suite, suite_rules=True)
+            check(not lin.suite_contained(), "fixture B must be the disjoint geometry")
+            with contextlib.redirect_stdout(io.StringIO()):
+                lin.run()
+            texts = [t for _, t in lin.findings]
+            # (i) the table-row violation seeded under the suite root IS reported —
+            #     the gated tables resolve `root / rel` and bypass the walk.
+            table = [t for t in texts
+                     if _loc(t) == fb_row_rel and "[required]" in t and fb_row["pattern"] in t]
+            check(len(table) == 1,
+                  f"the suite-root table-row violation must be reported once:\n" + "\n".join(texts))
+            # (ii) the walk-class violation at that same seeded path is NOT reported,
+            #      asserted as a named absent finding — never as exit-code silence —
+            #      WHILE other findings are present.
+            check(not any(_loc(t) == fb_row_rel and "[forbidden]" in t for t in texts),
+                  f"the disjoint suite root must not join the walk:\n" + "\n".join(texts))
+            check(any(_loc(t) == "skills/corpus-skill/SKILL.md" and "[forbidden]" in t
+                      for t in texts),
+                  f"the corpus-side seed must still fire (other findings present):\n"
+                  + "\n".join(texts))
+            check([f.resolve() for f in lin.walk()] == [fb_corpus_skill.resolve()],
+                  f"the disjoint walk must hold the corpus seed alone: "
+                  f"{[str(f) for f in lin.walk()]}")
+
+        def manifest_pair_membership() -> None:
+            """Both manifests are members; each one-root binding drops exactly one."""
+            plugin = (fb_suite / ".claude-plugin" / "plugin.json").resolve()
+            market = (fb_corpus / ".claude-plugin" / "marketplace.json").resolve()
+            two = {f.resolve() for f in
+                   Linter(fb_corpus, fb_suite, suite_rules=False).retired_scope_files()}
+            check(plugin in two,
+                  f"retired_scope_files() is missing <suite_root>/.claude-plugin/plugin.json "
+                  f"({plugin})")
+            check(market in two,
+                  f"retired_scope_files() is missing <corpus_root>/.claude-plugin/"
+                  f"marketplace.json ({market})")
+            for label, r, dropped, kept in (("corpus-only", fb_corpus, plugin, market),
+                                            ("suite-only", fb_suite, market, plugin)):
+                one = {f.resolve() for f in
+                       Linter(r, r, suite_rules=False).retired_scope_files()}
+                check(dropped not in one and kept in one,
+                      f"the {label} binding must drop exactly {dropped} and keep {kept}")
+
+        def case_c_counts_once() -> None:
+            """Case C — equal roots over fixture A's corpus tree: counted once.
+
+            The only geometry in which both walk terms name the same subtree,
+            hence the only one distinguishing a set union from a concatenation.
+            """
+            lin = Linter(fa_corpus, fa_corpus, suite_rules=False)
+            found = forbidden_findings(lin.walk(), lin.rel)
+            named = [x for x in found if x[1].as_posix() == "skills/corpus-skill/SKILL.md"]
+            check(len(named) == 1,
+                  f"case C must count its seeded violation exactly once, got {len(named)}")
+
+        def case_c_negative_double_count() -> None:
+            """Case C's OWN negative case (§7) — the §6 guard's discharges nothing here.
+
+            The counting function is called DIRECTLY with a hand-built swept list
+            holding the seeded path twice (the shape a concatenation over two equal
+            roots produces); the count-once assertion must then fail, naming the path.
+            """
+            lin = Linter(fa_corpus, fa_corpus, suite_rules=False)
+            doubled = forbidden_findings([fa_corpus_skill, fa_corpus_skill], lin.rel)
+            named = [x for x in doubled if x[1].as_posix() == "skills/corpus-skill/SKILL.md"]
+            count_once_holds = len(named) == 1
+            check(named and not count_once_holds,
+                  f"the count-once assertion must FAIL for skills/corpus-skill/SKILL.md on a "
+                  f"hand-built list holding it twice, got {len(named)} finding(s)")
+
+        def duplicate_guard_negative_case() -> None:
+            """§6's checked-in negative case: the guard, called with a doubled list.
+
+            It exercises the guard alone and cannot fail a count assertion — it
+            does not discharge case C's negative case, nor is it discharged by it.
+            """
+            lin = Linter(fa_corpus, fa_corpus, suite_rules=False)
+            lin._guard_duplicate_free([fa_corpus_skill, fa_suite_skill, fa_corpus_skill])
+            check(len(lin.findings) == 1 and lin.findings[0][0] == "fail"
+                  and str(fa_corpus_skill.resolve()) in lin.findings[0][1],
+                  f"the guard must emit one fail finding naming the duplicated path: "
+                  f"{lin.findings}")
+
+        def fixture_counts_exact() -> None:
+            """Each fixture asserts its own seeded `.md` count — exactly."""
+            check(len(Linter(fa_corpus, fa_suite, suite_rules=False).walk()) == 2,
+                  "fixture A (nested) must sweep exactly its 2 seeded .md files")
+            check(len(Linter(fb_corpus, fb_suite, suite_rules=False).walk()) == 1,
+                  "fixture B (disjoint) must sweep exactly its 1 corpus-side .md file")
+            check(len(Linter(fa_corpus, fa_corpus, suite_rules=False).walk()) == 1,
+                  "case C (equal roots) must sweep exactly its 1 seeded .md file")
+            # Binding the corpus walk to a root holding no corpus fails the count
+            # assertion — the zero-sweep detection §6 gives up live.
+            nocorpus = root / "nocorpus"
+            nocorpus.mkdir(exist_ok=True)
+            mis = Linter(nocorpus, nocorpus, suite_rules=False).walk()
+            check(len(mis) == 0 and len(mis) != 2,
+                  f"a corpus-less root must sweep nothing and fail fixture A's count: {mis}")
+
+        # The TEMPLATE_PAIRS fixtures (§5): a synthetic source of record under the
+        # suite root, the restating specs under the corpus root. Anchors and spec
+        # paths are read from the shipped table, never restated here.
+        tp = root / "templatepairs"
+        tp_corpus = tp / "corpus"
+        tp_suite = tp_corpus / "plugins" / "sdd"     # nested
+        tp_far = tp / "elsewhere"                    # disjoint
+        tp_equal = tp / "equal"
+        tp_drift = TEMPLATE_PAIRS[0]
+        tp_absent_spec = TEMPLATE_PAIRS[-1]["spec"]
+        tp_by_spec: dict[str, list[dict]] = {}
+        for _pair in TEMPLATE_PAIRS:
+            tp_by_spec.setdefault(_pair["spec"], []).append(_pair)
+
+        def _tp_fence(pair: dict) -> str:
+            tail = "drifted\n" if pair is tp_drift else "body\n"
+            return "```\n" + pair["anchor"] + "\n" + tail + "```\n"
+
+        def _tp_write_source(base: Path, skip: dict | None = None) -> None:
+            f = base / TEMPLATE_SOURCE
+            f.parent.mkdir(parents=True, exist_ok=True)
+            # The source of record never carries the drifted tail — the drift is
+            # seeded on the restating side.
+            f.write_text("# dispatch templates\n\n" + "".join(
+                "```\n" + q["anchor"] + "\nbody\n```\n"
+                for q in TEMPLATE_PAIRS if q is not skip), encoding="utf-8")
+
+        def _tp_write_specs(base: Path) -> None:
+            for spec_rel, pairs in tp_by_spec.items():
+                if spec_rel == tp_absent_spec:
+                    continue                      # seeded ABSENT: the spec side warns
+                f = base / spec_rel
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_text("# spec\n\n" + "".join(_tp_fence(q) for q in pairs),
+                             encoding="utf-8")
+
+        _tp_write_source(tp_suite)
+        _tp_write_source(tp_far, skip=tp_drift)    # the disjoint source LOST a fence
+        _tp_write_source(tp_equal)
+        _tp_write_specs(tp_corpus)
+        _tp_write_specs(tp_equal)
+
+        def template_pairs_bind_per_side() -> None:
+            """One case per geometry, plus the negative control (§5, §7)."""
+            absent_rows = [q for q in TEMPLATE_PAIRS if q["spec"] == tp_absent_spec]
+
+            def warns(lin: Linter) -> list[str]:
+                return [t for sev, t in lin.findings
+                        if sev == "warn" and "pair not checked" in t]
+
+            # (a) nested — the TEMPLATE_SOURCE side binds to the suite root and its
+            #     drift is reported; an absent spec under the corpus root STILL warns.
+            nested = Linter(tp_corpus, tp_suite, suite_rules=True)
+            nested.check_template_drift()
+            nested_texts = [t for _, t in nested.findings]
+            drift = [t for t in nested_texts
+                     if _loc(t) == tp_drift["spec"] and "diverges from" in t]
+            check(len(drift) == 1,
+                  f"nested: the suite-root source must be compared against the corpus-root "
+                  f"spec:\n" + "\n".join(nested_texts))
+            check(len(warns(nested)) == len(absent_rows)
+                  and all(_loc(t) == tp_absent_spec for t in warns(nested)),
+                  f"nested: an absent spec must still warn, once per row:\n"
+                  + "\n".join(nested_texts))
+
+            # (b) disjoint — the SPEC SIDE is skipped, not warned: no finding of any
+            #     severity is located at any row's spec path (a named absent finding
+            #     per row, never exit-code silence), while the TEMPLATE_SOURCE-side
+            #     finding is still present.
+            dis = Linter(tp_corpus, tp_far, suite_rules=True)
+            check(not dis.suite_contained(), "the disjoint template geometry must be disjoint")
+            dis.check_template_drift()
+            dis_texts = [t for _, t in dis.findings]
+            for pair in TEMPLATE_PAIRS:
+                check(not any(_loc(t) == pair["spec"] for t in dis_texts),
+                      f"disjoint: {pair['spec']} must emit no template-drift finding of any "
+                      f"severity:\n" + "\n".join(dis_texts))
+            source_side = [t for t in dis_texts
+                           if _loc(t) == TEMPLATE_SOURCE and "no fence opens with" in t]
+            check(len(source_side) == 1,
+                  f"disjoint: the TEMPLATE_SOURCE-side finding must still be present:\n"
+                  + "\n".join(dis_texts))
+
+            # (c) equal roots — both sides bind to the one root over the same content,
+            #     and the rendered finding set is the nested one: the pre-change
+            #     behaviour, compared as a set derived at run time.
+            eq = Linter(tp_equal, tp_equal, suite_rules=True)
+            eq.check_template_drift()
+            check(set(eq.findings) == set(nested.findings),
+                  f"equal roots must reproduce the per-side behaviour: "
+                  f"{sorted(set(eq.findings) ^ set(nested.findings))}")
+
+            # (d) the negative control (§Acceptance Criteria bullet 6): binding BOTH
+            #     sides to the suite root makes all four rows emit the absent-spec
+            #     warning — the self-test asserts that this does NOT happen, so a
+            #     wholesale one-root binding fails loudly rather than passing quietly.
+            wrong = Linter(tp_suite, tp_suite, suite_rules=True)
+            wrong.check_template_drift()
+            check(len(warns(wrong)) == len(TEMPLATE_PAIRS),
+                  f"the negative control must reproduce the wholesale-one-root symptom, "
+                  f"got {len(warns(wrong))} of {len(TEMPLATE_PAIRS)}")
+            for label, lin in (("nested", nested), ("equal", eq), ("disjoint", dis)):
+                check(len(warns(lin)) < len(TEMPLATE_PAIRS),
+                      f"{label}: all {len(TEMPLATE_PAIRS)} rows degraded to the absent-spec "
+                      f"warning — the spec side is bound to the wrong root")
+
+        # -- 11b. the two cases added post-plan from the Chunk 2 verification
+        #         (C3.10, C3.11). They are IN ADDITION to the fourteen cases
+        #         §Verification and C7.6 count.
+        sd = root / "skilldir"
+        sd_corpus = sd / "corpus"
+        sd_suite = sd_corpus / "plugins" / "sdd"
+        sd_suite_skill = _fixture_skill(
+            sd_suite, "suite-skill", "Body. Skip for Y. See `references/detail.md`.\n") / "SKILL.md"
+        (sd_suite / "skills" / "suite-skill" / "references").mkdir(parents=True, exist_ok=True)
+        (sd_suite / "skills" / "suite-skill" / "references" / "detail.md").write_text(
+            "# detail\n", encoding="utf-8")
+        _fixture_skill(sd_corpus, "corpus-skill", "Body. Skip for Y. See `references/gone.md`.\n")
+
+        def skill_dir_of_binds_per_root() -> None:
+            """C3.10: `skill_dir_of()` binds to the root its file was walked from.
+
+            `self.root / "skills"` alone raised `ValueError` for every suite-root
+            file carrying a `references/…` backtick span once the two roots differ.
+            """
+            lin = Linter(sd_corpus, sd_suite, suite_rules=False)
+            check(lin.skill_dir_of(sd_suite_skill).resolve()
+                  == (sd_suite / "skills" / "suite-skill").resolve(),
+                  f"the suite-root file's skill dir must bind to the suite root: "
+                  f"{lin.skill_dir_of(sd_suite_skill)}")
+            try:
+                lin.check_links()
+            except ValueError as exc:               # pragma: no cover - the regression
+                check(False, f"a nested suite-root file with a `references/…` span raised "
+                             f"ValueError: {exc}")
+                return
+            texts = [t for _, t in lin.findings]
+            check(not any(_loc(t) == "skills/suite-skill/SKILL.md" for t in texts),
+                  f"the suite-root span resolves against its own skill dir:\n" + "\n".join(texts))
+            check(any(_loc(t) == "skills/corpus-skill/SKILL.md" and "[path]" in t
+                      for t in texts),
+                  f"the corpus-root skill dir must still resolve its own spans:\n"
+                  + "\n".join(texts))
+            # Equal and disjoint geometries resolve too (a disjoint suite root's
+            # files are not walked, so the corpus side is what is reachable there).
+            for label, lin2 in (("equal", Linter(sd_corpus, sd_corpus, suite_rules=False)),
+                                ("disjoint", Linter(sd_corpus, root / "nowhere",
+                                                    suite_rules=False))):
+                got = lin2.skill_dir_of(sd_corpus / "skills" / "corpus-skill" / "SKILL.md")
+                check(got.resolve() == (sd_corpus / "skills" / "corpus-skill").resolve(),
+                      f"{label}: corpus skill dir mis-bound to {got}")
+
+        ac = root / "allowfiles"
+        ac_corpus = ac / "corpus"
+        ac_suite = ac_corpus / "plugins" / "sdd"
+        AC_TOKEN = "SYNTHETIC-ROOT-CORRECT"
+        _fixture_skill(ac_suite, "allowed-skill", f"Body. Skip for Y.\n{AC_TOKEN}\n")
+        _fixture_skill(ac_suite, "flagged-skill", f"Body. Skip for Y.\n{AC_TOKEN}\n")
+
+        def forbidden_allow_files_root_correct() -> None:
+            """C3.11: `FORBIDDEN`'s row filter and allowlist match a root-correct path.
+
+            A corpus-rooted local path renders a suite-root file as
+            `plugins/sdd/skills/…`, so an `allow_files` entry such as
+            `skills/orchestrate/SKILL.md` silently stops matching and that
+            allowlist row is disabled with no diagnostic. The finding's RENDERING
+            was already correct (`flag()`'s `self.rel()` default) — this is the
+            matching path, not the rendering.
+            """
+            global FORBIDDEN
+            synthetic = {"pattern": AC_TOKEN, "files": "skills/", "allow": [],
+                         "allow_files": ["skills/allowed-skill/SKILL.md"],
+                         "reason": "root-correct allow_files fixture",
+                         "fix": "SYNTHETIC-ROOT-CORRECT-FIX"}
+            shipped = FORBIDDEN
+            FORBIDDEN = [synthetic]
+            try:
+                lin = Linter(ac_corpus, ac_suite, suite_rules=False)
+                lin.check_forbidden()
+            finally:
+                FORBIDDEN = shipped
+            texts = [t for _, t in lin.findings]
+            check(not any(_loc(t) == "skills/allowed-skill/SKILL.md" for t in texts),
+                  f"an allow_files entry must still match a suite-root file under nested "
+                  f"roots:\n" + "\n".join(texts))
+            check(len(texts) == 1 and _loc(texts[0]) == "skills/flagged-skill/SKILL.md",
+                  f"the row must still fire on the non-allowlisted suite-root file:\n"
+                  + "\n".join(texts))
+
         for _case in (two_roots_construct_distinct_and_equal,
                       equal_roots_sweep_set_unchanged,
                       sweep_is_duplicate_free,
                       retired_scope_binds_per_entry,
-                      retarget_seeds_an_ungated_finding):
+                      retarget_seeds_an_ungated_finding,
+                      nested_roots_render_per_root,
+                      disjoint_suite_walk_excluded,
+                      manifest_pair_membership,
+                      case_c_counts_once,
+                      case_c_negative_double_count,
+                      duplicate_guard_negative_case,
+                      fixture_counts_exact,
+                      template_pairs_bind_per_side,
+                      skill_dir_of_binds_per_root,
+                      forbidden_allow_files_root_correct):
             _case()
 
     if failures:
