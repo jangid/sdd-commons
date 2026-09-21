@@ -470,10 +470,11 @@ has, and the surface is what Option A depends on to reach the working tree at
 all. The window is named rather than left implicit, because a criterion with an
 implicit window is exactly what REQ-PKG-MARKETPLACE-007's `[Updated:]` note
 corrects two requirements above: clause (ii) holds for the `packaging` cycle
-and is retired from the close of the `consumer-geometry` implement stage —
-whose sha the **verify stage back-fills into this note**, because an endpoint
-named as a future event is the same implicit window this note exists to
-correct, and only a literal sha makes the clause re-runnable the way
+and is retired at the close of the `consumer-geometry` implement stage,
+**sha `f7886cd`** — back-filled by that cycle's verify stage on 2026-09-22, in
+place of the future-event phrasing this note originally carried, because an
+endpoint named as a future event is the same implicit window this note exists
+to correct, and only a literal sha makes the clause re-runnable the way
 REQ-PKG-MARKETPLACE-007's restatement is (`0bdb076`).
 Authorising requirement: REQ-PKG-CONSUMERGEOMETRY-003, workstream
 `consumer-geometry`.]
