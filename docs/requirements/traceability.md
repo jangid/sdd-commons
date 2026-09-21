@@ -309,12 +309,12 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-PC-MARKETPLACE-006 | pre-commit.md | marketplace | Chunk 3 task 4 — every entry is one of the six; no `args:` key in the config **[superseded 2026-09-21 — re-checked against the eight-entry set; see docs/ws/packaging/traceability.md]** | `.pre-commit-config.yaml` | pass |
 | REQ-PC-MARKETPLACE-006 | pre-commit.md | packaging | re-checked after the hook-set amendment: every parsed entry is one of the **eight** (two local tool hooks, two local `--self-test` hooks, four upstream hygiene hooks) and no entry carries an `args:` key at all — the `--fast` / `--self-test` mode selectors live inside `entry:` (C10.7). **Supersedes** the `marketplace` row's "every entry is one of the six" assertion as of 2026-09-21 | `.pre-commit-config.yaml` — the two added entries invoke the same two repository tools, so the gate still adds no rule of its own (C9.4, C10.7) | pass |
 | REQ-PC-PACKAGING-001 | pre-commit.md | packaging | revert-either-prefix failure; swept-set membership >=1 `docs/spec/` path (C5.7, C5.8) | both `.pre-commit-config.yaml` hook entries prefixed (C5.4) | pass |
-| REQ-PKG-CONSUMERGEOMETRY-001 |  | consumer-geometry |  |  |  |
-| REQ-PKG-CONSUMERGEOMETRY-002 |  | consumer-geometry |  |  |  |
-| REQ-PKG-CONSUMERGEOMETRY-003 |  | consumer-geometry |  |  |  |
-| REQ-PKG-CONSUMERGEOMETRY-004 |  | consumer-geometry |  |  |  |
-| REQ-PKG-CONSUMERGEOMETRY-005 |  | consumer-geometry |  |  |  |
-| REQ-PKG-CONSUMERGEOMETRY-006 |  | consumer-geometry |  |  |  |
+| REQ-PKG-CONSUMERGEOMETRY-001 | `two-root-linter.md` §CG-7 + criteria; `marketplace-packaging.md` §CG "The three checklist items…" (freeze repin); `drift-sweep.md` §2, §4; `pre-commit.md` §CG | consumer-geometry |  |  |  |
+| REQ-PKG-CONSUMERGEOMETRY-002 | `two-root-linter.md` §CG-4 (citation correction), §CG-5, §CG-5a | consumer-geometry |  |  |  |
+| REQ-PKG-CONSUMERGEOMETRY-003 | `two-root-linter.md` §CG-2, §CG-9 (the `:89` and `:522-523` rows); `drift-sweep.md` §1, §2; `skill-lint-v5.md` §CG criteria | consumer-geometry |  |  |  |
+| REQ-PKG-CONSUMERGEOMETRY-004 | `two-root-linter.md` §CG-6; `drift-sweep.md` §3; `skill-lint-v5.md` §CG "The summary-line pins", "The GEOMETRY: token is not a finding" | consumer-geometry |  |  |  |
+| REQ-PKG-CONSUMERGEOMETRY-005 | `marketplace-packaging.md` §CG "The removal", "The three disposition classes", "The shape every string criterion…", "The three checklist items…", "Consumer-unreachable strings…"; `two-root-linter.md` §CG-9 (the `:366` row); `drift-sweep.md` §4; `pre-commit.md` §CG | consumer-geometry |  |  |  |
+| REQ-PKG-CONSUMERGEOMETRY-006 | `two-root-linter.md` §CG-1, §CG-3, §CG-4, §CG-8, §CG-10; `pre-commit.md` §CG | consumer-geometry |  |  |  |
 | REQ-PKG-MARKETPLACE-001 | marketplace-packaging.md | marketplace | Chunk 5 task 8 — parsed `name` == `sdd-commons`, `owner` present, one plugin entry `sdd` | `.claude-plugin/marketplace.json` | pass |
 | REQ-PKG-MARKETPLACE-002 | marketplace-packaging.md | marketplace | Chunk 5 task 8 — `source` == `./`; plugin manifest carries name/description/version; `test ! -d plugins` | `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json` | pass |
 | REQ-PKG-MARKETPLACE-003 | marketplace-packaging.md | marketplace | Chunk 5 task 8 — derived set equality: skills 10 == 10, agents 3 == 3; no listed path under `docs/` | `.claude-plugin/marketplace.json` component list | pass |
