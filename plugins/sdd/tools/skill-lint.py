@@ -1316,7 +1316,8 @@ class Linter:
 # than red for most of the cycle. It is EMPTY here, at the close of Chunk 0 —
 # which is why cg_reconcile() is falsifiable in both directions on demand
 # (Chunk 0 task 2) rather than merely passing by holding nothing.
-CG_ROW_TOKENS: tuple[str, ...] = ("cg-row-1:", "cg-row-2:", "cg-row-3:")
+CG_ROW_TOKENS: tuple[str, ...] = ("cg-row-1:", "cg-row-2:", "cg-row-3:",
+                                  "cg-row-5:", "cg-row-6:", "cg-row-7:", "cg-row-8:")
 
 
 def cg_reconcile(constant: tuple[str, ...], ran: set[str], failures: list[str]) -> None:
@@ -3449,6 +3450,219 @@ def self_test() -> int:
                      f"disjoint SUITE root (where it exists, short of its minimum); a "
                      f"corpus binding reports it missing instead:\n" + "\n".join(table))
 
+        def cg_row_5_population_wiring_and_scope_dedup(row: int = 5) -> None:
+            """Row 5 — `main()`'s `print_population(...)` wiring AND
+            `retired_scope_entries()`'s deduplication.
+
+            **Both halves were already correct in the tree this chunk opened
+            on**, so this case is fixture-only (plan D2, extended — see the
+            Chunk 4 note in the plan): the wiring was repaired at Chunk 3, so
+            `--print-population` now passes the tier-1-or-`None` value THROUGH
+            and the constructor owns the resolution; the `seen` set has been in
+            `retired_scope_entries()` since before this cycle's entry sha. The
+            row is bound here nonetheless, because a binding nothing observes
+            is exactly the vacuity this cycle exists to close.
+
+            **Mutations run, both.** (a) Mis-rooting the wiring to
+            `print_population(root, root)` discards both the explicit tier-1
+            root and the constructor's tier-2 derivation: both halves below
+            then report `FILES_SWEPT=0`, because the suite root supplied the
+            only swept skill file. (b) Removing the `seen` set makes the
+            union-bound `CLAUDE.md` entry arrive twice, from two roots that
+            resolve to one file. Each appends a line beginning `cg-row-5:` to
+            the printed failure list, which — not the process exit code — is
+            the comparand (§CG-7).
+            """
+            import subprocess
+            me = Path(__file__).resolve()
+
+            def swept_line(corpus: Path, *extra: str) -> str:
+                """The `corpus:` line a REAL `main()` invocation prints.
+
+                A subprocess, deliberately: an in-process `print_population()`
+                call would agree with itself whatever `main()` passes it, and
+                `main()`'s wiring is the thing under observation here.
+                """
+                proc = subprocess.run(
+                    [sys.executable, str(me), str(corpus), "--print-population", *extra],
+                    capture_output=True, text=True)
+                return next((ln for ln in proc.stdout.splitlines()
+                             if ln.startswith("corpus: ")), "")
+
+            # (a.1) Tier 1: the explicit suite root is the ONLY source of the
+            # swept file — this corpus root holds no `skills/` of its own.
+            t1 = (root / "cgrow5" / "t1").resolve()
+            _fixture_skill(t1 / "vendor" / "suite", "vendored", "Body. Skip for Y.\n")
+            line = swept_line(t1, "--suite-root", str(t1 / "vendor" / "suite"))
+            cg_check(row, "FILES_SWEPT=1" in line,
+                     "--print-population must be wired to the tier-1 suite root: "
+                     f"expected one swept file, got {line!r}")
+            # (a.2) Tier 2: no explicit root, so the constructor's derivation is
+            # the only thing that can reach `plugins/sdd/skills/`. `main()` must
+            # pass `None` THROUGH rather than substituting a root of its own.
+            t2 = (root / "cgrow5" / "t2").resolve()
+            _fixture_skill(t2 / "plugins" / "sdd", "derived", "Body. Skip for Y.\n")
+            line = swept_line(t2)
+            cg_check(row, "FILES_SWEPT=1" in line,
+                     "--print-population must pass `None` through so the constructor's "
+                     f"tier-2 derivation answers: expected one swept file, got {line!r}")
+            # (b) The deduplication. `CLAUDE.md` is union-bound, so it arrives
+            # from both roots; here the corpus-side copy is a symlink to the
+            # suite-side file, so the two arrivals RESOLVE to one path and the
+            # `seen` set must collapse them.
+            b_corpus = root / "cgrow5" / "dedup" / "corpus"
+            b_suite = root / "cgrow5" / "dedup" / "suite"
+            b_corpus.mkdir(parents=True)
+            b_suite.mkdir(parents=True)
+            token = "sdd-" + RETIRED_SKILLS[0]
+            (b_suite / "CLAUDE.md").write_text(
+                f"The {token} skill is named bare.\n", encoding="utf-8")
+            (b_corpus / "CLAUDE.md").symlink_to(b_suite / "CLAUDE.md")
+            lin = Linter(b_corpus, b_suite, suite_rules=False)
+            hits = [f for f, _base in lin.retired_scope_entries() if f.name == "CLAUDE.md"]
+            cg_check(row, len(hits) == 1,
+                     "retired_scope_entries() must deduplicate a union-bound entry on "
+                     f"RESOLVED paths; got {len(hits)} arrivals of CLAUDE.md: {hits}")
+            lin.check_retired_prefix()
+            texts = [t for _, t in lin.findings if "[retired-prefix]" in t]
+            cg_check(row, len(texts) == 1,
+                     "one file must yield one retired-prefix finding, not one per root "
+                     "it arrived from:\n" + "\n".join(texts))
+
+        def cg_row_6_retired_prefix_renders_under_a_disjoint_suite_root(row: int = 6) -> None:
+            """Row 6 — `check_retired_prefix()`'s `rel=Path(rel)` guard.
+
+            Fixture-only (plan D2): the guard is in the source already, and
+            this chunk adds the case that OBSERVES it. It can only be observed
+            under a **disjoint** suite root — the geometry in which the flagged
+            file lies under no swept root, so the generic `self.rel()` raises
+            `ValueError`. Under a nested fixture the mutation is invisible,
+            which is the vacuity class this cycle closes.
+
+            **Mutation run**: delete the keyword argument at the one call site
+            — `rel()` raises, the raise is caught here rather than aborting the
+            run, and this case contributes its `cg-row-6:` line.
+            """
+            r6_corpus = root / "cgrow6" / "corpus"
+            r6_suite = root / "cgrow6" / "suite"
+            r6_corpus.mkdir(parents=True)
+            token = "sdd-" + RETIRED_SKILLS[0]
+            _fixture_skill(r6_suite, "suite-retired6",
+                           f"Body. Skip for Y.\nThe {token} skill is named bare.\n")
+            lin = Linter(r6_corpus, r6_suite, suite_rules=False)
+            cg_check(row, not lin.suite_contained(),
+                     "row 6's fixture must be the disjoint geometry")
+            raised: Exception | None = None
+            try:
+                lin.check_retired_prefix()
+            except ValueError as exc:       # the generic rel() on an unswept file
+                raised = exc
+            cg_check(row, raised is None,
+                     "check_retired_prefix() must render its finding through the "
+                     "per-entry `rel=` override: without it self.rel() raises on a "
+                     f"disjoint suite root's file — {raised!r}")
+            texts = [t for _, t in lin.findings if "[retired-prefix]" in t]
+            cg_check(row, any(_loc(t) == "skills/suite-retired6/SKILL.md" for t in texts),
+                     "the finding must render against the root its scope entry is bound "
+                     "to:\n" + "\n".join(texts))
+
+        def cg_row_7_required_rows_render_under_a_disjoint_suite_root(row: int = 7) -> None:
+            """Row 7 — `check_required()`'s three `rel=Path(rel)` guards, ONE row.
+
+            Fixture-only (plan D2). One fixture covers all three call sites: a
+            `REQUIRED` row present-but-short of its minimum (site 1), a
+            `VERSION_GATED_SKILLS` row (site 2) and a `V4_CONTRACT_SKILLS` row
+            (site 3), all seeded under a **disjoint** suite root. The `file
+            missing entirely` branch is deliberately NOT one of the three: it
+            flags a relative path, which `rel()` passes through unchanged and
+            which therefore observes nothing.
+
+            **Mutation run**: delete the keyword arguments — the first site
+            reached raises `ValueError` and this case contributes its token.
+            Deleting any ONE of the three is equally visible, since all three
+            fire on this fixture.
+            """
+            r7_corpus = root / "cgrow7" / "corpus"
+            r7_suite = root / "cgrow7" / "suite"
+            r7_corpus.mkdir(parents=True)
+            # `verify` is a member of both gated tables and carries neither
+            # marker, so sites 2 and 3 both fire on it.
+            _fixture_skill(r7_suite, "verify", "Body. Skip for Y.\n")
+            req = REQUIRED[0]
+            req_file = r7_suite / req["file"]
+            req_file.parent.mkdir(parents=True, exist_ok=True)
+            req_file.write_text(
+                f"---\nname: {Path(req['file']).parent.name}\ndescription: >\n"
+                f"  Use for X. Skip for Y.\n---\n\nBody.\n", encoding="utf-8")
+            lin = Linter(r7_corpus, r7_suite, suite_rules=True)
+            cg_check(row, not lin.suite_contained(),
+                     "row 7's fixture must be the disjoint geometry")
+            raised: Exception | None = None
+            try:
+                lin.check_required()
+            except ValueError as exc:
+                raised = exc
+            cg_check(row, raised is None,
+                     "check_required() must render all three present-file findings "
+                     "through their `rel=` overrides: without them self.rel() raises on "
+                     f"a disjoint suite root's file — {raised!r}")
+            texts = [t for _, t in lin.findings]
+            cg_check(row,
+                     any(_loc(t) == req["file"] and "found 0x" in t for t in texts),
+                     f"site 1 (the REQUIRED row) must render {req['file']} against the "
+                     "suite root:\n" + "\n".join(texts))
+            cg_check(row,
+                     any(_loc(t) == "skills/verify/SKILL.md" and "never reads" in t
+                         for t in texts),
+                     "site 2 (the VERSION_GATED row) must render against the suite "
+                     "root:\n" + "\n".join(texts))
+            cg_check(row,
+                     any(_loc(t) == "skills/verify/SKILL.md"
+                         and "collapsed v4 ownership summary" in t for t in texts),
+                     "site 3 (the V4_CONTRACT row) must render against the suite "
+                     "root:\n" + "\n".join(texts))
+
+        def cg_row_8_template_source_renders_under_a_disjoint_suite_root(row: int = 8) -> None:
+            """Row 8 — `check_template_drift()`'s `rel=Path(TEMPLATE_SOURCE)` guard.
+
+            Fixture-only (plan D2). The TEMPLATE_SOURCE side is suite-bound and
+            runs in EVERY geometry (§5) — the spec side is what a disjoint run
+            skips — so under a disjoint suite root its finding names a file
+            under no swept root, and the guard is what renders it. Fixture: a
+            suite root whose TEMPLATE_SOURCE exists but opens no fence with any
+            row's anchor, so every pair takes the `no fence opens with` branch,
+            which is the branch carrying the guard.
+
+            **Mutation run**: delete the keyword argument — `rel()` raises and
+            this case contributes its token.
+            """
+            r8_corpus = root / "cgrow8" / "corpus"
+            r8_suite = root / "cgrow8" / "suite"
+            r8_corpus.mkdir(parents=True)
+            src = r8_suite / TEMPLATE_SOURCE
+            src.parent.mkdir(parents=True)
+            src.write_text("# dispatch templates\n\nNo fence opens here.\n",
+                           encoding="utf-8")
+            lin = Linter(r8_corpus, r8_suite, suite_rules=True)
+            cg_check(row, not lin.suite_contained(),
+                     "row 8's fixture must be the disjoint geometry")
+            raised: Exception | None = None
+            try:
+                lin.check_template_drift()
+            except ValueError as exc:
+                raised = exc
+            cg_check(row, raised is None,
+                     "check_template_drift() must render the suite-bound "
+                     "TEMPLATE_SOURCE finding through its `rel=` override: without it "
+                     f"self.rel() raises on a disjoint suite root's file — {raised!r}")
+            texts = [t for _, t in lin.findings if "[template-drift]" in t]
+            cg_check(row,
+                     len(texts) == len(TEMPLATE_PAIRS)
+                     and all(_loc(t) == TEMPLATE_SOURCE for t in texts),
+                     f"every one of the {len(TEMPLATE_PAIRS)} anchors must report the "
+                     "missing source fence, rendered against the suite root:\n"
+                     + "\n".join(texts))
+
         for _case in (zero_sweep_summary_is_distinguishable,
                       two_roots_construct_distinct_and_equal,
                       equal_roots_sweep_set_unchanged,
@@ -3483,8 +3697,22 @@ def self_test() -> int:
                       shim_and_cli_resolve_the_same_tiers,
                       nested_case_is_not_regressed,
                       cg_row_1_retired_prefix_under_a_disjoint_suite_root,
-                      cg_row_2_required_rows_under_a_disjoint_suite_root):
-            _case()
+                      cg_row_2_required_rows_under_a_disjoint_suite_root,
+                      cg_row_5_population_wiring_and_scope_dedup,
+                      cg_row_6_retired_prefix_renders_under_a_disjoint_suite_root,
+                      cg_row_7_required_rows_render_under_a_disjoint_suite_root,
+                      cg_row_8_template_source_renders_under_a_disjoint_suite_root):
+            # A case that ABORTS is recorded as a failure rather than killing
+            # the run: §CG-7 makes MEMBERSHIP OF THE PRINTED LIST the comparand
+            # for every mutation, and rows 6-8's mutations (deleting a `rel=`
+            # override) make earlier, unrelated cases raise `ValueError` too.
+            # Without this guard the process would die before the list is
+            # printed and no mutation on those rows would be observable at all.
+            try:
+                _case()
+            except Exception as exc:        # noqa: BLE001 — a case must fail, not abort
+                failures.append(f"{_case.__name__} aborted: "
+                                f"{type(exc).__name__}: {exc}")
 
     cg_reconcile(CG_ROW_TOKENS, cg_ran, failures)
 

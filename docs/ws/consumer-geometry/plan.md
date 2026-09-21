@@ -792,23 +792,23 @@ registered case with its mutation run. Per **D2**, rows 6–8 are fixture-only.
 **Write scope**: `plugins/sdd/tools/skill-lint.py`,
 `docs/ws/consumer-geometry/traceability.md`.
 **Tasks**:
-1. [ ] [implement] Row 5, behaviour: pin `main()`'s
+1. [x] [implement] Row 5, behaviour: pin `main()`'s
    `print_population(root, default_suite_root())` wiring, and add
    `retired_scope_entries()`'s deduplication (`seen` set). Each closes with a
    technique already in the file. Register `cg-row-5:`; **mutations run, both**:
    mis-root the wiring to `(root, root)`; remove the deduplication — traces to
    REQ-PKG-CONSUMERGEOMETRY-001 row 5, kickoff §Scope 4
-2. [ ] [implement] Register `cg-row-6:` — `check_retired_prefix()`'s
+2. [x] [implement] Register `cg-row-6:` — `check_retired_prefix()`'s
    `rel=Path(rel)` guard, under a disjoint suite root. **Mutation run**: delete
    the keyword argument → `rel()` raises `ValueError` and the case contributes
    its token — traces to REQ-PKG-CONSUMERGEOMETRY-001 row 6, kickoff §Scope 2
-3. [ ] [implement] Register `cg-row-7:` — `check_required()`'s `rel=Path(rel)`
+3. [x] [implement] Register `cg-row-7:` — `check_required()`'s `rel=Path(rel)`
    guards, **three call sites, one row**. **Mutation run**: delete the keyword
    arguments — traces to REQ-PKG-CONSUMERGEOMETRY-001 row 7
-4. [ ] [implement] Register `cg-row-8:` — `check_template_drift()`'s
+4. [x] [implement] Register `cg-row-8:` — `check_template_drift()`'s
    `rel=Path(TEMPLATE_SOURCE)` guard. **Mutation run**: delete the keyword
    argument — traces to REQ-PKG-CONSUMERGEOMETRY-001 row 8
-5. [ ] [verify] The named token constants hold their rows **per tool** — not
+5. [x] [verify] The named token constants hold their rows **per tool** — not
    eight in each. `skill-lint.py`'s constant holds rows 1-3 and 5-8;
    `gc.py`'s holds **row 4 alone**, because row 4 (`lint_path()` /
    `lint_command()`) is the only enumerated row with a case in that tool
@@ -825,6 +825,85 @@ mutations **applied, run, and reverted**, with the printed-list assertion made
 each time; both self-tests exit 0. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
 
 ---
+
+**Notes** (Chunk 4, 2026-09-22):
+
+- **Two premises of task 1 were false, and both halves of row 5 turned out to be
+  fixture-only.** (a) The plan and the requirement spell the wiring
+  `print_population(root, default_suite_root())`; the source at this chunk's
+  entry reads `print_population(root, suite_root)`, because Chunk 2's carried-forward
+  note was acted on at Chunk 3 — `print_population()`'s second parameter became
+  `Path | None = None` and `main()` now passes the tier-1-or-`None` value straight
+  through. Nothing was re-wired here; the row's named mutation `(root, root)` is
+  still the right mutation and still mis-roots observably, so the enumeration did
+  not need amending. (b) `retired_scope_entries()`'s deduplication was described
+  as "genuinely missing"; it is **not**. The `seen` set is present at this cycle's
+  entry sha `3bac4af` (`skill-lint.py:592` there). Nothing was added. Both halves
+  are therefore observed, not written, which is what D2 already says about rows
+  6-8 — so all four rows this chunk lands are fixture-only.
+- **Row 5's mutations, both run** on a `$TMPDIR` scratch copy, comparand =
+  membership of the printed `SELF-TEST FAIL:` list:
+  - `(root, root)` → two `cg-row-5:` lines, both reading
+    `got 'corpus: FILES_SWEPT=0  policed-areas=11'` — one for the tier-1 fixture
+    (an explicit `vendor/suite` root holding the only skill file) and one for the
+    tier-2 fixture (a `plugins/sdd` root reached only by the constructor's
+    derivation). The second half is what pins Chunk 3's pass-through: a `main()`
+    that substitutes any root of its own loses it.
+  - `seen` removed → `got 2 arrivals of CLAUDE.md` plus a second line showing the
+    same `[retired-prefix]` finding printed twice. The fixture makes the
+    corpus-side `CLAUDE.md` a **symlink** to the suite-side file, because that is
+    the only way a union-bound entry arrives twice at one *resolved* path; no
+    other registered case observes the dedup, so it was previously unpinned.
+- **Rows 6, 7, 8 — the guards were already there; what was missing was the
+  observation, and it only exists under a disjoint suite root.** Each case
+  catches the `ValueError` rather than letting it escape, so the mutation shows up
+  as a line in the printed list rather than as a traceback. Mutations run:
+  - row 6, `check_retired_prefix()`'s one `rel=Path(rel)` deleted → `cg-row-6:`
+    twice (`self.rel() raises … is not in the subpath of …`, then the empty
+    rendering assertion);
+  - row 7, all **three** of `check_required()`'s `rel=Path(rel)` deleted → four
+    `cg-row-7:` lines. One fixture fires all three sites (a short `REQUIRED` row,
+    and a `skills/verify` seed that trips both gated tables), so deleting any one
+    of the three is equally visible. The `file missing entirely` branch is
+    deliberately **not** one of the three sites: it flags a relative path, which
+    `rel()` returns unchanged, so it observes nothing;
+  - row 8, `check_template_drift()`'s `rel=Path(TEMPLATE_SOURCE)` deleted → two
+    `cg-row-8:` lines, on a fixture whose suite-side `TEMPLATE_SOURCE` exists but
+    opens no anchored fence, so all four `TEMPLATE_PAIRS` rows take the guarded
+    branch.
+- **One harness change was unavoidable, and it is the reason the rows 6-8
+  mutations are observable at all.** Deleting a `rel=` override also makes
+  *earlier, unrelated* cases raise — row 1's case for row 6's mutation,
+  `disjoint_suite_walk_excluded` and row 2's case for row 7's,
+  `template_pairs_bind_per_side` for row 8's. Uncaught, the process dies before
+  `SELF-TEST FAIL:` is printed and §CG-7's comparand (membership of that list) is
+  unobservable. The `for _case in (...)` loop therefore now records an aborting
+  case as a failure line (`<case> aborted: ValueError: …`) and continues. It is a
+  strict improvement — an aborting case was previously silent about every case
+  after it — and it changes no case's own assertions. Each of the three mutation
+  runs shows both the aborted earlier case and the intended `cg-row-<n>:` line.
+- **Task 5, the per-tool split, re-confirmed by reading both constants**:
+  `skill-lint.py`'s `CG_ROW_TOKENS` is now the seven members
+  `("cg-row-1:", "cg-row-2:", "cg-row-3:", "cg-row-5:", "cg-row-6:", "cg-row-7:",
+  "cg-row-8:")` and `gc.py`'s is still `("cg-row-4:",)`. Neither holds eight; the
+  eight-row reconciliation is the union of the two tools' printed tokens. Chunk 0
+  task 2's falsifiability self-check still fails in **both** directions on a
+  scratch copy: a ninth token with no case → `- cg-row-9: named in CG_ROW_TOKENS
+  but no registered case ran it`; a registered `cg_check(9, …)` with the token
+  absent → `- cg-row-9: ran as a registered case but is absent from
+  CG_ROW_TOKENS`. Both self-tests exit 0 in the repo; the in-repo
+  `skill-lint.py .` still prints `GEOMETRY: nested  swept-roots=2` and
+  `OK: 25 file(s) clean`, and `gc.py --report --root .` is clean.
+- **Provisional observation, no id** (its `### Q-IMPL-…` heading is born in
+  Chunk 7, §Conventions): the enumeration in REQ-PKG-CONSUMERGEOMETRY-001's table
+  names row 5's site by a source expression, `print_population(root,
+  default_suite_root())`, which this cycle's own Chunk 3 made stale. The row's
+  *mutation* survived the drift, but a comparand table that quotes source text is
+  a standing hazard — worth either a recorded decision to name sites by function
+  rather than by expression, or a dated note on that row. It is recorded here
+  rather than edited into the requirement, because exactly one implement task
+  owns `docs/requirements/integration/packaging.md` (§CG-11) and it is not in
+  this chunk.
 
 ### Chunk 5: The sweep forwards the token, and the disjoint invocation is repaired end to end
 **Goal**: The token survives `gc.py`'s sweep, `gc.py` derives no geometry of its
