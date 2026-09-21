@@ -1,5 +1,5 @@
 ---
-version: "20.0"
+version: "21.3"
 status: Approved
 last_updated: 2026-09-21
 traceability: traceability.md
@@ -10,7 +10,7 @@ traceability: traceability.md
 ## Summary
 
 Requirements for SDD (Spec-Driven Development) skill improvements in the
-tools-skills-agents repository. Covers twelve scopes:
+tools-skills-agents repository. Covers thirteen scopes:
 
 1. **v2 artifact structure** (RS-001): Research structure, requirements
    splitting, plan management, staleness detection, migration, and per-skill
@@ -118,6 +118,23 @@ tools-skills-agents repository. Covers twelve scopes:
    verifier, red team and reviewer are extracted from the dispatch templates
    into three dispatchable agent files under a frontmatter contract measured
    across thirty-two first-party agent files (AGENT).
+13. **Packaging follow-up** (RS-PACKAGING-002 and RS-PACKAGING-003, workstream
+   `packaging`): the marketplace cycle's deferred structural question, closed —
+   the shipped suite moves out of the repository root into `plugins/sdd/`, so
+   the **suite root** (what the plugin ships) and the **corpus root** (the tree
+   being linted) become distinct objects, and `tools/skill-lint.py` takes both
+   as constructor parameters under option (B)'s set-union containment semantics
+   (PKG); the 56 suite-gated rows retarget to the suite root — an intended flip
+   from failing loudly against a consumer's tree to checking the shipped plugin
+   — with the amended F11 target and its two deliberate exceptions; the two
+   dual-rooted checks bind **per entry** rather than per root and a
+   set-membership assertion over both `.claude-plugin` manifest paths detects a
+   wrong binding; no absolute corpus count is asserted, replaced by a live
+   duplicate-freeness construction guard and exact fixture-local counts, with
+   `FILES_SWEPT=<n>` left as informational output and live zero-sweep detection
+   deliberately given up (LINT); three fixture geometries — nested, disjoint and
+   equal roots, the last the only one that pins single-sweep (PKG); and the six
+   repairs carried unchanged from the marketplace cycle (LINT, PC, DOCS, PKG).
 
 ## Stakeholders
 
@@ -152,11 +169,11 @@ tools-skills-agents repository. Covers twelve scopes:
 | non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
 | integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001, REQ-GC-HARNESSP6-001..004 | Approved | 2026-09-20 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
-| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003 | Approved | 2026-09-20 |
+| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008 | Approved | 2026-09-21 |
 | integration | [naming.md](integration/naming.md) | NAME | REQ-NAME-MARKETPLACE-001..010 | Approved | 2026-09-21 |
-| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010 | Approved | 2026-09-21 |
-| integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006 | Approved | 2026-09-21 |
-| integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005 | Approved | 2026-09-21 |
+| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..009 | Approved | 2026-09-21 |
+| integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006, REQ-PC-PACKAGING-001 | Approved | 2026-09-21 |
+| integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005, REQ-DOCS-PACKAGING-001..003 | Approved | 2026-09-21 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
 
 > **ORCH delta note:** The ORCH domain mixes shipped requirements (REQ-ORCH-001..015,
@@ -502,6 +519,86 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Review C1 — the rename dangles existing symlink installs | REQ-NAME-MARKETPLACE-010; §Out of Scope local-directory entry |
 | Decided: sequential execution, PR not merge, telemetry and red team on | orchestration settings for `sdd-plan` / the driver; no new requirement |
 
+> **packaging delta note (marker 4, workstream `packaging`):**
+> REQ-PKG-PACKAGING-001..009, REQ-LINT-PACKAGING-001..008,
+> REQ-PC-PACKAGING-001 and REQ-DOCS-PACKAGING-001..003 are the
+> RS-PACKAGING-003 delta added at the requirements phase on 2026-09-21, under
+> four existing domains — no new domain prefix and no new category file. Their
+> ids carry the `PACKAGING` workstream token per `docs/spec/ws-ids.md`; their
+> traceability rows are owned by `docs/ws/packaging/traceability.md` and
+> aggregated into `traceability.md`. They are **not yet specced or
+> implemented**; their traceability columns are intentionally blank.
+> **RS-PACKAGING-002 is an input, not a superseded predecessor** — its
+> populations (56 suite-gated rows = 40 + 9 + 7, `FORBIDDEN` 13 ungated,
+> `TEMPLATE_PAIRS` 4), its costing (45 move / 154 stay / 199 at `0f5ec26`) and
+> its option (B) semantics are cited by these requirements and are **not**
+> re-derived or re-measured by them.
+> **Three shared requirements are superseded in place**, each by a dated
+> `[Updated:]` note naming REQ-PKG-PACKAGING-001 as the authorising
+> requirement: REQ-PKG-MARKETPLACE-002's no-`plugins/sdd/`-subdirectory clause
+> (and its `"source": "./"` value and `test ! -d plugins` acceptance clause),
+> REQ-PKG-MARKETPLACE-006's "tools stay at the repository root" clause, and
+> REQ-PKG-MARKETPLACE-004's "accepted, documented cost" of the install carrying
+> `docs/` — the move removes that cost rather than accepting it. Each
+> note states what survives — the single-plugin leg; duplicate-not-symlink plus
+> no-tool-lost; and `docs/` loaded as no component with bare-relative citations.
+> REQ-PKG-MARKETPLACE-005 takes the same correction as an in-body parenthetical
+> rather than a fourth supersession (Q-REQ-PKG-D). Ids, numbers and original
+> text are otherwise unchanged; §Overview's ¶1 is past-tensed as the
+> marketplace cycle's shape and its ¶3 states the post-move shape.
+> **Evaluation time:** every `PACKAGING`-delta acceptance criterion naming a
+> shipped path spells it `plugins/sdd/…` or carries an explicit "evaluated after
+> the move" qualifier; the `MARKETPLACE`-delta criteria keep their pre-move
+> spellings, having been evaluated against the pre-move tree.
+> **Evidence classes are carried from the findings' own confidence words:**
+> REQ-PKG-PACKAGING-002..005 rest on D1 (confidence **high** — premise
+> verifiable in the pinned code read at `20f26ec`); REQ-LINT-PACKAGING-001..006
+> rest on D2 and D3 (confidence **medium** — design over measured evidence, each
+> with a named falsifier, none executed); REQ-PKG-PACKAGING-006..008 rest on D4
+> (confidence **low** — pure design, nothing yet built). Every one of them is a
+> design choice over measured evidence, not a measured result.
+> **Plan ordering constraints (three):** the `--print-population` producing task
+> (REQ-LINT-PACKAGING-007) lands **before** the task that evaluates that same
+> requirement's **population criterion** (`REQUIRED=40 VERSION_GATED=9
+> V4_CONTRACT=7 FORBIDDEN=13`, each count derived at run time) — the criterion
+> is stated in REQ-LINT-PACKAGING-007's own body and reconciled with
+> REQ-PKG-PACKAGING-004 there, so both the producing and the consuming task are
+> identifiable by requirement id; the same producing task also lands **before**
+> the **emission half** of REQ-LINT-PACKAGING-004's acceptance, that
+> `FILES_SWEPT` line being introduced by the flag, not retained from today's
+> output; and the carried `skills/verify/SKILL.md` repair
+> (REQ-PKG-PACKAGING-009) lands **after** the root bindings of
+> REQ-PKG-PACKAGING-002 and REQ-LINT-PACKAGING-001..002.
+> **File size:** `integration/packaging.md` (531 lines) and
+> `integration/skill-lint.md` (597 lines) are both over the 300-line split
+> threshold. A split is deferred, not skipped (§Open Questions) — ids are
+> permanent across one, so waiting costs no renumbering.
+
+### packaging item coverage (kickoff §Scope, §Carried repairs and RS-PACKAGING-003 D1-D4, none dropped)
+
+| Kickoff / findings item | Requirement(s) |
+|---|---|
+| Scope (1) the `plugins/sdd/` root move | REQ-PKG-PACKAGING-001 (supersedes REQ-PKG-MARKETPLACE-002, -006 in place) |
+| Scope (1) option (B) two-root **constructor parameter** | REQ-PKG-PACKAGING-002 |
+| Scope (1) `--suite-root` deferred, `--no-suite-rules` rejected | REQ-PKG-PACKAGING-003; deferral also recorded in §Out of Scope |
+| D1 — the 56 suite-gated rows retarget to the suite root | REQ-PKG-PACKAGING-004 |
+| D1 — amended F11 target and its two exceptions | REQ-PKG-PACKAGING-005 (exception (i) bound by REQ-LINT-PACKAGING-001, (ii) by -002) |
+| D2 — per-entry root bindings for the retired-prefix scope | REQ-LINT-PACKAGING-001 |
+| D2 — `TEMPLATE_PAIRS` per-side binding, spec side skipped under disjoint roots | REQ-LINT-PACKAGING-002 |
+| D2 — set-membership assertion over both manifest paths | REQ-LINT-PACKAGING-003 (per-root file count rejected in the body) |
+| D3 — no absolute corpus count; `FILES_SWEPT=<n>` informational | REQ-LINT-PACKAGING-004 |
+| D3 — live duplicate-freeness guard, `fail` severity; zero-sweep given up | REQ-LINT-PACKAGING-005 |
+| D3 — exact fixture-local count | REQ-LINT-PACKAGING-006 |
+| D4 — fixture A (nested), B (disjoint), case C (equal roots, single-sweep) | REQ-PKG-PACKAGING-006, -007, -008 |
+| D4 — the containment-narrowing formulation declined | no requirement; recorded in §Out of Scope |
+| Sequencing — `--print-population` precedes REQ-LINT-PACKAGING-007's own population criterion | REQ-LINT-PACKAGING-007 (criterion stated there; reconciled with REQ-PKG-PACKAGING-004) |
+| Carried repair — deferral-backlog screen marker leakage | REQ-DOCS-PACKAGING-003 |
+| Carried repair — `skills/verify/SKILL.md:169` cwd-relative sweep invocation | REQ-PKG-PACKAGING-009 (sequenced after D1/D2) |
+| Carried repair — `docs/spec/orchestration.md:574` names the README by filename | REQ-DOCS-PACKAGING-001 |
+| Carried repair — the paired `tools/skill-lint.py:381` + `:1252` edit | REQ-LINT-PACKAGING-008 |
+| Carried repair — `CLAUDE.md:251` vs `:215` marker reconciliation | REQ-DOCS-PACKAGING-002 |
+| Carried repair — **both** `.pre-commit-config.yaml` hook entries | REQ-PC-PACKAGING-001 |
+
 ## Domain Prefixes
 
 | Prefix | Domain | File |
@@ -527,9 +624,9 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | CTX | AI Context Budget | non-functional/context-and-compatibility.md |
 | COMPAT | Git Compatibility | non-functional/context-and-compatibility.md |
 | EVAL | Multi-Run Evaluation | non-functional/evaluation.md |
-| GC | Drift Sweep (`tools/sdd-gc.py`) | integration/drift-sweep.md |
+| GC | Drift Sweep (`tools/gc.py`) | integration/drift-sweep.md |
 | SKILL | Skill Updates | integration/skill-updates.md |
-| LINT | Skill Lint (`tools/sdd-skill-lint.py`) | integration/skill-lint.md |
+| LINT | Skill Lint (`tools/skill-lint.py`) | integration/skill-lint.md |
 | NAME | Component Naming and Prefix Retirement | integration/naming.md |
 | PKG | Marketplace and Plugin Packaging | integration/packaging.md |
 | PC | Pre-Commit Hooks | integration/pre-commit.md |
@@ -551,7 +648,8 @@ future reader finds it under the convention rather than by reading five files.
   subdirectory — would relocate the linter's self-root and its literal skill
   paths inside this cycle's own verification, a concrete failure against a
   speculative one. Recorded as REQ-PKG-MARKETPLACE-002, with the declined
-  subdirectory and the declined multi-plugin split under §Out of Scope.
+  subdirectory and the declined multi-plugin split under §Out of Scope. (The
+  subdirectory leg is superseded 2026-09-21 by REQ-PKG-PACKAGING-001.)
 - **Q-REQ-MKT-B** (duplicate vs symlink the two bundled tools): **duplicate.**
   A plugin install may be materialised from a git archive, which does not
   reliably preserve symlinks, so a symlink is a silent broken-install mode for a
@@ -1023,6 +1121,29 @@ Resolved during requirements gathering for RS-002:
   checklist instead. External review remains ad-hoc — its value comes from
   being outside the implementing session's context window.
 
+Resolved during requirements gathering for RS-PACKAGING-003 (the `plugins/sdd/`
+root move and the two-root linter interface, workstream `packaging`), which also
+ran **non-interactively**. Reasoning lives in the requirement bodies named.
+
+- **Q-REQ-PKG-A** (the linter's corpus-root default): **the invocation cwd**,
+  not the script's location, which names `plugins/sdd` after the move — a
+  zero-argument run (the commit gate's form) would else take the suite as its
+  corpus, silently. REQ-PKG-PACKAGING-002; gate consequence REQ-PC-PACKAGING-001.
+- **Q-REQ-PKG-B** (`--print-population` as a `must`): **adopted.** The findings
+  mention it only as a sequencing observation; promoted because
+  REQ-PKG-PACKAGING-004's carried populations otherwise leave the retarget with
+  no regression check, and a rule-table row count is static in-code data, not
+  the live-corpus count REQ-LINT-PACKAGING-004 bans (REQ-LINT-PACKAGING-007).
+- **Q-REQ-PKG-C** (which files move): **the membership rule** of
+  REQ-PKG-PACKAGING-001, not the carried 45/154/199 costing — a count cannot
+  decide membership for a file added later. `README`/`LICENSE` stay an `OPEN`.
+- **Q-REQ-PKG-D** (deferred to specs, recorded not resolved): the
+  REQ-PC-PACKAGING-001 → -009 delegation is inexact (the sweep's `--root`
+  already defaults to the git toplevel, so harmless); -001's "retained
+  unchanged" self-test block sits against REQ-LINT-PACKAGING-008's tuple edit;
+  REQ-PKG-MARKETPLACE-005 is touched by the
+  `tools/**` rule without a formal supersession.
+
 ## Out of Scope
 
 - Code changes to skills (implementation phase)
@@ -1225,14 +1346,16 @@ or queued; none is to be re-raised as pending work.
   into a silent dispatch-time failure that no linter can catch, and ten plugin
   versions would have to agree on one gate vocabulary with no mechanism to
   express the constraint. A future split remains a manifest edit, not a
-  migration, which is a property of REQ-PKG-MARKETPLACE-002's `"source": "./"`.
-- **A `plugins/sdd/` subdirectory** — **declined** in favour of
-  `"source": "./"` with an explicit component list (REQ-PKG-MARKETPLACE-002).
-  The subdirectory form is what an umbrella marketplace carrying several
-  unrelated plugins needs; this marketplace carries one. Moving `skills/` and
-  `tools/` under it would relocate the linter's self-root and its literal skill
-  paths, producing a green report about the wrong tree — inside this cycle's own
-  verification.
+  migration: the marketplace manifest lists plugin entries, so adding one edits
+  that list whatever each entry's `source` names.
+- **A `plugins/sdd/` subdirectory** — **superseded 2026-09-21 by
+  REQ-PKG-PACKAGING-001**, which moves the shipped suite into `plugins/sdd/`
+  and points the plugin entry's `source` at that subdirectory. The marketplace
+  cycle declined it (REQ-PKG-MARKETPLACE-002); that decline is closed, not
+  live. Its stated hazard — the move relocating the linter's self-root and
+  producing a green report about the wrong tree — is answered by
+  REQ-PKG-PACKAGING-002's cwd corpus-root default and the
+  suite-root/corpus-root split.
 - **Symlinking the two bundled tools** instead of duplicating them — **declined**:
   a plugin install may be materialised from a git archive, which does not
   reliably preserve symlinks, so a symlink is a silent broken-install mode for a
@@ -1274,6 +1397,37 @@ or queued; none is to be re-raised as pending work.
   beyond making the repository itself a marketplace** — **out of scope**
   (kickoff §Decided at DISCUSS): the cycle's terminal state is an open PR the
   operator reviews.
+
+_(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003)_
+
+- **A `--suite-root` CLI option** — **deferred, not adopted** (RS-PACKAGING-003
+  D1). The two roots are settled as **constructor parameters**
+  (REQ-PKG-PACKAGING-002), which is all the D4 fixtures need since they pin
+  their roots in-process and never reach argparse. The CLI flag rests on the
+  single case of a vendored or repository-local plugin cache, where the
+  containment default is wrong and no in-process construction can correct it —
+  a mitigation for one residual case, not a closure, so it is recorded as a
+  deliberate deferral rather than an omission. The residual risk is recorded in
+  §Open Questions; no work is queued here.
+- **A `--no-suite-rules` disable switch** — **rejected outright**, not deferred
+  (REQ-PKG-PACKAGING-003): a disable switch on the checks most likely to be
+  inconvenient is the silent-disable class RS-PACKAGING-002 already rejected
+  externalised rule data for.
+- **Narrowing option (B)'s containment rule so the walk term does not depend on
+  containment** — **declined** (RS-PACKAGING-003 D4). It carries no recorded
+  defect; it is declined because it changes the shipping semantics of option
+  (B) to make a test easier to write. If a later stage rejects the containment
+  rule on its merits, this returns there as a change to option (B), not as a
+  test convenience.
+- **Re-deriving or re-measuring anything RS-PACKAGING-002 established** — out of
+  scope by the `packaging` kickoff. Its populations, costing and option (B)
+  semantics are cited as evidence; re-measuring them buys nothing.
+- **The `file://`-vs-GitHub install gap and the unrun non-conventional-path
+  control** — recorded in RS-PACKAGING-002, unaffected by any decision above,
+  and not this cycle's work.
+- **Executing the root move at the requirements stage** — the requirements
+  stage decides; the plan stage orders the move and the implement stage
+  performs it.
 
 
 ## Open Questions
@@ -1506,6 +1660,26 @@ rather than asked:
   items — it is the item most likely to trigger a replan, and the other eight
   should be landed before that risk is taken (kickoff §Decided at DISCUSS).
 
+_(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003 §Open Questions)_
+
+- **Does `plugins/sdd/` carry its own `README`/`LICENSE`?** — 45 versus 47
+  installed files, carried from RS-PACKAGING-002 and still undecided. Not
+  blocking: both names sit in the union-bound scope-file entry of
+  REQ-LINT-PACKAGING-001, so either answer changes which root supplies them,
+  not whether they are policed. Noted on REQ-PKG-PACKAGING-001 as an `OPEN`.
+- **Vendored or repository-local plugin caches** — the containment rule is a
+  proxy for "this repository's own suite" and is wrong for a consumer who
+  vendors the plugin. This is the sole residual risk carrying the deferred
+  `--suite-root` CLI surface (§Out of Scope) as distinct from the constructor
+  parameter, and it is unclosed.
+- **Splitting `integration/packaging.md` (531 lines) and
+  `integration/skill-lint.md` (597 lines)** — both exceed the 300-line split
+  threshold after the `packaging` delta. Deferred rather than taken here: the
+  write scope of the requirements stage did not include a new category file,
+  and ids are permanent across a split, so no renumbering cost accrues by
+  waiting. A split keeps the domain prefix and lists every carrying file in the
+  Domain Prefixes table.
+
 ## Research References
 
 - [RS-001: SDD Artifact Structure](../research/RS-001-sdd-artifact-structure/findings.md)
@@ -1522,6 +1696,9 @@ rather than asked:
 - [RS-HARNESSP6-001: Harness Hardening, Part 6 (terminal) — shared-spec staleness, git-state observation, Q-IMPL fence symmetry, the L2 convergence signal, and the deferral-backlog sweep](../research/RS-HARNESSP6-001-harness-hardening-p6/findings.md)
 - [RS-HARNESSP3-001: Harness Hardening, Part 3 (write-scope fidelity, return conformance, arbitration over regenerated artifacts, telemetry assurance, red-team follow-ups)](../research/RS-HARNESSP3-001-harness-hardening-p3/findings.md) — with its committed [evidence appendix](../research/RS-HARNESSP3-001-harness-hardening-p3/evidence-appendix.md)
 - [RS-MARKETPLACE-001: Marketplace Release (plugin packaging, the `sdd-` prefix retirement, pre-commit, project docs, the three shipped agents)](../research/RS-MARKETPLACE-001-marketplace-release/findings.md)
+- [RS-PACKAGING-001: Packaging follow-up (no exclusion filter; the `plugins/sdd/` move costed at 45/154/199; the two-root need)](../research/RS-PACKAGING-001-packaging-followup/findings.md) — **rejected at its stage gate 2026-09-21** and superseded by RS-PACKAGING-002; cited here because it is where the amended-F11 baseline of REQ-PKG-PACKAGING-005 sits, and its carried findings are inputs to 002
+- [RS-PACKAGING-002: The root-interface question (the `plugins/sdd/` move, option (B), the suite-gated population and its costing)](../research/RS-PACKAGING-002-root-interface/findings.md) — an **input** to RS-PACKAGING-003, cited rather than superseded
+- [RS-PACKAGING-003: The four open decisions, capped (suite-row retargeting, per-entry root bindings, the `FILES_SWEPT` replacement, the two-root fixture geometries)](../research/RS-PACKAGING-003-decisions/findings.md)
 
 ## See Also
 

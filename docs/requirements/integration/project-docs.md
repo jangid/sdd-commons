@@ -2,8 +2,8 @@
 domain: DOCS
 last_updated: 2026-09-21
 status: Approved
-research_refs: [RS-MARKETPLACE-001]
-workstream: marketplace
+research_refs: [RS-MARKETPLACE-001, RS-PACKAGING-002, RS-PACKAGING-003]
+workstream: marketplace, packaging
 ---
 
 # Requirements: Project Documentation for Public Release
@@ -100,4 +100,69 @@ zero matches outside the exemption set of REQ-NAME-MARKETPLACE-009; the file
 names both manifest paths; a reviewer-checkable diff shows no change to the
 phase-detection table, the cycle-identity rules or the v4 layout section beyond
 name substitution.
+[Priority: must]
+
+### REQ-DOCS-PACKAGING-001: `docs/spec/orchestration.md` names the project README by its live filename
+`docs/spec/orchestration.md` §the project README paragraph (line 574 at
+`a1ab5ba`) still names the project README by the retired front door's filename
+
+```
+README.org
+```
+
+in backticked prose. It passes the drift sweep only by the backtick skip and is
+factually stale: that file was deleted by REQ-DOCS-MARKETPLACE-003 and the
+repository's front door is `README.md`. The spelling must be corrected to the
+live filename; nothing else in the paragraph changes, and the symlink-install
+convention it documents is untouched by this repair. (see
+`docs/ws/packaging/kickoff.md` §Carried repairs;
+`docs/ws/marketplace/verification.md` §Issues Found)
+**Acceptance**: a run-time grep of `docs/spec/orchestration.md` for the retired
+front door's filename — the grep pattern is the name fenced above,
+`README` followed by `.org` — returns zero matches, inside backticks or out; the
+paragraph names `README.md`; the drift sweep — `python3 tools/gc.py --report`
+before the move of REQ-PKG-PACKAGING-001, `python3 plugins/sdd/tools/gc.py
+--report` after it — raises no new broken-link finding on the file.
+[Priority: must]
+
+### REQ-DOCS-PACKAGING-002: `CLAUDE.md` states one marker for this repository
+`CLAUDE.md` contradicts itself about which layout marker this repository uses:
+§Phase Detection states the repository migrated to marker `4` on 2026-09-17,
+while §Multi-Workstream Layout (v4) states that marker `3` "remains fully
+supported and is what this repo uses today". Both sentences are read by every
+skill that consults `CLAUDE.md` for project context, and they cannot both be
+true. The two passages must be reconciled to the marker `docs/.sdd-version`
+actually carries, keeping the true statement that marker `3` remains
+**supported** and removing the false statement that it is what this repository
+uses. The substance of neither section otherwise changes. (see
+`docs/ws/packaging/kickoff.md` §Carried repairs)
+**Acceptance**: the marker named as this repository's own in `CLAUDE.md`
+string-equals the trimmed contents of `docs/.sdd-version`, compared by reading
+both at run time rather than against a written-out value; exactly one marker is
+named as this repository's own anywhere in the file; the phase-detection table
+and the v4 layout section are otherwise unchanged, shown by a reviewer-checkable
+diff.
+[Priority: must]
+
+### REQ-DOCS-PACKAGING-003: The deferral-backlog screen's marker rule is item-scoped
+The deferral-backlog screen's liveness rule examines line `L` and `L-1` and
+nothing else, so an adjacent item's own bracketed dated marker can mark a
+following item not-live — which is how the marketplace cycle's report scored a
+live carried-to-a-later-cycle bullet as not live, its own date sitting in
+parentheses the marker regex does not match. That is the block-level leakage
+`docs/spec/requirements-artifacts.md` §`## Out of Scope` Discipline already
+forbids in prose, unenforced by the mechanism. The rule must be **item-scoped**:
+a marker suppresses only the item it belongs to, so a marker introducing or
+closing one item never satisfies the rule for its neighbour. The phrase table
+and the marker regex stay where they are and keep being read from the spec
+rather than retyped, and the screen's standing qualification — it is a screen
+over observed backlog vocabulary, not a proof of absence — is unchanged.
+(see `docs/ws/packaging/kickoff.md` §Carried repairs;
+`docs/ws/marketplace/verification.md` §Deferral-Backlog Screen)
+**Acceptance**: a fixture of two adjacent items, the first carrying a bracketed
+dated marker and the second carrying a backlog phrase with no marker of its own,
+scores the second **live**; the same fixture scores it not-live under the
+`L`/`L-1` rule, so the fixture distinguishes the two rules; re-running the
+screen over `docs/ws/*/verification.md` reports its counts with the item-scoped
+rule and no count is asserted that was not measured by that run.
 [Priority: must]

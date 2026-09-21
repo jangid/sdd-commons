@@ -2,8 +2,8 @@
 domain: PC
 last_updated: 2026-09-21
 status: Approved
-research_refs: [RS-MARKETPLACE-001]
-workstream: marketplace
+research_refs: [RS-MARKETPLACE-001, RS-PACKAGING-002, RS-PACKAGING-003]
+workstream: marketplace, packaging
 ---
 
 # Requirements: Pre-Commit Hooks
@@ -102,4 +102,38 @@ to every reader of the corpus and to every skill that must comply with it.
 (whose rules live in their own requirement domains) or one of the four upstream
 hygiene hooks; no hook entry carries a custom `args` value that narrows or
 extends a rule beyond what the tool's own requirements state.
+[Priority: must]
+
+### REQ-PC-PACKAGING-001: Both local hook entries take the `plugins/sdd/` prefix at the move
+Both `repo: local` hook entries in `.pre-commit-config.yaml` — the drift sweep
+and the skill linter — must have their `entry` script paths prefixed with
+`plugins/sdd/` in the **same change** that performs the root move
+(REQ-PKG-PACKAGING-001). Editing one and not the other leaves the commit gate
+invoking a dead path for the unedited hook, which fails the gate for a reason
+unrelated to the contributor's change. The hooks' other fields are unchanged:
+each still runs once per commit over the repository (`pass_filenames: false`,
+`always_run: true`) and still fails the commit exactly when its tool exits
+non-zero, per REQ-PC-MARKETPLACE-002. The drift sweep's root argument is a
+separate concern and is governed by REQ-PKG-PACKAGING-009 — the gate must sweep
+the repository, not the suite. (see `docs/ws/packaging/kickoff.md` §Carried
+repairs; RS-PACKAGING-003 §Scope)
+
+The linter hook's entry stays **zero-argument** — `python3
+plugins/sdd/tools/skill-lint.py`, the prefix being the only edit. That is
+correct only because REQ-PKG-PACKAGING-002 requires the corpus root to default
+to the **invocation cwd**; were it left defaulting to the script's own
+location, the prefixed zero-argument entry would take `plugins/sdd` as its
+corpus and the gate would stop sweeping `docs/spec/`, `docs/requirements/` and
+the rest of the corpus, silently and with a green exit. The two requirements
+are therefore one change, and the observation below is stated here as well as
+there.
+**Acceptance**: every `entry` value parsed from the two local hook entries names
+a path that exists after the move, checked by `test -f` per parsed path rather
+than against a written-out list; the linter hook's parsed `entry` carries no
+positional root argument; running that parsed `entry` verbatim from the
+repository root after the move sweeps a set that includes at least one
+`docs/spec/` path, asserted by membership on the swept set derived at run time
+rather than on the exit code; `pre-commit run --all-files` exits 0 on the
+repository at the close of this cycle; reverting the prefix on either hook alone
+makes that hook fail with a missing-file error.
 [Priority: must]
