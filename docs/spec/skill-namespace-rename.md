@@ -65,13 +65,24 @@ therefore forbidden after the rename: any `skills/<other-skill>/…` path, and i
 particular the `skills/<other-skill>/references/<file>` form, which the linter
 treats as fail severity.
 
-### The live rename scope is exactly six areas
+### The live rename scope is the live corpus, enumerated
 
-The rename covers exactly:
+The rename covers exactly the areas that describe the system as it is now, and
+the enumeration is the rule's population — an area left out is not policed at
+all. At the close of this cycle those areas are:
 
 ```
-skills/   tools/   docs/spec/   docs/requirements/   CLAUDE.md   the README
+skills/   tools/   agents/   .claude-plugin/   docs/spec/   docs/requirements/
+CLAUDE.md   README.md   README.org   CONTRIBUTING.md   LICENSE   .pre-commit-config.yaml
 ```
+
+The set is **open**: it was six areas when it was first written, and grew when
+this cycle added `agents/`, the plugin manifest directory and three root-level
+files. Adding a live area to the repository without adding it here silently
+un-polices it, which is a failure mode the enumeration exists to prevent
+(Q-IMPL-MARKETPLACE-022), and the linter's self-test pins the population
+independently of the constant the rule reads, so deleting an area fails the
+suite rather than passing quietly (Q-IMPL-MARKETPLACE-023).
 
 These are the **live** corpus — the documents that describe the system as it is
 now. The scope is stated explicitly in the plan so a later verifier can
@@ -175,7 +186,7 @@ scope boundaries carried in the rule beside the scope list, not occurrence
 allowlists, and the exemption list stays at four entries.
 
 The alternative — storing the fixture under `tools/fixtures/` — is rejected
-because `tools/` is one of the six live rename-scope areas: the live sweep would
+because `tools/` is one of the enumerated live rename-scope areas: the live sweep would
 flag the fixture's deliberate bare occurrence, and the exemption list (four
 documents, none of them a fixture) does not and should not cover it. Extending
 the list to a fixture would make the rule exempt the one file written to prove it
@@ -228,7 +239,7 @@ nested `.worktrees/` path.
 - [ ] For every directory under `skills/` containing a `SKILL.md`: the basename does not match `RETIRED`, and the file's frontmatter `name` string-equals the basename — both read from disk at run time. `python3 tools/skill-lint.py` exits 0 (REQ-NAME-MARKETPLACE-001).
 - [ ] A run-time grep over `skills/` for a cross-skill reference of the form `skills/<other-skill>/…` returns zero matches, and the same grep for the `skills/<other-skill>/references/<file>` form likewise returns zero (REQ-NAME-MARKETPLACE-002).
 - [ ] `ls tools/*.py` yields no filename matching `RETIRED`; each renamed tool's `--help` exits 0; a run-time grep over the live rename scope for a prefixed `tools/` path returns zero matches outside the exemption set; `git log --follow` resolves each renamed tool to its pre-rename history; and a grep of each renamed tool's own source for its retired filename returns zero matches (REQ-NAME-MARKETPLACE-003).
-- [ ] A run-time grep for `RETIRED` over exactly the six live areas returns zero matches outside the exemption set, **and** the same grep over `docs/ws/` (excluding `docs/ws/marketplace/`), `docs/research/` and `docs/superpowers/` returns a non-zero count (REQ-NAME-MARKETPLACE-004, REQ-NAME-MARKETPLACE-005).
+- [ ] A run-time grep for `RETIRED` over every area of the enumerated live scope — the enumeration read from the rule itself, not retyped — returns zero matches outside the exemption set, **and** the same grep over `docs/ws/` (excluding `docs/ws/marketplace/`), `docs/research/` and `docs/superpowers/` returns a non-zero count (REQ-NAME-MARKETPLACE-004, REQ-NAME-MARKETPLACE-005).
 - [ ] `git diff --name-only` over the implementing change lists no path under `docs/ws/`, `docs/research/` or `docs/superpowers/`, except paths under `docs/ws/marketplace/` (REQ-NAME-MARKETPLACE-005).
 - [ ] `CONTRIBUTING.md` contains a statement naming both the retired and the namespaced naming form and identifying the pre-marketplace corpus as the set that keeps the retired one (REQ-NAME-MARKETPLACE-006).
 - [ ] The plan orders a rename chunk strictly before every scaffold chunk, checkable by reading the plan's chunk order; at the close of the rename chunk, and before any manifest file exists (`test ! -e .claude-plugin/marketplace.json`), the skill linter exits 0 and the drift sweep's report contains no finding absent from the recorded entry-sweep output (REQ-NAME-MARKETPLACE-007).
@@ -250,7 +261,7 @@ also requires the list to stay short and to name "the documents whose subject
 
 **Decision**: add `docs/spec/skill-namespace-rename.md` as a fourth entry. It is
 this cycle's design document *for* the rule, it lives inside `docs/spec/` — one
-of the six live rename-scope areas its own rule sweeps — and it is exactly the
+of the enumerated live rename-scope areas its own rule sweeps — and it is exactly the
 class of document the requirement's own phrasing describes. The list stays at
 four entries and the "no general allowlist, no per-occurrence suppression"
 constraint is untouched.
@@ -331,7 +342,7 @@ retired spelling.
 
 ### Q-IMPL-MARKETPLACE-006: A path into the excluded corpus is quoted, not rewritten
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §The live rename scope is exactly six areas
+**Spec reference**: §The live rename scope is the live corpus, enumerated
 **Date**: 2026-09-21 (implement stage, Chunks 1–2)
 
 **Context**: live documents cite artifacts in the deliberately excluded corpus —
@@ -364,13 +375,13 @@ per-occurrence allowlist, and the self-exemption list stays at its four
 documents. The self-test asserts the boundary directly: a synthesized fixture
 file under `tools/fixtures/` is absent from the walked set.
 
-**Impact**: the rule's live scope is the six areas minus one frozen fixture
+**Impact**: the rule's live scope is the enumerated areas minus one frozen fixture
 directory. Anything a future cycle unfreezes is swept again by deleting one
 tuple entry.
 
 ### Q-IMPL-MARKETPLACE-008: The derived aggregate traceability is outside the walked scope
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §The live rename scope is exactly six areas
+**Spec reference**: §The live rename scope is the live corpus, enumerated
 **Date**: 2026-09-21 (implement stage, Chunk 2)
 
 **Context**: `docs/requirements/traceability.md` sits inside a live area and
@@ -388,8 +399,31 @@ make a swept aggregate stable would be to sweep the per-workstream sources,
 which REQ-NAME-MARKETPLACE-005 forbids and whose verification asserts that no
 `docs/ws/` path appears in the implementing change at all.
 
-**Impact**: the rule's live scope is the six areas minus one frozen fixture
+**Impact**: the rule's live scope is the enumerated areas minus one frozen fixture
 directory and one derived file. The aggregate keeps the retired spellings its
 per-workstream sources record — the same historical-fidelity argument the
 exclusion rests on — and regeneration stays a no-op rename-wise. A future cycle
 that sweeps `docs/ws/` removes this boundary with the entry it added.
+
+### Q-IMPL-MARKETPLACE-022: the live scope grew past the original six areas
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The live rename scope is the live corpus, enumerated
+**Decision**: `agents/`, `.claude-plugin/`, `CONTRIBUTING.md`, `LICENSE` and
+`.pre-commit-config.yaml` join the rule's walked scope. The wording "exactly six
+areas" was written before those areas existed; the invariant it was protecting
+is that the scope is *enumerated and re-derivable*, not that it has six members.
+**Impact**: a bare retired name injected into an agent file, the plugin manifest
+or a root-level config is now a finding instead of linting clean; the spec and
+the requirement are reworded with the code so the stated scope and the enforced
+scope agree.
+
+### Q-IMPL-MARKETPLACE-023: the self-test pins the policed population independently
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The live rename scope is the live corpus, enumerated
+**Decision**: the linter's self-test carries its own literal enumeration of the
+policed areas, asserts the rule's constants equal it, and seeds one bare
+occurrence in every area, requiring one finding per non-exempt area.
+**Rationale**: a fixture that derived its expectation from the same constant the
+rule reads would shrink with it — the population assertion has to come from
+somewhere the mutation cannot reach, which is why the enumeration is duplicated
+into the fixture rather than imported.

@@ -137,7 +137,10 @@ that varies per dispatch; what moves is the role's standing definition, because
 that does not. Two copies of a role's rules drift, and the harness has no
 mechanism that would detect the drift.
 **Acceptance**: no rule text appears both in an agent file and in its dispatch
-template; each template retains its pinned `RETURN:` block verbatim, which the
+template, derived at run time rather than by reading: no word sequence of eight
+or more words from an agent file's rule section occurs in that agent's dispatch
+template, both sides normalised for whitespace and case and both read from disk;
+each template retains its pinned `RETURN:` block verbatim, which the
 linter already checks; the behavioural contract of every gate token is unchanged,
 confirmed by the linter's contract rows passing unmodified in number.
 [Priority: must]

@@ -193,12 +193,23 @@ post-change `tools/*.py` to its pre-change history, and the count of
 Every invocation of a bundled tool from a skill body must reach the
 **operator's own repository** as its root, never the plugin's:
 
-- **Drift sweep** — invoked with an explicit root argument naming the current
-  directory. Without it the tool defaults to its own script location and would
-  sweep the plugin's copy, returning a false green about the user's repository.
-- **Telemetry tool** — continues to rely on its cwd-relative default file path
-  and is **not** given a plugin-relative path, because the telemetry file is
-  written into and read from the operator's repository.
+The **binary** and the **subject** are two separate resolutions, and an
+invocation needs both to be right:
+
+- **Drift sweep** — the path to the script is **skill-directory-relative**
+  (`<skill-dir>/tools/gc.py`, where `<skill-dir>` is the driver skill's own
+  directory), so the copy REQ-PKG-MARKETPLACE-006 bundles is the copy that runs
+  and the invocation still resolves in a consumer repository that has no
+  repository-root `tools/` directory. It is invoked with an explicit root
+  argument naming the current directory. Without it the tool defaults to its own
+  script location and would sweep the plugin's copy, returning a false green
+  about the user's repository. Bundling a tool that nothing resolves to is a
+  dead copy; keeping `--root .` on a bundled binary is what keeps the subject
+  the operator's tree — the two properties are required together
+  (Q-IMPL-MARKETPLACE-024).
+- **Telemetry tool** — continues to rely on its cwd-relative default **file**
+  path and is **not** given a plugin-relative path for that file, because the
+  telemetry file is written into and read from the operator's repository.
 
 What counts as an *invocation* for that grep is the same test this spec already
 applies to the contributor tools — an occurrence carrying a shell invocation
@@ -209,6 +220,21 @@ Neither tool's source is edited to satisfy this. The packaging step makes **no**
 behavioural and no source change to either tool; the only permitted source edit
 to them in this cycle is the rename of their self-referential name strings,
 which happens earlier, in the rename step (REQ-NAME-MARKETPLACE-003).
+
+**One narrowing, and only one (Q-IMPL-MARKETPLACE-026).** Bundling the sweep so
+it *resolves* is not the same as bundling it so it *works*: run from a consumer
+repository the bundled sweep first died for a missing linter, and once the
+linter was bundled beside it, it reported this repository's suite-specific
+contract rows as ~40 "file missing entirely" findings about the consumer's tree.
+The telemetry tool's source therefore stays frozen unconditionally, while the
+drift sweep's source is frozen **apart from a single provenance conditional**:
+when the linter was resolved as a sibling of the running script and that sibling
+directory is not the subject root's own `tools/`, the sweep runs the linter with
+its suite-specific rows off. A run from this repository's own `tools/` directory
+is unchanged, and the condition is derived from paths at run time — no flag, no
+environment variable, no config file. The skill linter is bundled beside the
+sweep as a **file**, not declared as a plugin component: the component list
+still omits it, as REQ-PKG-MARKETPLACE-005 requires.
 
 ### No skill body depends on the plugin-root variable
 
@@ -279,7 +305,9 @@ root with any nested `.worktrees/` path excluded from tree walks.
 - [ ] `grep -rnE '(^|[^A-Za-z0-9._/-])(/|~/|\$\{?[A-Z_]*PLUGIN_ROOT)[A-Za-z0-9._/-]*docs/' --include='*.md' skills/` returns no match, and the manifest check above shows no `docs/` path (REQ-PKG-MARKETPLACE-004).
 - [ ] A run-time grep over `skills/` for an invocation prefix (`python3 ` or `./`) of any of the three contributor tools returns zero matches, and none of the three appears in the manifest component list (REQ-PKG-MARKETPLACE-005).
 - [ ] For each of the two bundled tools: `cmp` against the repository-root file exits 0 and `test ! -L` succeeds on the bundled copy. `git log --follow` resolves every post-change `tools/*.py` to pre-change history, and `ls tools/*.py | wc -l` after is not less than the same count taken at the cycle's entry commit — both sides derived by command (REQ-PKG-MARKETPLACE-006).
-- [ ] Every drift-sweep invocation found in `skills/` by a run-time grep carries an explicit root argument; no telemetry invocation in `skills/` passes a file path beginning with a skill or plugin directory; `git diff <rename-chunk-close-sha> HEAD -- tools/<drift sweep> tools/<telemetry tool>` is empty (REQ-PKG-MARKETPLACE-007).
+- [ ] At least one drift-sweep invocation under `skills/` resolves to the **bundled** copy: a run-time grep over `skills/**/*.md` for invocations of the sweep returns a non-empty set whose script path is skill-directory-relative rather than cwd-relative, and the file that path names exists under the driver skill's own directory — derived by command, no count pinned (REQ-PKG-MARKETPLACE-006).
+- [ ] Every drift-sweep invocation found in `skills/` by a run-time grep carries an explicit root argument; no telemetry invocation in `skills/` passes a file path beginning with a skill or plugin directory; `git diff <rename-chunk-close-sha> HEAD -- tools/<telemetry tool>` is empty, and the same diff over `tools/<drift sweep>` contains the provenance conditional (Q-IMPL-MARKETPLACE-026) and no other hunk (REQ-PKG-MARKETPLACE-007).
+- [ ] A scratch consumer repository built at run time with a `docs/` corpus and no `tools/` directory, swept with the driver skill's documented bundled invocation, exits non-2 and its finding set contains no finding from a rule keyed to this repository's contract rows — both the exit code and the rule set derived from the run's own output (REQ-PKG-MARKETPLACE-007).
 - [ ] A run-time grep for the plugin-root variable name over `skills/**/*.md` returns no match outside a fenced code block documenting its manifest-only scope (REQ-PKG-MARKETPLACE-008).
 - [ ] `CONTRIBUTING.md` contains a paragraph stating that spec citations inside skills resolve in the repository, not in an installed plugin; the same `docs/spec/*.md` citation grep over `skills/` yields the same count before and after the packaging change (REQ-PKG-MARKETPLACE-009).
 - [ ] The verification report records, as observations with their commands: the install command run, the namespaced skill names the session listed, and the name of the `references/*.md` file read from the installed copy (REQ-PKG-MARKETPLACE-010).
@@ -376,3 +404,46 @@ is confined to the local-path mechanism and never reaches a user installing from
 the marketplace. Informational: it changes no contract, but silently reusing a
 local-path install without knowing it would be a way to leak local state into a
 copy that looks like a clean install.
+
+### Q-IMPL-MARKETPLACE-024: the bundled sweep is reached by a skill-directory-relative path
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Root resolution for skill-side invocations
+**Decision**: The driver skill's drift-sweep invocations name the script as
+`<skill-dir>/tools/gc.py` — skill-directory-relative, `<skill-dir>` defined in
+the skill body as the directory holding its `SKILL.md` — and keep the explicit
+`--root .`. The plugin-root environment variable is not used, per §No skill body
+depends on the plugin-root variable. The telemetry tool's binary path is left
+cwd-relative, so the REQ-PKG-MARKETPLACE-007 grep over telemetry invocations
+still sees no path beginning with a skill or plugin directory.
+**Impact**: the bundled sweep becomes reachable from an installed plugin rather
+than byte-identical but dead; the acceptance criterion above measures
+resolution, not only the copies' file properties.
+
+### Q-IMPL-MARKETPLACE-026: the bundled sweep gets a provenance conditional, narrowing a passing criterion
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Root resolution for skill-side invocations; §Acceptance Criteria, the REQ-PKG-MARKETPLACE-007 criteria
+**Decision**: Bundle `tools/skill-lint.py` beside the bundled sweep as a regular
+file (byte-identical, never a symlink, not a plugin component), and add one
+conditional to the drift sweep: when the linter it resolves is a **sibling of the
+running script** and that sibling directory is not the subject root's own
+`tools/`, run the linter with its suite-specific contract rows off. Narrow
+REQ-PKG-MARKETPLACE-007's source freeze accordingly — the telemetry tool's source
+stays frozen unconditionally, the sweep's source is frozen apart from this
+conditional — and keep the criterion rather than deleting it.
+**Rationale**: Two alternatives were weighed and rejected. *Bundling the linter
+alone* makes the consumer-repo sweep run and report ~40 spurious `[required]`
+"file missing entirely" findings drawn from this repository's own contract rows —
+a **misleading success**, which is worse than the clean failure (`exit 2`,
+"linter missing") it would replace, because an operator cannot tell the spurious
+rows from real ones. *Deferring* leaves the bundled sweep shipped and unusable
+from the install this cycle publishes. The conditional is derived from paths at
+run time — no flag, environment variable or config file — so this repository's own
+`python3 tools/gc.py --root .` behaves exactly as before, measured by an identical
+finding set against the pre-change script.
+**Impact**: this amends a criterion the red round had already verified and
+passed. The operator was shown that cost on 2026-09-21 and accepted it: a
+criterion that is true but guards the wrong object is the failure mode this
+cycle's measurement discipline exists to catch, so the honest move is to narrow
+the criterion with the reason stated and add a criterion that measures what was
+actually missing — a consumer-repository run. The freeze is narrowed, not
+dropped: any further edit to either tool remains outside it.

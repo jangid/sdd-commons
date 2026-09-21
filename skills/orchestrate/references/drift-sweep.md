@@ -18,12 +18,24 @@ never a phase-detection input.
 ## 1. Entry — before the picker (marker `4`) / before phase detection (marker `3`)
 
 ```
-run:     python3 tools/gc.py --report --root .   # exit 0 | 1 | 2
+run:     python3 <skill-dir>/tools/gc.py --report --root .   # exit 0 | 1 | 2
 render:  GC: clean                                    # exit 0 and summary `OK: … 0 warning(s) …`
          GC: F fail, W warn — run tools/gc.py --report   # otherwise (exit 1, or warnings)
          GC: unavailable (<first stdout line>)        # exit 2 — usage / repository error
 then:    open the workstream picker (marker 4) / derive loop position (marker 3) REGARDLESS
 ```
+
+`<skill-dir>` is **this skill's own directory** — the one holding its
+`SKILL.md` — so the sweep that runs is the copy bundled with the driver
+(`tools/gc.py` beside `references/`, REQ-PKG-MARKETPLACE-006), which travels
+with an install and is reachable from a consumer repository that has no
+`tools/` directory of its own. The path is skill-directory-relative and never
+resolved through the plugin-root environment variable, which no skill body may
+depend on (`docs/spec/marketplace-packaging.md` §No skill body depends on the
+plugin-root variable). `--root .` stays explicit and stays separate: it names
+the **subject** of the sweep — the operator's current repository — so the
+bundled binary never sweeps the plugin's own tree
+(Q-IMPL-MARKETPLACE-024).
 
 `F` and `W` are read from the tool's own summary line (`FAIL: F finding(s), W
 warning(s), I info` / `OK: N sweep(s) clean, W warning(s), I info`) — never
@@ -35,14 +47,14 @@ workstream is visible before the picker.
 ## 2. DONE — after the verify stage passes review and the operator approves
 
 ```
-run:     python3 tools/gc.py --report --root . [--workstream <id>]   # marker 4: the completed workstream
+run:     python3 <skill-dir>/tools/gc.py --report --root . [--workstream <id>]   # marker 4: the completed workstream
 render:  the tool's findings verbatim (linter shape; WARN / INFO prefixes) + its summary line
 route:   per the table below, one decision per finding class
 ```
 
 | Finding class | Rules | Gate action |
 |---|---|---|
-| mechanical | `xlink-dead` (unique resolution), `index-requirements` row, `traceability-aggregate`, `plan-history-name` | `python3 tools/gc.py --fix <rule> --root .`; the **operator** reviews the printed paths and commits the rewrite (REQ-HARN-024) — the driver never commits a `--fix` |
+| mechanical | `xlink-dead` (unique resolution), `index-requirements` row, `traceability-aggregate`, `plan-history-name` | `python3 <skill-dir>/tools/gc.py --fix <rule> --root .`; the **operator** reviews the printed paths and commits the rewrite (REQ-HARN-024) — the driver never commits a `--fix` |
 | needs a decision | `qimpl-broken-ref`, `stale-chain`, `traceability-aggregate` (when the per-ws inputs themselves look wrong), `spec-approval`, `trace-empty`, `kickoff-fields`, `id-missing`, `qimpl-undefined`, `index-research`, `lint` pass-through | `record \| ignore` (§3) |
 | out of scope | sweep 15 (skill-text drift from spec wording; semantic orphaning — named in `--help`) | note only |
 | informational | `qimpl-unreferenced` | shown, no decision |
@@ -93,6 +105,6 @@ already skips fenced content — never a gc allowlist entry
 - turn a finding into a plan task, a `docs/gc/` file or an issues list;
 - pass its output to a leaf or a reviewer as context (paths only, as ever).
 
-The optional pre-commit profile `python3 tools/gc.py --fast --root .` (lint +
+The optional pre-commit profile `python3 <skill-dir>/tools/gc.py --fast --root .` (lint +
 cross-links + Q-IMPL, no date or history walk) is a repository choice, not a
 driver step.

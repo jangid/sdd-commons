@@ -39,7 +39,8 @@ existing SDD artifacts, reusing the stage skills' own phase detection.
 `docs/.sdd-version`; if it is behind marker `4`, offer `/migrate` once
 (informational, never forcing —
 [`references/v4-workstreams.md`](references/v4-workstreams.md) §Upgrade offer).
-Then run `python3 tools/gc.py --report --root .`, render one line (`GC: clean` or
+Then run `python3 <skill-dir>/tools/gc.py --report --root .` (`<skill-dir>` = this skill's own directory, so the bundled copy runs; `--root .` keeps the operator's repository the subject),
+render one line (`GC: clean` or
 `GC: F fail, W warn — run tools/gc.py --report`) and continue regardless:
 [`references/drift-sweep.md`](references/drift-sweep.md) §1.
 
@@ -392,7 +393,7 @@ mid-pipeline entry per §Entry Points). In full: [`references/loop-control.md`](
 
 When the verify stage passes review and the operator approves, the cycle is
 DONE. Recommend committing the cycle's artifacts (including the kickoff). Then
-run `python3 tools/gc.py --report --root . [--workstream <id>]`, render its findings
+run `python3 <skill-dir>/tools/gc.py --report --root . [--workstream <id>]`, render its findings
 at the DONE gate and route each — mechanical → `--fix <rule>`;
 needs-a-decision → `record | ignore`; out-of-scope → note — per
 [`references/drift-sweep.md`](references/drift-sweep.md) §2. gc never runs

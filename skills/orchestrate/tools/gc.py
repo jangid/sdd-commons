@@ -504,10 +504,22 @@ class Gc:
                 return cand
         return None
 
+    def bundled_run(self, lint: Path) -> bool:
+        """True when this gc.py is running from a bundled plugin copy against
+        someone else's repository: the linter was resolved as a sibling of the
+        running script, and that sibling directory is not the subject root's own
+        `tools/`.  The suite rules are THIS repository's contract rows, keyed to
+        its own skill paths, so a consumer's tree must be swept without them
+        (REQ-PKG-MARKETPLACE-007).  Derived from paths at run time — no flag, no
+        environment variable, no config."""
+        here = Path(__file__).resolve().parent
+        return lint.resolve().parent == here and here != (self.root / "tools").resolve()
+
     def lint_command(self, lint: Path) -> list[str]:
-        if self.lint_suite_rules:
+        if self.lint_suite_rules and not self.bundled_run(lint):
             return [sys.executable, str(lint), str(self.root)]
-        # Fixture mode: same linter, same output, suite-specific rows off.
+        # Fixture mode / bundled run: same linter, same output, suite-specific
+        # rows off.
         shim = ("import importlib.util, sys; from pathlib import Path; "
                 "s = importlib.util.spec_from_file_location('sdd_skill_lint', sys.argv[1]); "
                 "m = importlib.util.module_from_spec(s); s.loader.exec_module(m); "

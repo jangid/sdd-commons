@@ -516,7 +516,7 @@ loop cap remains the backstop. Rule and fixture:
 - **DONE** (after verify passes review and you approve): the tool's findings
   are shown verbatim with the summary line, and each finding class is routed
   once: **mechanical** (`xlink-dead`, `index-requirements`,
-  `traceability-aggregate`, `plan-history-name`) → `python3 tools/gc.py --root .
+  `traceability-aggregate`, `plan-history-name`) → `python3 <skill-dir>/tools/gc.py --root .
   --fix <rule>` — you review the printed paths and commit; **needs a
   decision** (`stale-chain`, `qimpl-broken-ref`, `trace-empty`, …) → `record |
   ignore`, where `record` appends `- gc <rule>: <file:line> — <fix>` under that
@@ -526,7 +526,7 @@ loop cap remains the backstop. Rule and fixture:
 gc never runs between stages, never blocks a gate, is never scheduled, and
 never creates or modifies a plan task. It never reads `.sdd/telemetry.jsonl`
 (gitignored, orchestrator-only, never read by phase detection). Cadence and
-routing: `references/drift-sweep.md`; the tool: `python3 tools/gc.py --root . --help`.
+routing: `references/drift-sweep.md`; the tool: `python3 <skill-dir>/tools/gc.py --root . --help`.
 
 ### `CATCH-UP` in the write-scope block
 

@@ -174,13 +174,35 @@ strings inside them — `prog=`, the usage block, user-facing hint strings — a
 renamed earlier, in the rename step, under REQ-NAME-MARKETPLACE-003, and that
 rename is the sole permitted source edit. (see RS-MARKETPLACE-001 Q2
 Recommendation item 2)
+
+**Narrowed, 2026-09-21 (operator decision, Q-IMPL-MARKETPLACE-026).** The freeze
+held for the packaging step as designed and was verified; making the bundled
+sweep actually *usable* from a consumer repository then required one source
+change the packaging step could not avoid, so the freeze is narrowed rather than
+dropped. The **telemetry tool's source stays frozen, unconditionally**. The
+**drift sweep's source is frozen apart from a single provenance conditional**:
+when the linter it runs was resolved as a sibling of the running script and that
+sibling directory is not the subject root's own `tools/` — i.e. the sweep is a
+bundled plugin copy running against someone else's repository — it runs the
+linter without this repository's suite-specific contract rows. The reason is
+that those rows are keyed to this repository's own skill paths and would
+otherwise report ~40 spurious "file missing entirely" findings about a
+consumer's tree, which is a **misleading success**, worse than the clean
+failure it replaces. The condition is derived from paths at run time; no flag,
+environment variable or config file is added, and a run from this repository's
+own `tools/` directory behaves exactly as before.
 **Acceptance**: every drift-sweep invocation found in `skills/` by a run-time
 grep carries an explicit root argument; no telemetry invocation in `skills/`
 passes a file path that begins with a skill or plugin directory; `git diff` over
-the two tools' source files across the **packaging step** — measured from the
+the **telemetry tool's** source across the **packaging step** — measured from the
 close of the rename chunk (REQ-NAME-MARKETPLACE-007) to the end of the cycle — is
-empty, so no edit is made to either tool beyond REQ-NAME-MARKETPLACE-003's rename
-of its self-referential name strings.
+empty; the same `git diff` over the **drift sweep's** source is limited to the
+provenance conditional described above, with no other hunk; and no edit is made
+to either tool beyond that conditional and REQ-NAME-MARKETPLACE-003's rename of
+its self-referential name strings. In addition, a scratch consumer repository
+holding a `docs/` corpus and no `tools/` directory, swept with the driver
+skill's documented bundled invocation, does not exit 2 and reports no finding
+from a rule keyed to this repository's contract rows.
 [Priority: must]
 
 ### REQ-PKG-MARKETPLACE-008: No skill body may depend on the plugin-root environment variable

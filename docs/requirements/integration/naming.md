@@ -85,15 +85,20 @@ zero matches, so the `prog=`, usage-block and hint-string occurrences were
 renamed with it.
 [Priority: must]
 
-### REQ-NAME-MARKETPLACE-004: The live rename scope is exactly six areas
-The rename must cover exactly: `skills/`, `tools/`, `docs/spec/`,
-`docs/requirements/`, `CLAUDE.md`, and the README. These are the **live** corpus
-— the documents that describe the system as it is now. The scope must be stated
-explicitly in the plan so that a later verifier can re-derive it rather than
-infer it. (see RS-MARKETPLACE-001 Q4 §Blast radius; kickoff §Decided at DISCUSS)
+### REQ-NAME-MARKETPLACE-004: The live rename scope is the live corpus, enumerated
+The rename must cover every area that describes the system as it is now, and
+that set must be **enumerated** rather than described, because an area left out
+of the enumeration is not policed at all. At the close of this cycle the
+enumeration is `skills/`, `tools/`, `agents/`, `.claude-plugin/`, `docs/spec/`,
+`docs/requirements/`, `CLAUDE.md`, the README, `CONTRIBUTING.md`, `LICENSE` and
+`.pre-commit-config.yaml`; the set is open and MUST grow with any new live area.
+The scope must be stated explicitly in the plan so that a later verifier can
+re-derive it rather than infer it.
+(see RS-MARKETPLACE-001 Q4 §Blast radius; kickoff §Decided at DISCUSS)
 **Acceptance**: after the rename, a run-time grep for the retired skill-name
-prefix over exactly those six areas returns zero matches outside the exemption
-set of REQ-NAME-MARKETPLACE-009; the same grep over the excluded areas of
+prefix over every enumerated area — the enumeration read from the enforcing rule
+itself, never retyped into the check — returns zero matches outside the
+exemption set of REQ-NAME-MARKETPLACE-009; the same grep over the excluded areas of
 REQ-NAME-MARKETPLACE-005 returns a **non-zero** count, confirming the historical
 record was left intact rather than silently swept.
 [Priority: must]
@@ -178,7 +183,13 @@ all. (see RS-MARKETPLACE-001 Q4 §Self-reference hazard)
 **Acceptance**: the linter's `--self-test` fixture contains a bare retired-prefix
 occurrence (flagged), a backticked one (not flagged), a fenced one (not flagged)
 and one in a self-exempt file (not flagged), and the self-test asserts exactly
-that outcome; on the live repository the rule raises zero findings.
+that outcome; the same suite additionally asserts the rule's **policed
+population** — it seeds one bare occurrence in every area of the enumerated live
+scope of REQ-NAME-MARKETPLACE-004 and requires one finding per non-exempt area,
+against an enumeration the fixture carries itself rather than reading from the
+rule, so that deleting an area from the rule's scope makes `--self-test` exit
+non-zero (demonstrated by mutation); on the live repository the rule raises zero
+findings.
 [Priority: must]
 
 ### REQ-NAME-MARKETPLACE-010: The rename dangles existing symlink installs, and says so

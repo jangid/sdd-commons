@@ -416,9 +416,7 @@ Quality-gate commands (from CLAUDE.md): {gate_commands}
 Budget: ≤ 25 tool calls, ≤ 3 test runs, read-only
 Write scope: (empty — read-only)
 Commit ownership: you never commit
-Rules: pick the weakest criteria; construct inputs/commands that violate them; a break counts ONLY
-       with a reproducible `reproduce:` command or test id — otherwise report it as HELD with your
-       suspicion under `observed:`.
+Rules: `agents/red-team.md` §How you judge — the single source; follow it, it is not restated here.
 Return, in this order — one `## Red team — <spec.md>` heading per spec examined, one Rn line per
 attempted criterion, then this RETURN: block (every key present, empties allowed, `status` first),
 then the token on its own last line:
