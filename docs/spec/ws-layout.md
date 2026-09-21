@@ -240,7 +240,7 @@ emits an explicit `overview.md`-update task.
 `detect_phase` pseudocode `if read(docs/.sdd-version) != "4": route to sdd-migrate`.
 **Decision**: The nine skills' step-0 gate is implemented as `if marker == "4":
 <workstream-aware v4 path>  else: <run the existing v3 detection UNCHANGED>` — the
-`else` arm does **not** unconditionally "route to sdd-migrate". `docs/.sdd-version`
+`else` arm does **not** unconditionally "route to migrate". `docs/.sdd-version`
 is the sole gate; a repo at marker `3` (the current live state of this repo) runs
 its existing detection exactly as before, which itself only suggests `sdd-migrate`
 when the marker is missing/v1 — never for a working v3 repo.
@@ -272,7 +272,7 @@ migration/doc consistency) were confirmed by a cross-skill grep sweep of the shi
 `skills/`. Fixtures were deleted; nothing leaked into this repo or its branch. The
 Verified column of the marker-`3` shared 5-column `docs/requirements/traceability.md`
 was filled `pass` for REQ-WS-001..029 (chunk-close Check 2). `docs/verification.md` was
-NOT written — that is the separate sdd-verify STAGE, which Chunk 8 (the plan's own
+NOT written — that is the separate verify STAGE, which Chunk 8 (the plan's own
 holistic verify chunk) precedes.
 **Rationale**: Constraint #1 (v3-solo-safety) forbids flipping this repo's marker, so v4
 behavior must be verified on isolated fixtures rather than in-place. For a meta-feature

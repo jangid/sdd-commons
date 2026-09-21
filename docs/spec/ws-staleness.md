@@ -60,29 +60,29 @@ specs/requirements `ISSUE-42`'s plan traces, ignoring updates to shared inputs n
 `ISSUE-42` task references.
 
 **Per-skill step-0 notes** (RS-007 Q2):
-- **sdd-plan / sdd-implement**: the multi-milestone branch generalizes verbatim; the
+- **plan / implement**: the multi-milestone branch generalizes verbatim; the
   single-plan branch becomes the `default` workstream case.
-- **sdd-implement**: the v3 caveat "the index-level `docs/plan.md` is not subject to
+- **implement**: the v3 caveat "the index-level `docs/plan.md` is not subject to
   this check" is dropped — there is no plan index in v4; workstreams are selected via
   the orchestrate picker (`ws-orchestration.md`), not a `plan.md` table.
-- **sdd-replan**: references milestone-scoped staleness **by name only**, so re-pointing
+- **replan**: references milestone-scoped staleness **by name only**, so re-pointing
   that reference at this workstream-scoped definition suffices; no new traversal.
 
 **Why generalize rather than rewrite**: RS-007 Q2 showed the milestone traversal is the
 same chain with a different scope key; reusing it keeps three skills' step-0 logic
 identical in structure and avoids divergent staleness definitions.
 
-### New Per-Workstream Staleness Branches for sdd-specs and sdd-verify (REQ-WS-027)
+### New Per-Workstream Staleness Branches for specs and verify (REQ-WS-027)
 
 `sdd-specs` and `sdd-verify` have no scoped branch today and gain new per-workstream
 logic, using the milestone traversal as the template:
 
-- **sdd-verify**: gains a **new** workstream-scoped branch comparing a workstream's
+- **verify**: gains a **new** workstream-scoped branch comparing a workstream's
   `docs/ws/<id>/plan.md` / `docs/ws/<id>/verification.md` **only** against the shared
   specs/requirements that workstream traces (via the same live plan-walk as REQ-WS-026).
   It must not report staleness from shared-input changes outside that workstream's
   traced set.
-- **sdd-specs**: must **stop treating the flat plan as a monolith**. Under v4, specs are
+- **specs**: must **stop treating the flat plan as a monolith**. Under v4, specs are
   shared and there are N per-workstream plans, so `sdd-specs` no longer compares against
   a global `docs/plan.md`. It either **defers plan staleness to `sdd-plan`** (the
   recommended, lowest-cost resolution) or gains a per-workstream branch. This spec
@@ -124,15 +124,15 @@ research regardless of which workstream is active.
   independent of any workstream.
 
 ### Acceptance Criteria
-- [ ] Milestone-scoped staleness generalized to workstream scope in sdd-plan/
-      sdd-implement/sdd-replan by swapping plan path and scope key; chain unchanged
+- [ ] Milestone-scoped staleness generalized to workstream scope in plan/
+      implement/replan by swapping plan path and scope key; chain unchanged
       (REQ-WS-026)
 - [ ] Staleness scope computed live from the workstream's plan, no new traceability
       column, no traceability-file read (REQ-WS-026)
 - [ ] `sdd-verify` gains a workstream-scoped branch comparing only the workstream's
       traced shared inputs (REQ-WS-027)
 - [ ] `sdd-specs` stops treating the flat plan as a monolith (defers plan staleness to
-      sdd-plan) (REQ-WS-027)
+      plan) (REQ-WS-027)
 - [ ] research→requirements staleness stays shared/workstream-independent; only the
       research ID pattern changes (REQ-WS-028)
 - [ ] Markdown well-formed; frontmatter valid
@@ -143,4 +143,4 @@ research regardless of which workstream is active.
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Generalize Milestone-Scoped Staleness to Workstream Scope (REQ-WS-026), §New Per-Workstream Staleness Branches (REQ-WS-027), and plan Chunk 3 tasks 1–3.
 **Decision**: The workstream-scoped traversal is added as an additional **marker-`4`-gated bullet** appended to each skill's existing step-0 staleness check item (`sdd-plan` item 3, `sdd-implement` item 4, `sdd-replan` item 5, `sdd-verify` item 2, `sdd-specs` item 2), leaving the marker-`3` single-/multi-milestone bullets byte-unchanged above it, rather than rewriting the check into a version-forked block. Consistent with the Chunk 0 step-0 gate style and the marker-`3`-behavior-retained requirement. For `sdd-verify`'s regression base, Chunk 3 only re-points the note toward Chunk 4: the added note states the `merge-base(<ws>, main)` formula for orientation but attributes the full re-anchored regression-base contract (REQ-WS-018) to Chunk 4 / `ws-integration.md`, which owns that change — Chunk 3 does not modify the actual diff mechanics.
-**Rationale**: Additive marker-`4` bullets keep the v3 solo path provably unchanged (the sole `.sdd-version` gate selects the branch) and mirror how Chunks 0–2 threaded marker-`4` behavior, avoiding a divergent step-0 structure. The verify regression-base pointer stays a pointer because Chunk 3's scope is staleness, not the git integration/regression-base re-anchor (Chunk 4, REQ-WS-018); stating the formula inline aids the reader without pre-empting Chunk 4's edit. The milestone→workstream generalization held verbatim for all three of sdd-plan/sdd-implement/sdd-replan (chain identical; sdd-implement only drops an inapplicable caveat; sdd-replan is a by-name reference), so replan trigger #3 did not fire.
+**Rationale**: Additive marker-`4` bullets keep the v3 solo path provably unchanged (the sole `.sdd-version` gate selects the branch) and mirror how Chunks 0–2 threaded marker-`4` behavior, avoiding a divergent step-0 structure. The verify regression-base pointer stays a pointer because Chunk 3's scope is staleness, not the git integration/regression-base re-anchor (Chunk 4, REQ-WS-018); stating the formula inline aids the reader without pre-empting Chunk 4's edit. The milestone→workstream generalization held verbatim for all three of plan/implement/replan (chain identical; implement only drops an inapplicable caveat; replan is a by-name reference), so replan trigger #3 did not fire.

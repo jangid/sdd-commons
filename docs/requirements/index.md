@@ -1,7 +1,7 @@
 ---
-version: "18.0"
+version: "20.0"
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-21
 traceability: traceability.md
 ---
 
@@ -10,7 +10,7 @@ traceability: traceability.md
 ## Summary
 
 Requirements for SDD (Spec-Driven Development) skill improvements in the
-tools-skills-agents repository. Covers eleven scopes:
+tools-skills-agents repository. Covers twelve scopes:
 
 1. **v2 artifact structure** (RS-001): Research structure, requirements
    splitting, plan management, staleness detection, migration, and per-skill
@@ -21,7 +21,7 @@ tools-skills-agents repository. Covers eleven scopes:
 3. **v3 migration** (RS-003): Migration path from v2 to v3 — plan vocabulary
    rename, version marker update, backward compatibility, documentation
    consistency.
-4. **External review** (RS-004): Formal sdd-review skill for structured
+4. **External review** (RS-004): Formal review skill for structured
    out-of-session review at phase boundaries — phase detection, report
    format, session isolation, scope-completeness checking.
 5. **Orchestration driver** (RS-005): `sdd-orchestrate` driver skill running
@@ -100,6 +100,24 @@ tools-skills-agents repository. Covers eleven scopes:
    Q-IMPL-HARNESSP4 fold-ins and the four `[qimpl-broken-ref]` routings (QIMPL);
    and size housekeeping — every `SKILL.md` under 400 lines, `telemetry.md`
    split, REQ-LINT-003/-007 baselines "none" / "under 400" (LINT).
+12. **Marketplace release** (RS-MARKETPLACE-001, workstream `marketplace`): the
+   first cycle of product work after the harness-hardening series closed — the
+   repository becomes the publicly installable `sdd-commons` marketplace
+   carrying one umbrella `sdd` plugin declared over the existing tree
+   (`"source": "./"`, explicit component list, `docs/` and the three contributor
+   tools excluded by absence from it; PKG); the skills and tools drop their now
+   redundant `sdd-` prefix and surface as `sdd:orchestrate`, with the live
+   corpus renamed, the closed-cycle record deliberately left intact, and a lint
+   rule guarding the retirement whose self-exemption mechanism is stated in the
+   requirement rather than left to implementation (NAME); the
+   `.pre-commit-config.yaml` the repository has been missing since harness-p4
+   runs the drift sweep's fast profile, the skill linter and four hygiene hooks,
+   with the three fixture-driven self-tests deliberately out of the commit path
+   (PC); an MIT `LICENSE`, a `CONTRIBUTING.md` and a real `README.md` with a
+   usage section replace the structure-only `README.org` (DOCS); and the chunk
+   verifier, red team and reviewer are extracted from the dispatch templates
+   into three dispatchable agent files under a frontmatter contract measured
+   across thirty-two first-party agent files (AGENT).
 
 ## Stakeholders
 
@@ -129,11 +147,16 @@ tools-skills-agents repository. Covers eleven scopes:
 | functional | [adversarial-verify.md](functional/adversarial-verify.md) | REDB | REQ-REDB-HARNESSP2-001..009, REQ-REDB-HARNESSP3-001..004, REQ-REDB-HARNESSP4-001 | Approved | 2026-09-18 |
 | functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009, REQ-TELEM-HARNESSP3-001..002, REQ-TELEM-HARNESSP4-001..008, REQ-TELEM-HARNESSP5-001..008 | Approved | 2026-09-19 |
 | functional | [cycle-identity.md](functional/cycle-identity.md) | CYCID | REQ-CYCID-HARNESSP3-001..002, REQ-CYCID-HARNESSP4-001..002 | Approved | 2026-09-18 |
+| functional | [agents.md](functional/agents.md) | AGENT | REQ-AGENT-MARKETPLACE-001..006 | Approved | 2026-09-21 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
 | non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
 | integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001, REQ-GC-HARNESSP6-001..004 | Approved | 2026-09-20 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
 | integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003 | Approved | 2026-09-20 |
+| integration | [naming.md](integration/naming.md) | NAME | REQ-NAME-MARKETPLACE-001..010 | Approved | 2026-09-21 |
+| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010 | Approved | 2026-09-21 |
+| integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006 | Approved | 2026-09-21 |
+| integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005 | Approved | 2026-09-21 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
 
 > **ORCH delta note:** The ORCH domain mixes shipped requirements (REQ-ORCH-001..015,
@@ -413,6 +436,72 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Sweep block 2 — five `docs/ws/harness-p5/verification.md` §Next Steps items | annotated in place in that report with dated bracketed markers |
 | Sweep — three new settled exclusions recorded with reasoning | §Out of Scope below |
 
+> **marketplace delta note (marker 4, workstream `marketplace`):** the five new
+> domains `PKG`, `NAME`, `PC`, `DOCS` and `AGENT` are the RS-MARKETPLACE-001
+> delta added at the requirements phase on 2026-09-21. Their ids carry the
+> `MARKETPLACE` workstream token per `docs/spec/ws-ids.md`; their traceability
+> rows are owned by `docs/ws/marketplace/traceability.md` and aggregated into
+> `traceability.md`. They are **not yet specced or implemented**; their
+> traceability columns are intentionally blank. Standing constraints they must
+> not contradict: no phase skill's or the driver's **behavioural** contract
+> changes this cycle — the work moves, renames and packages them (a rename that
+> changes a contract is a defect, not scope); REQ-HARN-027 as amended (no new
+> durable artifact type under `docs/`); and the closed-cycle record under
+> `docs/ws/` and `docs/research/` is not rewritten. **Evidence classes:**
+> REQ-PKG-MARKETPLACE-004 and -005 rest on exhaustive greps plus reads of both
+> tools' root resolution (Confidence High); REQ-PKG-MARKETPLACE-002's
+> `"source": "./"` leg rests on **one** observed marketplace and is
+> demonstrated-possible rather than surveyed-best-practice (Confidence Medium);
+> REQ-PKG-MARKETPLACE-008 is a **negative over a sample of three** installed
+> marketplaces, not a documented guarantee, and the requirements it supports are
+> deliberately robust to its being wrong; REQ-AGENT-MARKETPLACE-001 rests on a
+> positive reproducible observation (seven installed agent files, seven
+> dispatchable types — Confidence High) while REQ-AGENT-MARKETPLACE-002's field
+> list is frequency evidence over thirty-two first-party files, which proves a
+> field **permitted**, not optional-by-spec (Confidence Medium-high).
+> REQ-PKG-MARKETPLACE-010 is the one item whose premise was **not** observable
+> at research time and is therefore written as a required install observation
+> with a replan trigger, not as an accepted limitation. Plan ordering
+> constraint: the NAME rename lands **before** every packaging chunk
+> (REQ-NAME-MARKETPLACE-007).
+
+### marketplace item coverage (kickoff §Scope, §Decided at DISCUSS and RS-MARKETPLACE-001 Q1-Q5, none dropped)
+
+| Kickoff / findings item | Requirement(s) |
+|---|---|
+| Scope (1) `.pre-commit-config.yaml` with the two repo tools | REQ-PC-MARKETPLACE-001..002 |
+| Scope (1) the four standard hygiene hooks | REQ-PC-MARKETPLACE-003 |
+| Scope (1) the three heavier self-tests stay out of the commit path | REQ-PC-MARKETPLACE-004 |
+| Scope (2) `.claude-plugin/marketplace.json` makes the repo a marketplace | REQ-PKG-MARKETPLACE-001 |
+| Scope (2) the plugin manifest | REQ-PKG-MARKETPLACE-002 |
+| Scope (2) explicit component list | REQ-PKG-MARKETPLACE-003 |
+| Scope (2) `docs/` excluded from the plugin | REQ-PKG-MARKETPLACE-004 (with -009 for the accepted citation gap) |
+| Scope (2) the two runnable tools bundled | REQ-PKG-MARKETPLACE-006..007 |
+| Scope (2) MIT `LICENSE`, `CONTRIBUTING.md`, a real `README.md` with usage | REQ-DOCS-MARKETPLACE-001, -004, -002 |
+| Scope (2) `README.org` dropped | REQ-DOCS-MARKETPLACE-003 |
+| Scope (2) skills drop the prefix and surface as `sdd:<name>` | REQ-NAME-MARKETPLACE-001..002 |
+| Scope (2) `tools/sdd-*.py` renamed | REQ-NAME-MARKETPLACE-003 |
+| Scope (2) live corpus, `CLAUDE.md` and README updated | REQ-NAME-MARKETPLACE-004, REQ-DOCS-MARKETPLACE-005 |
+| Scope (2) closed-cycle `docs/ws/*/` NOT renamed; one CONTRIBUTING line | REQ-NAME-MARKETPLACE-005..006 |
+| Scope (2) the three agents with the measured frontmatter contract | REQ-AGENT-MARKETPLACE-001..002, -004 |
+| Scope (2) the citation rule | REQ-AGENT-MARKETPLACE-005..006 |
+| Q1 recommendation — option D, `docs/` in the repo, out of the plugin | REQ-PKG-MARKETPLACE-004; the 150-citation cost accepted in -009 |
+| Q2 recommendation — tools stay at root, two bundled skill-relative, root explicit | REQ-PKG-MARKETPLACE-006..007; contributor tools excluded in -005 |
+| Q2 — `${CLAUDE_PLUGIN_ROOT}` not usable from a skill body | REQ-PKG-MARKETPLACE-008 |
+| Q3 recommendation — one umbrella plugin, `"source": "./"` | REQ-PKG-MARKETPLACE-002 (split declined; §Out of Scope) |
+| Q4 recommendation — rename first, linter exit 0 as the verifiable intermediate | REQ-NAME-MARKETPLACE-007 |
+| Q4 — the linter's contract rows are code, self-test is the acceptance | REQ-NAME-MARKETPLACE-008 |
+| Q4 — self-reference hazard, exemption mechanism stated in the requirement | REQ-NAME-MARKETPLACE-009 |
+| Q5 — agents dispatchable; three top-level peer files | REQ-AGENT-MARKETPLACE-001 |
+| Q5 — `color` retained, `emoji`/`vibe` dropped from `CLAUDE.md` §Agents | REQ-AGENT-MARKETPLACE-002..003 (§Out of Scope records the drop) |
+| Findings §Open Questions — does a plugin skill's `references/*.md` resolve? | REQ-PKG-MARKETPLACE-010 (required install observation, not a deferral) |
+| Findings §Open Questions — does the marketplace `renames` field help? | §Out of Scope below — settled as inapplicable, with reasoning |
+| Design decision — duplicate vs symlink the bundled tools | REQ-PKG-MARKETPLACE-006 (duplicate; symlink declined in §Out of Scope) |
+| Design decision — rewrite the dangling spec citations? | REQ-PKG-MARKETPLACE-009 (accepted gap; rewrite declined in §Out of Scope) |
+| Decided: local directory NOT renamed | §Out of Scope below |
+| Review C1 — the rename dangles existing symlink installs | REQ-NAME-MARKETPLACE-010; §Out of Scope local-directory entry |
+| Decided: sequential execution, PR not merge, telemetry and red team on | orchestration settings for `sdd-plan` / the driver; no new requirement |
+
 ## Domain Prefixes
 
 | Prefix | Domain | File |
@@ -434,15 +523,62 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | REDB | Adversarial (Red/Blue) Verify | functional/adversarial-verify.md |
 | TELEM | Per-Dispatch Telemetry | functional/telemetry.md |
 | CYCID | Cycle Identity in Phase Detection | functional/cycle-identity.md |
+| AGENT | Shipped Agents (chunk verifier, red team, reviewer) | functional/agents.md |
 | CTX | AI Context Budget | non-functional/context-and-compatibility.md |
 | COMPAT | Git Compatibility | non-functional/context-and-compatibility.md |
 | EVAL | Multi-Run Evaluation | non-functional/evaluation.md |
 | GC | Drift Sweep (`tools/sdd-gc.py`) | integration/drift-sweep.md |
 | SKILL | Skill Updates | integration/skill-updates.md |
 | LINT | Skill Lint (`tools/sdd-skill-lint.py`) | integration/skill-lint.md |
+| NAME | Component Naming and Prefix Retirement | integration/naming.md |
+| PKG | Marketplace and Plugin Packaging | integration/packaging.md |
+| PC | Pre-Commit Hooks | integration/pre-commit.md |
+| DOCS | Project Documentation (LICENSE, README, CONTRIBUTING) | integration/project-docs.md |
 | CFG | Configuration | configuration/version-marker.md |
 
 ## Q-REQ Resolutions
+
+Resolved during requirements gathering for RS-MARKETPLACE-001 (marketplace
+release, workstream `marketplace`). That stage also ran **non-interactively**, so
+every ambiguity it met was resolved by choice; each choice is recorded here with
+its reason, per the convention P4, P5 and P6 set. The reasoning already lives in
+the requirement bodies and in §Out of Scope — these entries point at it so a
+future reader finds it under the convention rather than by reading five files.
+
+- **Q-REQ-MKT-A** (`"source": "./"` adopted on medium confidence): **adopted.**
+  RS-MARKETPLACE-001 Q3's evidence is a single observed marketplace using the
+  form (n = 1), which is thin, but the alternative — a `plugins/sdd/`
+  subdirectory — would relocate the linter's self-root and its literal skill
+  paths inside this cycle's own verification, a concrete failure against a
+  speculative one. Recorded as REQ-PKG-MARKETPLACE-002, with the declined
+  subdirectory and the declined multi-plugin split under §Out of Scope.
+- **Q-REQ-MKT-B** (duplicate vs symlink the two bundled tools): **duplicate.**
+  A plugin install may be materialised from a git archive, which does not
+  reliably preserve symlinks, so a symlink is a silent broken-install mode for a
+  saving of two small files. REQ-PKG-MARKETPLACE-006 carries the byte-identity
+  and not-a-symlink checks that keep the copies in step; §Out of Scope records
+  the declined alternative.
+- **Q-REQ-MKT-C** (dropping `emoji` and `vibe` from the agent frontmatter, while
+  keeping `color`): **dropped, and `color` kept.** Field frequency across the
+  thirty-two first-party agent files swept is evidence of what is *permitted*,
+  not a read schema: `color` is set by a majority and is therefore attested,
+  while `emoji`/`vibe` appear nowhere and are this repository's own invention —
+  at best inert, at worst a validation failure. REQ-AGENT-MARKETPLACE-002..003;
+  §Out of Scope states the asymmetry explicitly.
+- **Q-REQ-MKT-D** (the shape of REQ-NAME-MARKETPLACE-009's exemption mechanism):
+  **two skips, stated in the requirement itself** — fenced/backticked spans
+  (reusing the drift sweep's existing skip) plus a short self-exemption path list
+  carried in the rule, and **no** general allowlist and **no** per-occurrence
+  suppression comment. A rule about text must survive being written about; an
+  open allowlist would erode the retirement it exists to protect, and a
+  suppression comment would put the exemption where no reviewer reads it.
+- **Q-REQ-MKT-E** (the live-install observation's priority): **promoted to
+  `must`** (REQ-PKG-MARKETPLACE-010), and its failure declared a replan trigger
+  rather than a documented limitation. It is the one packaging assumption
+  RS-MARKETPLACE-001 could not observe from a subagent, it is cheap to settle
+  with an actual install, and the whole cycle's value rests on it — a release
+  whose skills do not load is not a release. The mechanism that makes it
+  satisfiable before merge is named in the requirement.
 
 Resolved during requirements gathering for RS-HARNESSP6-001 (harness hardening
 part 6, workstream `harness-p6` — the **terminal** cycle of the series). The
@@ -895,7 +1031,7 @@ Resolved during requirements gathering for RS-002:
   Research References)_ New skills not derived from the research this corpus
   traces (RS-002 through RS-008, RS-HARNESSP2-001)
 - Forward planning to v4
-- Cross-project review (sdd-review operates on one SDD project at a time)
+- Cross-project review (review operates on one SDD project at a time)
 - Review automation or auto-triggering
 - Review of `sdd-review`'s own output (the recursive case) — **declined
   2026-09-20 (settled exclusion, RS-HARNESSP6-001 §Deferral-Backlog Sweep row
@@ -1065,6 +1201,81 @@ is deferred, carried or queued; none is to be re-raised as pending work
   Findings)
 
 
+Added for RS-MARKETPLACE-001 (marketplace release, workstream `marketplace`) —
+settled exclusions, each with its reasoning. None of these is deferred, carried
+or queued; none is to be re-raised as pending work.
+
+- **Renaming the local working directory** — **declined (kickoff §Decided at
+  DISCUSS)**: the GitHub repository is already `jangid/sdd-commons`, but the
+  local directory keeps its old name for this cycle because every
+  `~/.claude/skills/*` symlink and the path-keyed session memory resolve through
+  it; renaming it mid-cycle would dangle the symlinks of the very driver running
+  the cycle. The operator renames it after DONE. Not this cycle's work, and not
+  a limitation of the release. **The same post-DONE step covers the symlinks
+  themselves**: this cycle *does* rename the skill directories, so the ten
+  existing `~/.claude/skills/sdd-*` symlinks into `skills/sdd-*` dangle once the
+  branch merges (the worktree defers the break until then). At merge the operator
+  either re-points them at the new directory names or retires them in favour of
+  `/plugin install sdd@sdd-commons`, which is the install path this cycle
+  provides. The action is the operator's; that it is written down is
+  REQ-NAME-MARKETPLACE-010's requirement on `CONTRIBUTING.md`.
+- **Splitting into several plugins** (RS-MARKETPLACE-001 Q3) — **declined**: the
+  skills couple by **name**, not by path — the driver dispatches its siblings by
+  bare skill name — so a boundary between two plugins turns a resolvable name
+  into a silent dispatch-time failure that no linter can catch, and ten plugin
+  versions would have to agree on one gate vocabulary with no mechanism to
+  express the constraint. A future split remains a manifest edit, not a
+  migration, which is a property of REQ-PKG-MARKETPLACE-002's `"source": "./"`.
+- **A `plugins/sdd/` subdirectory** — **declined** in favour of
+  `"source": "./"` with an explicit component list (REQ-PKG-MARKETPLACE-002).
+  The subdirectory form is what an umbrella marketplace carrying several
+  unrelated plugins needs; this marketplace carries one. Moving `skills/` and
+  `tools/` under it would relocate the linter's self-root and its literal skill
+  paths, producing a green report about the wrong tree — inside this cycle's own
+  verification.
+- **Symlinking the two bundled tools** instead of duplicating them — **declined**:
+  a plugin install may be materialised from a git archive, which does not
+  reliably preserve symlinks, so a symlink is a silent broken-install mode for a
+  saving of two small files. REQ-PKG-MARKETPLACE-006 requires byte-identical
+  regular-file copies, and its acceptance check is what keeps the two in step.
+- **Rewriting the dangling `docs/spec/` citations inside skills** — **declined**:
+  they are reading citations, never runtime reads, and the linter already treats
+  an unresolvable one as warn severity precisely so a consumer repository is not
+  assumed to have this repository's layout. Rewriting them is a large edit across
+  many files for no runtime benefit. What ships instead is one paragraph in
+  `CONTRIBUTING.md` saying where the contracts live
+  (REQ-PKG-MARKETPLACE-009).
+- **Resolving paths from a skill body through the plugin-root environment
+  variable** — **declined**: across three installed marketplaces every actual use
+  sits in a manifest field or a command body and none in a skill body, and the
+  documented pattern for a skill's bundled files is skill-directory-relative. The
+  evidence is a negative over a sample rather than a documented guarantee, which
+  is exactly why the design is made robust to it (REQ-PKG-MARKETPLACE-008)
+  rather than dependent on it.
+- **The marketplace `renames` field** (findings §Open Questions) — **settled as
+  inapplicable, not deferred**: the field migrates users who already have a
+  plugin installed under a previous plugin name. These skills have never been
+  distributed as a plugin, so the population it migrates is empty. The field is
+  not used and the question is closed; if the plugin is ever renamed, that is a
+  future cycle's concern with a non-empty population.
+- **`emoji` and `vibe` as agent frontmatter fields** — **declined**: neither
+  appears in any of the thirty-two first-party agent files swept. They are this
+  repository's own invention from before it contained an agent file, and an
+  unattested key is at best inert and at worst a validation failure.
+  **`color` is explicitly not part of this exclusion** — it is a real field set
+  by a majority of those files across five official plugins, and it stays
+  (REQ-AGENT-MARKETPLACE-002..003).
+- **Any change to a phase skill's or the driver's behavioural contract** —
+  **out of scope by construction**: this cycle moves, renames and packages them.
+  A rename that changes a contract is a defect, not scope, which is why
+  REQ-NAME-MARKETPLACE-008 makes the linter's contract-row self-test an
+  acceptance criterion rather than treating a clean lint run as sufficient.
+- **Merging the `marketplace` branch to `main`, and publishing to any registry
+  beyond making the repository itself a marketplace** — **out of scope**
+  (kickoff §Decided at DISCUSS): the cycle's terminal state is an open PR the
+  operator reviews.
+
+
 ## Open Questions
 
 - **Subagent nesting (fan-out):** RESOLVED by RS-006 Q1 — a dispatched subagent
@@ -1198,7 +1409,7 @@ Added for RS-HARNESSP4-001 (harness hardening part 4):
   concatenates and stable-sorts without de-duplication, so the aggregate will
   carry two rows for one id with divergent `Verified` values once p4 writes
   `pass`. Legal under `ws-traceability.md` re-use rows; specs must decide
-  whether gc / sdd-verify need a duplicate-id tolerance (newest-workstream row
+  whether gc / verify need a duplicate-id tolerance (newest-workstream row
   wins) or whether the two-row aggregate is simply documented as-is.
 
 All other Q-REQ items resolved.
@@ -1300,8 +1511,8 @@ rather than asked:
 - [RS-001: SDD Artifact Structure](../research/RS-001-sdd-artifact-structure/findings.md)
 - [RS-002: SDD Skill Improvements](../research/RS-002-skill-improvements/findings.md)
 - [RS-003: v3 Migration Path](../research/RS-003-v3-migration/findings.md)
-- [RS-004: sdd-review Skill Design](../research/RS-004-sdd-review/findings.md)
-- [RS-005: sdd-orchestrate Feasibility](../research/RS-005-sdd-orchestrate-feasibility/findings.md)
+- RS-004: review skill design — `../research/RS-004-sdd-review/findings.md`
+- RS-005: orchestrate feasibility — `../research/RS-005-sdd-orchestrate-feasibility/findings.md`
 - [RS-006: Subagent Nesting & Worktrees (implement-stage fan-out)](../research/RS-006-subagent-nesting-worktrees/findings.md)
 - [RS-007: Multi-Workstream SDD (concurrent cycles in one repo)](../research/RS-007-multi-workstream/findings.md)
 - [RS-008: Harness Hardening (loop control, decoupled verification, boundaries)](../research/RS-008-harness-hardening/findings.md)
@@ -1310,6 +1521,7 @@ rather than asked:
 - [RS-HARNESSP4-001: Harness Hardening, Part 4 (`COMMIT:` under fan-out, independent `expected` source for telemetry)](../research/RS-HARNESSP4-001-harness-hardening-p4/findings.md) — with its committed [evidence appendix](../research/RS-HARNESSP4-001-harness-hardening-p4/evidence-appendix.md)
 - [RS-HARNESSP6-001: Harness Hardening, Part 6 (terminal) — shared-spec staleness, git-state observation, Q-IMPL fence symmetry, the L2 convergence signal, and the deferral-backlog sweep](../research/RS-HARNESSP6-001-harness-hardening-p6/findings.md)
 - [RS-HARNESSP3-001: Harness Hardening, Part 3 (write-scope fidelity, return conformance, arbitration over regenerated artifacts, telemetry assurance, red-team follow-ups)](../research/RS-HARNESSP3-001-harness-hardening-p3/findings.md) — with its committed [evidence appendix](../research/RS-HARNESSP3-001-harness-hardening-p3/evidence-appendix.md)
+- [RS-MARKETPLACE-001: Marketplace Release (plugin packaging, the `sdd-` prefix retirement, pre-commit, project docs, the three shipped agents)](../research/RS-MARKETPLACE-001-marketplace-release/findings.md)
 
 ## See Also
 

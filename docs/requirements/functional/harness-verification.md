@@ -102,7 +102,7 @@ field-source table and `SKILL.md` has a stub pointing to it; a packet's
 apart from structural quoting.
 [Priority: must]
 
-### REQ-HARN-013: Machine-parseable `VERDICT:` token from sdd-review
+### REQ-HARN-013: Machine-parseable `VERDICT:` token from review
 `sdd-review` must emit `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT` as a
 single line on its own, in addition to its existing report (Verdict / Strengths
 / Critical-Material-minor findings / Recommendation). The orchestrator must

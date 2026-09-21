@@ -130,7 +130,7 @@ skill instruction can reliably accomplish. The grep-level type/field check
 catches the most common failure mode (the rubric M1 `contract_id` case)
 without requiring deep reading comprehension from the AI.
 
-### Integration with sdd-specs
+### Integration with specs
 
 The cross-spec pass becomes a new sub-step in `sdd-specs`, inserted between
 the review cycle (Step 4) and the coverage check (Step 5). The skill

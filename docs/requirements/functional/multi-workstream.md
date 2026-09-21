@@ -341,7 +341,7 @@ multi-workstream ceremony (design decision #9).
 Acceptance: a solo operator runs a full cycle without ever specifying a workstream
 id; all artifacts land under `docs/ws/default/` and the shared corpus.
 
-### REQ-WS-021: sdd-migrate gains a v3→v4 migration step
+### REQ-WS-021: migrate gains a v3→v4 migration step
 `sdd-migrate` must gain a v3→v4 migration that moves the flat execution artifacts
 (`docs/plan.md`, `docs/verification.md`, `docs/plan-history/`, and a flat
 `docs/handoff/kickoff.md` if present) into `docs/ws/default/`, leaving the shared
@@ -433,7 +433,7 @@ Acceptance: `sdd-plan`/`sdd-implement`/`sdd-replan` in `ISSUE-42` scope stalenes
 the specs/requirements that `ISSUE-42`'s plan traces, ignoring updates to shared
 inputs no `ISSUE-42` task references; no traceability column is added for this.
 
-### REQ-WS-027: New per-workstream staleness branches for sdd-specs and sdd-verify
+### REQ-WS-027: New per-workstream staleness branches for specs and verify
 `sdd-specs` and `sdd-verify`, which today have no scoped staleness branch, must gain
 new per-workstream-scoped staleness logic (using the milestone traversal as the
 template): `sdd-verify` must compare a workstream's plan/verification only against

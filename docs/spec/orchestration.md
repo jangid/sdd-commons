@@ -164,7 +164,7 @@ single combined one (REQ-ORCH-006):
 | Dispatch | Fresh ctx | Purpose | Carries |
 |----------|-----------|---------|---------|
 | Pipeline | yes | Execute one SDD stage | Stage skill name, front-loaded decisions, IDs, cwd, (on fix) review findings |
-| Review | yes | Externally review the stage output | Repo root + deliverable path(s) + (non-research) upstream path + "invoke sdd-review" |
+| Review | yes | Externally review the stage output | Repo root + deliverable path(s) + (non-research) upstream path + "invoke review" |
 
 The pipeline dispatch always runs to completion (artifacts on disk) before the
 review dispatch is constructed, because the review's only inputs are the paths
@@ -654,7 +654,7 @@ against REQ-ORCH-034's single-gate wording is recorded in
 - Confirm the skill body implements DISCUSS → KICKOFF → LOOP → DONE in order.
 - Inspect a constructed review dispatch prompt and confirm it contains only the
   permitted inputs (repo root, deliverable path, non-research upstream path,
-  "invoke sdd-review") and none of the prohibited inputs.
+  "invoke review") and none of the prohibited inputs.
 - Inspect a constructed research-stage review dispatch and confirm the upstream
   path is omitted.
 - Inspect a constructed pipeline dispatch and confirm the non-interactivity

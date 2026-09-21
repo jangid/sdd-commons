@@ -13,7 +13,7 @@ Structured external review at SDD phase boundaries. The reviewer operates
 in a separate session from the working session, applying phase-specific
 checklists and producing a tiered findings report. Catches design coherence
 issues, scope completeness gaps, and vocabulary inconsistencies that
-in-session mechanisms (chunk-close, XSPEC, sdd-verify) cannot detect due
+in-session mechanisms (chunk-close, XSPEC, verify) cannot detect due
 to context contamination. Derived from RS-004 findings on review
 catch-zones and miss-zones across two projects. (see RS-004)
 
@@ -72,8 +72,8 @@ The skill must explicitly define its scope boundaries against the three
 existing verification layers: (a) chunk-close — mechanical checks
 (type alignment, traceability, test coverage, Q-IMPL audit) are
 chunk-close's territory, not review's; (b) XSPEC — structural type
-reference validation between specs is XSPEC's territory; (c) sdd-verify —
-holistic acceptance criteria walkthrough is sdd-verify's territory.
+reference validation between specs is XSPEC's territory; (c) verify —
+holistic acceptance criteria walkthrough is verify's territory.
 Review's scope is semantic coherence, scope completeness, external
 readability, and translation fidelity between abstraction levels. If a
 finding falls into another skill's territory, the review must flag it and

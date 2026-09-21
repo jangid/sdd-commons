@@ -217,11 +217,11 @@ on disk alone.
 - [ ] Both completion-signal rows in `CLAUDE.md` §Phase Detection contain the
       inline qualifier "when a kickoff with one exists"; the §Cycle identity
       paragraph below still carries the three cases unchanged; `python3
-      tools/sdd-gc.py --report` raises no new finding (REQ-CYCID-HARNESSP4-002)
+      tools/gc.py --report` raises no new finding (REQ-CYCID-HARNESSP4-002)
 - [ ] No existing `verification.md` / `plan.md` is back-filled, and no file under
       `docs/requirements/**` or `docs/spec/**` gains a `research_id`
 - [ ] Markdown frontmatter parses in every touched artifact; `python3
-      tools/sdd-gc.py --report` raises no new finding
+      tools/gc.py --report` raises no new finding
 
 ## Edge Cases
 

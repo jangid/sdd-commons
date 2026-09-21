@@ -5,10 +5,20 @@ A curated collection of reusable tools, skills, and agents for AI-assisted workf
 ## Repository Structure
 
 ```
-tools/    — Standalone utilities and helper scripts
+.claude-plugin/marketplace.json   — the sdd-commons marketplace manifest
+.claude-plugin/plugin.json        — the sdd plugin manifest
 skills/   — Composable skill definitions (Claude Code SKILL.md format)
 agents/   — Agent configurations and prompt templates
+tools/    — Standalone utilities and helper scripts
+docs/     — Requirements, specs, research and per-workstream execution records
 ```
+
+The repository ships as the `sdd` plugin of the `sdd-commons` marketplace under
+`"source": "./"`, so the layout above **is** the plugin: nothing is staged or
+copied. `.claude-plugin/marketplace.json` lists the components the plugin
+installs; `.claude-plugin/plugin.json` carries the plugin's own metadata. A new
+skill or agent must be added to the marketplace manifest's component list and to
+`README.md` §Components — the two are compared as sets.
 
 ## Conventions
 
@@ -35,9 +45,19 @@ Each agent is a single Markdown file:
 agents/<agent-name>.md
 ```
 
-- **Frontmatter** fields: `name`, `description`, `tools`, `model`, `color`, `emoji`, `vibe`
-- `tools` lists the Claude Code tools the agent may use (e.g., `Read, Bash, Grep, Glob`)
+- **Frontmatter** fields: `name`, `description`, `tools`, `model`, `color` —
+  exactly five, and no others (`docs/spec/harness-agents.md` §The frontmatter
+  contract). `name` and `description` are required; `tools` is optional in
+  general and required for the three shipped harness agents; `model` and `color`
+  are optional
+- `name` is kebab-case and string-equal to the filename stem
+- `description` ends in an explicit trigger clause — it is what a dispatcher
+  matches on, so a description that only describes is not dispatchable
+- `tools` lists the Claude Code tools the agent may use (e.g., `Read, Bash, Grep, Glob`),
+  as a comma-separated string or a YAML flow sequence; a read-only agent
+  declares `tools` and omits every mutating tool (`Write`, `Edit`, `NotebookEdit`)
 - `model` specifies the preferred model tier (`opus`, `sonnet`, `haiku`)
+- `color` is a colour word
 - Body defines the agent's identity, phases, checklists, and report templates
 - Agents are adversarial or specialized personas — they should be opinionated and thorough
 
@@ -78,10 +98,14 @@ Standalone scripts or utilities. Use the appropriate language for the task. Each
 - Prose describing **another** repository's artifacts (a toy clone, an evidence
   record, a pilot log) must not quote that repository's `Q-IMPL` id tokens
   verbatim — paraphrase them or wrap them in a fenced code block, which
-  `tools/sdd-gc.py`'s `qimpl-undefined` sweep already skips (the rule itself is
+  `tools/gc.py`'s `qimpl-undefined` sweep already skips (the rule itself is
   unchanged; there is no allowlist)
-- Run `tools/sdd-skill-lint.py` after editing any skill — it enforces the checks
+- Run `tools/skill-lint.py` after editing any skill — it enforces the checks
   above plus cross-skill contract markers and known drift phrases (exit 0 = clean)
+- Install the commit gate (`pre-commit install`) and run `pre-commit run --all-files`
+  after a large change — it runs the drift sweep and the skill linter over the
+  whole corpus; the three heavier self-tests stay out of it and are run explicitly
+  (`CONTRIBUTING.md` §The three heavier checks, run explicitly)
 
 ## Spec-Driven Development (SDD)
 
@@ -97,21 +121,21 @@ A cyclic, phase-based workflow for building software with AI assistance. Each ph
                               ↕ REVIEW (cross-cutting, out-of-session)
 ```
 
-1. `sdd-research` — time-boxed exploration to reduce uncertainty (`docs/research/RS-NNN-{topic}/`)
-2. `sdd-requirements` — elicit and document requirements (`docs/requirements/`)
-3. `sdd-specs` — translate requirements into design specs (`docs/spec/`)
-4. `sdd-plan` — break specs into ordered, typed tasks (implement/spike/verify)
-5. `sdd-implement` — execute the plan with TDD inner loop and stuck detection
-6. `sdd-verify` — holistic validation: quality gates + acceptance criteria + UX
-7. `sdd-replan` — structured replanning when assumptions break
-8. `sdd-migrate` — one-time migration between artifact structure versions
-9. `sdd-review` — structured external review in a separate session at phase boundaries (cross-cutting, not sequential)
+1. `sdd:research` — time-boxed exploration to reduce uncertainty (`docs/research/RS-NNN-{topic}/`)
+2. `sdd:requirements` — elicit and document requirements (`docs/requirements/`)
+3. `sdd:specs` — translate requirements into design specs (`docs/spec/`)
+4. `sdd:plan` — break specs into ordered, typed tasks (implement/spike/verify)
+5. `sdd:implement` — execute the plan with TDD inner loop and stuck detection
+6. `sdd:verify` — holistic validation: quality gates + acceptance criteria + UX
+7. `sdd:replan` — structured replanning when assumptions break
+8. `sdd:migrate` — one-time migration between artifact structure versions
+9. `sdd:review` — structured external review in a separate session at phase boundaries (cross-cutting, not sequential)
 
-### Driver (`sdd-orchestrate`)
+### Driver (`sdd:orchestrate`)
 
-`sdd-orchestrate` is a **driver**, not a tenth phase skill. It runs the nine
+`sdd:orchestrate` is a **driver**, not a tenth phase skill. It runs the nine
 skills above as a single-operator loop — DISCUSS → KICKOFF → LOOP → DONE — where
-each pipeline stage and each `sdd-review` run as **separate, context-isolated
+each pipeline stage and each `sdd:review` run as **separate, context-isolated
 subagents** and the operator gates after every stage (proceed │ loop-back-to-fix
 │ stop). It introduces one new artifact, `docs/handoff/kickoff.md`; reviews stay
 ephemeral. v1 is research-entry and sequential (no mid-pipeline entry, no
@@ -119,7 +143,7 @@ parallel fan-out). Under marker `4` it opens with a **workstream picker**
 (select-or-create a workstream, every new one entering at research) and its
 implement-stage fan-out branches from the workstream branch — see
 [Multi-Workstream Layout (v4)](#multi-workstream-layout-v4). Use it to run a whole
-SDD cycle end-to-end with built-in external review; invoke an individual `sdd-*`
+SDD cycle end-to-end with built-in external review; invoke an individual `sdd:*`
 skill directly for a single phase.
 
 **Gate vocabulary (v5 harness hardening).** Every dispatched leaf ends with a
@@ -137,7 +161,7 @@ replan re-entry count against `REPLAN_MAX`. All three caps default to 3
 commit is checked against the leaf's observed writes and closes the same gate
 with `COMMIT: COMPLETE (N paths) | INCOMPLETE (…)` — `INCOMPLETE` pauses with
 `amend │ accept (note) │ stop` before any next dispatch (harness-p4;
-`skills/sdd-orchestrate/references/write-scope.md` §7a). The no-new-artifact
+`skills/orchestrate/references/write-scope.md` §7a). The no-new-artifact
 invariant holds:
 counters are session-scoped or derived, reviews stay ephemeral, and the only
 durable trace is the bounded circuit-break checkpoint in the plan's existing
@@ -149,16 +173,16 @@ one record — counts, enums, shas, timestamps, never finding text — to
 detection; default on, opt-out at KICKOFF; `TELEMETRY: rec <n> | WRITE FAILED | OFF |
 .gitignore updated` are its only gate lines — four members, `rec <n>` the
 positive one; post-cycle reader `python3
-tools/sdd-telemetry.py summarize`). At the verify stage the operator may opt in
+tools/telemetry.py summarize`). At the verify stage the operator may opt in
 to a **red team** (`red team: off | on`, default off): one read-only leaf attacks
 the weakest acceptance criteria and ends with `RED_VERDICT: BROKEN | HELD`;
-`sdd-verify` then writes `status: pending-red` and `proceed` is withheld until
+`sdd:verify` then writes `status: pending-red` and `proceed` is withheld until
 every `BROKEN` `Rn` is fixed (`RED_BREAK` packet) or accepted (recorded under
 §Issues Found → Minor), after which the gate flips `pending-red → pass`. Inside a
 fix loop a later review round that raises new ground, or regresses without it,
 pauses the stage gate as `REVIEW: CONTRADICTION (round N vs round N+1, class
 b|c)` with `accept round N+1 (fix) | accept round N (proceed, note) | third
-opinion (re-dispatch review) | stop`. `python3 tools/sdd-gc.py --report` sweeps
+opinion (re-dispatch review) | stop`. `python3 tools/gc.py --report` sweeps
 the docs corpus at entry (one informational `GC:` line) and at DONE (findings
 routed `--fix <rule>` │ `record | ignore` │ note; `record` appends to
 `verification.md` `## Next Steps`); gc never runs between stages, never blocks a
@@ -183,12 +207,12 @@ N >= 2 renders one derived `RED: Rn new-ground | regression` line per `BROKEN`
 `Rn`, from a re-run of the previous round's `reproduce:` command, and the
 `Verified` column reads `pending-red` until the `pending-red → pass` flip at
 DONE. The canonical gate signal order lives in
-`skills/sdd-orchestrate/references/loop-control.md` §5; `SKILL.md` §The gate is
+`skills/orchestrate/references/loop-control.md` §5; `SKILL.md` §The gate is
 its non-divergent summary.
 
 ### Phase Detection
 
-Every skill checks `docs/.sdd-version` on entry. If missing, it suggests running `sdd-migrate`. `docs/.sdd-version` is the **sole layout gate**: marker `3` (or earlier) selects the flat single-operator layout; marker `4` selects the multi-workstream layout where phase detection is a **function of `(repo, workstream)`** — every skill takes a `workstream` argument (default `default`) and roots execution artifacts at `docs/ws/<id>/` (see [Multi-Workstream Layout (v4)](#multi-workstream-layout-v4)). Both markers are supported; this repo migrated to marker `4` on 2026-09-17 (solo work runs in the implicit `default` workstream).
+Every skill checks `docs/.sdd-version` on entry. If missing, it suggests running `sdd:migrate`. `docs/.sdd-version` is the **sole layout gate**: marker `3` (or earlier) selects the flat single-operator layout; marker `4` selects the multi-workstream layout where phase detection is a **function of `(repo, workstream)`** — every skill takes a `workstream` argument (default `default`) and roots execution artifacts at `docs/ws/<id>/` (see [Multi-Workstream Layout (v4)](#multi-workstream-layout-v4)). Both markers are supported; this repo migrated to marker `4` on 2026-09-17 (solo work runs in the implicit `default` workstream).
 
 Skills then detect the current phase by checking which artifacts exist **and whether they are stale**. Execution-artifact paths depend on the marker — under marker `3` they are the flat paths below; under marker `4` the same artifacts live at `docs/ws/<id>/` (the shared corpus — `research/`, `requirements/`, `spec/` — stays at top level under both markers):
 
@@ -204,7 +228,7 @@ Skills then detect the current phase by checking which artifacts exist **and whe
 
 Under marker `4`, phase is resolved **per workstream** — two workstreams in the same repo can sit at different phases simultaneously. A skill under marker `3` never reads `docs/ws/`; a skill under marker `4` never reads flat `docs/plan.md` / `docs/verification.md`.
 
-**Cycle identity.** The two **completion-signal** rows above carry a second condition: the artifact's frontmatter `research_id:` must equal the kickoff's (`docs/ws/<id>/kickoff.md` under marker `4`, `docs/handoff/kickoff.md` under marker `3`), compared by **exact string equality** on the trimmed value. Three exhaustive cases: (1) **mismatch** → a previous cycle's artifact, the stage has not been reached in this cycle; (2) **field absent** while the kickoff has one (legacy — existing files are never back-filled) → read as a mismatch, the safe direction; (3) **no usable discriminator** (no kickoff, **or** a kickoff carrying no `research_id`) → the comparison is **skipped entirely** and the `status:`-only rule applies unchanged, so a repo that never ran the orchestrator still reads its `status: pass` report as verified. `sdd-plan` and `sdd-verify` write the stamp, copied verbatim from the kickoff; the shared corpus (`docs/requirements/**`, `docs/spec/**`) is never stamped, because `status: Approved` there is product-wide, not per-cycle. See `docs/spec/cycle-identity.md`.
+**Cycle identity.** The two **completion-signal** rows above carry a second condition: the artifact's frontmatter `research_id:` must equal the kickoff's (`docs/ws/<id>/kickoff.md` under marker `4`, `docs/handoff/kickoff.md` under marker `3`), compared by **exact string equality** on the trimmed value. Three exhaustive cases: (1) **mismatch** → a previous cycle's artifact, the stage has not been reached in this cycle; (2) **field absent** while the kickoff has one (legacy — existing files are never back-filled) → read as a mismatch, the safe direction; (3) **no usable discriminator** (no kickoff, **or** a kickoff carrying no `research_id`) → the comparison is **skipped entirely** and the `status:`-only rule applies unchanged, so a repo that never ran the orchestrator still reads its `status: pass` report as verified. `sdd:plan` and `sdd:verify` write the stamp, copied verbatim from the kickoff; the shared corpus (`docs/requirements/**`, `docs/spec/**`) is never stamped, because `status: Approved` there is product-wide, not per-cycle. See `docs/spec/cycle-identity.md`.
 
 #### Staleness Detection
 
@@ -214,13 +238,13 @@ Downstream artifacts become stale when their upstream inputs are updated. Each s
 research/index.md → requirements/index.md → specs → plan → implementation → verification
 ```
 
-If a downstream artifact's `last_updated` is older than its upstream input, it is **stale** and needs updating — not skipping to. For example, if `requirements/index.md` was updated today but `docs/spec/*.md` and `docs/plan.md` are from last week, `sdd-specs` will update the specs rather than redirecting to `sdd-implement`. Early-phase skills (research, requirements) are always valid entry points — they note existing downstream artifacts but don't block on them.
+If a downstream artifact's `last_updated` is older than its upstream input, it is **stale** and needs updating — not skipping to. For example, if `requirements/index.md` was updated today but `docs/spec/*.md` and `docs/plan.md` are from last week, `sdd:specs` will update the specs rather than redirecting to `sdd:implement`. Early-phase skills (research, requirements) are always valid entry points — they note existing downstream artifacts but don't block on them.
 
 Under marker `4`, staleness is **workstream-scoped**: the plan path is `docs/ws/<id>/plan.md` and the scope is computed **live** from that workstream's plan (walk each task's `traces to` spec → the spec's `requires:` requirement IDs → those requirements' category-file dates). A shared spec or requirement that **no task in `<id>`'s plan traces** does not make that workstream stale — a change in one workstream's traced inputs never falsely flags another. Requirements-corpus staleness (research → requirements) stays shared and workstream-independent. No staleness path reads any traceability file. See `ws-staleness.md`.
 
 #### Plan Archival
 
-When `sdd-plan` rewrites a plan or `sdd-replan` makes significant changes, the previous plan is archived to `docs/plan-history/{date}-{reason}.md` (under marker `4`: `docs/ws/<id>/plan-history/{date}-{reason}.md` — archival is scoped to the active workstream and never touches another workstream's history). The active plan stays lean — completed milestones are summarized to one line each. Changelogs and removed tasks live only in archive files.
+When `sdd:plan` rewrites a plan or `sdd:replan` makes significant changes, the previous plan is archived to `docs/plan-history/{date}-{reason}.md` (under marker `4`: `docs/ws/<id>/plan-history/{date}-{reason}.md` — archival is scoped to the active workstream and never touches another workstream's history). The active plan stays lean — completed milestones are summarized to one line each. Changelogs and removed tasks live only in archive files.
 
 ### Multi-Workstream Layout (v4)
 
@@ -245,15 +269,15 @@ docs/
 
 A workstream **owns only** its `kickoff.md`, `plan.md`, `plan-history/`, `verification.md`, and per-ws `traceability.md`. Requirements, specs, research, and the aggregated `docs/requirements/traceability.md` are **shared** — new work only ADDs IDs/files to them; no skill ever creates `docs/ws/<id>/requirements/` or `docs/ws/<id>/spec/`. The shared aggregate traceability is **regenerated** (never hand-merged) from the per-ws files. Solo use runs in an implicit `default` workstream — never name a workstream, and all execution artifacts land under `docs/ws/default/`.
 
-**Workstream lifecycle.** `sdd-orchestrate` opens with a **workstream picker**: it enumerates `docs/ws/<id>/`, shows each workstream's id + description (from its `kickoff.md`) + detected phase, and lets the operator select an existing workstream or create a new one (a `default`-only repo degenerates to a picker of one — no ceremony). Every **new** workstream begins at **research** and seeds `docs/ws/<id>/kickoff.md`, then runs the normal per-workstream research → requirements → specs → plan → implement → verify pipeline. Done-vs-new-cycle is resolved **per workstream** (a workstream whose `verification.md` is `status: pass` offers "start a new cycle in this workstream"; a genuinely new idea mints a new workstream id). Research may **early-exit** when the shared corpus already covers the workstream's needs (recorded as an explicit "covered by shared corpus" finding).
+**Workstream lifecycle.** `sdd:orchestrate` opens with a **workstream picker**: it enumerates `docs/ws/<id>/`, shows each workstream's id + description (from its `kickoff.md`) + detected phase, and lets the operator select an existing workstream or create a new one (a `default`-only repo degenerates to a picker of one — no ceremony). Every **new** workstream begins at **research** and seeds `docs/ws/<id>/kickoff.md`, then runs the normal per-workstream research → requirements → specs → plan → implement → verify pipeline. Done-vs-new-cycle is resolved **per workstream** (a workstream whose `verification.md` is `status: pass` offers "start a new cycle in this workstream"; a genuinely new idea mints a new workstream id). Research may **early-exit** when the shared corpus already covers the workstream's needs (recorded as an explicit "covered by shared corpus" finding).
 
 **Approval** is a bare per-scope `status` flag — owned `plan.md`/`verification.md` carry their own status; shared `requirements/*` / `spec/*` carry one product-wide status. No approver identity or quorum.
 
 **Workstream-prefixed IDs.** Under marker `4`, downstream IDs carry a `<WS>` segment before the counter, with a **per-workstream counter** (per `domain+workstream` for requirements): `RS-<WS>-NNN`, `REQ-<DOMAIN>-<WS>-NNN`, `Q-IMPL-<WS>-NNN` (e.g. `RS-ISSUE42-001`, `REQ-AUTH-ISSUE42-001`, `Q-IMPL-ISSUE42-003`). `NNN` is parsed after the `<WS>` token, so two workstreams allocate `RS-ISSUE42-001` / `RS-ISSUE57-001` with no coordination and no collision. Legacy bare v2/v3 ids remain valid and are treated as the `default` workstream (not remapped). Specs stay filename-based (shared). Shared-table writes are merge-safe (ID-sorted insertion / per-ws-owned rows) — never raw EOF append; same-domain concurrent requirement additions are an accepted human PR conflict, not auto-unioned. See `ws-ids.md`.
 
-**Git integration — branch per workstream → PR to `main`.** Each workstream corresponds to its own git branch; isolation comes from git + path scoping, not naming discipline. The workstream branch is the integration unit — a completed workstream merges via **PR to `main`**; concurrent open PRs are supported; `main` is a shared trunk, not a working surface. Orchestrate's implement-stage fan-out branches worktrees from the **workstream branch** (HEAD) and merges back into it, leaving `main` untouched until the PR. `sdd-verify`'s regression base is the workstream branch point — `merge-base(<id>, main)` — so a workstream's verification is unaffected by unrelated workstreams merged to `main` meanwhile. See `ws-integration.md`.
+**Git integration — branch per workstream → PR to `main`.** Each workstream corresponds to its own git branch; isolation comes from git + path scoping, not naming discipline. The workstream branch is the integration unit — a completed workstream merges via **PR to `main`**; concurrent open PRs are supported; `main` is a shared trunk, not a working surface. Orchestrate's implement-stage fan-out branches worktrees from the **workstream branch** (HEAD) and merges back into it, leaving `main` untouched until the PR. `sdd:verify`'s regression base is the workstream branch point — `merge-base(<id>, main)` — so a workstream's verification is unaffected by unrelated workstreams merged to `main` meanwhile. See `ws-integration.md`.
 
-**Migration.** `sdd-migrate` handles the one-time **v3 → v4** flip via copy-verify-flip-cleanup: copy (not move) the flat execution artifacts into `docs/ws/default/`, verify byte-identity, write `.sdd-version` = `4` **last**, then delete the flat originals. The shared corpus is left in place; interrupting before the flip leaves a working v3 repo, after the flip a working v4 repo (both re-runnable idempotently). See `ws-migration.md`. Full v4 contracts: `docs/spec/ws-layout.md`, `ws-ids.md`, `ws-traceability.md`, `ws-staleness.md`, `ws-integration.md`, `ws-migration.md`, `ws-orchestration.md`.
+**Migration.** `sdd:migrate` handles the one-time **v3 → v4** flip via copy-verify-flip-cleanup: copy (not move) the flat execution artifacts into `docs/ws/default/`, verify byte-identity, write `.sdd-version` = `4` **last**, then delete the flat originals. The shared corpus is left in place; interrupting before the flip leaves a working v3 repo, after the flip a working v4 repo (both re-runnable idempotently). See `ws-migration.md`. Full v4 contracts: `docs/spec/ws-layout.md`, `ws-ids.md`, `ws-traceability.md`, `ws-staleness.md`, `ws-integration.md`, `ws-migration.md`, `ws-orchestration.md`.
 
 ### Key Differences from Linear Waterfall
 
@@ -262,8 +286,8 @@ A workstream **owns only** its `kickoff.md`, `plan.md`, `plan-history/`, `verifi
 - **Stuck detection**: if implementation hits a wall, trigger replan instead of spinning
 - **Replan triggers**: defined upfront in the plan — conditions that invalidate the approach
 - **Holistic verification**: goes beyond "tests pass" to user-perspective validation
-- **External review**: `sdd-review` runs in a separate session at phase boundaries to catch coherence gaps and scope omissions that in-session layers miss
-- **Four verification layers**: chunk-close (mechanical, per-chunk), XSPEC (structural, during specs), sdd-verify (holistic, end-of-project), sdd-review (semantic, out-of-session)
+- **External review**: `sdd:review` runs in a separate session at phase boundaries to catch coherence gaps and scope omissions that in-session layers miss
+- **Four verification layers**: chunk-close (mechanical, per-chunk), XSPEC (structural, during specs), verify (holistic, end-of-project), review (semantic, out-of-session)
 - **Cyclic**: replan can route back to any earlier phase based on severity
 
 ### When to Use

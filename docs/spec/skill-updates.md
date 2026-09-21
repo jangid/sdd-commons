@@ -59,7 +59,7 @@ Every SDD skill's phase detection section must be updated:
 support in every skill creates complexity and bugs. A clean migration followed
 by single-format skills is simpler and more maintainable.
 
-### sdd-research
+### research
 
 **Current behavior**: Writes to `docs/research/{topic}.md`.
 
@@ -77,7 +77,7 @@ by single-format skills is simpler and more maintainable.
 **Unchanged**: The findings document format, research process, budget
 enforcement, and recommendation logic remain the same.
 
-### sdd-requirements
+### requirements
 
 **Current behavior**: Reads/writes a single `docs/requirements.md`.
 
@@ -109,7 +109,7 @@ enforcement, and recommendation logic remain the same.
 **Unchanged**: The elicitation process, question categories, requirement rules
 (testable, one-per-ID, must/should/may), and review cycle.
 
-### sdd-specs
+### specs
 
 **Current behavior**: Reads `docs/requirements.md`, writes `docs/spec/`.
 
@@ -131,7 +131,7 @@ enforcement, and recommendation logic remain the same.
 
 **Unchanged**: The spec format, review cycle, and spec rules.
 
-### sdd-plan
+### plan
 
 **Current behavior**: Reads specs, writes `docs/plan.md`. Appends changelogs
 on rewrite.
@@ -154,7 +154,7 @@ on rewrite.
 **Unchanged**: The planning process, task typing (implement/spike/verify),
 milestone structure, dependency ordering, and replan trigger definition.
 
-### sdd-implement
+### implement
 
 **Current behavior**: Reads plan and specs, implements tasks.
 
@@ -200,7 +200,7 @@ design. The skill must include:
 - Tier classification guidance (when to use each tier)
 - Q-IMPL entry format (ID, tier, decision, rationale)
 - Global sequential numbering instructions
-- Tier 3 escalation procedure (stop, escalate, reference sdd-replan
+- Tier 3 escalation procedure (stop, escalate, reference replan
   Level 2)
 
 #### Spike Code Separation (REQ-SKILL-011)
@@ -230,19 +230,19 @@ Project-specific conventions override generic skill behavior (e.g., preferred
 test framework, import style, error handling approach). Missing these
 conventions leads to rework when the operator corrects the style.
 
-#### Cross-Spec Consistency in sdd-specs (REQ-SKILL-013)
+#### Cross-Spec Consistency in specs (REQ-SKILL-013)
 
 `sdd-specs` must add the cross-spec consistency reading pass after writing
 all specs and before the final coverage check. See
 cross-spec-consistency.md for the full design.
 
-#### Milestone Plan Support in sdd-plan (REQ-SKILL-014)
+#### Milestone Plan Support in plan (REQ-SKILL-014)
 
 `sdd-plan` must support per-milestone plan files when the project defines
 multiple milestones. See milestone-plans.md for the full design. For single-
 milestone projects, the existing single-file behavior is preserved.
 
-#### Milestone Plan Support in sdd-replan (REQ-SKILL-015)
+#### Milestone Plan Support in replan (REQ-SKILL-015)
 
 `sdd-replan` must work with per-milestone plan files, archiving and revising
 the correct milestone's plan file based on which milestone's tasks are
@@ -264,7 +264,7 @@ user decides whether the new research affects requirements. This check is
 already specified in requirements-artifacts.md §Staleness Detection but is
 traced here for completeness.
 
-#### sdd-review Skill (REQ-SKILL-018)
+#### review Skill (REQ-SKILL-018)
 
 A new skill `skills/sdd-review/SKILL.md` implements the external review
 mechanism described in review.md. The skill is phase-agnostic (per
@@ -272,9 +272,9 @@ REQ-REV-001) and must include the session-isolation prompt as its opening
 step (per REQ-REV-007). The skill operates out-of-session — it provides
 checklists and report structure for a reviewer in a separate Claude
 session, not in the working session. Target size: ~200-250 lines,
-comparable to sdd-verify.
+comparable to verify.
 
-### sdd-verify
+### verify
 
 **Current behavior**: Reads all artifacts, writes `docs/verification.md`.
 
@@ -297,7 +297,7 @@ comparable to sdd-verify.
 **Unchanged**: The verification process, quality gates, acceptance criteria
 walkthrough, user-perspective validation, regression check, and report format.
 
-### sdd-replan
+### replan
 
 **Current behavior**: Revises plan, appends changelog, marks removed tasks.
 
@@ -322,7 +322,7 @@ _(added 2026-09-17, RS-008)_ Per-skill changes for the HARN and LINT domains;
 designs in `harness-loop-control.md`, `harness-return-contract.md`,
 `harness-chunk-verifier.md`, `harness-write-scope.md`, `skill-lint-v5.md`.
 
-- **sdd-orchestrate (REQ-SKILL-019)**: caps (`FIX_LOOP_MAX` per stage,
+- **orchestrate (REQ-SKILL-019)**: caps (`FIX_LOOP_MAX` per stage,
   `REPLAN_MAX` derived, `REDO_MAX` with the per-chunk session counter
   `chunk_redo_count[<chunk header>]`), `Budget:` / `Write scope:` slots on
   every template, `RETURN:` parsing and `RETURN.status` branching, repair-packet
@@ -334,16 +334,16 @@ designs in `harness-loop-control.md`, `harness-return-contract.md`,
   (leaf template, verifier-before-merge, checkpoint application in §3e).
   Procedure text lands in **new** `references/write-scope.md` and
   `references/return-contract.md` with stubs in `SKILL.md`.
-- **sdd-implement (REQ-SKILL-020)**: attempt ledger + `verified_do_not_touch`,
+- **implement (REQ-SKILL-020)**: attempt ledger + `verified_do_not_touch`,
   oscillation conditions in Step 3, checkpoint format + RETURN mapping, and — as a
   dispatched leaf — the `RETURN:` block and budget self-count. Step 4 unchanged.
-- **sdd-review (REQ-SKILL-021)**: own-line `VERDICT:` token; report and scope
+- **review (REQ-SKILL-021)**: own-line `VERDICT:` token; report and scope
   boundaries otherwise unchanged (review is never the chunk verifier).
-- **sdd-replan (REQ-SKILL-022)**: `-replan-` filename contract stated; blocked-task
+- **replan (REQ-SKILL-022)**: `-replan-` filename contract stated; blocked-task
   note defined as the checkpoint slot; Step 1 reads the checkpoint as stuck state.
-- **sdd-skill-lint (REQ-SKILL-023)**: `fix` remediation, warn tier, size check,
+- **skill-lint (REQ-SKILL-023)**: `fix` remediation, warn tier, size check,
   backtick `references/` resolution, new `REQUIRED` rows, self-test coverage.
-- **sdd-orchestrate marker-4 move (REQ-SKILL-024)**: marker-4 prose to
+- **orchestrate marker-4 move (REQ-SKILL-024)**: marker-4 prose to
   `references/v4-workstreams.md` with the `research_id` guard and a superseding
   Q-IMPL in `ws-orchestration.md`; `USAGE.md` describes the new gate signals;
   `CLAUDE.md` gains one short paragraph on the gate vocabulary while its
@@ -435,7 +435,7 @@ cannot drift.
 ### Q-IMPL-HARNESSP2-005: per-skill changes for the harness-p2 cycle live in the new specs
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Design (per-skill update tables)
-**Decision**: REQ-SKILL-HARNESSP2-001..008 are carried by the new harness-p2 specs, each in a "Skill and Lint Changes" / "Skill Changes" section: `telemetry.md` (-001 orchestrate telemetry, -008 operator docs and CLAUDE.md), `adversarial-verify.md` (-002 red dispatch, -005 sdd-verify pending-red / accepted breaks / gc slot), `arbitrated-handoff.md` (-003 arbitration, -006 sdd-review Material `affects`), `drift-sweep.md` (-004 gc cadence), `dispatch-snapshot-base.md` (-004 snapshot base, -007 sdd-implement references split closing Q-IMPL-083). This spec's tables are unchanged.
+**Decision**: REQ-SKILL-HARNESSP2-001..008 are carried by the new harness-p2 specs, each in a "Skill and Lint Changes" / "Skill Changes" section: `telemetry.md` (-001 orchestrate telemetry, -008 operator docs and CLAUDE.md), `adversarial-verify.md` (-002 red dispatch, -005 verify pending-red / accepted breaks / gc slot), `arbitrated-handoff.md` (-003 arbitration, -006 review Material `affects`), `drift-sweep.md` (-004 gc cadence), `dispatch-snapshot-base.md` (-004 snapshot base, -007 implement references split closing Q-IMPL-083). This spec's tables are unchanged.
 **Rationale**: Marker-4 rule: new work adds new spec files; the per-skill table for a workstream stays with the designs it serves.
 **Date**: 2026-09-17 (harness-p2 specs stage)
 

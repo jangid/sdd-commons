@@ -112,7 +112,7 @@ finding; the summary line is the last line of stdout.
 `sdd-orchestrate` must run `python3 tools/sdd-gc.py --report` at two moments:
 at **entry** (before the workstream picker under marker `4`; before phase
 detection under marker `3`), showing a one-line summary (`GC: clean` or `GC: F
-fail, W warn — run tools/sdd-gc.py --report`), and at **DONE** (§Transition,
+fail, W warn — run tools/gc.py --report`), and at **DONE** (§Transition,
 after the verify stage passes review and the operator approves), rendering the
 full findings at the DONE gate. Under marker `4` the staleness sweep at DONE is
 scoped to the completed workstream (`--workstream <id>`). A pre-commit hook

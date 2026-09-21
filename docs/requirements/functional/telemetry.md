@@ -165,8 +165,8 @@ plan, implement, verify, replan); `docs/ws/<id>/plan.md` (task marks,
 archives) (plan, implement, verify, replan, orchestrate); `docs/ws/<id>/
 verification.md` `status` (verify, replan, orchestrate); `docs/ws/<id>/kickoff.md`
 `research_id` / `date` (orchestrate); and `docs/requirements/traceability.md` /
-`docs/ws/<id>/traceability.md` for coverage only, never position (sdd-verify
-Step 3b, sdd-review Step 2) — flat `docs/` equivalents under marker `3`. Every
+`docs/ws/<id>/traceability.md` for coverage only, never position (verify
+Step 3b, review Step 2) — flat `docs/` equivalents under marker `3`. Every
 input is under `docs/`; `.sdd/` is not. Deleting `.sdd/` must leave every
 skill's detected phase, every staleness verdict and the orchestrator's position
 table byte-identical. (see RS-HARNESSP2-001 Q1 detection-input table;
@@ -174,7 +174,7 @@ REQ-ORCH-014)
 **Acceptance**: with a populated `.sdd/telemetry.jsonl`, `rm -rf .sdd/` followed
 by re-running the orchestrator's position table and each stage skill's phase
 detection on the same repo yields identical output; `grep -rn '\.sdd/'
-skills/*/SKILL.md` hits only the `sdd-orchestrate` telemetry stub
+skills/*/SKILL.md` hits only the `orchestrate` telemetry stub
 (REQ-TELEM-HARNESSP2-007).
 [Priority: must]
 
@@ -182,8 +182,8 @@ skills/*/SKILL.md` hits only the `sdd-orchestrate` telemetry stub
 `tools/sdd-skill-lint.py` must carry a `FORBIDDEN` row (fail severity) for the
 pattern `\.sdd/` across every `skills/*/SKILL.md` and `skills/*/references/*.md`,
 with an allowlist of exactly three locations: the telemetry stub in
-`skills/sdd-orchestrate/SKILL.md`, `skills/sdd-orchestrate/references/
-telemetry.md`, and `skills/sdd-orchestrate/references/write-scope.md` (§3 and
+`skills/sdd-orchestrate/SKILL.md`, `skills/orchestrate/references/
+telemetry.md`, and `skills/orchestrate/references/write-scope.md` (§3 and
 §5 only, REQ-TELEM-HARNESSP2-005). Operator docs (`USAGE.md`, `CLAUDE.md`) are
 outside the row's scan. The row's `fix:` text must say that telemetry is orchestrator-
 written and never a detection input. This guard, together with the absence of a
@@ -447,7 +447,7 @@ records be repaired in p4?", `docs/ws/harness-p4/kickoff.md` §Decided at
 DISCUSS, and `tools/fixtures/README.md`)
 **Acceptance**: `sha256sum tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
 still reads `7e20b630…af9237` at DONE and `git diff --stat main -- tools/fixtures/`
-is empty; `python3 tools/sdd-telemetry.py migrate --file <copy of the fixture>
+is empty; `python3 tools/telemetry.py migrate --file <copy of the fixture>
 --out <tmp>` produces a file on which `summarize` renders a per-chunk block for
 chunks 0–7 carrying the word `partial` and the unreconstructable kinds named;
 `migrate --file tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` exits

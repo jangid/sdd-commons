@@ -18,7 +18,7 @@ requires:
 
 SDD has three in-session verification layers: chunk-close (mechanical
 per-chunk checks), XSPEC (structural type references between specs),
-and sdd-verify (holistic acceptance criteria at project end). All three
+and verify (holistic acceptance criteria at project end). All three
 share a blind spot: they operate within the working session's context
 window, inheriting its sunk-cost bias, unstated assumptions, and scope
 framing.
@@ -41,16 +41,16 @@ when it runs, and what it explicitly does not do.
 
 | Layer | Scope | When | In-Session? |
 |-------|-------|------|-------------|
-| Chunk-close | Mechanical: type alignment, traceability, test coverage, Q-IMPL audit | Per-chunk during sdd-implement | Yes |
-| XSPEC | Structural: type reference consistency between specs | During sdd-specs Step 4b | Yes |
-| sdd-verify | Holistic: aggregate acceptance criteria, quality gates | End of project | Yes |
-| **sdd-review** | **Semantic: coherence, scope completeness, readability** | **Phase boundaries** | **No** |
+| Chunk-close | Mechanical: type alignment, traceability, test coverage, Q-IMPL audit | Per-chunk during implement | Yes |
+| XSPEC | Structural: type reference consistency between specs | During specs Step 4b | Yes |
+| verify | Holistic: aggregate acceptance criteria, quality gates | End of project | Yes |
+| **review** | **Semantic: coherence, scope completeness, readability** | **Phase boundaries** | **No** |
 
 Review's unique value is the combination of semantic judgment and
 session isolation. Mechanical checks (does type X exist in impl?)
 belong to chunk-close. Structural checks (does spec A's type match
 spec B's?) belong to XSPEC. Criteria walkthrough (does criterion C
-pass?) belongs to sdd-verify. Review asks: does this deliverable make
+pass?) belongs to verify. Review asks: does this deliverable make
 sense as a whole, is everything that should be here actually here, and
 would an external operator understand it?
 
@@ -62,7 +62,7 @@ The skill's opening step, before any artifact reading:
 > does NOT have prior working context for the project under review.
 > If you have been involved in writing, implementing, or deciding on
 > the artifacts being reviewed in this session, stop and ask the
-> operator to invoke sdd-review in a fresh session.
+> operator to invoke review in a fresh session.
 >
 > Confirm one of:
 > - (a) This session has no prior context for this project. Proceed.
@@ -258,7 +258,7 @@ conversation output:
 - **Approve with fixes**: Critical findings exist but are bounded.
   Fix them, then proceed without re-review.
 - **Reject**: Significant rework needed. Return to current or
-  earlier phase. Consider sdd-replan.
+  earlier phase. Consider replan.
 
 **Strengths section**: Required. Must be substantive — "the staleness
 detection chain correctly handles the multi-milestone case" is useful;
@@ -293,7 +293,7 @@ highest-value so operators know where to invest review time.
   confirm/stop options
 - Confirm all six per-phase checklists are present
 - Confirm the report format template matches the structure above
-- Run sdd-review against a real phase output and verify the report
+- Run review against a real phase output and verify the report
   follows the format
 
 ### Acceptance Criteria
@@ -309,7 +309,7 @@ highest-value so operators know where to invest review time.
 - [ ] Bias disclosure section described with omission rule when no prior involvement (REQ-REV-004)
 - [ ] Trigger classification has mandatory/recommended/ad-hoc/skip tiers with specific boundaries (REQ-REV-005)
 - [ ] Chunk-close boundaries explicitly excluded from review scope (REQ-REV-005, REQ-REV-006)
-- [ ] Scope boundaries against chunk-close, XSPEC, sdd-verify explicit (REQ-REV-006)
+- [ ] Scope boundaries against chunk-close, XSPEC, verify explicit (REQ-REV-006)
 
 ## Implementation Questions
 

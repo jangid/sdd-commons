@@ -22,7 +22,7 @@ requires:
   - REQ-COMPAT-002
 ---
 
-# Migration (sdd-migrate)
+# Migration (migrate)
 
 ## Context
 

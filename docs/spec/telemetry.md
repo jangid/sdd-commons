@@ -418,7 +418,7 @@ Detection block, is:
 | plan, implement, verify, replan, orchestrate | `docs/ws/<id>/plan.md` (task marks, `last_updated`, `traces to`); `docs/ws/<id>/plan-history/` (`-replan-` archives) |
 | verify, replan, orchestrate | `docs/ws/<id>/verification.md` `status` (incl. `pending-red`, `adversarial-verify.md`) |
 | orchestrate | `docs/ws/<id>/kickoff.md` (`research_id`, `date`) |
-| sdd-verify Step 3b, sdd-review Step 2 | `docs/requirements/traceability.md`, `docs/ws/<id>/traceability.md` — coverage only, never position |
+| verify Step 3b, review Step 2 | `docs/requirements/traceability.md`, `docs/ws/<id>/traceability.md` — coverage only, never position |
 
 (Flat `docs/` equivalents under marker `3`.) `.sdd/` appears in no row and this
 table is the contract: adding a reader of `.sdd/` to any skill is a change to

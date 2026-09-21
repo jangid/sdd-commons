@@ -95,7 +95,7 @@ A **verify task** in the plan (not implement), ordered after telemetry lands.
 | Scoring | `tools/sdd-telemetry.py summarize` on the toy, or by hand from the records; fields 1–9 above |
 | Recording | a "Pilot (N = 3)" section in `docs/ws/harness-p2/verification.md`, in the same form as RS-008 probes 1 and 2 in `docs/ws/default/verification.md`, with the table below; observed wall time per run stated |
 | Size rationale | ~1k tool calls fits one operator session (RS-HARNESSP2-001 Q5: ~250–520 per run) |
-| Deferral | if the plan has no room, `verification.md` §Next Steps — the `## Next Steps` section the `sdd-verify` Step 6 template gains per `adversarial-verify.md` §Skill and Lint Changes (sdd-verify row), which is the single definition of that slot — carries `- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy` |
+| Deferral | if the plan has no room, `verification.md` §Next Steps — the `## Next Steps` section the `sdd-verify` Step 6 template gains per `adversarial-verify.md` §Skill and Lint Changes (verify row), which is the single definition of that slot — carries `- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy` |
 
 Recording table shape:
 
@@ -127,7 +127,7 @@ that dispatches the orchestrator.
 ### Automated
 
 - `test_decision_by_only_in_telemetry_schema`: `grep -rn 'decision_by'
-  skills/` matches only `sdd-orchestrate/references/telemetry.md`.
+  skills/` matches only `orchestrate/references/telemetry.md`.
 - `test_never_auto_advance_sentence_present`: `sdd-orchestrate/SKILL.md`
   §Rules still contains the never-auto-advance sentence.
 - `test_no_policy_records_this_cycle`: no record in this repository's
@@ -200,7 +200,7 @@ that dispatches the orchestrator.
    across sessions (`seq` restarts at 1 in every session). Runs on one date are
    told apart by `research_id`, not by `kickoff_date`.
 2. **Should the scorer ship this cycle?** Default: only if the plan has room
-   after TELEM, REDB, ARB, GC and the sdd-implement split; otherwise §Next
+   after TELEM, REDB, ARB, GC and the implement split; otherwise §Next
    Steps.
 3. **Headless driver verification** (`index.md` Open Questions): Default:
    not probed this cycle; manual N only.
@@ -213,4 +213,3 @@ that dispatches the orchestrator.
 **Decision**: the spec names one `verification.md` `status` line, but one telemetry file holds N runs (the toy is reused). `tools/sdd-eval.py` applies `--verification`/`--status` to every run and accepts a repeatable `--run-status RESEARCH_ID=STATUS` override per run; a run with unknown status reports field 1 as `unknown` and is excluded from the aggregate pass rate.
 **Rationale**: keeps the scorer derivable from record keys plus one status line without inventing a per-run artifact.
 **Date**: 2026-09-18 (Chunk 7)
-

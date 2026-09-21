@@ -57,7 +57,7 @@ checklist is the specs' `## Acceptance Criteria`, its method is to attempt to
 violate them. It must not be implemented by, or as a mode of, `sdd-review`
 (REQ-REV-005, REQ-REV-006 (c)), and the four-verification-layer table
 (`sdd-verify` §Verification Layers, `CLAUDE.md`) must remain unchanged — red is
-an executor of the sdd-verify layer as the chunk verifier is an executor of the
+an executor of the verify layer as the chunk verifier is an executor of the
 chunk-close layer (REQ-HARN-014). Standalone `sdd-verify` (no orchestrator) is
 unchanged except for the `pending-red` input of REQ-REDB-HARNESSP2-008. (see
 RS-HARNESSP2-001 Q2 layering evidence)

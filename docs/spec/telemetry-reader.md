@@ -585,7 +585,7 @@ above are unchanged — sha256 asserted before and after each run):
 
 ## Open Questions
 
-1. **Runner placement for the p4 fixture cases.** Default: `tools/sdd-telemetry.py
+1. **Runner placement for the p4 fixture cases.** Default: `tools/telemetry.py
    --self-test`, beside the p3 cases; no second tool.
 2. Inherited from `telemetry.md` §Open Questions (locking, `gate.decision`
    completeness, timestamp precision) — unchanged.

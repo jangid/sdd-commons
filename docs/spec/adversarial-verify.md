@@ -76,7 +76,7 @@ no finding text, no blue evidence:
 
 ```
 You are a non-interactive RED TEAM subagent — the adversarial second executor of
-sdd-verify Steps 3–4. Do NOT ask questions. Do NOT fix anything. Run, don't read.
+verify Steps 3–4. Do NOT ask questions. Do NOT fix anything. Run, don't read.
 Repository root: {repo_root}                     # marker 4: the workstream branch checkout
 Specs (read each `## Acceptance Criteria` yourself): {spec_paths}
 Plan: {plan_path}
@@ -85,9 +85,7 @@ Quality-gate commands (from CLAUDE.md): {gate_commands}
 Budget: ≤ 25 tool calls, ≤ 3 test runs, read-only
 Write scope: (empty — read-only)
 Commit ownership: you never commit
-Rules: pick the weakest criteria; construct inputs/commands that violate them; a break counts ONLY
-       with a reproducible `reproduce:` command or test id — otherwise report it as HELD with your
-       suspicion under `observed:`.
+Rules: `agents/red-team.md` §How you judge — the single source; follow it, it is not restated here.
 Return, in this order — one `## Red team — <spec.md>` heading per spec examined, one Rn line per
 attempted criterion, then this RETURN: block (every key present, empties allowed, `status` first),
 then the token on its own last line:
@@ -110,6 +108,12 @@ RETURN:
   blocked_writes: []
 RED_VERDICT: BROKEN | HELD
 ```
+
+The `Rules:` line cites the agent file rather than repeating it: the role's
+standing judging rules live in `agents/red-team.md` §How you judge, which
+REQ-AGENT-MARKETPLACE-006 designates the single source, and restating them here
+would put two copies of the same rules on divergent edit paths
+(Q-IMPL-MARKETPLACE-025).
 
 [Amended 2026-09-18: template body synchronised with references/dispatch-templates.md per the spec's own byte-consistency clause]
 
@@ -632,3 +636,17 @@ The section is appended after the last milestone/chunk section so a plan rewrite
 that regenerates the task list can preserve it by copying the trailing block
 verbatim. Ordering within the section is append-only, newest last.
 **Date**: 2026-09-18 (specs stage)
+
+### Q-IMPL-MARKETPLACE-025: the red dispatch template cites the agent's judging rules
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Red Dispatch Template
+**Decision**: the template's `Rules:` line no longer restates the three judging
+rules (weakest criteria first, construct the violating input, a break counts only
+if it reproduces). It names `agents/red-team.md` §How you judge as the single
+source and says the rules are not restated. The identical edit is mirrored into
+the template fence under §Red Dispatch Template here, because the linter's
+`template-drift` rule pins the two byte-for-byte.
+**Impact**: REQ-AGENT-MARKETPLACE-006's no-duplication invariant now holds in
+substance for this pair, and its acceptance criterion is restated as a run-time
+shingle comparison so the population is derived rather than judged.
+

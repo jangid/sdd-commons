@@ -20,48 +20,48 @@ structure. Path references, phase detection logic, and staleness checks must
 reflect the new layout.
 [Priority: must]
 
-### REQ-SKILL-002: sdd-research updates
+### REQ-SKILL-002: research updates
 `sdd-research` must write to `docs/research/RS-NNN-{topic}/findings.md` and
 auto-maintain `docs/research/index.md`.
 [Priority: must]
 
-### REQ-SKILL-003: sdd-requirements updates
+### REQ-SKILL-003: requirements updates
 `sdd-requirements` must read/write per-domain files in
 `docs/requirements/{category}/`, auto-maintain `index.md` with versioning, and
 detect the old monolithic format (offering migration via `sdd-migrate`).
 [Priority: must]
 
-### REQ-SKILL-004: sdd-specs updates
+### REQ-SKILL-004: specs updates
 `sdd-specs` must read requirements from `docs/requirements/{category}/*.md`,
 use the new `REQ-{DOMAIN}-{NNN}` IDs in `requires` frontmatter, and update
 `docs/requirements/traceability.md` when mapping specs to requirements.
 [Priority: must]
 
-### REQ-SKILL-005: sdd-plan updates
+### REQ-SKILL-005: plan updates
 `sdd-plan` must implement the archive pattern (REQ-PLAN-002), keep the active
 plan lean (REQ-PLAN-001), and read staleness from
 `docs/requirements/index.md` (REQ-STALE-001).
 [Priority: must]
 
-### REQ-SKILL-006: sdd-implement updates
+### REQ-SKILL-006: implement updates
 `sdd-implement` must read requirements from the new paths, reference RS-* IDs
 for spike tasks, and update `docs/requirements/traceability.md` when
 tests/implementation are created.
 [Priority: must]
 
-### REQ-SKILL-007: sdd-verify updates
+### REQ-SKILL-007: verify updates
 `sdd-verify` must read requirements from the new paths, verify traceability
 across split files using `traceability.md`, and update the traceability matrix
 with verification results.
 [Priority: must]
 
-### REQ-SKILL-008: sdd-replan updates
+### REQ-SKILL-008: replan updates
 `sdd-replan` must write changelogs to the archive file (REQ-PLAN-003) and move
 removed tasks to the archive (REQ-PLAN-004) instead of marking them in the
 active plan.
 [Priority: must]
 
-### REQ-SKILL-009: sdd-implement chunk-close checklist
+### REQ-SKILL-009: implement chunk-close checklist
 `sdd-implement` must add the structured chunk close review checklist
 (REQ-CHKC-001 through REQ-CHKC-008) to its implementation process. The
 current "Step 4: Milestone Checkpoints" must be renamed to distinguish
@@ -70,13 +70,13 @@ checkpoints (delivery approval). Chunk close runs at each `### Chunk N`
 boundary; milestone checkpoints run at delivery milestone boundaries.
 [Priority: must]
 
-### REQ-SKILL-010: sdd-implement Q-IMPL protocol
+### REQ-SKILL-010: implement Q-IMPL protocol
 `sdd-implement` must document the three-tier deviation protocol
 (REQ-QIMPL-001 through REQ-QIMPL-003) in its implementation process,
 including tier classification guidance and Q-IMPL entry format.
 [Priority: must]
 
-### REQ-SKILL-011: sdd-implement spike code separation
+### REQ-SKILL-011: implement spike code separation
 `sdd-implement` must add a rule for `[spike]` tasks: spike code is throwaway
 and must be written in a scratch location. Spike findings go to
 `docs/spikes/{topic}.md`, throwaway code goes to `scripts/spike_*`. Production
@@ -84,25 +84,25 @@ code for the same functionality must be written fresh against the spec, not
 adapted from spike code.
 [Priority: should]
 
-### REQ-SKILL-012: sdd-implement CLAUDE.md convention reading
+### REQ-SKILL-012: implement CLAUDE.md convention reading
 `sdd-implement` must instruct the implementer to read `CLAUDE.md` as the
 first item in its context loading step. Project conventions from `CLAUDE.md`
 take precedence over generic patterns when choosing libraries, coding
 patterns, and project structure.
 [Priority: must]
 
-### REQ-SKILL-013: sdd-specs cross-spec consistency
+### REQ-SKILL-013: specs cross-spec consistency
 `sdd-specs` must add the cross-spec consistency reading pass (REQ-XSPEC-001,
 REQ-XSPEC-002) after writing all specs and before the final coverage check.
 [Priority: must]
 
-### REQ-SKILL-014: sdd-plan milestone support
+### REQ-SKILL-014: plan milestone support
 `sdd-plan` must support per-milestone plan files (REQ-MPLAN-001 through
 REQ-MPLAN-004) when the project defines multiple milestones. For single-
 milestone projects, the existing single-file behavior must be preserved.
 [Priority: must]
 
-### REQ-SKILL-015: sdd-replan milestone support
+### REQ-SKILL-015: replan milestone support
 `sdd-replan` must work with per-milestone plan files, archiving and revising
 the correct milestone's plan file based on which milestone's tasks are
 affected.
@@ -114,7 +114,7 @@ detection (REQ-STALE-003) when reading per-milestone plan files, comparing
 only against requirements and specs traced by that milestone's tasks.
 [Priority: must]
 
-### REQ-SKILL-017: sdd-migrate v2→v3 support
+### REQ-SKILL-017: migrate v2→v3 support
 `sdd-migrate` must implement v2→v3 migration steps (REQ-MIG-009 through
 REQ-MIG-014): version detection for v3, plan vocabulary rename, optional
 multi-milestone split, capability report, v1→v3 sequential composition, and
@@ -122,12 +122,12 @@ finalization. The existing v1→v2 logic must remain unchanged.
 (see RS-003)
 [Priority: must]
 
-### REQ-SKILL-018: sdd-review skill
+### REQ-SKILL-018: review skill
 A new `sdd-review` skill must be created at `skills/sdd-review/SKILL.md`
 implementing the external review requirements (REQ-REV-001 through
 REQ-REV-008): phase detection with phase-specific checklists, structured
 report format, required inputs specification, bias disclosure, trigger
-classification, scope boundaries against chunk-close/XSPEC/sdd-verify,
+classification, scope boundaries against chunk-close/XSPEC/verify,
 session-isolation confirmation, and scope-completeness checking.
 (see RS-004)
 [Priority: must]
@@ -135,7 +135,7 @@ session-isolation confirmation, and scope-completeness checking.
 <!-- REQ-SKILL-019..024: per-skill updates for the harness-hardening cycle
      (HARN and LINT domains). (see RS-008) -->
 
-### REQ-SKILL-019: sdd-orchestrate hardening updates
+### REQ-SKILL-019: orchestrate hardening updates
 `sdd-orchestrate` must implement the driver-side HARN requirements: the fix-loop
 and replan re-entry caps (REQ-HARN-001, REQ-HARN-002), budget and write-scope
 slots on every dispatch (REQ-HARN-004, REQ-HARN-020), `RETURN:` block parsing and
@@ -157,7 +157,7 @@ field-source mapping, repair-packet field sources, `VERDICT:` / `CHUNK_VERDICT:`
 stays within the REQ-LINT-007 size target. (see RS-008)
 [Priority: must]
 
-### REQ-SKILL-020: sdd-implement ledger, oscillation and checkpoint
+### REQ-SKILL-020: implement ledger, oscillation and checkpoint
 `sdd-implement` must add the attempt ledger and `verified_do_not_touch` list
 (REQ-HARN-006), the oscillation conditions in Step 3 stuck detection
 (REQ-HARN-007), the circuit-break checkpoint format and its RETURN-field mapping
@@ -167,14 +167,14 @@ stays within the REQ-LINT-007 size target. (see RS-008)
 (REQ-HARN-014); standalone behavior is otherwise untouched. (see RS-008 Q1–Q3)
 [Priority: must]
 
-### REQ-SKILL-021: sdd-review verdict token
+### REQ-SKILL-021: review verdict token
 `sdd-review` must add the own-line `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT`
 token to its report format (REQ-HARN-013) without changing the rest of the
 report or its scope boundaries (REQ-REV-005, REQ-REV-006 — review is not the
 chunk verifier). (see RS-008 Q4)
 [Priority: must]
 
-### REQ-SKILL-022: sdd-replan archive convention and checkpoint intake
+### REQ-SKILL-022: replan archive convention and checkpoint intake
 `sdd-replan` must state the `-replan-` archive filename convention as a contract
 (REQ-HARN-003), define the blocked-task note as the checkpoint slot with the
 bounded format (REQ-HARN-008), and read that checkpoint in Step 1 as the stuck
@@ -182,14 +182,14 @@ state under orchestrate instead of relying on conversation context. (see RS-008
 Q1)
 [Priority: must]
 
-### REQ-SKILL-023: sdd-skill-lint hardening checks
+### REQ-SKILL-023: skill-lint hardening checks
 `tools/sdd-skill-lint.py` must implement the LINT domain (REQ-LINT-001 through
 REQ-LINT-006): remediation text, warn tier, SKILL.md size check, backtick
 `references/` path resolution, and the `REQUIRED` rows for the new contracts;
 its self-test must cover each new check. (see RS-008 Q4)
 [Priority: must]
 
-### REQ-SKILL-024: sdd-orchestrate marker-4 prose to references/
+### REQ-SKILL-024: orchestrate marker-4 prose to references/
 `skills/sdd-orchestrate/SKILL.md` must move its marker-4-only prose to
 `references/v4-workstreams.md` per REQ-LINT-007, with the `research_id` lint
 guard and the superseding Q-IMPL entry in `docs/spec/ws-orchestration.md`. The
@@ -205,7 +205,7 @@ executor of the chunk-close layer, REQ-HARN-014). (see RS-008 Q4)
      (TELEM, REDB, ARB, GC, EVAL domains + HARN/LINT additions). Workstream-
      prefixed ids per docs/spec/ws-ids.md (marker 4). (see RS-HARNESSP2-001) -->
 
-### REQ-SKILL-HARNESSP2-001: sdd-orchestrate telemetry
+### REQ-SKILL-HARNESSP2-001: orchestrate telemetry
 `sdd-orchestrate` must implement the TELEM domain's driver side: the
 per-dispatch record, enumerated budget parsing, orchestrator-only append after
 each gate, `TELEMETRY: WRITE FAILED | OFF | .gitignore updated` gate lines, the
@@ -224,7 +224,7 @@ scan those files (REQ-SKILL-HARNESSP2-008). No dispatch template may mention
 the stub is ≤ 10 lines; `tools/sdd-skill-lint.py` exits 0.
 [Priority: must]
 
-### REQ-SKILL-HARNESSP2-002: sdd-orchestrate red dispatch
+### REQ-SKILL-HARNESSP2-002: orchestrate red dispatch
 `sdd-orchestrate` must add the `red` dispatch kind: the opt-in at the verify
 gate (default off), a RED TEAM template in `references/dispatch-templates.md`
 with the input contract, empty write scope, commit-ownership and budget slots
@@ -240,7 +240,7 @@ extends REQ-ORCH-034: `RETURN.status`, `SCOPE:`, `RED_VERDICT:`, `VERDICT:`.
 lint exits 0 with the new `REQUIRED` rows (REQ-LINT-HARNESSP2-001).
 [Priority: must]
 
-### REQ-SKILL-HARNESSP2-003: sdd-orchestrate arbitration
+### REQ-SKILL-HARNESSP2-003: orchestrate arbitration
 `sdd-orchestrate` must implement the ARB domain in `references/loop-control.md`
 (retained per-round tuple, class (b)/(c) rules, the reversal limitation, the
 `REVIEW: CONTRADICTION` pause text and options, third-opinion resolution) with a
@@ -253,7 +253,7 @@ pause; the pause consumes no iteration in the fixture walkthrough; the scope
 self-test gains the section-resolution and `.sdd/` scenarios and passes.
 [Priority: must]
 
-### REQ-SKILL-HARNESSP2-004: sdd-orchestrate gc cadence and snapshot base
+### REQ-SKILL-HARNESSP2-004: orchestrate gc cadence and snapshot base
 `sdd-orchestrate` must run `tools/sdd-gc.py --report` at entry (one-line
 summary before the workstream picker) and at DONE (full findings, `record |
 ignore` routing into `verification.md` §Next Steps) per REQ-GC-HARNESSP2-005/006,
@@ -271,7 +271,7 @@ REQ-HARN-HARNESSP2-002.
 `write-scope.md` only inside §3 and §5.
 [Priority: must]
 
-### REQ-SKILL-HARNESSP2-005: sdd-verify pending-red, accepted breaks and gc slot
+### REQ-SKILL-HARNESSP2-005: verify pending-red, accepted breaks and gc slot
 `sdd-verify` must: read the `Red team: enabled` dispatch slot and write
 `status: pending-red` in place of `pass` when set (REQ-REDB-HARNESSP2-008),
 listing `pending-red` in its Phase Detection as a re-verification state;
@@ -284,7 +284,7 @@ HARNESSP2-002). Standalone behavior with red off is unchanged.
 guarded by the slot; the four-layer table is unchanged; lint exits 0.
 [Priority: must]
 
-### REQ-SKILL-HARNESSP2-006: sdd-review Material `affects` key
+### REQ-SKILL-HARNESSP2-006: review Material `affects` key
 `sdd-review` must add `affects REQ-…` (or `affects —`) to its Material finding
 template line so every Critical and Material line carries the arbitration key
 (REQ-ARB-HARNESSP2-008), changing nothing else in the report format
@@ -294,7 +294,7 @@ or telemetry text.
 `sdd-review/SKILL.md` against v5 touches only that line and its example.
 [Priority: should]
 
-### REQ-SKILL-HARNESSP2-007: sdd-implement references split (Q-IMPL-083)
+### REQ-SKILL-HARNESSP2-007: implement references split (Q-IMPL-083)
 `skills/sdd-implement/SKILL.md` (525 lines, lint size warn accepted for v5 by
 Q-IMPL-083) must move its Step 3 detail (attempt ledger, oscillation rule,
 budget exhaustion, checkpoint composition) and the leaf return contract to
@@ -307,7 +307,7 @@ lint stays green; standalone `sdd-implement` behavior is unchanged. (see
 Implications for Design)
 **Acceptance**: `sdd-implement/SKILL.md` is ≤ 400 lines (no size warn); the
 moved sections' stubs each contain a resolving `references/` link; `tools/
-sdd-skill-lint.py` exits 0 and `--self-test` §7 still covers the re-pointed rows.
+skill-lint.py` exits 0 and `--self-test` §7 still covers the re-pointed rows.
 [Priority: must]
 
 ### REQ-SKILL-HARNESSP2-008: Operator documentation and CLAUDE.md
@@ -317,7 +317,7 @@ must describe the new gate signals and choices — telemetry on/off and the
 `REVIEW: CONTRADICTION` pause and its four options, the gc summary at entry and
 DONE — and `CLAUDE.md`'s SDD section must gain **one short paragraph** naming
 them; its four-verification-layer bullet stays **unchanged** (red is a second
-executor of the sdd-verify layer, REQ-REDB-HARNESSP2-002). Operator docs are outside
+executor of the verify layer, REQ-REDB-HARNESSP2-002). Operator docs are outside
 the `\.sdd/` lint row (REQ-LINT-HARNESSP2-002 scans `skills/*/SKILL.md` and
 `skills/*/references/*.md` only), so `USAGE.md` and `CLAUDE.md` **may** name the
 telemetry path; wherever they do, the non-read guarantee must be stated beside
