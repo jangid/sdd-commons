@@ -62,6 +62,8 @@ recorded as a Minor below. The cycle's own deliverables — the rename, the comm
 gate, the agents, the manifests and the project docs — are untouched by the
 reversal and remain 37/37.
 
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6] The comparand `git diff 3ddfdb3 HEAD -- tools/gc.py tools/telemetry.py` re-derived here and at four further points in this file (the §Freeze banner, the §Red Round 3 re-derivation, and the two rows of the reversal table) is **un-re-runnable** after the `packaging` cycle moved both tools: it is repinned to the blob-sha equality `3ddfdb3:tools/<tool>` == `0bdb076:plugins/sdd/tools/<tool>` (blobs `d800df5…`, `d696421…`, both verified equal). One note covers the five.
+
 `status:` is `pending-red` because the dispatch carries `Red team: enabled`:
 blue passes, the red verdict is outstanding, and the orchestrator flips
 `pending-red → pass` at the DONE gate. This skill never writes `pass` while a
@@ -102,6 +104,7 @@ The red round rewrote four criteria. Each is re-derived here against its
 > against `3ddfdb3` again — `git diff 3ddfdb3 HEAD -- tools/gc.py` and the same
 > diff over `tools/telemetry.py` are each **0 lines**. The text below is kept as
 > the record of what was measured while the narrowing stood.
+> [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6]
 
 The criterion no longer says both bundled tools are byte-frozen from the
 rename-chunk close. It now says the **telemetry tool's source is frozen
@@ -229,6 +232,8 @@ built and swept here.
 spells it `python3 <skill-dir>/tools/gc.py --report --root .`, `<skill-dir>`
 being the directory holding the skill's own `SKILL.md`):
 
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6]
+
 ```
 $ python3 <worktree>/skills/orchestrate/tools/gc.py --report --root .
 skills/mine/SKILL.md:1: [description] description never states when NOT to use the skill (repo quality check)
@@ -279,6 +284,7 @@ happened in `$TMPDIR` clones; the worktree was never mutated.
 > by the HEAD measurement in §Resulting behaviour (exit **2**, linter missing).
 > Re-derived at HEAD: `git diff 3ddfdb3 HEAD -- tools/gc.py` is **0 lines** and
 > `grep -n 'suite_root\|bundled_run' tools/gc.py` has **no match**.
+> [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6]
 
 ~~`Gc.bundled_run()` keyed on where the running **script** lived, so the bundled
 copy sweeping **this** repository — the invocation the driver skill documents —
@@ -294,6 +300,7 @@ REQ-PKG-MARKETPLACE-007 criterion's parenthetical were corrected with it.
 (`perl -pi -e 's{docs/\.sdd-version}{docs/.SDD-VERSION-BROKEN}g' skills/implement/SKILL.md`),
 then run both `python3 tools/gc.py --report --root .` and
 `python3 skills/orchestrate/tools/gc.py --report --root .`.
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6]
 
 | | root script | bundled copy |
 |---|---|---|
@@ -337,6 +344,8 @@ skills/orchestrate/tools/gc.py         <- tools/gc.py
 skills/orchestrate/tools/skill-lint.py <- tools/skill-lint.py
 skills/orchestrate/tools/telemetry.py  <- tools/telemetry.py
 ```
+
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6]
 
 `cmp` exits 0 and `test ! -L` succeeds for all three derived pairs.
 
@@ -460,6 +469,7 @@ all three and each row below is a `reproduce:` any reader can run:
 | the bundled linter is gone | `ls skills/orchestrate/tools/` | `gc.py`, `telemetry.py` only |
 | the `bundled-drift` rule is gone | `grep -c bundled tools/skill-lint.py` | **0** |
 | bundled copies are still real byte-identical files | for each pair derived from `skills/*/tools/*.py`: `cmp` and `test ! -L` | `cmp` exit 0 and not-a-link, both pairs |
+| [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6] | — | — |
 
 The corpus keeps its record rather than rewriting it:
 `Q-IMPL-MARKETPLACE-026`, `-027` and `-028` are **kept** in
@@ -477,6 +487,7 @@ mutated).
 |---|---|---|
 | **this repository** — bundled and root sweeps agree | in a clone: `python3 tools/gc.py --report --root .` and `python3 skills/orchestrate/tools/gc.py --report --root .`, then `diff` the two outputs | both **exit 0**, `OK: 9 sweep(s) clean, 1 warning(s), 31 info`, outputs **identical**. The bundled copy finds no sibling linter, falls back to `<root>/tools/skill-lint.py`, and runs with suite rules ON |
 | **a consumer repository** — no `tools/` | build a scratch `git init` repo with `docs/.sdd-version` = `4`, `docs/requirements/index.md` and a copy of `skills/orchestrate/`, then `python3 skills/orchestrate/tools/gc.py --report --root .` | **exit 2**, `error: linter missing — expected <root>/tools/skill-lint.py` |
+| [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6] | — | — |
 
 The second row is the honest documented limitation the reversal restores. It is
 recorded below as a Minor and carried forward as a Next Step, together with the
@@ -555,6 +566,7 @@ regenerating the aggregate stays the orchestrator's post-gate bookkeeping.
 | REQ-PKG-MARKETPLACE-005 — contributor tools out of both the skills and the list | pass | grep over `skills/**/*.md` for a `python3 ` or `./` invocation prefix of `scope-check-selftest.py` or `eval.py` = **0**. None of the three appears in the component list; the linter is **no longer bundled at all** after the 2026-09-21 reversal, so the row reads as it did before the extension — the list holds 13 entries and contains none of the three |
 | REQ-PKG-MARKETPLACE-006 — bundled copies are regular byte-identical files; no tool lost | pass | the bundled population is derived at run time from `skills/*/tools/*.py` joined to `tools/` on basename — **two** pairs after the reversal, `gc.py` and `telemetry.py`, no count pinned in the criterion — and `cmp` exits 0 and `test ! -L` succeeds for each. `ls tools/*.py` = 5, not less than the 5 at `d1ef8f2`; `git log --follow` resolves all five (Chunk 5 tasks 10–11) |
 | REQ-PKG-MARKETPLACE-006 (added criterion) — at least one invocation resolves to the bundled copy | pass | **8** invocations under `skills/` spell the script as `<skill-dir>/tools/<tool>.py` — skill-directory-relative, not cwd-relative. Substituting `<skill-dir>` = `skills/orchestrate` yields `skills/orchestrate/tools/gc.py`, which exists on disk as a regular file. This is the criterion R5 showed was missing |
+| [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6] | — | — |
 | REQ-PKG-MARKETPLACE-007 — explicit root, freeze (**unnarrowed again**) | pass | **all three halves re-derived above.** Explicit root: **9** drift-sweep invocations found under `skills/`, **9** carrying an explicit root; **0** telemetry invocations pass a skill- or plugin-rooted file path. Freeze, in the criterion's **original unamended** wording after the 2026-09-21 reversal: `git diff 3ddfdb3 HEAD -- tools/telemetry.py` and `git diff 3ddfdb3 HEAD -- tools/gc.py` are each **0 lines**, so no edit was made to either tool beyond the rename step's name strings. The consumer-repository criterion was withdrawn with the extension; the limitation it covered is a Minor below. See also the Minor on the one remaining cwd-relative invocation |
 | REQ-PKG-MARKETPLACE-008 — no skill body depends on the plugin-root variable | pass | fence-aware scan of `skills/**/*.md` for `PLUGIN_ROOT` outside a fenced code block: **0** occurrences |
 | REQ-PKG-MARKETPLACE-009 — dangling spec citations documented, count invariant | pass | `CONTRIBUTING.md` §Where the contracts live states "**Those citations resolve in this repository, not in an installed plugin.**" The `docs/spec/*.md` citation count over `skills/**/*.md`, derived with the same command at each sha: `d1ef8f2`=150, `016da07`=150, `464107a`=150, `1b6295a`=150, `a576316`=150, **HEAD=151**. The criterion is scoped to the **packaging change**, and across it the count is **150 == 150** — it passes. The single added citation arrived with `d2741f1` (the R5 repair citing `docs/spec/marketplace-packaging.md` §No skill body depends on the plugin-root variable); it is recorded as a Minor below so the first pass's "150 at HEAD" is not carried forward as true |
@@ -658,6 +670,7 @@ zero was wrong once in this report already.
 |---|---|---|
 | Operator installs the plugin from a real session | pass (cited) | Chunk 7 task 2: marketplace added, plugin installed to a separate cache copy pinned at `0d2d71eb…`, 10 skills + 3 agents listed, all ten lazily-read `references/*.md` resolved from the installed copy |
 | Consumer runs the bundled drift sweep in **their own** repository | **documented limitation, not pass** (re-measured at HEAD) | `git clone --no-hardlinks` into `$TMPDIR`, then a scratch `git init` consumer repo with `docs/.sdd-version` = `4`, `docs/requirements/index.md`, a copy of `skills/orchestrate/` and **no** `tools/` directory: `python3 skills/orchestrate/tools/gc.py --report --root .` prints `error: linter missing — expected <root>/tools/skill-lint.py` and exits **2**. The row the earlier pass recorded here (exit 1, 3 consumer-derived findings) measured the reverted extension and is withdrawn. Recorded as the "restored limitation" Minor under §Issues Found |
+| [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6] | — | — |
 | Consumer's error path is a clean refusal rather than a misleading success | pass (re-argued, not as written) | the honest-failure argument survives the reversal but not in its earlier form. At HEAD the consumer run does **not** produce a finding list at all: it refuses in one line naming the exact missing path, and exits 2 — a distinguishable failure. What the reversal averted is the alternative that was measured and rejected in-cycle: bundling the linter alone turned the refusal into 42 findings, 40 of them `[required]` contract rows about a stranger's tree, indistinguishable from real ones. A clean exit 2 is the better of the two observed behaviours; it is not a working sweep |
 | Contributor runs the commit gate for the first time | pass with a sandbox artefact | `pre-commit validate-config` exit 0; `pre-commit run --all-files` passes five of six hooks with a clean tree, `end-of-file-fixer` blocked only by this sandbox's write denial on `.claude/settings.json` (which already ends in `\n`) |
 | Maintainer narrows the retired-prefix scope by accident | pass | the self-test now fails loudly with a per-area `seeded but unwalked` line, demonstrated by mutation above. Before the repair this silently printed `SELF-TEST OK` |
@@ -712,6 +725,7 @@ zero was wrong once in this report already.
   suite-specific rows behind a provenance predicate) each introduced a worse
   break — a misleading success in the first case, a silently disabled rule set in
   the second — so the operator reverted both and carried the question forward.
+  [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 29febe6]
   What it needs is a marker of the repository that **owns** the suite rules,
   carried by the swept corpus — a design question this cycle does not settle and
   deliberately excludes (§Next Steps records the exclusion and its reasoning).

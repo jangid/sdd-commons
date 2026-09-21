@@ -362,13 +362,15 @@ inline at first use.
 **Every gc invocation in every skill body takes `<plugin-dir>`** — the eight
 in `orchestrate/` (`SKILL.md`, `USAGE.md`, `references/drift-sweep.md`)
 alongside the one in `verify/SKILL.md`. The orchestrate eight were written
-`<skill-dir>/tools/gc.py` on the reasoning that the copy bundled under
-`skills/orchestrate/tools/` (REQ-PKG-MARKETPLACE-006's duplicated-not-symlinked
-rule) would then run. That reasoning was wrong and the sweep was dead in every
-install: `gc.py` embeds the linter by sibling-first resolution, that directory
-holds only `gc.py` and `telemetry.py`, and the fallback
-`<root>/tools/skill-lint.py` is exactly the path the move deleted, so the
-documented command printed `error: linter missing` and exited 2 everywhere.
+`<skill-dir>/tools/gc.py` on the reasoning that the copy then bundled under
+the driver skill's own `tools/` subdirectory (REQ-PKG-MARKETPLACE-006's
+duplicated-not-symlinked rule) would run. That reasoning was wrong and the sweep
+was dead in every install: `gc.py` embeds the linter by sibling-first
+resolution, that directory held only `gc.py` and `telemetry.py`, and the
+fallback `<root>/tools/skill-lint.py` was exactly the path the move deleted, so
+the documented command printed `error: linter missing` and exited 2 everywhere.
+That bundled directory was itself removed on 2026-09-21 under
+REQ-PKG-CONSUMERGEOMETRY-005, so no copy of it survives to be named.
 One convention, one place a consumer's linter is looked for. A consequence to
 carry forward: **no invocation anywhere now resolves to the bundled copy**, so
 REQ-PKG-MARKETPLACE-006's added criterion "at least one invocation resolves to

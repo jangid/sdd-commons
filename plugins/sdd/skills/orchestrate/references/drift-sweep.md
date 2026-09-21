@@ -32,12 +32,12 @@ repository that has no `tools/` directory of its own. This is the placeholder
 convention `verify/SKILL.md`'s gc criterion already uses
 (`docs/spec/two-root-linter.md` §8); `<skill-dir>` stays reserved for a single
 skill's own directory, which is what `references/` links resolve against. The
-driver deliberately does **not** name the copy bundled under
-`skills/orchestrate/tools/` (REQ-PKG-MARKETPLACE-006's duplicated-not-symlinked
-rule keeps that copy on disk): that directory carries no `skill-lint.py`, so a
-skill-directory-relative path resolves the linter `gc.py` embeds to a sibling
-that is not there and the sweep dies with `error: linter missing` in every
-install. The path is plugin-root-relative and never resolved through the
+driver deliberately does **not** name any copy bundled under the driver
+skill's own `tools/` subdirectory: that directory was removed on 2026-09-21
+under REQ-PKG-CONSUMERGEOMETRY-005, precisely because it carried no
+`skill-lint.py`, so a skill-directory-relative path resolved the linter `gc.py`
+embeds to a sibling that was not there and the sweep died with `error: linter
+missing` in every install. The path is plugin-root-relative and never resolved through the
 plugin-root environment variable, which no skill body may depend on
 (`docs/spec/marketplace-packaging.md` §No skill body depends on the
 plugin-root variable). `--root .` stays explicit and stays separate: it names

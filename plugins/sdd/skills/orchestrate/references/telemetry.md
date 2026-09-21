@@ -481,7 +481,7 @@ After a cycle — never inside the loop, and never from a skill — the operator
 summarises the transcript with the out-of-loop tool:
 
 ```
-python3 tools/telemetry.py summarize [--file .sdd/telemetry.jsonl] [--workstream <id>] [--since <ISO>]
+python3 plugins/sdd/tools/telemetry.py summarize [--file .sdd/telemetry.jsonl] [--workstream <id>] [--since <ISO>]
 ```
 
 It prints one table per workstream, one row per `dispatch.stage` (dispatches;
@@ -574,7 +574,7 @@ recorded implement records: M; shortfall: max(0, N − M)`, `M` = implement
 **Schema lint** (REQ-TELEM-HARNESSP4-004, `docs/spec/telemetry-reader.md` §Schema Lint):
 
 ```
-python3 tools/telemetry.py --lint [--file .sdd/telemetry.jsonl]
+python3 plugins/sdd/tools/telemetry.py --lint [--file .sdd/telemetry.jsonl]
 ```
 
 validates **every field of every record** against the domain table §2 renders
@@ -599,7 +599,7 @@ post-cycle and out-of-loop: nothing in the orchestrator runs it.
 Partial):
 
 ```
-python3 tools/telemetry.py migrate --file <path> [--out <path>]
+python3 plugins/sdd/tools/telemetry.py migrate --file <path> [--out <path>]
 ```
 
 rewrites every `dispatch.chunk` header string `"Chunk N"` to the int `N` and

@@ -177,13 +177,16 @@ reference keeps its spelling. [Superseded 2026-09-21 — see §Placement and
 records and are not rewritten; live skill-body invocations are repaired by
 `two-root-linter.md` §8.]
 
-Two classes of tool, with different destinations. No count is stated: the
-bundled population is whatever `skills/*/tools/*.py` derives to at run time, and
-every check over it derives the same way.
+Two classes of tool, with different destinations. No count is stated. A
+bundled population was formerly derived at run time from the `*.py` files under
+each skill's own `tools/` subdirectory, and every check over it derived the same
+way; that population is **empty** since the driver skill's `tools/`
+subdirectory was removed on 2026-09-21 under REQ-PKG-CONSUMERGEOMETRY-005, so
+nothing is bundled and no check derives over it.
 
 | Class | Tools | Ships in plugin? | Why |
 |---|---|---|---|
-| **Runnable from a skill** | the drift sweep, the telemetry tool | yes — duplicated into the driver skill's own `tools/` subdirectory | a skill body tells the operator to run them |
+| **Runnable from a skill** | the drift sweep, the telemetry tool | yes — in the suite's own `tools/` directory [Updated: 2026-09-21 — the duplicate under the driver skill's own `tools/` subdirectory was removed under REQ-PKG-CONSUMERGEOMETRY-005] | a skill body tells the operator to run them |
 | **Contributor-only** | the skill linter, the scope-check self-test, the evaluation tool | no | never invoked from a skill body; the linter's rules are keyed to *this* repository's skill set, so from an installed plugin it would assert this repository's contract rows about the user's tree |
 
 The drift sweep delegates its structural sweeps to the linter as a subprocess.
@@ -363,9 +366,9 @@ their two halves, and a uniform re-reading breaks them; each carries its own
 - [ ] A script derives, at run time, the set of basenames in the manifest's `skills` list and the set of directories under `skills/` containing a `SKILL.md`, and asserts set equality; likewise the manifest's `agents` list against `*.md` files directly under `agents/`, **compared as basenames on both halves** — [Amended 2026-09-21 — §Placement] manifest-listed component paths are read relative to the **suite root** and stay suite-relative (`./agents/<name>.md`, since `source` names `plugins/sdd`) while the filesystem half becomes `plugins/sdd/agents/<name>.md`, so a literal path-set equality would compare differently-rooted strings and fail on every row; the skills half already compares basenames and is unaffected — and asserts no listed path starts with `docs/` (REQ-PKG-MARKETPLACE-003).
 - [ ] `grep -rnE '(^|[^A-Za-z0-9._/-])(/|~/|\$\{?[A-Z_]*PLUGIN_ROOT)[A-Za-z0-9._/-]*docs/' --include='*.md' skills/` returns no match, and the manifest check above shows no `docs/` path (REQ-PKG-MARKETPLACE-004).
 - [ ] A run-time grep over `skills/` for an invocation prefix (`python3 ` or `./`) of any of the three contributor tools returns zero matches, and none of the three appears in the manifest component list (REQ-PKG-MARKETPLACE-005).
-- [ ] The bundled-tool population is derived at run time — every file matching `skills/*/tools/*.py` paired with the **suite-root** file of the same basename [Amended 2026-09-21 — §Placement: after the move there is no repository-root `tools/`, and the blanket clause rewrites bare paths, not prose], no count written down — and for **each** derived pair `cmp` exits 0 and `test ! -L` succeeds on the bundled copy. `git log --follow` resolves every post-change `plugins/sdd/tools/*.py` to pre-change history. **The loss check spells its two sides separately**, because they straddle the move commit and no single spelling is correct on both: the post-move side is `ls plugins/sdd/tools/*.py | wc -l`, the pre-move side is `git ls-tree --name-only <cycle entry sha> tools/ | grep -c '\.py$'` (the entry commit is pre-move, so a uniform rewrite would make it zero), and the former is asserted not less than the latter — both sides derived by command (REQ-PKG-MARKETPLACE-006).
-- [ ] At least one drift-sweep invocation under `skills/` resolves to the **bundled** copy: a run-time grep over `skills/**/*.md` for invocations of the sweep returns a non-empty set whose script path is skill-directory-relative rather than cwd-relative, and the file that path names exists under the driver skill's own directory — derived by command, no count pinned (REQ-PKG-MARKETPLACE-006).
-- [ ] Every drift-sweep invocation found in `skills/` by a run-time grep carries an explicit root argument; no telemetry invocation in `skills/` passes a file path beginning with a skill or plugin directory; and the **source freeze** is asserted by content identity rather than by an empty diff [Amended 2026-09-21 — §Placement]: for each of the two tools, `git show <rename-chunk-close-sha>:tools/<tool> | cmp - plugins/sdd/tools/<tool>` exits 0. The former `git diff <rename-chunk-close-sha> HEAD -- tools/<drift sweep> tools/<telemetry tool>` **is empty** form is retired as false by construction after the move, and the blanket clause cannot repair it under any path spelling: rewritten to `plugins/sdd/tools/…` the pathspec names nothing at the old sha and the whole file reports as added; left as `tools/…` it reports as deleted; with `-M` it reports a rename. An equivalent accepted form is `git diff -M <rename-chunk-close-sha> HEAD -- tools/ plugins/sdd/tools/`, asserted to contain only rename records with zero content hunks (REQ-PKG-MARKETPLACE-007).
+- [ ] [Amended 2026-09-21b — REQ-PKG-CONSUMERGEOMETRY-005: this item's **bundled-population clause is excised**, and the item survives. That clause derived a population at run time from the `*.py` files under each skill's own `tools/` subdirectory, paired each with the suite-root file of the same basename, and asserted `cmp` exit 0 and `test ! -L` on every derived pair; the driver skill's `tools/` subdirectory was removed under that requirement, so the population is now empty and the clause would pass **vacuously**. The clauses below are REQ-PKG-MARKETPLACE-006's surviving half — its `[Updated: 2026-09-21b]` note's "no tool is lost from the suite's `tools/` directory, compared by identity rather than by name" — and are this item's only live pin, which is why the item is not retired whole. The prior `[Amended 2026-09-21 — §Placement]` note attached to the excised clause and goes with it.] `git log --follow` resolves every post-change `plugins/sdd/tools/*.py` to pre-change history. **The loss check spells its two sides separately**, because they straddle the move commit and no single spelling is correct on both: the post-move side is `ls plugins/sdd/tools/*.py | wc -l`, the pre-move side is `git ls-tree --name-only <cycle entry sha> tools/ | grep -c '\.py$'` (the entry commit is pre-move, so a uniform rewrite would make it zero), and the former is asserted not less than the latter — both sides derived by command (REQ-PKG-MARKETPLACE-006).
+- [ ] ~~At least one drift-sweep invocation under `skills/` resolves to the **bundled** copy: a run-time grep over `skills/**/*.md` for invocations of the sweep returns a non-empty set whose script path is skill-directory-relative rather than cwd-relative, and the file that path names exists under the driver skill's own directory — derived by command, no count pinned~~ **[Retired 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005.]** This criterion is retired whole, not re-worded: it rests entirely on REQ-PKG-MARKETPLACE-006's duplication clause, which that requirement's `[Updated: 2026-09-21b]` note supersedes. The driver skill's `tools/` subdirectory is removed, so no invocation anywhere resolves to a bundled copy and the item goes **false** rather than vacuous. No plan task is scheduled against it (REQ-PKG-MARKETPLACE-006).
+- [ ] Every drift-sweep invocation found in `skills/` by a run-time grep carries an explicit root argument; no telemetry invocation in `skills/` passes a file path beginning with a skill or plugin directory; and the **source freeze** is asserted by content identity rather than by an empty diff [Amended 2026-09-21 — §Placement]: for each of the two tools, `git show <rename-chunk-close-sha>:tools/<tool> | cmp - <(git show 0bdb076:plugins/sdd/tools/<tool>)` exits 0 [Repinned 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-001 acceptance 5: the right endpoint was the **working tree**, which leaves the window open, so once REQ-PKG-CONSUMERGEOMETRY-001's permitted edits touch `plugins/sdd/tools/gc.py` the item turns red for being evaluated outside its own window rather than because the freeze was violated. It is repinned to the packaging cycle's end sha `0bdb076`; equivalently, the blob-sha equality `git rev-parse <rename-chunk-close-sha>:tools/<tool> == git rev-parse 0bdb076:plugins/sdd/tools/<tool>`]. The former `git diff <rename-chunk-close-sha> HEAD -- tools/<drift sweep> tools/<telemetry tool>` **is empty** form is retired as false by construction after the move, and the blanket clause cannot repair it under any path spelling: rewritten to `plugins/sdd/tools/…` the pathspec names nothing at the old sha and the whole file reports as added; left as `tools/…` it reports as deleted; with `-M` it reports a rename. An equivalent accepted form is `git diff -M <rename-chunk-close-sha> 0bdb076 -- tools/ plugins/sdd/tools/` [repinned with the clause above, same date and requirement — `HEAD` left this form's right endpoint open too], asserted to contain only rename records with zero content hunks (REQ-PKG-MARKETPLACE-007).
 - [ ] A run-time grep for the plugin-root variable name over `skills/**/*.md` returns no match outside a fenced code block documenting its manifest-only scope (REQ-PKG-MARKETPLACE-008).
 - [ ] `CONTRIBUTING.md` contains a paragraph stating that spec citations inside skills resolve in the repository, not in an installed plugin; the same `docs/spec/*.md` citation grep over `skills/` yields the same count before and after the packaging change — **the two sides straddle the move commit**, so the before-side grep is run over the pre-move `skills/` tree at the cycle's entry commit and the after-side over `plugins/sdd/skills/`; only the counts are compared, which is invariant under the re-rooting [Amended 2026-09-21 — §Placement] (REQ-PKG-MARKETPLACE-009).
 - [ ] The verification report records, as observations with their commands: the install command run, the namespaced skill names the session listed, and the name of the `references/*.md` file read from the installed copy (REQ-PKG-MARKETPLACE-010).
@@ -547,6 +550,14 @@ population at run time — every `skills/*/tools/*.py` paired with the
 repository-root file of the same basename — and raises one blocking finding per
 pair that differs byte-for-byte, has no root source, or is a symlink. A
 `--self-test` fixture seeds all four shapes and pins which of them must speak.
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the directory this
+decision's derivation would have derived over, the driver skill's own `tools/`
+subdirectory, was removed on that date. The Decision text above is preserved
+verbatim because this entry is **REVERTED** and is kept as the record of a
+decision that was made and then withdrawn — a narrative record, not an
+assertion about the present tree — so it takes the class (B) shape rather than
+an in-place correction. This is the third stated exemption to the residual glob
+grep of §Consumer-Geometry Acceptance Criteria.]
 **Rationale**: byte identity was asserted once, by a criterion, and enforced by
 nothing standing: on a clean clone, appending to a root tool left both quality
 gates exiting 0 while `cmp` reported the bundled copy had drifted. A seventh
@@ -564,7 +575,9 @@ of both.
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §Tools: root stays, the skill-runnable set is duplicated into the driver skill; §Root resolution for skill-side invocations
 **Decision**: Revert the consumer-repository extension in full — delete the
-bundled `skills/orchestrate/tools/skill-lint.py`, restore `tools/gc.py` to its
+bundled `skills/orchestrate/tools/skill-lint.py` (that directory was itself
+removed on 2026-09-21 under REQ-PKG-CONSUMERGEOMETRY-005; the instruction stands
+as the record of what this Q-IMPL decided), restore `tools/gc.py` to its
 rename-chunk-close content (the provenance predicate and its helper are removed,
 not left dead), remove the linter's `bundled-drift` rule and its `--self-test`
 fixture, and restore REQ-PKG-MARKETPLACE-007's freeze criterion to its original
@@ -966,10 +979,31 @@ where it was.
 
   **Secondary, residual.** A run-time grep of
   `docs/spec/marketplace-packaging.md` for the glob returns matches only inside a
-  fenced code block or inside this file's own `## Consumer-Geometry Amendment`
-  section — the same two exemptions, with the same bound: every occurrence inside
-  the amendment must be a **citation of a site to be corrected**, never an
-  assertion that a bundled population is derived.
+  fenced code block, inside this file's own `## Consumer-Geometry Amendment`
+  section, or at the Q-IMPL-MARKETPLACE-028 reverted-record line — with the same
+  bound on the second: every occurrence inside the amendment must be a
+  **citation of a site to be corrected**, never an assertion that a bundled
+  population is derived. The amendment section's line number is **read at run
+  time**, never written down, and a literal enumeration of matches is wrong the
+  moment anything moves. **Zero is unreachable against a correct
+  implementation**, because the amendment carries the glob after its own heading
+  (a table cell, which cannot be fenced, among others); a zero target is
+  discharged only by deleting the amendment's own citations, which is the
+  outcome the exemption exists to prevent.
+  [Updated: 2026-09-21c — the **third exemption** is added by
+  REQ-PKG-CONSUMERGEOMETRY-005's implementation. Q-IMPL-MARKETPLACE-028's
+  **Status** is `REVERTED 2026-09-21` and the entry is kept *"as the record of a
+  decision that was made and then withdrawn"*; a reverted record is narrative,
+  not an assertion about the present tree, so its Decision text is preserved
+  verbatim under the class (B) rule and no correction reaches its glob
+  occurrence. Listed here so the grep has a **stated** exemption rather than an
+  unexplained failure, on the same footing as this cycle's own kickoff and the
+  research records in REQ-PKG-CONSUMERGEOMETRY-005's disposition table.
+  REQ-PKG-CONSUMERGEOMETRY-005 acceptance 5's own literal still reads "returns
+  zero matches"; the matching requirements-side note is landed under that
+  acceptance by Chunk 7, so requirement, spec and plan say one thing rather than
+  three. §CG-4's rule for reinterpreting an Approved literal, applied to the
+  literal this cycle is reinterpreting.]
 
   **Why both halves are stated separately:** excising (i) and retiring (ii) are
   different edits with different failure modes. Leaving (i)'s clause in place

@@ -273,10 +273,13 @@ under `docs/ws/`, `docs/research/` or `docs/superpowers/` and no bundled tool"
 
 **Context**: the same criterion Q-IMPL-MARKETPLACE-003 carves out for the acting
 workstream's directory is unsatisfiable as literally written on its *second*
-half too, and for the same structural reason. The bundled copies
-`skills/orchestrate/tools/gc.py` and `skills/orchestrate/tools/telemetry.py` do
-not exist at the rename-chunk-close sha: they are **created** by the packaging
-chunk, which the plan deliberately orders *after* the rename chunk. Any run of
+half too, and for the same structural reason. The bundled copies of `gc.py`
+and `telemetry.py` under the driver skill's own `tools/` subdirectory did not
+exist at the rename-chunk-close sha: they were **created** by the packaging
+chunk, which the plan deliberately orders *after* the rename chunk (that
+directory was itself removed on 2026-09-21 under REQ-PKG-CONSUMERGEOMETRY-005,
+so the `--name-only` window's bundled-tool half now has an empty population; the
+recorded context stands as what this Q-IMPL was decided against). Any run of
 `git diff <rename-chunk-close sha> HEAD --name-only` at the end of this cycle
 therefore lists two bundled tool paths, with status `A`, no matter how correct
 the work is.

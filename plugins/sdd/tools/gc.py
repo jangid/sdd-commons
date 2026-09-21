@@ -172,7 +172,7 @@ STALE_FIX = ("update the downstream artifact through its owning skill and bump i
 SPEC_STALE_FIX = ("review the spec against those requirements; bump last_updated via specs "
                   "if it actually needs a change (informational — not routed at DONE)")
 TRACE_FIX = "fill the cell in the owning docs/ws/<id>/traceability.md (implement) and regenerate the aggregate"
-AGG_FIX = "run tools/gc.py --fix traceability-aggregate (regenerates from docs/ws/*/traceability.md)"
+AGG_FIX = "run plugins/sdd/tools/gc.py --fix traceability-aggregate (regenerates from docs/ws/*/traceability.md)"
 ROWDROP_FIX = ("write a literal pipe inside a cell as \\| or &#124; (never a raw |), or restore the "
                "missing cell — the row is excluded from the regenerated aggregate until it parses")
 KICKOFF_FIX = "add `date: YYYY-MM-DD` and `research_id: RS-…` to the kickoff frontmatter (orchestrate KICKOFF)"

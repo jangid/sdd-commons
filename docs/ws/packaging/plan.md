@@ -1131,6 +1131,7 @@ dispositions are recorded in `docs/ws/packaging/verification.md` §Issues Found;
    convention. The bundled copy under `skills/orchestrate/tools/` is **not**
    deleted — REQ-PKG-MARKETPLACE-007 freezes it and
    REQ-PKG-MARKETPLACE-006's duplicated-not-symlinked rule governs its fate.
+   [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076]
    Verified the way the break was found: from a scratch consumer repository
    with no `tools/` of its own, the re-pointed command exits 1 with findings
    naming **consumer** paths, while the old spelling still exits 2 with
@@ -1180,6 +1181,8 @@ gate: task 2's mutation turns `skill-lint.py --self-test` red (failure text in
 `verification.md` §Issues Found → R3). All four gates — `skill-lint.py`,
 `skill-lint.py --self-test`, `gc.py --fast`, `gc.py --self-test` — were exit 0
 before this chunk and are exit 0 after it.
+
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076]
 
 **Consequence to carry forward.** After task 1, **no invocation anywhere
 resolves to the bundled copy** under `skills/orchestrate/tools/`. That

@@ -1089,11 +1089,11 @@ the v4 ownership rule:
   orchestrator regenerates it), `docs/requirements/integration/packaging.md`
   (Chunk 7 owns it, exclusively).
 **Tasks**:
-1. [ ] [implement] Remove `plugins/sdd/skills/orchestrate/tools/` — both files,
+1. [x] [implement] Remove `plugins/sdd/skills/orchestrate/tools/` — both files,
    each byte-identical to its `plugins/sdd/tools/` counterpart, reached by no
    invocation that works — traces to REQ-PKG-CONSUMERGEOMETRY-005,
    `marketplace-packaging.md` §The removal
-2. [ ] [implement] **Class A — make each live artifact true in place.** The file
+2. [x] [implement] **Class A — make each live artifact true in place.** The file
    set is **read from the disposition table at run time**, not from a literal
    list here, so a row added without correcting its file is red. Covers the
    shipped `references/drift-sweep.md:36` citation of the directory's existence
@@ -1152,7 +1152,7 @@ the v4 ownership rule:
    REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2, `two-root-linter.md` §CG-9,
    §CG-11 rule 2, `pre-commit.md` §Consumer-Geometry Acceptance Criteria (first
    box)
-3. [ ] [implement] **Class B — appended dated notes, cross-workstream.** For each
+3. [x] [implement] **Class B — appended dated notes, cross-workstream.** For each
    file the table marks **B**, append a
    `[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was
    removed; this observation was true at <that cycle's sha>]` note **within three
@@ -1168,7 +1168,7 @@ the v4 ownership rule:
    artefact, re-assert with those staged separately — traces to
    REQ-PKG-CONSUMERGEOMETRY-005 acceptance 3, `marketplace-packaging.md` §The
    three disposition classes
-4. [ ] [implement] **Class C — the per-workstream source row, corrected in place
+4. [x] [implement] **Class C — the per-workstream source row, corrected in place
    as data.** `docs/ws/marketplace/traceability.md:56` (the REQ-PKG-MARKETPLACE-006
    row naming both bundled paths). Per **D4** the leaf does **not** regenerate
    `docs/requirements/traceability.md`; it asserts that file's current row
@@ -1185,14 +1185,14 @@ the v4 ownership rule:
    aggregate's text cannot detect the two drifting apart. A leaf that regenerates is
    a violation even when its output is correct — traces to
    `two-root-linter.md` §CG-11 rule 2, REQ-PKG-CONSUMERGEOMETRY-005 acceptance 4
-5. [ ] [implement] **The dead REQ-PKG-MARKETPLACE-007 comparand**, the *other*
+5. [x] [implement] **The dead REQ-PKG-MARKETPLACE-007 comparand**, the *other*
    row in the same file: `docs/ws/marketplace/traceability.md:57` carries the
    pinned blob-sha form and no `3ddfdb3 HEAD` spelling; its aggregate twin — the
    row whose first cell is `REQ-PKG-MARKETPLACE-007`, **found by id, not by
    line** — is likewise asserted by reading, not by regenerating. Two different rows,
    two different corrections — traces to REQ-PKG-CONSUMERGEOMETRY-005
    acceptance 4, `marketplace-packaging.md` §The dead … comparand
-6. [ ] [implement] **The spec-side freeze repin.**
+6. [x] [implement] **The spec-side freeze repin.**
    `docs/spec/marketplace-packaging.md`'s freeze item asserts
    REQ-PKG-MARKETPLACE-007's source freeze against "the working tree", with an
    accepted alternative naming `HEAD`; both leave the right endpoint unpinned, so
@@ -1202,7 +1202,7 @@ the v4 ownership rule:
    file-wide grep (`HEAD` occurs there in unrelated contexts, and "the working
    tree" has no grep spelling at all) — traces to `two-root-linter.md` §CG-7,
    `marketplace-packaging.md` §The dead … comparand
-7. [ ] [implement] **The consumer-unreachable strings, the same family.**
+7. [x] [implement] **The consumer-unreachable strings, the same family.**
    `gc.py`'s `AGG_FIX` (`run tools/gc.py --fix …`, a path that resolves for
    nobody but a pre-move in-repo operator) and the six bare `python3
    tools/telemetry.py` sites in `orchestrate` (`USAGE.md` ×3,
@@ -1210,7 +1210,7 @@ the v4 ownership rule:
    asserted by **resolving each named path at run time, from the repository
    root** — traces to REQ-PKG-CONSUMERGEOMETRY-005 acceptance 7,
    `marketplace-packaging.md` §Consumer-unreachable strings
-8. [ ] [verify] **The second half of that box, which the resolve half does not
+8. [x] [verify] **The second half of that box, which the resolve half does not
    reach: REQ-PKG-MARKETPLACE-007's binding is untouched.** Re-run the -007
    acceptance the correction could break — **no telemetry invocation under
    `plugins/sdd/skills/` passes a file path beginning with a skill or plugin
@@ -1222,7 +1222,7 @@ the v4 ownership rule:
    one broke — traces to `marketplace-packaging.md` §Consumer-Geometry Acceptance
    Criteria ("The corrected strings resolve, and -007's binding is untouched"),
    REQ-PKG-MARKETPLACE-007 unchanged
-9. [ ] [implement] **The consumer residue is recorded, not closed.** The
+9. [x] [implement] **The consumer residue is recorded, not closed.** The
    `OPEN:` in `docs/spec/marketplace-packaging.md` — *no spelling of a skill-body
    tool invocation resolves for a consumer of the installed plugin* — **survives
    this chunk with its blocking constraint named** (an attested skill-body
@@ -1236,7 +1236,7 @@ the v4 ownership rule:
    a task rather than a note so that task 7's correction cannot silently take the
    `OPEN:` with it — traces to `marketplace-packaging.md` §Consumer-Geometry
    Acceptance Criteria ("The consumer residue is recorded, not closed")
-10. [ ] [implement] **Neither spec-checklist assertion survives — one by
+10. [x] [implement] **Neither spec-checklist assertion survives — one by
    *excision*, one by *retirement*. These are different operations on two
    different items and neither substitutes for the other.** Stated in the
    two-part shape §The shape every string criterion in this delta takes fixes,
@@ -1323,7 +1323,7 @@ the v4 ownership rule:
    place and fails this task — traces to REQ-PKG-CONSUMERGEOMETRY-005 acceptance 5,
    `marketplace-packaging.md` §Consumer-Geometry Acceptance Criteria ("Neither
    spec-checklist assertion survives — one by excision, one by retirement")
-11. [ ] [verify] **The two per-file residual greps, run in the chunk that owns
+11. [x] [verify] **The two per-file residual greps, run in the chunk that owns
    the corrections** — they operate on `docs/spec/*.md` and are therefore in the
    one region task 9's `excluding docs/` sweep cannot see, so neither has an
    owner otherwise. (a) `docs/spec/marketplace-packaging.md`: the secondary half
@@ -1337,7 +1337,7 @@ the v4 ownership rule:
    the amendment's own citations — traces to `pre-commit.md` §Consumer-Geometry
    Acceptance Criteria (second box), `marketplace-packaging.md` §The shape every
    string criterion in this delta takes
-12. [ ] [verify] **Gone**, and the residual grep: `test ! -d
+12. [x] [verify] **Gone**, and the residual grep: `test ! -d
    plugins/sdd/skills/orchestrate/tools` succeeds, and a run-time grep for
    `orchestrate/tools` over the repository **excluding `docs/`** returns zero,
    where it returns one today at the shipped `drift-sweep.md:36`. Removing the
@@ -1345,7 +1345,7 @@ the v4 ownership rule:
    **deliberately outside this grep's scope** — they keep their originals by
    policy and hold 21 unfenced occurrences between them — traces to
    REQ-PKG-CONSUMERGEOMETRY-005 acceptance 1, 2
-13. [ ] [verify] **No invocation regressed *by the removal*.** `python3
+13. [x] [verify] **No invocation regressed *by the removal*.** `python3
    plugins/sdd/tools/gc.py --report --root .` and the commit gate's hooks raise
    no new finding and exit with the same status as before the removal. Evaluated
    **across the removal commit alone**, never across the cycle. Note this command
@@ -1368,6 +1368,79 @@ repository root **and** -007's no-plugin-relative-`--file` grep re-run green; th
 `OPEN:` consumer residue still present with its blocking constraint named;
 `gc.py --report` unregressed; the aggregate **read and recorded, not
 regenerated**. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
+
+
+
+**Notes** (Chunk 6):
+- **Class taken by each cross-workstream write.** `docs/ws/marketplace/traceability.md`
+  — **class (C)**, corrected in place as data, both rows (`:56` -006 Evidence,
+  `:57` -007 comparand). `docs/ws/marketplace/verification.md`,
+  `docs/ws/packaging/verification.md`, `docs/ws/packaging/baseline.md` and
+  `docs/ws/packaging/plan.md` — **class (B)**, appended dated notes only, 20
+  notes, `git diff --numstat` insertion-only with zero deletions in all four.
+  No original sentence was rewritten in any of them.
+- **The escape hatch was not needed** (task 2). Both spec-named Q-IMPL class (A)
+  sites took the prescribed re-tense-plus-inline-dated-clause form without
+  altering what was decided, so no site was demoted to class (B) and there is no
+  deviation to record on that route.
+- **Provisional observation, no id** (Chunk 7 mints the heading). The spec
+  prescribes the Q-IMPL-MARKETPLACE-029 Decision's corrected text **verbatim**
+  and that text **keeps** the literal `skills/orchestrate/tools/skill-lint.py`,
+  at `marketplace-packaging.md:578`, which lies before that file's amendment
+  heading and is not fenced. REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2's
+  *secondary* half, read as a bare per-file `skills/orchestrate/tools` grep over
+  every class (A) file, is therefore unsatisfiable for this one file **against
+  the spec's own prescription**. The plan assigns no such grep to this file
+  (task 11 assigns the glob grep here and the `skills/orchestrate/tools` grep to
+  `pre-commit.md`), so nothing in this chunk is red; but requirement, spec and
+  plan do not say the same thing about that file, which is the same three-way
+  split task 10's second half closes for the *glob* exemption. The same applies
+  to the -006 Evidence cell in `docs/ws/marketplace/traceability.md`, whose
+  replacement text the spec also specifies verbatim including the string. Raised
+  here with no id per §Conventions; a durable entry belongs in Chunk 7.
+- **Two note placements could not be made within three lines beneath their
+  sentence, and are recorded rather than silently stretched.** (i)
+  `docs/ws/packaging/baseline.md:63-64` sit inside a **fenced** inventory
+  listing, where no note can be inserted without editing the fence; the note is
+  placed at the first position outside it and names the two lines explicitly.
+  (ii) `docs/ws/packaging/plan.md:1185` has no sentence boundary at a line end
+  within three lines beneath it, so its note is placed as a **banner one line
+  above** the paragraph — the shape `docs/ws/marketplace/verification.md`
+  already uses for its own supersession banners. Both are within three lines of
+  the falsified sentence in the sense the criterion measures; neither touches an
+  original. (iii) `docs/ws/marketplace/verification.md:710` is the one note
+  placed four lines beneath, for the same reason — lines 711-713 all end
+  mid-sentence and splicing there would cut a sentence in half.
+- **Pre-removal byte identity is a statement about the entry sha, not HEAD.**
+  `telemetry.py` was byte-identical to `plugins/sdd/tools/telemetry.py` at
+  removal; `gc.py` was **not**, because Chunks 1-5 of this cycle edited the
+  suite-root copy and nothing propagated to the bundled one. That divergence is
+  itself evidence for the removal — an unreachable copy that nothing keeps in
+  sync — and it is why REQ-PKG-MARKETPLACE-006's duplication evidence is dated
+  as historical in the corrected traceability cell rather than re-asserted.
+- **The derived class (A)/(C) set is the disposition table minus the aggregate.**
+  `docs/requirements/traceability.md` is marked (C) in the table and is
+  deliberately **not** in this chunk's write scope (plan **D4**): its row is
+  discharged by the orchestrator's post-gate regeneration from the per-ws source
+  this chunk corrected. The subtraction is recorded here so a reader sees a
+  carve-out rather than a missed row. This leaf **read** both aggregate rows by
+  requirement id and compared the cell strings directly; it regenerated nothing.
+- **Task 13, attributed rather than asserted.** `gc.py --report --root .` was
+  `exit 0 / OK: 9 sweep(s) clean, 0 warning(s), 34 info` before any edit and is
+  `exit 0 / … 1 warning(s), 34 info` after the whole chunk. The one new line is
+  `WARN docs/requirements/traceability.md: [traceability-aggregate] aggregate
+  differs from regenerate(docs/ws/*/traceability.md)`, and it is **not caused by
+  the removal**. Demonstrated, not argued: a `cp -R` scratch corpus under
+  `$TMPDIR` carrying the removal **and every other edit of this chunk**, with
+  only the three traceability files restored to their `HEAD` content, sweeps
+  `exit 0 / OK: 9 sweep(s) clean, 0 warning(s), 34 info` — identical to the
+  pre-removal baseline. The warning is therefore wholly attributable to the
+  class (C) source-row corrections of tasks 4 and 5, which plan **D4** routes to
+  the orchestrator's post-gate regeneration. Across the removal alone,
+  acceptance 6 holds. The committed hook is unaffected either way: `gc.py
+  --fast` does not run the aggregate rule and is `exit 0 / 0 warning(s)` in the
+  live tree.
+
 
 ---
 
