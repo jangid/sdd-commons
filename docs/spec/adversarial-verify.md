@@ -649,4 +649,3 @@ the template fence under §Red Dispatch Template here, because the linter's
 **Impact**: REQ-AGENT-MARKETPLACE-006's no-duplication invariant now holds in
 substance for this pair, and its acceptance criterion is restated as a run-time
 shingle comparison so the population is derived rather than judged.
-

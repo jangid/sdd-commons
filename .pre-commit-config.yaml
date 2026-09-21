@@ -11,7 +11,7 @@
 # docs/spec/pre-commit.md.
 exclude: |
   (?x)^(
-      tools/fixtures/      # frozen fixtures whose bytes are part of what they test — normalising one would change what the fixture proves while leaving every test green
+      plugins/sdd/tools/fixtures/   # frozen fixtures whose bytes are part of what they test — normalising one would change what the fixture proves while leaving every test green
     | docs/superpowers/    # vendored third-party corpus, not this repository's text to normalise
     | docs/ws/             # execution records of closed cycles — a rewrite makes the record disagree with the commits it describes; the active workstream is excluded with them so the gate does not rewrite a plan mid-cycle
     | docs/research/       # historical execution records of closed cycles — a rewrite makes the record disagree with the commits it describes
@@ -26,13 +26,39 @@ repos:
     hooks:
       - id: drift-sweep
         name: drift sweep (fast profile)
-        entry: python3 tools/gc.py --fast
+        entry: python3 plugins/sdd/tools/gc.py --fast
         language: system
         pass_filenames: false
         always_run: true
       - id: skill-lint
         name: skill linter
-        entry: python3 tools/skill-lint.py
+        entry: python3 plugins/sdd/tools/skill-lint.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Both tools' own self-tests, added at implement-stage review round 2 and
+      # made part of the closed hook set at round 3 — REQ-PC-MARKETPLACE-001 is
+      # amended to eight entries, docs/spec/pre-commit.md §Hook-Set Amendment.
+      # They are NOT among the three heavier self-tests REQ-PC-MARKETPLACE-004
+      # keeps out of the gate: that requirement's acceptance greps this file
+      # for the script filenames of three OTHER contributor tools (the
+      # scope-check, the telemetry and the evaluation tools — their filenames
+      # deliberately not spelled here), and neither entry below runs one of
+      # them. The reason they belong here: the
+      # corpus sweeps above exercise no two-root fixture geometry, so a wrong
+      # root binding stays green in both of them, and `gc.py` embeds the
+      # linter, so a linter change can turn `gc.py --self-test` red while
+      # every other gate passes. That happened twice in one cycle.
+      - id: skill-lint-self-test
+        name: skill linter self-test
+        entry: python3 plugins/sdd/tools/skill-lint.py --self-test
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: drift-sweep-self-test
+        name: drift sweep self-test
+        entry: python3 plugins/sdd/tools/gc.py --self-test
         language: system
         pass_filenames: false
         always_run: true

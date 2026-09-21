@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-21
 requires:
   - REQ-LINT-001
   - REQ-LINT-002
@@ -16,6 +16,7 @@ requires:
   - REQ-LINT-HARNESSP6-001
   - REQ-LINT-HARNESSP6-002
   - REQ-LINT-HARNESSP6-003
+  - REQ-PKG-PACKAGING-005
 ---
 
 # Skill Lint v5
@@ -318,8 +319,11 @@ the same edit, the tag after the location as every other rule renders]: the
 pair table is the linter's `TEMPLATE_PAIRS` (four rows, each carrying its one
 `fix` string) with the source of record as the constant `TEMPLATE_SOURCE`, and
 the check runs with the other suite rows only. A restating **spec file absent**
-from the linted root **warns**, never fails — a consumer repo linted via
-`REPO_ROOT` has no `docs/spec/` (the F11 principle). A **present** spec that has
+from the linted **corpus root** — the root the CLI positional names, defaulting
+to the invocation cwd, the suite root being the script's own plugin root
+(`two-root-linter.md` §2) — **warns**, never fails: a consumer repo has no
+`docs/spec/` (the F11 principle, **ungated set only**; exceptions
+`check_retired_prefix` and `TEMPLATE_PAIRS` — §Two-Root Amendment). A **present** spec that has
 lost its anchored fence, or a source of record that has lost its anchored fence
 while a spec still restates it, **fails** alone, naming the counterpart in the
 message. Anchors match by `startswith` on the fence's first line (the RED TEAM
@@ -466,8 +470,12 @@ accidental drop is caught.
 - **Backtick path that is a glob** (`` `references/*.md` ``): skip — only
   literal filenames are resolved.
 - **`docs/spec/` mention in a project without `docs/spec/`** (the linter run
-  on a consumer repo via `REPO_ROOT`): warn, never fail — the linter must not
-  assume this repo's layout (existing audit F11 principle).
+  on a consumer repo — its **corpus root** is the invocation cwd by default,
+  its suite root the plugin root holding the script, `two-root-linter.md` §2):
+  warn, never fail — the linter must not
+  assume this repo's layout (existing audit F11 principle). Scoped to the
+  **ungated** set, with exceptions `check_retired_prefix` and `TEMPLATE_PAIRS`
+  — §Two-Root Amendment.
 - **SKILL.md exactly 400 lines**: no warn (thresholds are strict `>`).
 - **Producer present, consumer removed**: the pair row for the consumer fails
   alone; the fix string names the counterpart file.
@@ -491,7 +499,9 @@ accidental drop is caught.
 - `ws-orchestration.md` Q-IMPL-016 is superseded by appending, per
   `deviation-protocol.md` §Numbering supersession rule — consistent.
 - `review.md`: the size check does not touch `sdd-review`'s
-  layout-independence (F11) — `docs/spec/` mentions are warn-only.
+  layout-independence (F11, **ungated set only**; exceptions
+  `check_retired_prefix` and `TEMPLATE_PAIRS` — §Two-Root Amendment) —
+  `docs/spec/` mentions are warn-only.
 - **No unresolved contradictions.**
 
 **harness-p5 pass (2026-09-19).** No extractable type definitions in this spec
@@ -563,7 +573,81 @@ contradictions.
 ### Q-IMPL-HARNESSP4-008: `[template-drift]` when a pair side is absent, and the finding's rendered order
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §`[template-drift]` — Fenced Leaf Bodies Restated in Specs Stay Byte-Identical; §Edge Cases ("docs/spec/ mention in a project without docs/spec/", "Producer present, consumer removed")
-**Decision**: the pair table is `TEMPLATE_PAIRS` (four rows, each carrying the one `fix` string) with the source of record as the constant `TEMPLATE_SOURCE`; the check runs with the other suite rows only (`suite_rules=True`). A restating spec file absent from the linted root **warns** (never fails — a consumer repo linted via `REPO_ROOT` has no `docs/spec/`, the F11 principle); a present spec that has lost its anchored fence, or a source of record that has lost its anchored fence while the spec still restates it, **fails** alone with the counterpart named in the message. Anchors match by `startswith` on the fence's first line (the RED TEAM return-contract fence's first line carries a trailing `# one heading per spec examined` comment). The finding renders through the linter's common `flag()` shape — `<spec>:<line>: [template-drift] fenced body diverges from dispatch-templates.md L<n>` — the rule tag after the location, as every other rule renders; `<line>` is the restating fence's opening line in the spec.
+**Decision**: the pair table is `TEMPLATE_PAIRS` (four rows, each carrying the one `fix` string) with the source of record as the constant `TEMPLATE_SOURCE`; the check runs with the other suite rows only (`suite_rules=True`). A restating spec file absent from the linted **corpus root** (the CLI positional, defaulting to the invocation cwd — `two-root-linter.md` §2; read under that default, not under the retired script-location one) **warns** (never fails — a consumer repo has no `docs/spec/`, the F11 principle — **ungated set only**; exceptions `check_retired_prefix` and `TEMPLATE_PAIRS`, §Two-Root Amendment); a present spec that has lost its anchored fence, or a source of record that has lost its anchored fence while the spec still restates it, **fails** alone with the counterpart named in the message. Anchors match by `startswith` on the fence's first line (the RED TEAM return-contract fence's first line carries a trailing `# one heading per spec examined` comment). The finding renders through the linter's common `flag()` shape — `<spec>:<line>: [template-drift] fenced body diverges from dispatch-templates.md L<n>` — the rule tag after the location, as every other rule renders; `<line>` is the restating fence's opening line in the spec.
 **Rationale**: the spec fixes the message, the fix string and the severity but not the absent-side behaviour or the tag position; reusing `flag()` keeps the "no finding without a fix" signature guarantee and the self-test's fix assertion for this rule.
 **Date**: 2026-09-19 (harness-p4 Chunk 6)
 **Status**: `[folded into §\`[template-drift]\` — Fenced Leaf Bodies Restated in Specs Stay Byte-Identical, 2026-09-19]` (REQ-QIMPL-HARNESSP5-001) — the entry body is unchanged; the section carries the decision as Approved text.
+
+## Two-Root Amendment (2026-09-21, REQ-PKG-PACKAGING-005)
+
+[Changed 2026-09-21: the suite moves to `plugins/sdd/` and the linter takes two
+roots — `two-root-linter.md` carries that design. Two claims stated in this
+spec are re-scoped here, and the two restatements of the same claim in the
+linter's own source are re-scoped with them; nothing else changes.]
+
+**The amended F11 target.** What the linter asserts about a **consumer's**
+corpus is the **ungated** set — `FORBIDDEN`'s rows, frontmatter, links, size
+and drift phrases — which keeps resolving against the corpus root and failing
+loudly there; the suite-gated rows assert the integrity of the **installed
+suite** and do assume this suite's layout, by intent. The F11 sentence is
+re-scoped, not deleted. Exactly two exceptions exist and must be named wherever
+the enumeration is — **including the linter's own source**, which
+REQ-PKG-PACKAGING-005 names by hand ("the linter's own docstring or rule-table
+comment"). Two such restatements exist today and are **in-scope edits for the
+implement stage**, not clean-as-found text: `tools/skill-lint.py` (post-move
+`plugins/sdd/tools/skill-lint.py`) at the `check_retired_prefix` rule row's
+`reason` string, `"review must not hardcode this repo's layout (audit F11)"`,
+and in `check_template_drift()`'s docstring, `"a consumer repo linted via
+REPO_ROOT has no docs/spec/ — the F11 principle"`. The exceptions being (i)
+*ungated but suite-bound* — `check_retired_prefix()`
+has no `suite_rules` guard yet polices this suite's own retired filename
+prefix; (ii) *gated but corpus-bound* — `TEMPLATE_PAIRS`'s `spec` side keys on
+`docs/spec/**`, which stays on the corpus root. Outside those two, *ungated*
+and *consumer-facing* coincide.
+
+**The documented root default.** The positional argument's help string no
+longer reads "repo containing this script": the corpus root defaults to the
+**invocation cwd**, the suite root to the script's own plugin root
+(`two-root-linter.md` §2). Every `REPO_ROOT` sentence above is read under that
+default — a consumer run is one whose corpus root is the consumer's cwd. No
+text here may claim the root defaults to the script's own repository.
+
+**Verification — the F11 grep, made decidable.** The four spellings in this
+file ("(the F11 principle)", "existing audit F11 principle",
+"layout-independence (F11)", and the Q-IMPL restatement) share no line-oriented
+substring, so the check is anchored on the token: take every match of `grep
+-rnE '\bF11\b'` over `docs/spec/` (corpus root) and `plugins/sdd/skills/`,
+`plugins/sdd/tools/` (suite root), and require of each match's enclosing
+blank-line-delimited block (a) that it contain the literal `ungated`, and (b)
+where the block **enumerates** the ungated set — detected mechanically by its
+containing `FORBIDDEN` — that it also contain both exception tokens
+`check_retired_prefix` and `TEMPLATE_PAIRS`. Zero blocks may fail either
+conjunct and the match count is derived at run time. The scan is a short
+run-time script over the greps' output, not one grep expression; no residue is
+left reviewer-checkable (REQ-PKG-PACKAGING-005).
+
+Two readings the scan must pin, because prose blocks are not the only shape it
+meets:
+
+- **A source site is not blank-line-delimited.** In `skill-lint.py` the
+  `(audit F11)` match sits in a `reason` string inside a dict literal in the
+  `FORBIDDEN` table — the `check_retired_prefix` row — where a blank-line block
+  would run to the table's edges; the other match sits in
+  `check_template_drift()`'s docstring, which is where `TEMPLATE_PAIRS`
+  restates the rule. The block for a `.py` match is therefore the **enclosing
+  syntactic unit** — the single dict literal for a table row, the docstring for
+  a docstring — not a blank-line run, and it is inside that unit that the
+  re-scoped `ungated` wording must land. Conjunct (b)'s trigger is read on the
+  block so computed, so a one-row dict literal does not drag the whole table
+  in.
+- **`F11` is also an unrelated scenario id.** `scope-check-selftest.py` labels
+  write-scope self-test scenarios `F11`; those matches are not the audit
+  principle, say nothing about the `ungated` set, and are **excluded by path** —
+  the exclusion stated here so the scan is decidable rather than discovered
+  failing at implement time.
+
+**Current status, stated honestly.** The scan run over `docs/spec/` today
+reports zero failing blocks; run over the suite source it reports **two**
+failing blocks — the two sites named above, neither of which contains
+`ungated`. Making them pass is the REQ-PKG-PACKAGING-005 implement task, and
+this criterion is discharged only when the scan is clean over **both** sides.

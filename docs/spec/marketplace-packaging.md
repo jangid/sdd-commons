@@ -12,6 +12,7 @@ requires:
   - REQ-PKG-MARKETPLACE-008
   - REQ-PKG-MARKETPLACE-009
   - REQ-PKG-MARKETPLACE-010
+  - REQ-PKG-PACKAGING-010
 ---
 
 # Marketplace and Plugin Packaging
@@ -24,7 +25,11 @@ carrying exactly one umbrella **plugin** named `sdd`. The packaging is a
 ships, and **no existing file moves**. That property is the whole design —
 it is what lets the rename (`skill-namespace-rename.md`) land first as an
 independently verifiable step without any reference being edited twice
-(REQ-NAME-MARKETPLACE-007).
+(REQ-NAME-MARKETPLACE-007). [Superseded 2026-09-21 — see §Placement: the
+shipped suite moves to `plugins/sdd/`, so "no existing file moves" no longer
+holds and is no longer the design. It was true of the marketplace cycle, and
+the rename it sequenced had already landed by the time this cycle moved the
+tree; nothing downstream of the move rests on it.]
 
 Two exclusions are deliberate statements rather than omissions: `docs/` is not
 a plugin component (REQ-PKG-MARKETPLACE-004), and the three contributor tools
@@ -36,7 +41,11 @@ enumerated rather than wildcarded.
 Claude Code **loads as a component** — what a session surfaces as a skill or an
 agent. It does not govern what is **copied into the install**: under
 `"source": "./"` the whole repository tree is materialised into the installed
-plugin, `docs/` and contributor tools included. The real-session install
+plugin, `docs/` and contributor tools included. [Superseded 2026-09-21 — see
+§Placement: `source` now names `plugins/sdd`, so the install materialises the
+**suite root only** and `docs/` is outside the install entirely rather than
+copied-but-inert. The observation below records the pre-move `"./"` install and
+is kept as the evidence for why the exclusion was made real.] The real-session install
 observation measured this directly (Q-IMPL-MARKETPLACE-020): the install carries
 144 files and 48,462 lines of `docs/`, most of its ~5 MB, while
 `claude plugin details` reports zero components from it. The shipped copy is
@@ -65,7 +74,8 @@ itself; the manifests are `.claude-plugin/marketplace.json` and
 `.claude-plugin/plugin.json` sits in the **root-level `.claude-plugin/`
 directory**, not under a `plugins/sdd/` subdirectory, because the plugin entry
 sets `"source": "./"`. The repository must not grow a `plugins/` directory at
-all.
+all. [Superseded 2026-09-21 — see §Placement: the suite moves to `plugins/sdd/`
+and the plugin manifest moves with it; only the single-plugin decision survives.]
 
 **Marketplace manifest shape** (field names follow the installed first-party
 marketplaces observed by RS-MARKETPLACE-001 Q3):
@@ -102,7 +112,9 @@ resolving to nothing at dispatch time — a silent runtime failure no linter can
 catch. A `plugins/sdd/` subdirectory would additionally have to move `skills/`
 and `tools/`, which would invalidate the linter's literal skill paths and its
 own root resolution at the same moment the rename is being verified. `"./"`
-moves zero files and keeps both steps separable.
+moves zero files and keeps both steps separable. [Superseded 2026-09-21 — see
+§Placement: the subdirectory argument is overtaken, the single-plugin one is not;
+the two roots and the linter's root resolution are `two-root-linter.md` §1–§2.]
 
 ### The component list and its derivation rule
 
@@ -140,7 +152,11 @@ that copy is **inert**: no manifest entry names it, `claude plugin details`
 reports zero components from it, and no skill body can reach it, because every
 `docs/…` citation in a skill body is a bare relative path resolving against the
 operator's own working directory. The shipped copy therefore cannot shadow an
-installing user's own corpus.
+installing user's own corpus. [Superseded 2026-09-21 — see §Placement: with
+`source` naming `plugins/sdd` there is no shipped copy of `docs/` at all. The
+"stays behind" conclusion is unchanged and now holds by exclusion from the
+install rather than by inertness of a copy; the bare-relative-path invariant
+below is unaffected and still binds.]
 
 The system must not require `docs/` to be present in an installed plugin.
 Every `docs/…` citation inside a skill body is a **bare relative path**, which
@@ -153,7 +169,11 @@ therefore negative and mechanically checkable: **no `docs/…` citation in
 
 `tools/` stays at the repository root, so that every existing `tools/…`
 reference in `docs/` (a record of what a past cycle ran here) and every prose
-reference keeps its spelling.
+reference keeps its spelling. [Superseded 2026-09-21 — see §Placement and
+`two-root-linter.md` §1: `tools/` is a suite member and moves to
+`plugins/sdd/tools/`. Existing `tools/…` spellings in `docs/` are historical
+records and are not rewritten; live skill-body invocations are repaired by
+`two-root-linter.md` §8.]
 
 Two classes of tool, with different destinations. No count is stated: the
 bundled population is whatever `skills/*/tools/*.py` derives to at run time, and
@@ -164,17 +184,32 @@ every check over it derives the same way.
 | **Runnable from a skill** | the drift sweep, the telemetry tool | yes — duplicated into the driver skill's own `tools/` subdirectory | a skill body tells the operator to run them |
 | **Contributor-only** | the skill linter, the scope-check self-test, the evaluation tool | no | never invoked from a skill body; the linter's rules are keyed to *this* repository's skill set, so from an installed plugin it would assert this repository's contract rows about the user's tree |
 
-The drift sweep delegates its structural sweeps to the linter as a subprocess and
-resolves it at `<root>/tools/skill-lint.py`. In this repository that file exists,
-so the bundled sweep and the root sweep agree exactly. In a consumer repository
-that has no `tools/` directory it does not, and the bundled sweep exits 2 with
+The drift sweep delegates its structural sweeps to the linter as a subprocess.
+[Superseded 2026-09-21 — see §Placement.] Its resolution is **sibling-first**,
+not corpus-rooted: it tries the linter beside its own script file first and
+falls back to `<root>/tools/skill-lint.py` only if that is absent. That order is
+what keeps the commit gate working after the move — the sweep and the linter
+travel together into `plugins/sdd/tools/`, so the sibling candidate resolves and
+the corpus-rooted candidate, which after the move never exists in this
+repository, is never reached. The earlier text here predicted a `linter missing`
+exit 2 for the gate's own sweep; that prediction was wrong about the existing
+behaviour and is retired. This resolution order — sibling first,
+`<root>/tools/skill-lint.py` as the fallback, `linter missing` when neither
+exists — is the contract of **REQ-PKG-PACKAGING-010**, which states it as a
+requirement of the existing code so it is not silently reordered later.
+**The move changes no tool source**: sibling-first
+resolution is already implemented, so REQ-PKG-MARKETPLACE-007's source freeze
+still binds and the move is a rename with zero content hunks. The residual
+consumer-repository case is unchanged: a consumer invoking a sweep that has
+neither a sibling linter nor a `<root>/tools/skill-lint.py` still exits 2 with
 `error: linter missing` — a documented limitation, carried to a later cycle
 rather than patched here (Q-IMPL-MARKETPLACE-029).
 
 **Duplicated, not symlinked.** A plugin install may be materialised from a git
 archive, which does not reliably preserve symlinks, so a symlink is a silent
 broken-install mode. Each bundled copy must be a regular file byte-identical to
-its repository-root original.
+its **suite-root** original [Amended 2026-09-21 — §Placement: post-move the
+originals are `plugins/sdd/tools/*.py`; there is no repository-root `tools/`].
 
 **The identity is verified once per cycle, by design — not continuously.** The
 `cmp` assertion of the criterion below runs at this cycle's close and is not
@@ -306,16 +341,31 @@ Every criterion derives both sides at run time. No corpus-measured count is
 written into a criterion as a literal. All commands run from the repository
 root with any nested `.worktrees/` path excluded from tree walks.
 
+**[Amended 2026-09-21 — §Placement.] Every bare `skills/`, `agents/` and
+`tools/` path below reads as `plugins/sdd/<path>` after the move**, and each
+command that walks one asserts `test -d` on that directory **first**. Without
+that guard the move turns most of this block into vacuous passes: a `grep -rn …
+skills/` over a directory that no longer exists at the corpus root returns no
+match and the criterion reads as satisfied, which is a criterion that cannot
+fail rather than one that holds. The corpus-root paths in the block
+(`CONTRIBUTING.md`, `docs/`) are unaffected. **This clause is a reading aid for
+the purely post-move, single-tree criteria only.** Three criteria below have one
+side that straddles the move commit, or compare paths rooted differently on
+their two halves, and a uniform re-reading breaks them; each carries its own
+`[Amended 2026-09-21]` note in place and that note governs — REQ-PKG-MARKETPLACE-003
+(the agents half), -006 (the pre-move loss count) and -007 (the source freeze).
+
 - [ ] `python3 -c "import json;json.load(open('.claude-plugin/marketplace.json'))"` exits 0, and the parsed document's `name` equals `sdd-commons`, its `owner` is present, and its `plugins` list has exactly one entry whose `name` is `sdd` — all read from the parsed file (REQ-PKG-MARKETPLACE-001).
-- [ ] The parsed plugin entry's `source` equals `./`; `.claude-plugin/plugin.json` parses and carries `name`, `description` and `version`; `test ! -d plugins` succeeds (REQ-PKG-MARKETPLACE-002).
-- [ ] A script derives, at run time, the set of basenames in the manifest's `skills` list and the set of directories under `skills/` containing a `SKILL.md`, and asserts set equality; likewise the manifest's `agents` list against `*.md` files directly under `agents/`; and asserts no listed path starts with `docs/` (REQ-PKG-MARKETPLACE-003).
+- [ ] ~~The parsed plugin entry's `source` equals `./`; … `test ! -d plugins` succeeds~~ **[Superseded 2026-09-21 — §Placement.]** This criterion is retired, not merely re-worded: after the move `source` names `plugins/sdd` and a `plugins/` directory must exist, so both clauses are now false by design and no plan task is scheduled against them. What survives of REQ-PKG-MARKETPLACE-002 is checked by `two-root-linter.md` §Acceptance Criteria bullet 1 (the manifest pair, the resolved `source`, the component-list `test -e` sweep) plus the single-plugin clause below (REQ-PKG-MARKETPLACE-002).
+- [ ] The parsed marketplace document's `plugins` list still has exactly **one** entry — the single-plugin decision of REQ-PKG-MARKETPLACE-002, which §Placement leaves binding — and `plugins/sdd/.claude-plugin/plugin.json` parses and carries `name`, `description` and `version` (REQ-PKG-MARKETPLACE-002).
+- [ ] A script derives, at run time, the set of basenames in the manifest's `skills` list and the set of directories under `skills/` containing a `SKILL.md`, and asserts set equality; likewise the manifest's `agents` list against `*.md` files directly under `agents/`, **compared as basenames on both halves** — [Amended 2026-09-21 — §Placement] manifest-listed component paths are read relative to the **suite root** and stay suite-relative (`./agents/<name>.md`, since `source` names `plugins/sdd`) while the filesystem half becomes `plugins/sdd/agents/<name>.md`, so a literal path-set equality would compare differently-rooted strings and fail on every row; the skills half already compares basenames and is unaffected — and asserts no listed path starts with `docs/` (REQ-PKG-MARKETPLACE-003).
 - [ ] `grep -rnE '(^|[^A-Za-z0-9._/-])(/|~/|\$\{?[A-Z_]*PLUGIN_ROOT)[A-Za-z0-9._/-]*docs/' --include='*.md' skills/` returns no match, and the manifest check above shows no `docs/` path (REQ-PKG-MARKETPLACE-004).
 - [ ] A run-time grep over `skills/` for an invocation prefix (`python3 ` or `./`) of any of the three contributor tools returns zero matches, and none of the three appears in the manifest component list (REQ-PKG-MARKETPLACE-005).
-- [ ] The bundled-tool population is derived at run time — every file matching `skills/*/tools/*.py` paired with the repository-root file of the same basename, no count written down — and for **each** derived pair `cmp` exits 0 and `test ! -L` succeeds on the bundled copy. `git log --follow` resolves every post-change `tools/*.py` to pre-change history, and `ls tools/*.py | wc -l` after is not less than the same count taken at the cycle's entry commit — both sides derived by command (REQ-PKG-MARKETPLACE-006).
+- [ ] The bundled-tool population is derived at run time — every file matching `skills/*/tools/*.py` paired with the **suite-root** file of the same basename [Amended 2026-09-21 — §Placement: after the move there is no repository-root `tools/`, and the blanket clause rewrites bare paths, not prose], no count written down — and for **each** derived pair `cmp` exits 0 and `test ! -L` succeeds on the bundled copy. `git log --follow` resolves every post-change `plugins/sdd/tools/*.py` to pre-change history. **The loss check spells its two sides separately**, because they straddle the move commit and no single spelling is correct on both: the post-move side is `ls plugins/sdd/tools/*.py | wc -l`, the pre-move side is `git ls-tree --name-only <cycle entry sha> tools/ | grep -c '\.py$'` (the entry commit is pre-move, so a uniform rewrite would make it zero), and the former is asserted not less than the latter — both sides derived by command (REQ-PKG-MARKETPLACE-006).
 - [ ] At least one drift-sweep invocation under `skills/` resolves to the **bundled** copy: a run-time grep over `skills/**/*.md` for invocations of the sweep returns a non-empty set whose script path is skill-directory-relative rather than cwd-relative, and the file that path names exists under the driver skill's own directory — derived by command, no count pinned (REQ-PKG-MARKETPLACE-006).
-- [ ] Every drift-sweep invocation found in `skills/` by a run-time grep carries an explicit root argument; no telemetry invocation in `skills/` passes a file path beginning with a skill or plugin directory; `git diff <rename-chunk-close-sha> HEAD -- tools/<drift sweep> tools/<telemetry tool>` is empty (REQ-PKG-MARKETPLACE-007).
+- [ ] Every drift-sweep invocation found in `skills/` by a run-time grep carries an explicit root argument; no telemetry invocation in `skills/` passes a file path beginning with a skill or plugin directory; and the **source freeze** is asserted by content identity rather than by an empty diff [Amended 2026-09-21 — §Placement]: for each of the two tools, `git show <rename-chunk-close-sha>:tools/<tool> | cmp - plugins/sdd/tools/<tool>` exits 0. The former `git diff <rename-chunk-close-sha> HEAD -- tools/<drift sweep> tools/<telemetry tool>` **is empty** form is retired as false by construction after the move, and the blanket clause cannot repair it under any path spelling: rewritten to `plugins/sdd/tools/…` the pathspec names nothing at the old sha and the whole file reports as added; left as `tools/…` it reports as deleted; with `-M` it reports a rename. An equivalent accepted form is `git diff -M <rename-chunk-close-sha> HEAD -- tools/ plugins/sdd/tools/`, asserted to contain only rename records with zero content hunks (REQ-PKG-MARKETPLACE-007).
 - [ ] A run-time grep for the plugin-root variable name over `skills/**/*.md` returns no match outside a fenced code block documenting its manifest-only scope (REQ-PKG-MARKETPLACE-008).
-- [ ] `CONTRIBUTING.md` contains a paragraph stating that spec citations inside skills resolve in the repository, not in an installed plugin; the same `docs/spec/*.md` citation grep over `skills/` yields the same count before and after the packaging change (REQ-PKG-MARKETPLACE-009).
+- [ ] `CONTRIBUTING.md` contains a paragraph stating that spec citations inside skills resolve in the repository, not in an installed plugin; the same `docs/spec/*.md` citation grep over `skills/` yields the same count before and after the packaging change — **the two sides straddle the move commit**, so the before-side grep is run over the pre-move `skills/` tree at the cycle's entry commit and the after-side over `plugins/sdd/skills/`; only the counts are compared, which is invariant under the re-rooting [Amended 2026-09-21 — §Placement] (REQ-PKG-MARKETPLACE-009).
 - [ ] The verification report records, as observations with their commands: the install command run, the namespaced skill names the session listed, and the name of the `references/*.md` file read from the installed copy (REQ-PKG-MARKETPLACE-010).
 - [ ] The skill linter exits 0 and its `--self-test` passes after the packaging change; the drift sweep's report raises no finding absent from the cycle's entry sweep, compared against that sweep's recorded output.
 
@@ -536,6 +586,22 @@ project docs — are untouched by this reversal and were verified 37/37 twice.
 **Impact**: the bundled sweep resolves and runs correctly in **this** repository,
 where `<root>/tools/skill-lint.py` exists and both copies of the sweep produce
 identical findings. In a consumer repository with no `tools/` directory it exits
-2 with `error: linter missing`. That is the honest, documented limitation this
-reversal restores; it is recorded as a Minor in the cycle's verification report
+2 with `error: linter missing`. [Amended 2026-09-21 — see §Tools: resolution is
+**sibling-first**, so post-move this repository's gate resolves the linter beside
+the sweep inside `plugins/sdd/tools/`; the limitation survives only for a
+consumer tree carrying neither a sibling linter nor `<root>/tools/skill-lint.py`.]
+That is the honest, documented limitation this reversal restores; it is recorded as a Minor in the cycle's verification report
 with its reproduce command, and carried forward as a Next Step.
+
+## Placement (superseded 2026-09-21)
+
+[Changed 2026-09-21: `"source": "./"` and the no-`plugins/` clause of
+REQ-PKG-MARKETPLACE-002 are superseded.] The shipped suite now lives at
+`plugins/sdd/` and the plugin entry's `source` names that subdirectory, so
+`docs/` is outside the install rather than copied-but-inert. The contract is
+stated once, in `two-root-linter.md` §1 and §2; it is not restated here. The
+**single-plugin** decision of REQ-PKG-MARKETPLACE-002 — one umbrella plugin,
+because the driver dispatches its sibling skills by name — is unchanged and
+still binding; only the placement changes. The exclusions of
+REQ-PKG-MARKETPLACE-004 and -005 remain exclusions from the component list, and
+after the move `docs/` is additionally outside the install.

@@ -1,203 +1,161 @@
 ---
 workstream: packaging
-description: Packaging follow-up — docs/ outside the materialised install, the bundled drift sweep usable in a consumer repository via corpus-carried rule data, and a reusable install fixture that makes both falsifiable
-cycle: packaging-followup
-research_id: RS-PACKAGING-001
+description: Packaging follow-up, cycle 3 (capped) — close the four open decisions left by RS-PACKAGING-002, under a hard deliverable ceiling
+cycle: packaging-followup-3
+research_id: RS-PACKAGING-003
 entry_stage: research
 date: 2026-09-21
 branch: packaging
+supersedes: RS-PACKAGING-002
 ---
 
-# Kickoff: RS-PACKAGING-001 — Packaging follow-up
+# Kickoff: RS-PACKAGING-003 — the four open decisions, capped
 
-Run `/sdd:research` for workstream `packaging`. This spike settles the two
-questions the marketplace cycle deferred together
-(`docs/ws/marketplace/verification.md` §Next Steps, first two bullets) plus the
-measurement apparatus both of them need. Its findings must land before
-requirements.
+Run `/sdd:research` for workstream `packaging`. This spike closes four named
+decisions. It re-derives nothing and re-argues nothing.
 
-## Scope in one paragraph
+## Why there is a cycle 3, and what is actually being changed
 
-The marketplace cycle shipped a working plugin and, in doing so, proved that
-this repository does not yet know what an *installed* plugin is. Two conditions
-were measured, both deferred: the install materialises the entire repository
-tree, `docs/` included, and the bundled drift sweep is unusable outside this
-repository. They are the same question — *what an installed plugin actually
-needs, measured against a materialised install rather than a manifest* — and
-they are addressed together here. A third item joins them because the first two
-cannot be honestly verified without it: a reusable fixture that materialises an
-install into a throwaway tree and a foreign consumer tree, so that every
-acceptance criterion in this cycle asserts against real files. Four carried
-repairs from the previous cycle ride along; they are known work with known
-fixes and enter at requirements, not research.
+`RS-PACKAGING-002` (`docs/research/RS-PACKAGING-002-root-interface/findings.md`,
+commit `829ce38`) ran **eight review rounds and seven fix iterations** without
+reaching `APPROVE`. Every round found a **new, true** defect — none were
+repeats, and each was verified against the code. The artifact grew **496 → 962
+lines** absorbing them.
 
-## Confirmed at DISCUSS (2026-09-21) — measured, not assumed
+That is the failure to fix, and it is not a scope failure. Cycle 2's scope
+worked: two questions instead of cycle 1's three, evidence carried forward
+instead of re-derived, Q1 proven on the first pass and confirmed eight times.
+What failed was the **deliverable**. Each true defect, honestly fixed, cost
+lines; more lines meant more checkable claims; more claims meant the next round
+found another true defect. Cycle 2's kickoff called itself narrow but placed no
+ceiling on the artifact, so nothing stopped that loop.
 
-The previous cycle's install was directory-sourced and **loaded in place**,
-which made every install-shaped measurement circular. That is no longer true.
-Measured at DISCUSS against the live install:
+**The one variable this cycle changes is the cap.** See §The cap — it is a
+requirement, not a style note.
 
-```
-marketplace sdd-commons : {"source": "github", "repo": "jangid/sdd-commons"}
-git worktree list       : main checkout only (.worktrees/marketplace removed)
-install                 : ~/.claude/plugins/cache/sdd-commons/sdd/0.1.0
-                          gitCommitSha 29febe6 — a frozen copy, not a pointer
-install total           : 199 files, 5.0 MB
-  docs/                 : 145 files, 3.5 MB   (73% of files, 70% of bytes)
-  everything else       :  54 files
-```
+## Carried forward as EVIDENCE — cite, never re-derive, never re-measure
 
-Three consequences carry into the cycle. The marketplace re-point and the
-worktree removal that the previous cycle listed as outstanding operator actions
-are **done**; this session dispatched from the cache copy, which confirms the
-install works. The `docs/`-in-the-install condition is **confirmed on a real
-GitHub-sourced tree**, not inferred from the manifest — the failure mode that
-let the criterion pass last cycle cannot recur on this evidence. And the
-baseline above is the number any exclusion work must move.
+All of the following was independently re-derived by cold reviewers in **eight**
+consecutive rounds and was correct every time. Cite
+`RS-PACKAGING-002` for any of it. Re-measuring any of it is out of scope and
+counts against the cap for no gain.
 
-## Decided at DISCUSS (2026-09-21 — requirements inherit these; not re-litigated)
+- **`git-subdir` installs as modelled** — proven by a real install into a
+  throwaway `CLAUDE_CONFIG_DIR`: the install contains the named subdirectory's
+  contents with the path segment stripped and nothing from the repository root;
+  a same-repository marketplace entry resolves; components are discovered **by
+  convention** from the installed plugin root, so `marketplace.json` costs
+  **one field**, not fourteen component edits. (Observed over a `file://` url,
+  not a GitHub remote — that gap is recorded there and is **not** this spike's
+  question.)
+- **The population**: 56 suite-gated rows — `REQUIRED` 40, `VERSION_GATED_SKILLS`
+  9, `V4_CONTRACT_SKILLS` 7 — plus `TEMPLATE_PAIRS` 4. `FORBIDDEN` 13 is
+  **ungated** and has no path key. `skill_files()` = 25 at the repository root;
+  policed areas 12.
+- **The costing**: 45 files move, 154 stay, 45 + 154 = 199 at `0f5ec26`.
+- **Option (B)** — the corpus-root / suite-root pair — with its set-union
+  semantics (over resolved absolute paths; equality counts as containment and
+  degenerates to today's single walk) and its per-root relative-path rendering
+  rule (each swept file's relative path is computed against the root it was
+  walked from).
+- **`tools/skill-lint.rules.json` does not exist.** It was a proposal, never a
+  file. Externalising the rows would *manufacture* the silent-disable class.
+- **`tools/gc.py:1855`** — the `no docs/` bail sits in `main()` before `Gc(...)`.
+  The kickoff-of-cycle-2's "exit 2" horn belongs to `gc.py`; `skill-lint.py` has
+  no `docs/` bail and goes quiet instead.
+- **`suite_rules` has no CLI surface** — argparse exposes only `root` and
+  `--self-test`; all five `suite_rules=False` sites are self-test fixtures.
 
-1. **The `docs/` fallback is authorized.** Spike the exclusion declaration
-   first — it is by far the cheapest lever. If no declaration exists, the cycle
-   **may move the plugin root** to a `plugins/sdd/` subdirectory. This is
-   expensive on purpose: it relocates every skill and agent file and forfeits
-   the zero-files-moved property the previous cycle's chunk ordering rested on.
-   It is authorized because it is the only lever that works, and because doing
-   it before external consumers exist is strictly cheaper than after. Splitting
-   `docs/` into a separate repository was considered and **rejected** — it
-   breaks the single shared corpus that every `sdd:*` skill's phase detection,
-   staleness chain and traceability assume.
+## The four decisions to close
 
-2. **The consumer-repo fix is corpus-carried rule data, not a provenance
-   predicate.** The previous cycle built a predicate twice and reverted both:
-   script-keyed, the bundled copy sweeping *this* repository took the OFF branch
-   and silently disabled this repository's own 40 contract rows under the
-   command its own driver documents (round 2 `R1`); root-keyed, any foreign tree
-   containing a file at `tools/skill-lint.py` got this repository's rules run
-   against it — 11 fabricated findings naming this repository's paths, and 40
-   via `ln -s`, because `is_file()` follows symlinks (round 3 `R1`). The
-   reframing this cycle adopts: the defect is not that the tool cannot tell
-   whose tree it is, but that **suite-specific contract rows are hardcoded in a
-   tool that ships away from the corpus they describe**. Move those rows into a
-   data file the swept repository carries and the question dissolves — a
-   consumer tree has none, so the sweep runs its generic rules and exits clean.
-   There is no predicate left to get wrong in a third direction, and nothing a
-   symlink can fake. **Do not re-open the predicate design.**
+Each already has attempted formulations **and their recorded defects** in
+`RS-PACKAGING-002` §Open Questions. Read them there. Do not retry a rejected
+formulation; if the right answer is one of them, say which and why the recorded
+defect does not apply.
 
-3. **Every acceptance criterion in this cycle is measured against a
-   materialised install.** The lesson the previous cycle taught was *checks that
-   don't check* — fourteen false acceptance criteria, whose recurring shape is a
-   criterion whose population the change itself redefines. The `docs/` criterion
-   was one of them: written against the component list, it passed while the
-   condition persisted, because the component list governs what Claude Code
-   *loads* and not what an install *copies*. Manual per-criterion discipline is
-   what failed; this cycle builds the fixture instead.
+**D1 — Consumer suite-row behaviour under option (B).** Under (B) the 56 suite
+rows resolve against `suite_root`, which in a consumer's install is the
+**installed plugin cache** — files that exist and pass. So (B) flips consumer
+behaviour from "fail loudly against the consumer's tree" to "pass vacuously
+against the shipped plugin". Decide: is that the intended behaviour, or does the
+linter need a `--no-suite-rules` / `--suite-root` surface? F11-relevant.
 
-## Research questions
+**D2 — The dual-rooted `.claude-plugin` row.** After the move `.claude-plugin/`
+exists at both roots (`plugin.json` moves, `marketplace.json` stays). A one-root
+binding silently drops `marketplace.json` from the retired-prefix scope — the one
+file the move edits. Decide the binding, and name what detects a wrong one.
+Note the existing block-9b pin cannot: it pins directory **names**, which survive
+a wrong root binding intact.
 
-**Q1 — Does any mechanism exclude paths from a materialised install?**
-Answer by materialising an install and inspecting the resulting tree. A manifest
-field that is *documented* to exclude but does not change the tree is a negative
-answer. Candidates to try: `.claudeignore` or a similar ignore file, a manifest
-`files:`/`exclude:` filter, `.gitignore` semantics, and whether the component
-list has any effect on what is copied (the previous cycle's finding says it does
-not — confirm rather than inherit). If no mechanism exists, the question becomes
-a costing: for the `plugins/sdd/` root move, enumerate which files move, and
-determine what breaks — specifically the driver's ten lazily-read
-skill-directory-relative `references/*.md`, the marketplace `source` field, the
-bundled tools' own paths, and the linter's 40 path-keyed exemptions.
+**D3 — `FILES_SWEPT`.** Two formulations rejected: the literal `25` (a corpus
+that grows fails it on ordinary contribution) and `git ls-files` equality (a
+working-tree walk against a tracked list fails on any untracked `.md`, and it
+hard-codes a path meaningless in a consumer repo). Decide a form, or state that
+no sound form exists and what replaces it.
 
-**Q2 — Can the sweep's suite-specific rows be expressed as corpus-carried
-data?** Establish the split: of `tools/gc.py`'s rules, how many are generic
-(meaningful in any repository) and how many are specific to this suite's
-contracts? Does any suite-specific rule need *code* rather than data — and if
-so, which, and what is the minimum expressive form the data file needs? Then the
-acceptance shape: with the rows absent, a foreign tree must produce **exit 0 and
-zero findings naming this repository's paths**. The previous cycle's two failure
-cases are the test vectors — a foreign tree carrying `tools/skill-lint.py`
-(11 fabricated findings) and one carrying a symlink at that path (40). Both must
-now yield nothing. Note also the derivation constraint recorded last cycle: the
-bundled-drift check must be root-side and recursive over all file types with a
-non-empty guarantee, because one level deep and `.py`-only was blind to nested
-and non-`.py` copies, and emptying the population made the criterion pass
-vacuously.
+**D4 — The two-root behavioural fixture.** Part 2 requires two *distinct* roots,
+but the containment rule only admits `suite_root/skills/**` when nested — so
+disjoint roots make a seeded walk-class violation invisible. Decide the fixture
+shape, or state the criterion cannot be built as specified.
 
-**Q3 — What is the cheapest fixture that materialises an install
-non-circularly?** The trap on record: a directory-sourced plugin loads in place
-from its source directory, so a fixture built that way tests the working tree
-against itself and always passes. The live install is now GitHub-sourced and
-frozen at a sha, which is the property the fixture must reproduce — including
-for a branch that is not yet merged. Determine how to materialise an install
-pinned to a named commit, how to build a *foreign consumer tree* for Q2's
-vectors, how the fixture asserts (file lists and counts against the real tree,
-not against the manifest), and where it lives so that both this cycle's
-verification and later cycles can call it.
+**Plus one sequencing constraint to confirm, not re-derive:** the headline
+40-row criterion needs `--print-population`, which does not exist. Confirm in one
+line that a producing task must precede it.
+
+## The cap
+
+**The deliverable must not exceed 300 lines.** `wc -l` on
+`docs/research/RS-PACKAGING-003-decisions/findings.md` is a gate, not guidance.
+
+Three rules make it survivable:
+
+1. **Evidence is cited, never restated.** One line per decision may reference
+   `RS-PACKAGING-002`; reproducing its numbers or arguments is a defect.
+2. **A correction that does not fit becomes an open question.** If closing a
+   decision properly needs more room than the cap allows, record the decision as
+   OPEN with its constraint named and move on. An honest open question costs two
+   lines; an argument costs twenty.
+3. **One statement per claim.** Cycle 2 restated its two principal caveats four
+   times each, because each repair packet asked for the hedge in one more place.
+   State a caveat once and cross-reference it.
+
+If the cap and completeness genuinely conflict, **the cap wins and the shortfall
+is recorded**. A short document with three decisions closed and one open beats a
+long one with four closed and a ninth review round pending.
 
 ## Success criteria
 
-The cycle is done when a consumer installing `jangid/sdd-commons` from the
-marketplace gets a tree **without `docs/`**, and `python3 tools/gc.py --report`
-run from that install inside **their own repository** exits 0 with no finding
-naming a path in this repository. Both demonstrated against materialised trees
-produced by the fixture, with the 199/145-file baseline above as the before
-measurement.
-
-The research spike itself is complete when Q1 has a yes-with-mechanism or a
-no-with-costing, Q2 has a rule split and a decided data format, and Q3 has a
-working non-circular materialisation command.
+Four decisions each carry a recommendation and its cost, or an explicit OPEN with
+its blocking constraint named. The sequencing constraint is confirmed in one
+line. The artifact is at most 300 lines and cites `RS-PACKAGING-002` rather than
+reproducing it.
 
 ## Budget
 
-Research is time-boxed to **30 tool calls** across Q1–Q3. A question that
-exhausts its share records what it learned and what remains rather than
-overrunning; an early answer on Q1 (a mechanism exists) makes its costing half
-unnecessary and returns that budget to Q2 and Q3.
+**12 tool calls**, 0 test runs. The evidence is already gathered; this spike
+decides over it. Reading `RS-PACKAGING-002` §Open Questions and the relevant
+`tools/skill-lint.py` regions is most of the work.
 
 ## Out of scope
 
-- Rewriting the sweep's **generic** rules. This cycle relocates suite-specific
-  rows; it does not redesign what the sweep checks.
+- Re-deriving or re-measuring anything under §Carried forward.
+- `claude plugin install` / `marketplace` commands — Q1 is closed.
+- Executing the root move. This cycle decides; the plan stage moves files.
+- The `file://`-vs-GitHub install gap, and the unrun Q1(c) non-conventional-path
+  control — both recorded in `RS-PACKAGING-002`, neither is a decision here.
 - Any new SDD phase, skill or agent.
-- The `sdd:*` naming and the marketplace manifest structure — settled last
-  cycle.
-- Re-opening the provenance-predicate design (decision 2 above).
-- Publishing, versioning or announcing the plugin beyond what the success
-  criteria require.
 
-## Carried forward — known work, entering at requirements
+## Carried repairs — unchanged, entering at requirements
 
-These are the previous cycle's loose ends. They are not research questions; each
-has a known fix.
-
-- **Deferral-backlog screen marker leakage.** The L-1 adjacency check reads the
-  *preceding* bullet's `[closed …]` marker as satisfying the *following* entry —
-  the rule examines that line without asking which entry the marker belongs to.
-  It scored the marketplace cycle's own carried item not-live by accident. The
-  true before/after row is recorded in `docs/ws/marketplace/verification.md`
-  §Deferral-Backlog Screen. This is the same failure class as decision 3: a
-  check that does not check.
-- **`skills/verify/SKILL.md:169`** — the one remaining cwd-relative drift-sweep
-  invocation in a shipped skill body. Decide where a non-driver skill's bundled
-  tool copy lives, then spell it skill-directory-relative. This interacts with
-  Q1's root move; sequence it after that answer.
-- **`docs/spec/orchestration.md:574`** — name the project README by its current
-  filename.
-- **`tools/skill-lint.py:381` and `:1252`** — drop the deleted front door's
-  filename from `RETIRED_SCOPE_FILES` and from the self-test's independent
-  `policed_files` tuple **together** (`Q-IMPL-MARKETPLACE-017`);
-  behaviour-neutral, but editing one alone trips the scope-drift check.
-- **`CLAUDE.md:251` vs `CLAUDE.md:215`** — reconcile which marker the repository
-  uses. Blocked last cycle by a must-not-change-in-substance fence on that
-  section; that fence no longer applies.
-
-## Already done — do not re-do
-
-Listed because the previous cycle's §Next Steps records them as outstanding and
-a reader of that file would otherwise plan them:
-
-- Re-pointing the marketplace at `jangid/sdd-commons` — done; verified above.
-- Removing the load-bearing `.worktrees/marketplace` — done; `git worktree list`
-  shows the main checkout only. The ordering constraint it carried (re-point and
-  confirm dispatch **before** removal) was satisfied.
-- Retiring the ten `~/.claude/skills/sdd-*` symlinks — operator decision
-  2026-09-21.
+- Deferral-backlog screen marker leakage (`docs/ws/marketplace/verification.md`
+  §Deferral-Backlog Screen).
+- `skills/verify/SKILL.md:169` — the last cwd-relative drift-sweep invocation;
+  sequence after D1/D2.
+- `docs/spec/orchestration.md:574` — name the project README by its filename.
+- `tools/skill-lint.py:381` and `:1252` — drop the retired front door's filename
+  from `RETIRED_SCOPE_FILES` and the self-test's `policed_files` tuple
+  **together** (`Q-IMPL-MARKETPLACE-017`).
+- `CLAUDE.md:251` vs `:215` — reconcile which marker the repository uses.
+- **Both** `.pre-commit-config.yaml` hook entries (`drift-sweep` at `:27-32`,
+  `skill-lint` at `:33-38`) need the `plugins/sdd/` prefix at the move — editing
+  one and not the other leaves the gate calling a dead path.
