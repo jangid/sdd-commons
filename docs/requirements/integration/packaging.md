@@ -1,6 +1,6 @@
 ---
 domain: PKG
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-MARKETPLACE-001, RS-PACKAGING-002, RS-PACKAGING-003, RS-CONSUMERGEOMETRY-001]
 workstream: marketplace, packaging, consumer-geometry
@@ -888,6 +888,21 @@ scratch-root style, no cache write:
    proposal, not of this cycle, and until it exists their binding is
    unasserted — recorded rather than implied.
 (see RS-CONSUMERGEOMETRY-001 Q3)
+[Updated: 2026-09-21c — **the cited direction is corrected, and the bullet's
+claim is narrowed, not withdrawn.** The consumer bullet above says
+"-006 acceptances 3 and 5 assert **both** directions" of the re-rooting
+exception. They do not: both assert the **negative** direction only —
+acceptance 3 that a tree with no `plugins/sdd` does **not** fire the
+derivation, acceptance 5 that a tree with `plugins/sdd` present but no
+`skills/` under it does **not** fire it either. The **positive** direction —
+that a consumer tree really holding `plugins/sdd/skills/` **is** re-rooted onto
+that copy, which is the half this bullet actually relies on — is asserted by
+`two-root-linter.md` §CG-4's **new acceptance 6**, written for exactly this
+gap. So the exception is asserted in both directions, but by three acceptances
+across two artifacts rather than by two in one. Nothing about the bullet's rule
+changes; the citation does. Authorising requirement:
+REQ-PKG-CONSUMERGEOMETRY-006 via `two-root-linter.md` §CG-4, workstream
+`consumer-geometry`.]
 [Priority: must]
 
 ### REQ-PKG-CONSUMERGEOMETRY-003: An explicit suite-root surface must exist
@@ -966,6 +981,22 @@ follow-up.
    The two halves fail in opposite directions, which is what stops an
    implementer resolving this with a delete.
 (see RS-CONSUMERGEOMETRY-001 Q3, and RS-PACKAGING-003 D1's deferred half)
+[Updated: 2026-09-21c — **two line-number citations reconciled, and the shape
+of the §2 edit stated, because acceptance 4 names sites by line.**
+(i) `docs/spec/two-root-linter.md:516-517`, the three-clause checklist item this
+acceptance excises the middle clause of, is now at **`:522-523`**; the §2
+deferral sentence acceptance 4's first half retires is now at **`:89`** (it was
+`:83`). The **content**, not the number, identifies both sites —
+`two-root-linter.md` §CG-9's table carries the same reconciliation, and both
+files are read at run time rather than by line at implement time.
+(ii) The §2 sentence is **re-scoped in place**, not deleted: its
+`--no-suite-rules` leg is REQ-PKG-PACKAGING-003 leg (i) and **stands**, so only
+the `--suite-root` deferral half is marked superseded, in the shape §2's other
+superseded claims carry. Deleting the bullet would retire a pin this delta
+explicitly preserves — the same failure mode acceptance 4's second half exists
+to catch one clause lower down. Authorising requirement:
+REQ-PKG-CONSUMERGEOMETRY-003 via `two-root-linter.md` §CG-2, §CG-9, workstream
+`consumer-geometry`.]
 [Priority: must]
 
 ### REQ-PKG-CONSUMERGEOMETRY-004: Every run declares its geometry, and a zero-sweep run says so
@@ -1074,6 +1105,42 @@ two matches are not end-anchored; if either is, amending it is in scope under
 this requirement rather than a surprise at the gate.
 
 (see RS-CONSUMERGEOMETRY-001 Q3 §C-2, verbatim at its S4)
+[Updated: 2026-09-21c — **two of this requirement's literals are re-read by
+`two-root-linter.md` §CG-6, and a third measurement is superseded. Recorded as
+a note, never as a rewrite**: the literals below stay exactly as approved, and
+this note carries what they are now read to mean. §CG-4 establishes this
+cycle's rule for a spec that reinterprets an Approved literal, and it is applied
+here rather than only to REQ-PKG-CONSUMERGEOMETRY-002 — exempting this
+requirement would reproduce, one requirement away, the defect this delta
+diagnoses.
+(i) **`suite-rows-root=<path>`**. Approved as the suite root **as given**. Read
+by §CG-6 as the **effective** suite root — the one §CG-3's three precedence
+tiers resolve (explicit `--suite-root`, then the corpus-root derivation, then
+the script's own plugin root). Under tier 1 the two readings coincide, which is
+why the original wording was not wrong at the time; under tiers 2 and 3 "as
+given" names nothing, so the token would be unprintable on precisely the runs
+this delta exists to signal.
+(ii) **"emitted by `every` run"**. Read by §CG-6 as **iff the run prints an
+`OK:` or `FAIL:` summary line**, immediately before it — one token per summary,
+never two, never one without the other. That **excludes `--self-test`**, whose
+`SELF-TEST OK:` / `SELF-TEST FAIL:` banner is not a corpus summary; a self-test
+*case* asserts on the token by constructing a sweep and reading that sweep's
+output, not by grepping the self-test's own stdout. Without this scoping a
+fixture asserting "exactly one `GEOMETRY:` line" over a `--self-test` run is
+undecidable.
+(iii) **The interaction note's "two named sites"** (`skill-lint-v5.md:427` and
+`:452`) is a **measurement superseded by a run-time grep**, which finds a
+**third** pin at `:127` (§Size Warn-Clean Baseline) — `:129`, `:429`, `:454`
+after that file's amendment. The settled count is **three in
+`skill-lint-v5.md`, four including the requirements-side twin**
+`docs/requirements/integration/skill-lint.md:276`, and the string
+`OK: N file(s) clean`, not the number, identifies each site. All four were read
+at implement time and confirmed **not** end-anchored, so none needed amendment;
+the three `python3 tools/sdd-skill-lint.py` invocations on those pin lines were
+corrected to `python3 plugins/sdd/tools/skill-lint.py` in the same read.
+Authorising requirement: REQ-PKG-CONSUMERGEOMETRY-004 via `two-root-linter.md`
+§CG-6, §CG-4 and `skill-lint-v5.md` §The summary-line pins, workstream
+`consumer-geometry`.]
 [Priority: must]
 
 ### REQ-PKG-CONSUMERGEOMETRY-005: The bundled `skills/orchestrate/tools/` copy is removed, and every record it falsifies is corrected
@@ -1251,6 +1318,29 @@ in scope under REQ-PKG-CONSUMERGEOMETRY-001's permission.
    correction, asserted by resolving each named path at run time. A path that
    does not resolve fails this.
 (see RS-CONSUMERGEOMETRY-001 Q5, Q1)
+[Updated: 2026-09-21c — **acceptance 2's secondary grep gains a stated
+exemption, and acceptance 5's "returns zero matches" literal is re-read with
+it.** For one class (A) file the per-file `skills/orchestrate/tools` grep is
+unsatisfiable **against the spec's own prescription**:
+`docs/spec/marketplace-packaging.md` prescribes Q-IMPL-MARKETPLACE-029's
+corrected Decision text **verbatim**, and that text keeps the literal
+`skills/orchestrate/tools/skill-lint.py`, unfenced and outside any amendment
+section. The same holds for the `-006` **Evidence** cell of
+`docs/ws/marketplace/traceability.md`, whose replacement text that spec also
+specifies verbatim including the string. Both are therefore **stated
+exemptions** to that grep — on the same footing as the fenced-block and
+amendment-section exemptions acceptance 2 already carries, and as the **third**
+glob exemption `marketplace-packaging.md` records for Q-IMPL-MARKETPLACE-028's
+`REVERTED` entry: a reverted or prescribed record is narrative, not an assertion
+about the present tree, so its text is preserved and no correction reaches its
+occurrence. Zero is unreachable against a **correct** implementation here, and a
+zero target would be discharged only by disobeying the spec that sets it —
+the outcome the exemption exists to prevent. Nothing about which files are class
+(A), (B) or (C), and nothing about the removal itself, changes. The durable
+record of the three-way split this closes is
+Q-IMPL-CONSUMERGEOMETRY-006. Authorising requirement:
+REQ-PKG-CONSUMERGEOMETRY-005 via `marketplace-packaging.md` §Secondary — a
+residual grep with two stated exemptions, workstream `consumer-geometry`.]
 [Priority: must]
 
 ### REQ-PKG-CONSUMERGEOMETRY-006: A tool running from outside the corpus still reaches the working tree

@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 requires:
   - REQ-LINT-001
   - REQ-LINT-002
@@ -125,7 +125,7 @@ file is the implementer's choice):
 - the `[template-drift]` pair fences stay byte-identical — if a paired fence
   moves, its pair-table row is re-pointed in the same commit
   (REQ-LINT-HARNESSP4-001);
-- `python3 tools/sdd-skill-lint.py` exits 0 **and** its summary line matches
+- `python3 plugins/sdd/tools/skill-lint.py` exits 0 **and** its summary line matches
   `OK: N file(s) clean` with **no** warning clause — the linter appends
   `, W warning(s)` only when `W > 0`, so a warn-clean run prints no count and a
   `0 warning(s)` expectation can never be satisfied; do not restore it.
@@ -425,7 +425,7 @@ accidental drop is caught.
 ### Automated
 - `python3 tools/sdd-skill-lint.py --self-test` exits 0 and exercises every
   new check.
-- `python3 tools/sdd-skill-lint.py` on the implemented skill set exits 0 and
+- `python3 plugins/sdd/tools/skill-lint.py` on the implemented skill set exits 0 and
   prints `OK: N file(s) clean` with **no** warning clause — the `, W warning(s)`
   clause is emitted only when `W > 0`, so warn-clean shows no count and a
   `0 warning(s)` expectation must not be restored — warn-clean since 2026-09-19
@@ -451,7 +451,7 @@ accidental drop is caught.
 - [ ] Remaining `REQUIRED` rows present; lint exits 0 on the implemented skill set (REQ-LINT-006)
 - [ ] Marker-4 prose moved to `references/v4-workstreams.md` with stubs, `research_id` guard and superseding Q-IMPL; `SKILL.md` under 400 lines; lint exits 0 (REQ-LINT-007; bound amended 2026-09-19 by REQ-LINT-HARNESSP5-002)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
-- [ ] `python3 tools/sdd-skill-lint.py` exits 0 and its summary line matches `OK: N file(s) clean` with no warning clause (the linter omits the count when there are none, so a `0 warning(s)` expectation is unsatisfiable and must not be restored); `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'` prints 0; `wc -l skills/*/SKILL.md` shows every file < 400; every new `references/*.md` is linked from its stub and resolves; every `REQUIRED` row, the `VERSION_GATED_SKILLS` `docs/.sdd-version` mention and the `[template-drift]` fences stay satisfied (REQ-LINT-HARNESSP5-001)
+- [ ] `python3 plugins/sdd/tools/skill-lint.py` exits 0 and its summary line matches `OK: N file(s) clean` with no warning clause (the linter omits the count when there are none, so a `0 warning(s)` expectation is unsatisfiable and must not be restored); `python3 tools/sdd-skill-lint.py | grep -c '\[size\]'` prints 0; `wc -l skills/*/SKILL.md` shows every file < 400; every new `references/*.md` is linked from its stub and resolves; every `REQUIRED` row, the `VERSION_GATED_SKILLS` `docs/.sdd-version` mention and the `[template-drift]` fences stay satisfied (REQ-LINT-HARNESSP5-001)
 - [ ] REQ-LINT-HARNESSP5-002's file-wide grep for the two legacy baseline figures (the two-file warn set and the four-hundred-fifty bound) returns nothing in this spec; the R7/R8 `reproduce:` commands print 0 and a number < 400; `docs/ws/harness-p5/verification.md` `## Post-cycle Fixes` records both reds closed (REQ-LINT-HARNESSP5-002)
 - [ ] §`[template-drift]` states the absent-side behaviour (warn, never fail) and the rendered finding order (tag after the location); Q-IMPL-HARNESSP4-008 carries its fold-in status note and its body is unchanged (REQ-QIMPL-HARNESSP5-001, owned by `deviation-protocol.md`)
 - [ ] `[template-drift]` rule present with the four-row pair table; the shipped skill set exits 0; changing one character inside the RED TEAM `RETURN:` block of `dispatch-templates.md` exits 1 with a `[template-drift]` line naming `adversarial-verify.md` and the fix; `--self-test`'s mutation loop covers it; REQ-HARN-HARNESSP4-007's edit is made with the rule active and leaves exit 0 (REQ-LINT-HARNESSP4-001)

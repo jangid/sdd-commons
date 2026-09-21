@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 requires:
   - REQ-PKG-PACKAGING-001
   - REQ-PKG-PACKAGING-002
@@ -86,9 +86,15 @@ Linter(corpus_root, suite_root=None, suite_rules=True)
 - **No `--no-suite-rules`**: a disable switch on the checks a contributor finds
   most inconvenient is the silent-disable class this cycle rejects, so
   `suite_rules=False` stays a constructor argument used only by self-test
-  fixtures. `--suite-root` is **deferred**, not adopted — it mitigates the one
-  unclosed vendored-cache case, and a mitigation for one residual case is not a
-  closure; its absence is a decision, not an omission.
+  fixtures. **The `--suite-root` deferral recorded here held for the
+  `packaging` cycle and is superseded by REQ-PKG-CONSUMERGEOMETRY-003 (§CG-2):
+  the surface is adopted.** The deferral rested on reading the vendored-cache
+  case as one residual case; the `consumer-geometry` delta re-measures it as the
+  geometry every consumer of the installed plugin runs in, which is a closure
+  owed rather than a mitigation offered. The `--no-suite-rules` leg of this
+  bullet is **untouched** — the disable switch is still rejected and
+  `suite_rules=False` is still constructor-only (REQ-PKG-PACKAGING-003
+  leg (i)).
 
 The documented default changes with the code: the positional argument's help
 string and the `REPO_ROOT` sentences of `skill-lint-v5.md` are restated for the
@@ -521,9 +527,10 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
   its §Two-Root Amendment, where the old wording is quoted in order to retire
   it (the one exclusion, stated here so the check does not fail on the sentence
   that fixes it) (REQ-PKG-PACKAGING-002). `grep
-  -n 'no-suite-rules' plugins/sdd/tools/skill-lint.py` is empty, the argparse
-  surface exposes no `--suite-root`, and every `suite_rules=False` site is
-  inside the self-test (REQ-PKG-PACKAGING-003).
+  -n 'no-suite-rules' plugins/sdd/tools/skill-lint.py` is empty and every
+  `suite_rules=False` site is inside the self-test (REQ-PKG-PACKAGING-003
+  leg (i), which stands; the middle clause of this item was excised under
+  REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4 when §CG-2's surface landed).
 - [ ] **The retarget check, with a seeded ungated violation.** On a scratch
   tree whose corpus root has no `skills/` and whose suite root does, seeding
   `<corpus_root>/docs/spec/seeded-retired.md` with one unfenced retired-prefix
@@ -1230,8 +1237,10 @@ REQ-PKG-CONSUMERGEOMETRY-006 acceptance 4 covers it.
 
 ### CG-9. The correction landing sites owned by this file
 
-Two edits to **this** file are owed, under two different requirements, and they
-are named so the plan stage can size them separately:
+**Three** edits to **this** file are owed, under two different requirements,
+and they are named so the plan stage can size them separately — the count is the
+table's row count below, which this sentence now agrees with and this section's
+closing criterion already did:
 
 | Site | Requirement / acceptance | Edit |
 |---|---|---|
@@ -1483,8 +1492,22 @@ here because the plan stage must size them:
 - [ ] **The token survives the sweep.** In §CG-8's disjoint scratch
   construction, `gc.py --report` output contains a line beginning `GEOMETRY: `,
   forwarded verbatim on its own line; it contains none today, and removing the
-  forwarding returns it to none. `gc.py` derives no geometry of its own, asserted
-  by grep for any geometry-deriving expression in `gc.py`
+  forwarding returns it to none. **`gc.py` derives no geometry of its own**, and
+  because "geometry-deriving expression" has no grep spelling the claim is
+  asserted as **two halves, both required** — the twin of `drift-sweep.md`
+  §4's statement, which this says the same way rather than a second way:
+  **(a)** `grep -nE '\bsuite_contained\b|\b(nested|equal|disjoint)\b'
+  plugins/sdd/tools/gc.py`, ignoring comment lines, returns matches **only** on
+  lines that read a token back off the linter's own stdout — the enumerated
+  permitted set being the row-4 `--self-test` assertions that compare
+  `cg4_geometry(...)`'s return against `"GEOMETRY: nested"` /
+  `"GEOMETRY: disjoint"` — and a match on any line computing a member from
+  `Path` comparison, containment or root equality is red; **(b)** on a
+  temporary copy of `gc.py` that derives the member inside the sweep and emits
+  a second token, §CG-8's far `gc.py --report --root "$REPO"` carries a
+  **duplicate** `GEOMETRY:` line where the unmutated control carries exactly
+  one. Either half alone is weak — the grep because a rename satisfies it, the
+  mutation because it leaves the prose undecidable
   (REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause).
 - [ ] **The summary-line pins are confirmed unanchored** — no count written; the
   set is the `OK: N file(s) clean` pins derived by grep. The three
@@ -1590,6 +1613,30 @@ reached. They are inputs the plan stage must size, not gaps:
   into one checkbox, so a partial pass is invisible to the gate. The third is the
   one worth splitting; the plan can size it as separate boxes.
 
+[Updated: 2026-09-21c — **all three open items above are closed by the
+implement stage; the raised text is left standing as the record of what was
+raised, and this note carries what was decided.**
+(1) The decidable comparand is landed in this file's §Consumer-Geometry
+Acceptance Criteria, in the two-half form (grep + mutation) its
+`drift-sweep.md` §4 twin already carries, so the two files state one criterion.
+(2) **All three** `skill-lint-v5.md` summary-line pins are repaired, which is
+the first of the two options offered — the cheaper one, and the one that leaves
+no recorded inaccuracy behind. The three `python3 tools/sdd-skill-lint.py`
+invocations on those pin lines now read `python3
+plugins/sdd/tools/skill-lint.py`, asserted by resolving the named path at run
+time. Other `tools/sdd-skill-lint.py` occurrences elsewhere in that spec stay
+out of scope, as `skill-lint-v5.md` §The summary-line pins states.
+(3) Both counts are corrected to agree with their tables. §CG-9's opening
+sentence now reads **three**, matching its three-row table and its closing
+criterion. The summary-line pins are **three in `skill-lint-v5.md` and four
+including the requirements-side twin** `docs/requirements/integration/skill-lint.md:276`
+— one count, stated the same way in both places; the "two named sites" of
+REQ-PKG-CONSUMERGEOMETRY-004's interaction note is a **measurement superseded by
+a run-time grep**, recorded in that requirement's own `[Updated: 2026-09-21c]`
+note rather than rewritten there. The third inconsistency — the §CG-6
+four-assertion checkbox — was split by the plan into separate boxes and is
+discharged there.]
+
 
 - `OPEN:` **the 40 `REQUIRED` rows have no binding fixture in any geometry.**
   REQ-PKG-CONSUMERGEOMETRY-002 hands the narrower C-1 proposal — rebinding those
@@ -1605,3 +1652,133 @@ reached. They are inputs the plan stage must size, not gaps:
   exhaustive. Recorded only so that its absence reads as a decision rather than an
   omission, in the shape REQ-PKG-PACKAGING-003 used for the deferral this
   amendment supersedes.
+
+## Consumer-Geometry Implementation Questions
+
+Six observations were recorded provisionally, with **no id**, in Chunks 0–6 of
+`docs/ws/consumer-geometry/plan.md` (that plan's §Conventions: a chunk that
+declares no `docs/spec/**` path cannot define a `### Q-IMPL-…` heading, and an id
+written before its heading exists raises a `fail`-severity `qimpl-undefined`
+finding). Their durable entries are minted here, in the one chunk that holds this
+file open, so that each id and its heading are born in the same commit.
+
+### Q-IMPL-CONSUMERGEOMETRY-001: the `cg` helpers are mirrored in both tools, and nothing asserts the pair
+**Tier**: 3 (implementation detail with a standing drift risk)
+**Spec reference**: §CG-1. Where the derivation lives
+**Decision**: **accept the duplication, and record it** rather than assert the
+pair. `gc.py` cannot import `skill-lint.py` — it invokes it as a **subprocess**,
+which is the forwarding relationship §CG-1 and §CG-8 both rest on — so
+`disjoint_scratch_suite()` and `cg_reconcile()` exist once per tool rather than
+once. The two copies are byte-equivalent in behaviour and nothing asserts they
+stay so; if a later chunk edits one half, the drift is silent.
+**Rationale**: the alternative — a shared module both tools import — would give
+`gc.py` an import edge into the linter, which is precisely the coupling §CG-1
+declines when it puts the derivation in `skill-lint.py` and leaves `gc.py`
+forwarding. The helpers are **self-test scaffolding**, not production geometry:
+a drift between them can make one tool's self-test weaker, never a corpus run
+wrong. Recording the exposure is therefore proportionate to it. A later cycle
+that wants the assertion can add a self-test case comparing the two function
+bodies; it is not owed by this cycle's requirement set.
+
+### Q-IMPL-CONSUMERGEOMETRY-002: "one token per summary" is structural only because `run()` is the sole emitter
+**Tier**: 2 (spec ambiguity — the scope of "every run")
+**Spec reference**: §Consumer-Geometry Acceptance Criteria
+**Decision**: **keep every corpus summary inside `Linter.run()`**, and treat
+that as the binding rather than pairing the two prints in a helper. The
+`GEOMETRY:` token is emitted by `Linter.run()` alone, immediately before the
+`OK:`/`FAIL:` summary that `run()` also prints, which is what makes "one token
+per summary, never two, never one without the other" **structural** rather than
+asserted.
+**Rationale**: the property is real today and is what lets §CG-6 scope "every
+run" to runs that print a summary — the rule follows the summary wherever it
+goes, so no second statement can drift from it. The exposure is a **future**
+summary printed outside `run()` (a `--print-population` corpus summary, say),
+which would break the one-for-one pairing with no fixture to catch it. Binding
+the pair in a helper now would add an indirection that no current caller needs
+and would still not prevent a new caller printing its own summary. The cheaper
+guard is the recorded rule: a summary line is `run()`'s to print. Whether
+`--print-population` prints a summary at all is settled by Q-IMPL-PACKAGING-003,
+not restated here.
+
+### Q-IMPL-CONSUMERGEOMETRY-003: `print_population()` resolved tier 1 a second time
+**Tier**: 3 (implementation detail, resolved within this cycle)
+**Spec reference**: §CG-3. The corpus-root derivation and its precedence
+**Decision**: **one resolution serves both paths** — `print_population()` builds
+its `Linter` from `(corpus_root, suite_root_or_None)` and lets the constructor
+resolve, exactly as the lint path does.
+**Rationale**: raised in Chunk 2, when `print_population()` took a `suite_root`
+positional and `main()` therefore decided tier 1 twice — once for
+`print_population(root, …)` and once for `Linter(root, suite_root)` — with the
+`--print-population` path passing `default_suite_root()` explicitly where the
+lint path passed `None`. Once Chunk 3 landed tier 2 **in the constructor**, the
+`--print-population` path would have been the only caller bypassing that
+resolution, and would have reported a **tier-3** root where the lint path
+reported **tier 2** — two answers to "which suite root" from one invocation,
+which §CG-3's precedence exists to forbid. Chunk 2 did not act on it because
+Chunk 3 owns the constructor; Chunk 3 landed the single resolution. Recorded
+because the defect was real between the two chunks and the resolution is a
+constraint on any future caller, not a one-off repair.
+
+### Q-IMPL-CONSUMERGEOMETRY-004: a comparand table that quotes a source expression is a standing hazard
+**Tier**: 2 (spec/requirement ambiguity)
+**Spec reference**: §CG-7. The enumerated comparand set and its reporting surface
+**Decision**: **name mutation sites by function, not by source expression**, in
+any future extension of the enumerated comparand set; the existing rows are
+**not** rewritten, and row 5's staleness is recorded in
+REQ-PKG-CONSUMERGEOMETRY-001's own `[Updated: 2026-09-21c]` note rather than
+edited into the approved table.
+**Rationale**: REQ-PKG-CONSUMERGEOMETRY-001's enumeration names row 5's site by
+a source expression, `print_population(root, default_suite_root())`, which
+Q-IMPL-CONSUMERGEOMETRY-003's repair — landed by this cycle's own Chunk 3 — made
+stale. The row's **mutation** survived the drift, so nothing was red; but an
+enumeration keyed on source text is falsified by any refactor of that text, and
+the next one may not survive. The requirement is Approved and its table is a
+comparand set the acceptance criteria evaluate against, so rewriting a row would
+make the record disagree with the commit that approved it — the rule §CG-11
+states for this corpus. Naming sites by function is stable under refactor and
+costs nothing at the point of writing.
+
+### Q-IMPL-CONSUMERGEOMETRY-005: §CG-8's repair is attributable to tier 2, not to the pass-through
+**Tier**: 2 (spec ambiguity — which change the criterion measures)
+**Spec reference**: §CG-8. The disjoint scratch construction
+**Decision**: the criterion is **decidable on the finding set under either
+landing order and is left as written**; the attribution is recorded here.
+`lint_command()`'s suite-root pass-through is **inert when no `--suite-root` is
+supplied**, so §CG-8's construction is repaired by the linter's **tier-2
+derivation**, not by the pass-through.
+**Rationale**: measured, not reasoned. Under the landing order actually taken,
+reverting the pass-through **alone** leaves the finding set empty; reverting the
+tier-2 derivation in `Linter.__init__` (with the pass-through already reverted)
+makes exactly one `[structure]` finding reappear. A reader of the criterion could
+reasonably infer that the pass-through is what closes the construction, and it
+is not. Note also that the forwarded `GEOMETRY:` line is still present in the
+mutated run, reading `disjoint` — forwarding is independent of geometry, which
+is the "forwards, never computes" property of
+Q-IMPL-CONSUMERGEOMETRY-001's sibling criterion observed directly. The clause
+itself needs no amendment: both landing orders satisfy it, and only the
+attribution differs.
+
+### Q-IMPL-CONSUMERGEOMETRY-006: one class (A) file keeps a string a bare per-file grep would forbid
+**Tier**: 2 (requirement/spec/plan disagreement, closed by exemption)
+**Spec reference**: §CG-9. The correction landing sites owned by this file
+**Decision**: **the exemption is stated, in all three places**, rather than the
+grep being widened or the prescribed text being altered.
+`marketplace-packaging.md` keeps the literal `skills/orchestrate/tools/skill-lint.py`
+inside Q-IMPL-MARKETPLACE-029's Decision, because
+`marketplace-packaging.md` **prescribes that corrected text verbatim** and the
+text retains the string; the same applies to the `-006` Evidence cell in
+`docs/ws/marketplace/traceability.md`, whose replacement text that spec also
+specifies verbatim including the string.
+**Rationale**: read as a bare per-file `skills/orchestrate/tools` grep over
+every class (A) file, REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2's *secondary*
+half is unsatisfiable for this one file **against the spec's own prescription**
+— a criterion that can be satisfied only by disobeying the spec that carries it.
+The plan assigns no such grep to that file (it assigns the glob grep there and
+the `skills/orchestrate/tools` grep to `pre-commit.md`), so no chunk was ever
+red; but requirement, spec and plan each said something different about it,
+which is the three-way split this delta exists to close. The closure is
+symmetric with the third glob exemption `marketplace-packaging.md` already
+carries: a **stated** exemption rather than an unexplained failure, with the
+requirement-side half landed as an appended dated note under -005 and the
+plan-side half recorded in Chunk 6's notes. §CG-4's rule for a spec
+reinterpreting an Approved literal, applied once more.

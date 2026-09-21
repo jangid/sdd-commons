@@ -265,8 +265,9 @@ callable from a fixture; the four pre-change observations are recorded. The `Tes
   pre-existing failures (so all three runs exit 1), and the cg surface is
   nonetheless clean in the control and carries exactly the expected line in each
   mutation.
-- **Provisional observation, no id** (its `### Q-IMPL-…` heading is born in
-  Chunk 7, §Conventions): `gc.py` cannot import `skill-lint.py` — it invokes it
+- **Observation — minted in Chunk 7 as `Q-IMPL-CONSUMERGEOMETRY-001`**
+  (`two-root-linter.md` §Consumer-Geometry Implementation Questions; raised here
+  with no id per §Conventions): `gc.py` cannot import `skill-lint.py` — it invokes it
   as a subprocess — so `disjoint_scratch_suite()` and `cg_reconcile()` exist
   once per tool rather than once. The two copies are byte-equivalent in
   behaviour and nothing asserts they stay so; if a later chunk edits one half,
@@ -415,8 +416,8 @@ run and the finding count and `N` observed unchanged. The `Test` and `Implementa
   `print(self.geometry_line())` calls removed — the finding count (1) and the
   summary line (`FAIL: 1 finding(s), 0 warning(s) — NOTHING SWEPT`, i.e. its
   `N`) were **identical**; only the `GEOMETRY:` line count changed, 1 → 0.
-- **Provisional observation, no id** (its `### Q-IMPL-…` heading is born in
-  Chunk 7, §Conventions): the `GEOMETRY:` token is emitted by `Linter.run()`
+- **Observation — minted in Chunk 7 as `Q-IMPL-CONSUMERGEOMETRY-002`**
+  (raised here with no id per §Conventions): the `GEOMETRY:` token is emitted by `Linter.run()`
   alone, which is what makes "one token per summary, never one without the
   other" structural rather than asserted. Any future summary printed outside
   `run()` — a `--print-population` summary, say — would silently break the
@@ -554,8 +555,8 @@ recorded with their commands. The `Test` and `Implementation` cells of this work
   future reader running the grep literally will see one line outside the
   self-test's line range; the binding is "no production construction site", and
   it holds.
-- **Q-IMPL-shaped observation (no id — plan §Conventions; Chunk 7 mints the
-  heading).** *Provisional description*: `print_population()` takes a
+- **Q-IMPL-shaped observation — minted in Chunk 7 as
+  `Q-IMPL-CONSUMERGEOMETRY-003` (raised here with no id, plan §Conventions).** *Provisional description*: `print_population()` takes a
   `suite_root` positional and `main()` must therefore decide tier 1 twice — once
   for `print_population(root, …)` and once for `Linter(root, suite_root)` — with
   the `--print-population` path passing `default_suite_root()` explicitly where
@@ -894,8 +895,8 @@ each time; both self-tests exit 0. The `Test` and `Implementation` cells of this
   CG_ROW_TOKENS`. Both self-tests exit 0 in the repo; the in-repo
   `skill-lint.py .` still prints `GEOMETRY: nested  swept-roots=2` and
   `OK: 25 file(s) clean`, and `gc.py --report --root .` is clean.
-- **Provisional observation, no id** (its `### Q-IMPL-…` heading is born in
-  Chunk 7, §Conventions): the enumeration in REQ-PKG-CONSUMERGEOMETRY-001's table
+- **Observation — minted in Chunk 7 as `Q-IMPL-CONSUMERGEOMETRY-004`**
+  (raised here with no id per §Conventions): the enumeration in REQ-PKG-CONSUMERGEOMETRY-001's table
   names row 5's site by a source expression, `print_population(root,
   default_suite_root())`, which this cycle's own Chunk 3 made stale. The row's
   *mutation* survived the drift, but a comparand table that quotes source text is
@@ -1029,8 +1030,8 @@ decidable comparand in `drift-sweep.md` with its mutation demonstrated;
   `GEOMETRY: disjoint  swept-roots=1`, the `[structure] skills/ directory not
   found` finding, and `FAIL: 1 finding(s), 0 warning(s) — NOTHING SWEPT`. Far
   `gc.py --report --root "$REPO"`: **zero** `[structure]` findings, asserted on
-  the finding set. **Provisional observation (no id, per §Conventions; its
-  durable `### Q-IMPL-…` heading is Chunk 7's to write):** under the landing
+  the finding set. **Observation — minted in Chunk 7 as
+  `Q-IMPL-CONSUMERGEOMETRY-005` (raised here with no id, per §Conventions):** under the landing
   order actually taken, reverting `lint_command()`'s suite-root pass-through
   **alone** leaves the finding set empty — the pass-through is inert when no
   `--suite-root` is supplied, so §CG-8's construction is repaired by the
@@ -1383,7 +1384,8 @@ regenerated**. The `Test` and `Implementation` cells of this workstream's rows f
   sites took the prescribed re-tense-plus-inline-dated-clause form without
   altering what was decided, so no site was demoted to class (B) and there is no
   deviation to record on that route.
-- **Provisional observation, no id** (Chunk 7 mints the heading). The spec
+- **Observation — minted in Chunk 7 as `Q-IMPL-CONSUMERGEOMETRY-006`**
+  (raised here with no id per §Conventions). The spec
   prescribes the Q-IMPL-MARKETPLACE-029 Decision's corrected text **verbatim**
   and that text **keeps** the literal `skills/orchestrate/tools/skill-lint.py`,
   at `marketplace-packaging.md:578`, which lies before that file's amendment
@@ -1478,7 +1480,7 @@ rule keys on *bumping the requirements corpus's `last_updated`*, which this
 would do, not on which file did it. Task 2 already lands that pairing for this
 chunk, so a conditional edit here rides the same commit.
 **Tasks**:
-1. [ ] [implement] **The one requirements-corpus write. Appended dated
+1. [x] [implement] **The one requirements-corpus write. Appended dated
    `[Updated:]` notes only — never a rewrite of an approved sentence**, because
    rewriting makes the record disagree with the commit that approved it. Three
    notes, all under `[Updated: 2026-09-21c — …]`:
@@ -1498,7 +1500,7 @@ chunk, so a conditional edit here rides the same commit.
    Asserted by grepping the file for a `[Updated: 2026-09-21c` note under each of
    the named ids, so a note omitted is red rather than silently absent
    — traces to `two-root-linter.md` §CG-11, §CG-4, §CG-6
-2. [ ] [implement] **The staleness pairing, decided in §CG-11(b) and executed
+2. [x] [implement] **The staleness pairing, decided in §CG-11(b) and executed
    here**: the commit carrying task 1's notes also carries the spec and plan
    touches it pairs with, so no intermediate commit exists in which the corpus is
    newer than the artifacts that trace it. Where the note must land alone, this
@@ -1507,7 +1509,7 @@ chunk, so a conditional edit here rides the same commit.
    note-bearing commit. A `[stale-chain]` finding raised between the two events is
    an artefact of the split and is informational, not routed at DONE — traces to
    `two-root-linter.md` §CG-11(b)
-3. [ ] [implement] **Both absence sentences in `two-root-linter.md`, and they are
+3. [x] [implement] **Both absence sentences in `two-root-linter.md`, and they are
    not the same edit** (§CG-9 rows 1–2):
    `:83`→`:89` (§2's *"`--suite-root` is **deferred**, not adopted — it mitigates
    the one unclosed vendored-cache case"*) is **re-scoped in place** — the
@@ -1521,11 +1523,11 @@ chunk, so a conditional edit here rides the same commit.
    red — which is what stops an implementer resolving this with a delete
    — traces to `two-root-linter.md` §CG-2, §CG-9,
    REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4
-4. [ ] [implement] Land the `two-root-linter.md` half of Chunk 5 task 2's
+4. [x] [implement] Land the `two-root-linter.md` half of Chunk 5 task 2's
    decidable comparand for "`gc.py` derives no geometry of its own", so the spec
    and its `drift-sweep.md` twin say the same thing — traces to
    `two-root-linter.md` §Consumer-Geometry Open Items item 1
-5. [ ] [implement] **The second recorded plan input: all three
+5. [x] [implement] **The second recorded plan input: all three
    `skill-lint-v5.md` summary-line pins name the dead `python3
    tools/sdd-skill-lint.py` path, not one.** Measured at `:128`, `:428`,
    `:453-454`. The spec repairs only the `:454` pin, and the stated reason — that
@@ -1535,7 +1537,7 @@ chunk, so a conditional edit here rides the same commit.
    cheaper of the two options the open item offers and leaves no recorded
    inaccuracy behind — traces to `two-root-linter.md` §Consumer-Geometry Open
    Items item 2
-6. [ ] [implement] **The two remaining count/aggregation inconsistencies**, sized
+6. [x] [implement] **The two remaining count/aggregation inconsistencies**, sized
    here rather than recorded as debt, because this chunk already holds
    `two-root-linter.md` open: §CG-9 opens "**Two** edits … are owed" above a
    three-row table (its closing criterion already says three), and the
@@ -1544,7 +1546,7 @@ chunk, so a conditional edit here rides the same commit.
    counts to agree with their tables. The third item of that triple — the §CG-6
    four-assertion checkbox — is discharged by Chunk 1 task 4 and Chunk 3 task 4
    — traces to `two-root-linter.md` §Consumer-Geometry Open Items item 3
-7. [ ] [verify] **The summary-line pins are confirmed unanchored — no count
+7. [x] [verify] **The summary-line pins are confirmed unanchored — no count
    written**; the set is the `OK: N file(s) clean` pins **derived by grep**, not
    listed. The three in `docs/spec/skill-lint-v5.md` (`:127`,`:427`,`:452`
    pre-amendment; `:129`,`:429`,`:454` after — **the content, not the number,
@@ -1566,7 +1568,7 @@ chunk, so a conditional edit here rides the same commit.
    and the six telemetry sites, not these. Recorded as an observation with its
    command — traces to `skill-lint-v5.md` §Consumer-Geometry Acceptance Criteria
    (first box, both halves), `two-root-linter.md` §CG-6, §Acceptance Criteria
-8. [ ] [verify] **The SECONDARY half of REQ-PKG-CONSUMERGEOMETRY-003 acceptance
+8. [x] [verify] **The SECONDARY half of REQ-PKG-CONSUMERGEOMETRY-003 acceptance
    4 — the residual absence grep — which task 3 does not reach.** Task 3 lands
    the two *named* sentences; this is the file-wide claim behind them, and it is
    the third two-part criterion in this delta (Chunk 6 tasks 10 and 11 hold the
@@ -1585,7 +1587,7 @@ chunk, so a conditional edit here rides the same commit.
    requirement names — traces to REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4
    secondary half, `two-root-linter.md` §Acceptance Criteria ("Both absence
    sentences … Secondary, residual grep")
-9. [ ] [verify] **The requirements-corpus writes are scoped, enumerated and
+9. [x] [verify] **The requirements-corpus writes are scoped, enumerated and
    dated**: exactly one implement-stage task declares
    `docs/requirements/integration/packaging.md` (this chunk's task 1) and exactly
    one verify-stage task declares it (Chunk 9 task 2); **no other task in either
@@ -1603,6 +1605,134 @@ run-time-derived form**; all three `skill-lint-v5.md` dead-path pins repaired; t
 end-anchoring check recorded with its command; the two count inconsistencies
 corrected; exactly one implement task in the plan declares the packaging
 requirements file. The `Test` and `Implementation` cells of this workstream's rows for the requirements this chunk advanced are filled in `docs/ws/consumer-geometry/traceability.md` (§Conventions), never as new rows and never a seventh column.
+
+**Notes**:
+- **Task 1 — the one requirements-corpus write, four appended dated notes, zero
+  rewrites.** `docs/requirements/integration/packaging.md` gained four
+  `[Updated: 2026-09-21c — …]` notes, each placed immediately above its
+  requirement's closing `[Priority: must]` line, which is the placement every
+  existing note in that file uses. **Four, not three**: task 1(c) names two ids
+  (-003 and -005), so the three lettered notes are four blocks. Under
+  **-002**, the cited direction corrected — -006 acceptances 3 and 5 assert the
+  **negative** direction only, and §CG-4's acceptance 6 (confirmed present,
+  `two-root-linter.md:964`) is the positive one. Under **-003**, the `:516-517`
+  → `:522-523` and `:83` → `:89` citations reconciled and the *re-scope in
+  place, do not delete* shape of the §2 edit stated. Under **-004**, §CG-6's
+  re-reading of `suite-rows-root=<path>` (as given → **effective**) and of
+  "every run" (→ iff an `OK:`/`FAIL:` summary is printed, excluding
+  `--self-test`), plus the superseded two-site pin measurement.
+  **The -004 note was treated as non-optional**, on the plan's own ground:
+  applying §CG-4's rule to -002 and exempting -004 would reproduce the diagnosed
+  defect one requirement away. Under **-005**, the requirement-side half of
+  Chunk 6 task 10's third grep exemption. Asserted by
+  `grep -c 'Updated: 2026-09-21c' → 4`, one under each named id. No approved
+  sentence was altered; every note is an insertion.
+- **Task 2 — the pairing, and what it could not reach.** The note-bearing edit
+  bumps `docs/requirements/integration/packaging.md` `last_updated` to
+  `2026-09-22`, so the two specs this chunk edits —
+  `docs/spec/two-root-linter.md` and `docs/spec/skill-lint-v5.md` — were
+  re-dated to `2026-09-22` in the **same** working tree, a date bump and not a
+  content change. This leaf does not commit; the pairing is recorded here so
+  the orchestrator's single commit carries both. **One spec could not be
+  paired**: `docs/spec/marketplace-packaging.md` (`2026-09-21`) traces PKG
+  requirements and is **not in this chunk's write scope**, so any
+  `[stale-chain]` finding naming it is the split artefact task 2 declares
+  informational, not routed at DONE. `drift-sweep.md` was already `2026-09-22`
+  and needed nothing. `docs/requirements/index.md` was **not** touched — it is
+  outside this chunk's write scope and no criterion here reads it.
+- **Task 3 — both halves, in opposite directions, and neither by deletion.**
+  `:89` (§2's deferral bullet) was **re-scoped in place**: the `--suite-root`
+  half is marked superseded by REQ-PKG-CONSUMERGEOMETRY-003 (§CG-2) with the
+  reason re-measured (the vendored-cache case is not one residual case but the
+  geometry every consumer runs in), while the `--no-suite-rules` half is stated
+  **untouched** as REQ-PKG-PACKAGING-003 leg (i). `:522-523` lost its **middle
+  clause only**. Both surviving clauses asserted **positively present**, not
+  inferred from the absence of a diff: `no-suite-rules` occurs 7 times in the
+  file and `suite_rules=False` 11 times, and the surviving item now reads
+  *"…is empty and every `suite_rules=False` site is inside the self-test"*.
+- **Task 4 — the twin, said the same way rather than a second way.**
+  `two-root-linter.md`'s §Consumer-Geometry Acceptance Criteria bullet now
+  carries both halves of `drift-sweep.md` §4's comparand — the enumerated-permit
+  grep and the run duplicate-token mutation — including the explicit note that
+  either half alone is weak. The two files no longer state one criterion two
+  ways.
+- **Task 5 / task 7 — three pins repaired, four pins read, none end-anchored,
+  and one file deliberately not written.** The pin set was **derived by grep**
+  (`grep -n 'OK: N file(s) clean'`), never listed: `skill-lint-v5.md:129, :429,
+  :454` and `docs/requirements/integration/skill-lint.md:276`. Each states a
+  *matches* / *prints* relation against the substring with **no** anchor,
+  terminator or "exactly" — all four confirmed **not** end-anchored, so **none**
+  needed amendment and `docs/requirements/integration/skill-lint.md` was **not
+  edited**. That is the outcome the write-scope note predicted (`N` is non-zero
+  here and the `— NOTHING SWEPT` suffix is additive and conditional), verified
+  rather than assumed. **All three** `skill-lint-v5.md` pin invocations were
+  corrected from `python3 tools/sdd-skill-lint.py` to `python3
+  plugins/sdd/tools/skill-lint.py` — the plan's recorded input, confirmed: the
+  spec repaired only the `:454` pin while its stated reason applies to all
+  three. **The falsifier was run**: `test -f plugins/sdd/tools/skill-lint.py`
+  succeeds; the pre-change spelling resolves under neither the pre-move
+  (`tools/skill-lint.py`) nor the post-move layout, which is what made that
+  half red before the change. The remaining `tools/sdd-skill-lint.py`
+  occurrences in that file (`:28, :145, :426, :435, :436, :453, :489, :692,
+  :701, :742`) are **not** pin invocations and are explicitly out of scope by
+  `skill-lint-v5.md:701`; `:453` in particular carries no `python3` and so is
+  not one of the three invocations the criterion names — recorded so the
+  omission reads as a decision.
+- **Task 6 — both counts now agree with their tables.** §CG-9's opening
+  sentence reads **three** edits above its three-row table (its closing
+  criterion already did). The summary-line pin count is settled once — three in
+  `skill-lint-v5.md`, four including the requirements-side twin — and stated
+  that way in `two-root-linter.md`'s Open Items resolution note and in
+  REQ-PKG-CONSUMERGEOMETRY-004's dated note; the requirement's own "two named
+  sites" literal is **re-read, never rewritten**, as a measurement superseded by
+  a run-time grep. All three Open Items are closed by an appended
+  `[Updated: 2026-09-21c]` block that leaves the raised text standing.
+- **Task 8 — the residual absence grep, in its exempted run-time-derived
+  shape.** The `## Consumer-Geometry Amendment` heading line number was **read
+  at run time** (`:750` in the post-edit file) and never written into the check;
+  fence spans were computed from the file. Outside a fence and **before** that
+  heading, `docs/spec/two-root-linter.md` carries **zero** sentences asserting
+  the absence of a `--suite-root` surface. Six occurrences sit at or after the
+  heading, every one a **citation made in order to retire the sentence** —
+  §CG-2's prose, §CG-9's table (a table cell cannot be fenced), and this
+  chunk's own excision record. The check was red before task 3 (the `:89` and
+  `:522-523` sentences) and is green after it.
+- **Task 9 — write-scope exclusivity, read off this plan's declarations.**
+  Parsing every `**Write scope**:` block in this file: exactly **one**
+  implement-stage task declares `docs/requirements/integration/packaging.md`
+  (this chunk's task 1) and exactly **one** verify-stage task declares it
+  (Chunk 9 task 2). No third task in either stage does. All four notes are
+  present under their named ids. The pairing half is task 2's, recorded above;
+  `git show --name-only` is the orchestrator's to run over the commit this leaf
+  does not make.
+- **The six Q-IMPL entries this chunk owed are minted**, in
+  `docs/spec/two-root-linter.md` under a new `## Consumer-Geometry
+  Implementation Questions` section, each id and its `### Q-IMPL-…` heading
+  written in the same edit so no `qimpl-undefined` finding can exist between
+  them: **-001** the mirrored `cg` helpers (accept the duplication, recorded —
+  `gc.py` invokes the linter as a subprocess and cannot import it), **-002** the
+  `GEOMETRY:` token's one-per-summary property being structural only because
+  `run()` is the sole emitter (keep every corpus summary inside `run()`),
+  **-003** `print_population()`'s second tier-1 resolution (one resolution
+  serves both paths; landed by Chunk 3), **-004** the comparand table that
+  quotes a source expression (name sites by function, never rewrite the
+  approved row), **-005** §CG-8's repair being attributable to tier 2 rather
+  than to the inert `lint_command()` pass-through (the criterion is decidable
+  under either landing order and is left as written), and **-006** Chunk 6's
+  three-way split over Q-IMPL-MARKETPLACE-029's prescribed text (a stated
+  exemption in all three places). Each carries `**Tier**`, a `**Spec
+  reference**` naming a live heading of that file, `**Decision**` and
+  `**Rationale**`. The corresponding Notes entries in Chunks 0, 1, 2, 4, 5 and 6
+  were updated to name the id they were minted as, which also makes each entry
+  *referenced* rather than defined-only. The Chunk 3 note about mutation runs on
+  `$TMPDIR` scratch copies was **not** minted — it is a methodology record, not
+  a Q-IMPL-shaped open decision, and §Conventions warns against inventing ids
+  for observations that are not there.
+- **Traceability.** The `Test` and `Implementation` **cells** of this
+  workstream's existing rows for REQ-PKG-CONSUMERGEOMETRY-001 through -005 were
+  filled. No row was appended, no seventh column added, and
+  `docs/requirements/traceability.md` was not touched (plan **D4** — the
+  orchestrator regenerates the aggregate).
 
 ---
 
