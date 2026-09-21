@@ -39,8 +39,8 @@ row per requirement in this table, keyed by the same ids.
 | REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging | `fixture_counts_exact` (C3.6) | per-fixture literal counts (C3.6) |  |
 | REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging | `print_population_shape` (C4.3) | `--print-population`, `population_tables()` (C4.1) |  |
 | REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | `skill-lint.py --self-test` retired-prefix scope drift | `tools/skill-lint.py`:381,:1252; `skill-namespace-rename.md`:76 (C0.2) |  |
-| REQ-PC-PACKAGING-001 | pre-commit.md | packaging | | | |
-| REQ-PKG-PACKAGING-001 | two-root-linter.md | packaging | | | |
+| REQ-PC-PACKAGING-001 | pre-commit.md | packaging | revert-either-prefix failure; swept-set membership >=1 `docs/spec/` path (C5.7, C5.8) | both `.pre-commit-config.yaml` hook entries prefixed (C5.4) |  |
+| REQ-PKG-PACKAGING-001 | two-root-linter.md | packaging | C5.5 per-name membership vs pre-move sha 95c28b7; `git log --follow` 45/45 (C5.2, C5.5) | the move commit e26f81f — 45 renames, 0 add, 0 delete (C5.2) |  |
 | REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging | `two_roots_construct_distinct_and_equal`; `--help` grep (C1.7) | `skill-lint.py` `__init__`/`main()` cwd default; `skill-lint-v5.md` REPO_ROOT sentences (C1.1, C1.6) |  |
 | REQ-PKG-PACKAGING-003 | two-root-linter.md | packaging | negative-surface grep: no `--no-suite-rules`/`--suite-root` (C1.5) | `skill-lint.py` argparse unchanged (C1.5) |  |
 | REQ-PKG-PACKAGING-004 | two-root-linter.md | packaging | `retarget_seeds_an_ungated_finding`; equal-roots vs baseline (C2.5, C2.6) | `check_required()` retarget to suite root (C2.3) |  |
@@ -49,4 +49,4 @@ row per requirement in this table, keyed by the same ids.
 | REQ-PKG-PACKAGING-007 | two-root-linter.md | packaging | `disjoint_suite_walk_excluded` (C3.2) | fixture B, disjoint (C3.2) |  |
 | REQ-PKG-PACKAGING-008 | two-root-linter.md | packaging | `case_c_counts_once`, `case_c_negative_double_count` (C3.4, C3.5a) | `forbidden_findings()` pure counting fn (C3.4) |  |
 | REQ-PKG-PACKAGING-009 | two-root-linter.md | packaging | | | |
-| REQ-PKG-PACKAGING-010 | marketplace-packaging.md | packaging | | | |
+| REQ-PKG-PACKAGING-010 | marketplace-packaging.md | packaging | sibling-first: precedence / fallback / neither, each with its failing construction (C5.6) | frozen behaviour at `gc.py` `lint_path()` (C5.6) |  |
