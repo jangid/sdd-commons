@@ -120,7 +120,7 @@ land. Each is an identifiable section or paragraph:
 |---|---|---|
 | 1 | The **naming boundary**: pre-marketplace artifacts keep the retired names, new work uses the namespaced form. It must also state the symlink hazard and the two operator actions at merge (re-point, or retire in favour of the plugin install). | `skill-namespace-rename.md` (REQ-NAME-MARKETPLACE-006, -010) |
 | 2 | **Where the contracts live**: spec citations inside skills resolve in the repository, not in an installed plugin. | `marketplace-packaging.md` (REQ-PKG-MARKETPLACE-009) |
-| 3 | **Pre-commit setup**, plus the three heavier checks a contributor runs explicitly, each with its command. | `pre-commit.md` (REQ-PC-MARKETPLACE-004) |
+| 3 | **Pre-commit setup**, plus the heavier checks a contributor runs explicitly, each with its command. The three `REQ-PC-MARKETPLACE-004` names (scope-check, telemetry, evaluation) are the ones outside the gate; the linter's and the drift sweep's own self-tests became gate hooks at implement-stage review round 2 of the packaging cycle, and the section says so rather than dropping them. | `pre-commit.md` (REQ-PC-MARKETPLACE-004) |
 | 4 | **How to add a skill, an agent and a tool**, carried forward from `CLAUDE.md` §Adding New Content rather than re-invented. | this spec |
 
 Item 4 is a **carry-forward, not a rewrite**: the conventions already exist and
@@ -192,7 +192,7 @@ rule simply finds no such file.
 **Spec reference**: §`CLAUDE.md`
 **Decision**: alongside the renamed-linter bullet the spec requires, §Quality
 Checks gained one bullet naming `pre-commit install`, `pre-commit run
---all-files`, and the three heavier self-tests that stay outside the gate,
+--all-files`, and the heavier self-tests that stay outside the gate,
 pointing at `CONTRIBUTING.md` for their commands.
 **Rationale**: the spec's `CLAUDE.md` bullet list predates the pre-commit domain
 landing in the same cycle. Leaving the section describing only hand-run tools

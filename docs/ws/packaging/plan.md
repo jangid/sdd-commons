@@ -829,6 +829,106 @@ committed work, not new scope.
 `gc.py --self-test` and `gc.py --fast` exit 0, each observed and recorded; every
 review finding is either applied or recorded as a Q-IMPL with its resolution.
 
+### Chunk 9: Implement-stage repairs, round 2
+
+**Depends on**: Chunk 8.
+
+*Provenance*: every task below comes from the **implement-stage review, round 2**
+(iteration 2 of 3) of the packaging cycle. Round 1's review found `check_size()`
+had no test that caught its own reversion; round 1's repair diagnosed exactly
+that and then shipped two sibling bindings with the same hole. Round 2 proved it:
+three separate mutations that revert load-bearing bindings left all four gates
+green. The standard for this chunk is therefore not "the gates are green" — they
+already were — but that **reverting any binding or default it touches makes a
+gate fail**, demonstrated by running the mutation. Five mutations were run; all
+five now fail `skill-lint.py --self-test`, and the `check_size()` one additionally
+fails `gc.py --self-test`. These are repairs to committed work, not new scope.
+
+1. [x] [implement] **Rebuild the vacuous structure case (B1-r2).**
+   `check_structure_binds_to_the_suite_root` was vacuous against the binding it
+   named: the fixture seeded skills only under the suite and gave the corpus
+   root nothing but `docs/`, so the suite binding and the union binding were
+   indistinguishable, and its "INVERSION" swapped the *fixture's* roots rather
+   than the implementation's binding — proving only that a root with no
+   `skills/` yields the not-found finding, true under every binding. Renamed
+   `check_structure_binds_to_the_swept_roots` (M1-r2) and given the shape
+   `check_size_binds_to_the_swept_roots` has: a corpus root that also holds a
+   `skills/` tree with its own seeded frontmatter violation, asserted present,
+   plus a disjoint half that must not raise out of `rel()`. Docstring corrected
+   — it claimed §4 puts `skills` on the suite root. Mutation `roots =
+   [self.suite_root]` now fails the case on both halves — traces to
+   `two-root-linter.md` §4, §Verification (REQ-PKG-PACKAGING-005)
+2. [x] [implement] **Land `zero_arg_run_sweeps_the_corpus` (B2-r2).** The cwd
+   default had no guard at all: mutating it to `default_suite_root().resolve()`
+   left both self-tests at 0. `REQ-PKG-PACKAGING-002` states of this exact
+   mis-rooting that nothing downstream can distinguish it from a correct run and
+   names a self-test case as the only guard; round 1 recorded the gap instead of
+   closing it. The case drives `main()`'s real argument path — argv with no
+   positional, cwd chdir'd to a fixture corpus, the constructed `Linter`
+   captured — and asserts `swept_roots()[0]` resolves to the fixture and not to
+   `default_suite_root()` — traces to `two-root-linter.md` §2, §Verification
+   (REQ-PKG-PACKAGING-002)
+3. [x] [implement] **Make `Q-IMPL-PACKAGING-004`'s invariant true (S1-r2).** It
+   states that no ungated check binds to `self.suite_root` alone; `check_links()`
+   is ungated and `resolve_backtick_path()` bound two bases to the suite root
+   alone. No crash — the finding names the swept file, not the base — but in the
+   disjoint consumer geometry that resolves a consumer's own
+   `skills/…/references/…` span against the installed plugin cache: a false pass
+   when the cache holds the path, a phantom failure when it does not. The union
+   is applied (`Linter.swept_base()`, corpus-first, deepest swept root as the
+   fallback for an unresolvable path) rather than the invariant carved out, since
+   §4's C6.13 paragraph already places those bases under the same binding.
+   Q-IMPL-PACKAGING-004 records that the invariant was false and is now true.
+   New case `backtick_bases_bind_to_the_swept_roots` — traces to
+   `two-root-linter.md` §4, §Implementation Questions (REQ-PKG-MARKETPLACE-007,
+   REQ-PKG-PACKAGING-005)
+4. [x] [implement] **Both self-tests on the commit gate (S2-r2).** The reason
+   recorded in Chunk 8 task 9 for keeping `gc.py --self-test` off the gate —
+   that `REQ-PC-MARKETPLACE-004` pins a `--self-test` grep of the config at zero
+   — was **factually wrong**: that requirement's acceptance greps for the three
+   contributor tool *names*, and neither new entry is one of them. Hook entries
+   `skill-lint-self-test` and `drift-sweep-self-test` added; the three-name grep
+   re-run after adding and still 0 for all three (the config comment deliberately
+   does not spell the three names, so the comment cannot itself turn the grep
+   non-zero). `CONTRIBUTING.md`'s reasoning corrected in place rather than
+   deleted — traces to `pre-commit.md` (REQ-PC-MARKETPLACE-004)
+5. [x] [implement] **Restate §4's self-contradicting paragraph (S3-r2).**
+   `two-root-linter.md` §4 said the same binding governs `check_structure()` and
+   `check_size()` "which §4's table already places on the **suite root**" and
+   then warned only against re-binding to the corpus root — while the code
+   unions. Restated for the union with the no-corpus-root-alone warning kept as
+   an explicit second clause, both clauses load-bearing. This paragraph is the
+   most likely cause of a future reintroduction of B1 — traces to
+   `two-root-linter.md` §4
+6. [x] [implement] **Pin `walk()`'s deduplication against production (S4-r2).**
+   Deleting the dedupe loop left all gates green: `swept_roots()` appends the
+   suite term only `if suite != corpus`, so equal roots yield one walk term and
+   concatenation can produce no duplicate, §7's Case C premise is unrealisable
+   against this implementation, and both negative cases use hand-built lists.
+   New case `walk_dedupes_repeated_roots` monkeypatches `swept_roots()` to
+   return `[r, r]` and asserts `walk()` returns each path once and the guard
+   stays silent; §6 and §7 now say what each construct actually pins — traces to
+   `two-root-linter.md` §6, §7 (REQ-LINT-PACKAGING-005, REQ-PKG-PACKAGING-008)
+7. [x] [implement] **Name the broken contract instead of a traceback (M2-r2).**
+   Under the suite-only `check_size` mutation the disjoint half surfaced as an
+   uncaught `ValueError` that aborted the runner. Both disjoint halves
+   (`check_size`, `check_structure`) now catch it and report a named `check()`
+   failure — traces to `two-root-linter.md` §2
+8. [x] [implement] **Rename the heavier-checks heading (M3-r2).**
+   `CONTRIBUTING.md` §The three heavier checks → §The heavier checks, run
+   explicitly, and the two citations this cycle already edited updated
+   (`CLAUDE.md` §Quality Checks, `docs/spec/project-docs.md` items 3 and
+   Q-IMPL-MARKETPLACE-018). **For verify's `## Next Steps`:**
+   `docs/requirements/integration/project-docs.md:79` carries the same "three
+   heavier checks" phrase and is out of this packet's write scope — a
+   requirements edit, not an implement-stage one — traces to `project-docs.md`
+
+**Entry criteria**: Chunk 8 complete; the implement-stage review returned REJECT
+at round 2 with three reverted-binding mutations demonstrated green.
+**Exit criteria**: all four gates exit 0 before and after; each of the five
+named mutations applied in turn, the failing gate and its message recorded, and
+the tree restored; `pre-commit run --all-files` passes with the two new hooks.
+
 ## Requirement → Task Coverage
 
 All 22 approved requirements, each mapped to the tasks that reach it. This table

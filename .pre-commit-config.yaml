@@ -37,6 +37,30 @@ repos:
         pass_filenames: false
         always_run: true
 
+      # Both tools' own self-tests, added at implement-stage review round 2.
+      # They are NOT among the three heavier self-tests REQ-PC-MARKETPLACE-004
+      # keeps out of the gate: that requirement's acceptance greps this file
+      # for the names of three OTHER contributor tools (the scope-check, the
+      # telemetry and the evaluation tools — deliberately not spelled here, so
+      # this comment cannot itself turn that grep non-zero), and neither entry
+      # below is one of them. The reason they belong here: the
+      # corpus sweeps above exercise no two-root fixture geometry, so a wrong
+      # root binding stays green in both of them, and `gc.py` embeds the
+      # linter, so a linter change can turn `gc.py --self-test` red while
+      # every other gate passes. That happened twice in one cycle.
+      - id: skill-lint-self-test
+        name: skill linter self-test
+        entry: python3 plugins/sdd/tools/skill-lint.py --self-test
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: drift-sweep-self-test
+        name: drift sweep self-test
+        entry: python3 plugins/sdd/tools/gc.py --self-test
+        language: system
+        pass_filenames: false
+        always_run: true
+
   # Upstream file hygiene. check-json in particular guards the two manifests,
   # which are the only files in the repository whose parseability the install
   # depends on.

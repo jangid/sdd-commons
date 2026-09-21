@@ -104,8 +104,9 @@ Standalone scripts or utilities. Use the appropriate language for the task. Each
   above plus cross-skill contract markers and known drift phrases (exit 0 = clean)
 - Install the commit gate (`pre-commit install`) and run `pre-commit run --all-files`
   after a large change — it runs the drift sweep and the skill linter over the
-  whole corpus; the three heavier self-tests stay out of it and are run explicitly
-  (`CONTRIBUTING.md` §The three heavier checks, run explicitly)
+  whole corpus **and both of their self-tests**; the three contributor-tool
+  self-tests (scope-check, telemetry, evaluation) stay out of it and are run
+  explicitly (`CONTRIBUTING.md` §The heavier checks, run explicitly)
 
 ## Spec-Driven Development (SDD)
 

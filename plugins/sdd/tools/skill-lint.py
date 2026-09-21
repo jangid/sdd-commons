@@ -38,6 +38,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import os
 import re
 import shutil
 import sys
@@ -637,6 +638,33 @@ class Linter:
                 return best
         return f.relative_to(self.corpus_root)
 
+    def swept_base(self, path: str) -> Path:
+        """The swept root a repo-rooted `skills/…` / `agents/…` span resolves against.
+
+        §4's C6.13 paragraph places these bases under the same binding as
+        `check_structure()`, `check_size()` and `skill_dir_of()` — the
+        swept-root UNION, not `self.suite_root` alone. The suite root alone is
+        wrong in the **disjoint** consumer geometry, where it names an
+        installed plugin cache outside the operator's repository: a consumer's
+        own `skills/<x>/references/<y>.md` span then resolves against the cache
+        instead of the consumer's tree — a false pass when the plugin happens
+        to hold that path, a phantom `unresolved path` finding when it does
+        not. Neither crashes, because the finding names the swept file and not
+        the base, which is exactly why the defect is invisible (C9.3).
+
+        Resolution order is `swept_roots()`' own order, corpus first: the first
+        root that actually holds the path wins. When no swept root holds it the
+        deepest swept root is returned, so the unresolved-path finding's fix
+        advice still names the root such a file would live under — under equal
+        or disjoint roots that is the single swept root, under nested roots the
+        suite, which is the pre-union behaviour for the unresolvable case.
+        """
+        roots = self.swept_roots()
+        for r in roots:
+            if (r / path).exists():
+                return r
+        return roots[-1]
+
     def skill_dir_of(self, f: Path) -> Path:
         """The `skills/<skill>/` directory a linted file belongs to.
 
@@ -1030,17 +1058,20 @@ class Linter:
         if path.startswith("references/"):
             return path, self.skill_dir_of(f), "fail"
         if re.match(r"skills/[^/]+/references/", path):
-            # `skills/…` is suite-bound (§4's table), like `skill_dir_of()`.
-            return path, self.suite_root, "fail"
+            # `skills/…` binds to the swept-root UNION (§4), like
+            # `skill_dir_of()`, `check_structure()` and `check_size()`.
+            return path, self.swept_base(path), "fail"
         # A dispatch template cites each shipped agent by `subagent_type` name AND
         # by path; the name is checkable by nothing, so the path is what makes the
         # citation mechanically verifiable (REQ-AGENT-MARKETPLACE-005). Repo-rooted
         # and `fail`, like the skills/ form — both live in this repository.
         if re.match(r"agents/[^/]+\.md$", path):
-            # `agents` is suite-bound (§4's table): the cited agent files ship
-            # inside the plugin, so a corpus binding reports every one of them
-            # unresolved once the roots differ (C6.11).
-            return path, self.suite_root, "fail"
+            # `agents` binds to the swept-root UNION (§4): the cited agent
+            # files ship inside the plugin, so a corpus binding reports every
+            # one of them unresolved once the roots differ (C6.11) — but the
+            # suite root ALONE resolves a consumer's own `agents/…` span
+            # against the installed plugin cache (C9.3).
+            return path, self.swept_base(path), "fail"
         if path.startswith("docs/spec/") and path.endswith(".md"):
             # `docs/spec` stays corpus-bound (§4's table).
             return path, self.corpus_root, "warn"
@@ -2263,16 +2294,54 @@ def self_test() -> int:
             "---\nname: not-the-dir\ndescription: >\n  Use for X. Skip for Y.\n---\n\n# x\n",
             encoding="utf-8")
         (cs_corpus / "docs").mkdir(parents=True, exist_ok=True)
+        # The CORPUS root carries its own `skills/` tree with its own seeded
+        # frontmatter violation. Without it the suite binding and the union
+        # binding are indistinguishable here and the case is vacuous (C9.1).
+        _fixture_skill(cs_corpus, "corpus-good", "Body. Skip for Y.\n")
+        (cs_corpus / "skills" / "corpus-mismatched").mkdir(parents=True, exist_ok=True)
+        (cs_corpus / "skills" / "corpus-mismatched" / "SKILL.md").write_text(
+            "---\nname: also-not-the-dir\ndescription: >\n  Use for X. Skip for Y.\n---\n\n# x\n",
+            encoding="utf-8")
+        # The disjoint half: a corpus with its own skills/, and a suite root
+        # OUTSIDE it holding a violation that must neither be reported nor
+        # reach `rel()`.
+        cs_dis_corpus = cs / "dis-corpus"
+        cs_dis_suite = cs / "dis-suite"
+        _fixture_skill(cs_dis_corpus, "dis-good", "Body. Skip for Y.\n")
+        (cs_dis_corpus / "skills" / "dis-mismatched").mkdir(parents=True, exist_ok=True)
+        (cs_dis_corpus / "skills" / "dis-mismatched" / "SKILL.md").write_text(
+            "---\nname: nope\ndescription: >\n  Use for X. Skip for Y.\n---\n\n# x\n",
+            encoding="utf-8")
+        (cs_dis_suite / "skills" / "outside").mkdir(parents=True, exist_ok=True)
+        (cs_dis_suite / "skills" / "outside" / "SKILL.md").write_text(
+            "---\nname: wrong\ndescription: >\n  Use for X. Skip for Y.\n---\n\n# x\n",
+            encoding="utf-8")
 
-        def check_structure_binds_to_the_suite_root() -> None:
-            """C6.11: `check_structure()` walks `<suite_root>/skills`, not the corpus's.
+        def check_structure_binds_to_the_swept_roots() -> None:
+            """C9.1: `check_structure()` walks the swept-root UNION, not one root.
 
-            `self.root / "skills"` alone names the CORPUS root's tree, which after
-            the move does not exist; the check then emitted one
-            `[structure] skills/ directory not found` finding and returned, so
-            every per-skill frontmatter and name-match rule stopped running with
-            no diagnostic that they had. Added post-plan from the Chunk 5
-            verification; §4's binding table puts `skills` on the suite root.
+            Two wrong bindings, each killed by a different half. `self.root /
+            "skills"` alone names the CORPUS root's tree, which after the move
+            does not exist; the check then emitted one `[structure] skills/
+            directory not found` finding and returned, so every per-skill
+            frontmatter and name-match rule stopped running with no diagnostic
+            that they had (C6.11). `self.suite_root` alone fixed that symptom
+            and silently stopped policing the corpus's OWN `skills/` tree —
+            REQ-PKG-PACKAGING-005 puts frontmatter on the corpus root with two
+            stated exceptions, not three — and raised an uncaught `ValueError`
+            out of `rel()` under the disjoint geometry, whose suite root is
+            outside `swept_roots()`.
+
+            **Mutations that break it.** `roots = [self.suite_root]` drops
+            `skills/corpus-mismatched/SKILL.md` from the nested half AND makes
+            the disjoint half report the outside tree through `rel()`.
+            `roots = [self.corpus_root]` drops
+            `skills/mismatched/SKILL.md` from the nested half. The previous
+            shape of this case seeded skills under the suite only and asserted
+            the inversion by swapping the FIXTURE's roots, which proves only
+            that a root with no `skills/` yields the not-found finding — true
+            under every binding, so the suite mutation survived it (C9.1,
+            added post-plan from implement-stage review round 2).
             """
             lin = Linter(cs_corpus, cs_suite, suite_rules=False)
             lin.check_structure()
@@ -2284,17 +2353,43 @@ def self_test() -> int:
                       for t in texts),
                   "the per-skill rules must still run against the suite-root tree:\n"
                   + "\n".join(texts))
+            check(any(_loc(t) == "skills/corpus-mismatched/SKILL.md"
+                      and "also-not-the-dir" in t for t in texts),
+                  "the CORPUS root's own skills/ tree must be policed too "
+                  "(REQ-PKG-PACKAGING-005 puts frontmatter on the corpus root):\n"
+                  + "\n".join(texts))
             check(not any(_loc(t) == "skills/good-skill/SKILL.md" for t in texts),
                   "the clean suite-root skill must not be flagged:\n" + "\n".join(texts))
-            # The INVERSION, so the case cannot pass vacuously: bind the suite
-            # root at the corpus root, which holds no `skills/` — exactly what
-            # the corpus binding did post-move — and the single not-found
-            # finding comes back and the per-skill findings disappear.
-            inv = Linter(cs_corpus, cs_corpus, suite_rules=False)
+            check(not any(_loc(t) == "skills/corpus-good/SKILL.md" for t in texts),
+                  "the clean corpus-root skill must not be flagged:\n" + "\n".join(texts))
+            # -- disjoint: the suite root is outside swept_roots(), so its
+            # violation is neither reported nor rendered. A suite-only binding
+            # raises ValueError out of rel() here; M2-r2 wraps it so the report
+            # names the broken contract instead of printing a traceback.
+            dlin = Linter(cs_dis_corpus, cs_dis_suite, suite_rules=False)
+            try:
+                dlin.check_structure()
+            except ValueError as exc:               # pragma: no cover - the regression
+                check(False, f"disjoint: check_structure() must not raise out of "
+                             f"rel(); a finding named a path outside swept_roots(): {exc}")
+                return
+            dtexts = [t for _, t in dlin.findings]
+            check(any(_loc(t) == "skills/dis-mismatched/SKILL.md" for t in dtexts),
+                  "disjoint: the corpus root's own violation must be reported:\n"
+                  + "\n".join(dtexts))
+            check(not any("outside" in t for t in dtexts),
+                  "disjoint: a suite root outside the corpus is not swept:\n"
+                  + "\n".join(dtexts))
+            # The not-found finding still fires when NO swept root holds a
+            # skills/ tree — the degenerate case, kept as its own assertion
+            # rather than passed off as an inversion of the binding.
+            empty = cs / "empty"
+            (empty / "docs").mkdir(parents=True, exist_ok=True)
+            inv = Linter(empty, empty, suite_rules=False)
             inv.check_structure()
             inv_texts = [t for _, t in inv.findings]
             check(len(inv_texts) == 1 and "skills/ directory not found" in inv_texts[0],
-                  "inversion: a root with no skills/ must yield exactly the "
+                  "a root set with no skills/ must yield exactly the "
                   "not-found finding:\n" + "\n".join(inv_texts))
 
         def check_size_binds_to_the_swept_roots() -> None:
@@ -2340,7 +2435,15 @@ def self_test() -> int:
             _fixture_skill(dz_corpus, "big-corpus", "Body. Skip for Y.\n", lines=over)
             _fixture_skill(dz_suite, "big-suite", "Body. Skip for Y.\n", lines=over)
             dlin = Linter(dz_corpus, dz_suite, suite_rules=False)
-            dlin.check_size()          # must not raise ValueError out of rel()
+            # M2-r2: a suite-only binding raises ValueError out of `rel()`
+            # here. Caught so the self-test reports the broken contract by
+            # name rather than aborting the whole runner with a traceback.
+            try:
+                dlin.check_size()
+            except ValueError as exc:               # pragma: no cover - the regression
+                check(False, f"disjoint: check_size() must not raise out of rel(); "
+                             f"a finding named a path outside swept_roots(): {exc}")
+                return
             dtexts = [t for _, t in dlin.findings if "[size]" in t]
             check(len(dtexts) == 1 and _loc(dtexts[0]) == "skills/big-corpus/SKILL.md",
                   "disjoint: exactly the CORPUS root's oversized file is measured; "
@@ -2396,6 +2499,164 @@ def self_test() -> int:
                   f"the corpus line must read "
                   f"`corpus: FILES_SWEPT=<int>  policed-areas=<int>`, got {corpus_line!r}")
 
+        def zero_arg_run_sweeps_the_corpus() -> None:
+            """C9.2: `main()`'s zero-argument default is the invocation CWD.
+
+            The one design-time case that was never landed. `REQ-PKG-
+            PACKAGING-002` says of this exact mis-rooting that *"nothing
+            downstream can distinguish this mis-rooting from a correct run"*
+            and names a self-test case as the ONLY guard: a run rooted at the
+            script's own plugin instead of the operator's repository sweeps a
+            tree that is always clean, so it exits 0 and reports nothing, and
+            every other gate stays green. Round 1 recorded the gap instead of
+            closing it.
+
+            The case drives `main()`'s real argument path — argv with no
+            positional, cwd chdir'd to a fixture corpus — by capturing the
+            `Linter` the module constructs, and asserts the corpus root it was
+            built with is the cwd and NOT `default_suite_root()`.
+
+            **Mutation that breaks it.** `root = Path(args.root).resolve() if
+            args.root else default_suite_root().resolve()` (added post-plan
+            from implement-stage review round 2).
+            """
+            global Linter
+            za = root / "zeroarg"
+            _fixture_skill(za, "cwd-skill", "Body. Skip for Y.\n")
+            built: list[Linter] = []
+            shipped_linter = Linter
+
+            def capture(*a: object, **kw: object) -> Linter:
+                lin = shipped_linter(*a, **kw)   # type: ignore[arg-type]
+                built.append(lin)
+                return lin
+
+            prev_argv = sys.argv
+            prev_cwd = Path.cwd()
+            Linter = capture                      # type: ignore[assignment,misc]
+            try:
+                os.chdir(za)
+                sys.argv = ["skill-lint"]
+                with contextlib.redirect_stdout(io.StringIO()):
+                    main()
+            finally:
+                Linter = shipped_linter           # type: ignore[misc]
+                sys.argv = prev_argv
+                os.chdir(prev_cwd)
+            check(len(built) == 1,
+                  f"a zero-argument run must construct exactly one Linter, got "
+                  f"{len(built)}")
+            if not built:
+                return
+            got = built[0].swept_roots()[0].resolve()
+            check(got == za.resolve(),
+                  f"a zero-argument run must root the corpus at the invocation cwd "
+                  f"({za.resolve()}), got {got}")
+            check(got != default_suite_root().resolve(),
+                  f"a zero-argument run must NOT root the corpus at the script's own "
+                  f"plugin root ({default_suite_root().resolve()})")
+
+        def walk_dedupes_repeated_roots() -> None:
+            """C9.4: `walk()`'s deduplication, exercised against production.
+
+            §7's Case C premise — "both walk terms name the same subtree" — is
+            unrealisable against this implementation: `swept_roots()` appends
+            the suite term only `if suite != corpus`, so equal roots yield ONE
+            walk term and the concatenation can produce no duplicate. Both
+            existing negative cases (`case_c_negative_double_count`,
+            `duplicate_guard_negative_case`) pass hand-built lists, so neither
+            observes production deduplication either. Deleting `walk()`'s
+            dedupe loop therefore left every gate green — the precise edit
+            `REQ-LINT-PACKAGING-005`'s construction guard exists to catch.
+
+            This case monkeypatches `swept_roots()` to return the same root
+            twice — the only way to reach the loop from production code — and
+            asserts `walk()` still returns each path once and the guard stays
+            silent. **Mutation that breaks it:** deleting the dedupe loop
+            (added post-plan from implement-stage review round 2).
+            """
+            wd = root / "walkdedupe"
+            _fixture_skill(wd, "dup-skill", "Body. Skip for Y.\n")
+            lin = Linter(wd, wd, suite_rules=False)
+            lin.swept_roots = lambda: [wd, wd]    # type: ignore[method-assign]
+            swept = lin.walk()
+            check(len(swept) == 1,
+                  f"walk() must return the one seeded SKILL.md once when the same "
+                  f"root appears twice, got {[str(p) for p in swept]}")
+            check(len(swept) == len({p.resolve() for p in swept}),
+                  f"walk() must deduplicate by resolved path: "
+                  f"{[str(p) for p in swept]}")
+            check(not any(sev == "fail" for sev, _ in lin.findings),
+                  "the duplicate-freeness guard must stay silent on a correctly "
+                  "deduplicated union:\n" + "\n".join(t for _, t in lin.findings))
+
+        def backtick_bases_bind_to_the_swept_roots() -> None:
+            """C9.3: `resolve_backtick_path()`'s repo-rooted bases take the union.
+
+            §4's C6.13 paragraph puts the `skills/…` and `agents/…` bases under
+            the same binding as `check_structure()`, `check_size()` and
+            `skill_dir_of()`. They were left on `self.suite_root` alone, which
+            makes `Q-IMPL-PACKAGING-004`'s invariant false in the file that
+            states it. It never crashes — the finding names the swept file, not
+            the base — which is why nothing observed it.
+
+            **Mutations that break it.** Either base back to `self.suite_root`
+            alone: the disjoint half then resolves the consumer's own span
+            against the installed plugin cache, producing a phantom
+            `unresolved path` finding for a file that exists, and MISSING a
+            span that resolves only in the cache. A corpus-only base breaks the
+            nested half, where §4's suite binding is what makes the shipped
+            suite's own citations resolve (added post-plan from implement-stage
+            review round 2).
+            """
+            bb = root / "backtickbase"
+            # -- nested: a corpus-root skill citing a suite-root reference and
+            # a suite-root agent; §4's suite binding is what resolves them.
+            nb = bb / "nested"
+            nb_suite = nb / "plugins" / "sdd"
+            _fixture_skill(nb_suite, "shipped", "Body. Skip for Y.\n")
+            (nb_suite / "skills" / "shipped" / "references").mkdir(parents=True,
+                                                                   exist_ok=True)
+            (nb_suite / "skills" / "shipped" / "references" / "detail.md").write_text(
+                "# detail\n", encoding="utf-8")
+            (nb_suite / "agents").mkdir(parents=True, exist_ok=True)
+            (nb_suite / "agents" / "shipped-agent.md").write_text("# a\n", encoding="utf-8")
+            _fixture_skill(nb, "citer", "Body. Skip for Y. See "
+                                        "`skills/shipped/references/detail.md` and "
+                                        "`agents/shipped-agent.md`.\n")
+            nlin = Linter(nb, nb_suite, suite_rules=False)
+            nlin.check_links()
+            ntexts = [t for _, t in nlin.findings if "[path]" in t]
+            check(not ntexts,
+                  "nested: a `skills/…` / `agents/…` span must resolve against the "
+                  "contained suite root (§4's table):\n" + "\n".join(ntexts))
+            # -- disjoint: the consumer geometry. The suite root is an
+            # installed plugin cache outside the repository, so the consumer's
+            # own spans must resolve against the consumer's tree.
+            db = bb / "dis-corpus"
+            ds = bb / "dis-suite"
+            _fixture_skill(db, "own", "Body. Skip for Y.\n")
+            (db / "skills" / "own" / "references").mkdir(parents=True, exist_ok=True)
+            (db / "skills" / "own" / "references" / "here.md").write_text(
+                "# here\n", encoding="utf-8")
+            # Present only in the CACHE — a corpus citation of it is unresolved.
+            (ds / "skills" / "ghost" / "references").mkdir(parents=True, exist_ok=True)
+            (ds / "skills" / "ghost" / "references" / "gone.md").write_text(
+                "# gone\n", encoding="utf-8")
+            _fixture_skill(db, "consumer", "Body. Skip for Y. See "
+                                           "`skills/own/references/here.md` and "
+                                           "`skills/ghost/references/gone.md`.\n")
+            dlin = Linter(db, ds, suite_rules=False)
+            dlin.check_links()
+            dtexts = [t for _, t in dlin.findings if "[path]" in t]
+            check(not any("skills/own/references/here.md" in t for t in dtexts),
+                  "disjoint: the consumer's OWN span exists in the consumer's tree "
+                  "and must not be reported unresolved:\n" + "\n".join(dtexts))
+            check(any("skills/ghost/references/gone.md" in t for t in dtexts),
+                  "disjoint: a span that exists only in the installed plugin cache "
+                  "must be reported unresolved against the consumer's tree:\n"
+                  + "\n".join(dtexts))
+
         for _case in (two_roots_construct_distinct_and_equal,
                       equal_roots_sweep_set_unchanged,
                       sweep_is_duplicate_free,
@@ -2412,8 +2673,11 @@ def self_test() -> int:
                       print_population_shape,
                       skill_dir_of_binds_per_root,
                       forbidden_allow_files_root_correct,
-                      check_structure_binds_to_the_suite_root,
-                      check_size_binds_to_the_swept_roots):
+                      check_structure_binds_to_the_swept_roots,
+                      check_size_binds_to_the_swept_roots,
+                      zero_arg_run_sweeps_the_corpus,
+                      walk_dedupes_repeated_roots,
+                      backtick_bases_bind_to_the_swept_roots):
             _case()
 
     if failures:

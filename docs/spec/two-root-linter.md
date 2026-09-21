@@ -125,12 +125,30 @@ the move does not exist, so every suite-root file carrying a `references/…`
 backtick span raised `ValueError`. §3's "links keep resolving against the
 corpus root" governs where a link **target** resolves, not where a swept
 **file's** skill directory is located. The same binding governs the other
-`skills`- and `agents`-keyed helpers, which §4's table already places on the
-suite root: `check_structure()`, `check_size()`, and the `skills/…` and
-`agents/…` bases of `resolve_backtick_path()`; the `docs/spec/…` base stays on
-the corpus root. A future edit that re-binds any of them to the corpus root
-contradicts this paragraph, not merely a comment (C6.13, added post-plan from
-the Chunk 5 verification).
+`skills`- and `agents`-keyed helpers — `check_structure()`, `check_size()`,
+and the `skills/…` and `agents/…` bases of `resolve_backtick_path()` — and
+that binding is the **swept-root union**, `swept_roots()`, not one root. The
+`docs/spec/…` base stays on the corpus root.
+
+Two clauses, and both are load-bearing. (i) **Not the corpus root alone.**
+§4's table places these keys on the suite root because the files they name
+ship inside the plugin; a corpus-only binding reports every one of them
+unresolved, and `check_structure()` degrades to a single `skills/ directory
+not found` finding that silently stops every per-skill rule (C6.11). (ii)
+**Not the suite root alone.** The suite root alone re-opens the corpus root's
+own `skills/` tree to nothing, making frontmatter and size a silent third and
+fourth exception to `REQ-PKG-PACKAGING-005`, and in the **disjoint** consumer
+geometry it resolves the operator's own `skills/…` and `agents/…` spans
+against an installed plugin cache outside their repository — a false pass when
+the cache happens to hold the path, a phantom `unresolved path` finding when it
+does not, and for the walking checks an uncaught `ValueError` out of `rel()`,
+whose swept roots do not contain that path. The union satisfies both: nested
+and equal roots reach the suite's trees exactly as the suite binding did, the
+corpus's own trees are policed again, and a disjoint suite is not consulted.
+A future edit that re-binds any of them to **either** root alone contradicts
+this paragraph, not merely a comment (C6.13 from the Chunk 5 verification;
+restated for the union at C9.1/C9.3, implement-stage review round 2, whose
+first repair had unioned the code and left this paragraph saying suite root).
 
 **Per-entry rendering.** Each entry's findings render relative to the root that
 entry is bound to — a union-bound entry relative to whichever root supplied the
@@ -187,6 +205,17 @@ shape concatenation over equal roots produces. No source mutation, no manual
 step; the reviewer-checkable residue is that §2's union builder is its only
 production call site.
 
+**What the guard alone does not pin, and the case that does.** The negative
+case above hands the guard a hand-built list, so it exercises the guard and
+not the deduplication the guard is a backstop for. Deduplication itself is
+unreachable from production input: `swept_roots()` appends the suite term only
+when it differs from the corpus, so no geometry yields two walk terms over the
+same subtree and the dedupe loop can be deleted with every gate green. The
+case `walk_dedupes_repeated_roots` closes that by monkeypatching
+`swept_roots()` to return one root twice — the only way to reach the loop from
+`walk()` — and asserting each path comes back once and the guard stays silent
+(C9.4, implement-stage review round 2).
+
 **Live zero-sweep detection is deliberately given up.** A bare `FILES_SWEPT >=
 1` is wrong (an empty sweep is legitimate in a consumer repository) and the
 conditioned form reads its condition through the binding it tests, so a
@@ -231,6 +260,10 @@ install). Seeds one walk-class violation under `skills/**` and asserts it is
 counted **exactly once** — the only geometry in which both walk terms name the
 same subtree, hence the only one distinguishing a set union from a
 concatenation. It reuses fixture A's corpus tree with both roots equal.
+Note the premise is **not** realisable against §2's builder as implemented —
+equal roots collapse to one walk term before `walk()` sees them — so Case C
+pins the counting path, and production deduplication is pinned separately by
+§6's `walk_dedupes_repeated_roots`.
 
 **Case C's own invertibility (REQ-PKG-PACKAGING-008).** The seam goes on the
 **consuming** side, mirroring §6's shape rather than sitting inside the union.
@@ -299,14 +332,20 @@ below (several criteria carry more than one):
 verification or review finding, each named in its own docstring — are
 `disjoint_suite_walk_excluded`, `case_c_negative_double_count`,
 `duplicate_guard_negative_case`, `skill_dir_of_binds_per_root`,
-`forbidden_allow_files_root_correct`, `check_structure_binds_to_the_suite_root`
-and `check_size_binds_to_the_swept_roots`.
+`forbidden_allow_files_root_correct`,
+`check_structure_binds_to_the_swept_roots`,
+`check_size_binds_to_the_swept_roots`, `walk_dedupes_repeated_roots` and
+`backtick_bases_bind_to_the_swept_roots`.
 
-**One design-time name was never landed**: `zero_arg_run_sweeps_the_corpus`.
-The cwd default it would assert is implemented and exercised by the
+**Every design-time name is now landed.** `zero_arg_run_sweeps_the_corpus`
+was the last outstanding one: round 1 of the implement-stage review recorded
+it here as a known gap on the grounds that the cwd default is exercised by the
 zero-argument commit-gate entry (`pre-commit.md` §Two-Root Amendment) and by
-the plan's C1.1, but no named runner case pins it. Recorded here rather than
-left as a silent gap between this list and the runner.
+the plan's C1.1. That is not a guard — `REQ-PKG-PACKAGING-002` says of this
+mis-rooting that *"nothing downstream can distinguish this mis-rooting from a
+correct run"*, and mutating the default to `default_suite_root()` did in fact
+leave both self-tests at 0. The case landed at C9.2 (review round 2) and
+drives `main()`'s own argument path with the cwd set to a fixture corpus.
 
 ### Manual
 
@@ -507,7 +546,15 @@ With both checks on the union (§4, and REQ-PKG-PACKAGING-005's corpus-root
 binding for size and frontmatter), the frozen shim's single-root call is
 sound as written and needs no counterpart to `_run_capture()`'s guard.
 **Impact**: the invariant a future edit must preserve is that **no ungated
-check binds to `self.suite_root` alone**. Ungated checks take
+check binds to `self.suite_root` alone**. When this entry was first written
+the invariant was already false in this file: `check_links()` is ungated and
+`resolve_backtick_path()` bound its `skills/…` and `agents/…` bases to the
+suite root alone, which §4's C6.13 paragraph explicitly places under the same
+binding as the two checks above. That was not a crash — the finding names the
+swept file, not the base — but under the disjoint consumer geometry it
+resolved a consumer's own span against the installed plugin cache. Those two
+bases now take the union as well (`Linter.swept_base()`, C9.3, implement-stage
+review round 2), so the invariant is stated true. Ungated checks take
 `swept_roots()`; the suite-gated rows (§3) and the per-entry bindings of §4
 and §5 supply their own rendering via `flag(..., rel=…)` precisely because
 `rel()` cannot render a disjoint suite root's file. A caller that passes one

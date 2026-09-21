@@ -65,11 +65,13 @@ pre-commit run --all-files
 ```
 
 The gate runs the two whole-corpus sweeps (`python3 plugins/sdd/tools/gc.py --fast` and
-`python3 plugins/sdd/tools/skill-lint.py`) plus upstream file-hygiene hooks. It is a runner,
+`python3 plugins/sdd/tools/skill-lint.py`), both tools' own self-tests
+(`python3 plugins/sdd/tools/skill-lint.py --self-test` and
+`python3 plugins/sdd/tools/gc.py --self-test`), plus upstream file-hygiene hooks. It is a runner,
 not a source of policy — every rule it enforces is stated in a requirement, a
 skill, or one of the two tools' own rule tables.
 
-### The three heavier checks, run explicitly
+### The heavier checks, run explicitly
 
 Some self-tests stay **out** of the commit path: they are slow, their inputs
 are frozen fixtures, and a fixture-driven proof does not change between commits
@@ -81,25 +83,28 @@ tool or its fixture:
 | `plugins/sdd/tools/scope-check-selftest.py` or its fixtures | `python3 plugins/sdd/tools/scope-check-selftest.py --self-test` |
 | `plugins/sdd/tools/telemetry.py` or `plugins/sdd/tools/fixtures/` telemetry data | `python3 plugins/sdd/tools/telemetry.py --self-test` |
 | `plugins/sdd/tools/eval.py` or its fixture | `python3 plugins/sdd/tools/eval.py --self-test` |
-| `plugins/sdd/tools/skill-lint.py` **or** `plugins/sdd/tools/gc.py` | **both** `python3 plugins/sdd/tools/skill-lint.py --self-test` and `python3 plugins/sdd/tools/gc.py --self-test` |
 
-**Why the last row names both tools for either edit.** `gc.py` embeds the
-linter: its fixture sweep shells out to `skill-lint.py` and passes the
-findings through, so a change to the linter's root bindings can turn
-`gc.py --self-test` red while `skill-lint.py --self-test` and
-`pre-commit run --all-files` both stay green. That happened — nine binding
-changes landed across one cycle without the embedding tool's self-test being
-run. The commit gate runs `gc.py`'s **corpus sweep** (`--fast`), never its
-`--self-test`, and a corpus sweep exercises none of the fixture geometry
-where the two roots differ, so the gate cannot substitute for this row.
+**The linter and the drift sweep are on the gate instead.** Their
+self-tests used to be listed here as a fourth trigger row, on the reasoning
+that `REQ-PC-MARKETPLACE-004` pinned a `--self-test` grep of
+`.pre-commit-config.yaml` at zero matches. **That reasoning was wrong.** The
+requirement's acceptance greps the config for the names of the three tools in
+the table above, not for the string `--self-test`; adding the linter's and the
+drift sweep's self-tests falsifies nothing, and the grep was re-run after
+adding them and is still zero for all three. So they are now gate hooks
+(`skill-lint-self-test`, `drift-sweep-self-test`) and need no discipline from
+a contributor.
 
-**On this section's name.** The heading still reads *three* while the table
-now carries four trigger rows. The name is cited verbatim from `CLAUDE.md`
-§Quality Checks, `docs/spec/project-docs.md` and
-`docs/requirements/integration/project-docs.md`, so renaming it is a
-coordinated change across those files rather than an edit here; the row count
-is the table's, not the heading's. Read the heading as the section's name and
-the table as its content.
+They belong on the gate rather than in the table because a trigger row is
+discipline and the defect it was guarding against is exactly a discipline
+failure. `gc.py` embeds the linter: its fixture sweep shells out to
+`skill-lint.py` and passes the findings through, so a change to the linter's
+root bindings can turn `gc.py --self-test` red while `skill-lint.py
+--self-test` and the corpus sweeps all stay green. That happened — nine
+binding changes landed across one cycle without the embedding tool's
+self-test being run. Both self-tests together cost about two seconds, and
+neither reads a frozen fixture large enough to justify the table's cost
+argument.
 
 ## Adding new content
 
