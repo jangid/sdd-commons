@@ -504,21 +504,23 @@ class Gc:
                 return cand
         return None
 
-    def bundled_run(self, lint: Path) -> bool:
-        """True when this gc.py is running from a bundled plugin copy against
-        someone else's repository: the linter was resolved as a sibling of the
-        running script, and that sibling directory is not the subject root's own
-        `tools/`.  The suite rules are THIS repository's contract rows, keyed to
-        its own skill paths, so a consumer's tree must be swept without them
-        (REQ-PKG-MARKETPLACE-007).  Derived from paths at run time — no flag, no
-        environment variable, no config."""
-        here = Path(__file__).resolve().parent
-        return lint.resolve().parent == here and here != (self.root / "tools").resolve()
+    def suite_root(self) -> bool:
+        """True when the root BEING SWEPT is the repository that owns the suite
+        rules.  The rules are THIS repository's contract rows, keyed to its own
+        skill paths, so they must run whenever this repository is the subject —
+        whether the sweep was launched through `tools/gc.py` or through a bundled
+        plugin copy of it — and must stay off for a consumer's tree
+        (REQ-PKG-MARKETPLACE-007).  The predicate is therefore keyed to the root,
+        never to where the running script lives: the owning repository is exactly
+        the one that carries the linter at `<root>/tools/skill-lint.py`.  Derived
+        from paths at run time — no flag, no environment variable, no config.
+        See Q-IMPL-MARKETPLACE-027."""
+        return (self.root / "tools" / "skill-lint.py").is_file()
 
     def lint_command(self, lint: Path) -> list[str]:
-        if self.lint_suite_rules and not self.bundled_run(lint):
+        if self.lint_suite_rules and self.suite_root():
             return [sys.executable, str(lint), str(self.root)]
-        # Fixture mode / bundled run: same linter, same output, suite-specific
+        # Fixture mode / consumer tree: same linter, same output, suite-specific
         # rows off.
         shim = ("import importlib.util, sys; from pathlib import Path; "
                 "s = importlib.util.spec_from_file_location('sdd_skill_lint', sys.argv[1]); "

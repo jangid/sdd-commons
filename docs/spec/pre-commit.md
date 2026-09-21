@@ -276,9 +276,25 @@ never pinned as a literal list.
 **Impact**: none on what the criterion protects. What the check exists to catch
 is a whole-repository normalisation landing after the rename-chunk-close sha and
 rewriting a bundled tool; that remains caught, because such a rewrite is a
-modification. Three independent observations confirm the protected property
-still holds at this cycle's close: the two bundled tool sources `tools/gc.py`
-and `tools/telemetry.py` do not appear in the window at all; `cmp` between each
-bundled copy and its root source exits 0, so neither copy carries a
-normalisation the source does not; and the forbidden-directory half of the
-criterion reports zero violations outside the Q-IMPL-MARKETPLACE-003 carve-out.
+modification. The bundled-tool set is **derived live** by the checking script —
+every `skills/*/tools/*.py` paired with the repository-root source of the same
+basename — so no sentence here states which tools are in it, and bundling a
+further tool extends the set by itself.
+
+Two properties are distinct and must not be conflated. *Frozen across the
+packaging step* means the packaging chunk itself performed no source edit: that
+holds for every derived source, and it is what the criterion protects.
+*Unchanged since the rename close* is the stronger property, and it does not
+hold for every source: at this cycle's close `tools/telemetry.py` has an empty
+path-limited diff against the rename-chunk-close sha, while `tools/gc.py` and
+`tools/skill-lint.py` are status `M` inside the window because the verify
+stage's red rounds repaired them. Those repairs are ordinary corrective work
+against the specs, not packaging-step edits or normalisation rewrites, so they
+fall outside what this criterion freezes — the criterion is not weakened to make
+that so, it never covered them. Two further observations confirm the protected
+property still holds: `cmp` between each derived bundled copy and its root
+source exits 0, so no copy carries a normalisation its source does not — and
+that comparison is no longer a one-off, since the linter's `bundled-drift` rule
+(Q-IMPL-MARKETPLACE-028) re-runs it on every commit; and the
+forbidden-directory half of the criterion reports zero violations outside the
+Q-IMPL-MARKETPLACE-003 carve-out.

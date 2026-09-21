@@ -149,38 +149,45 @@ an installing user's own SDD corpus lives. The invariant to preserve is
 therefore negative and mechanically checkable: **no `docs/…` citation in
 `skills/` may be absolute, home-rooted, or rooted on a plugin path variable.**
 
-### Tools: root stays, two are duplicated into the driver skill
+### Tools: root stays, the skill-runnable set is duplicated into the driver skill
 
 `tools/` stays at the repository root, so that every existing `tools/…`
 reference in `docs/` (a record of what a past cycle ran here) and every prose
 reference keeps its spelling.
 
-Two classes of tool, with different destinations:
+Two classes of tool, with different destinations. No count is stated: the
+bundled population is whatever `skills/*/tools/*.py` derives to at run time, and
+every check over it derives the same way.
 
 | Class | Tools | Ships in plugin? | Why |
 |---|---|---|---|
 | **Runnable from a skill** | the drift sweep, the telemetry tool | yes — duplicated into the driver skill's own `tools/` subdirectory | a skill body tells the operator to run them |
-| **Contributor-only** | the skill linter, the scope-check self-test, the evaluation tool | no | never invoked from a skill body; the linter's rules are keyed to *this* repository's skill set and its root is its own script location, so from an installed plugin it would lint the plugin's copy of itself and report a green that says nothing about the user's repository |
+| **A dependency of one of those** | the skill linter | yes — duplicated, but not declared as a plugin component | the drift sweep delegates its structural sweeps to the linter as a subprocess, so the sweep is unusable from an install without it; no skill body invokes it directly, and it stays off the component list (REQ-PKG-MARKETPLACE-005) |
+| **Contributor-only** | the scope-check self-test, the evaluation tool | no | never invoked from a skill body, and nothing bundled depends on them |
+
+The linter's suite-specific contract rows are keyed to *this* repository's skill
+set, which is why its bundled copy must not assert them about a consumer's tree.
+It does not: the sweep decides from the **root being swept**, so the rows are on
+for this repository and off for a consumer's — see §Root resolution for
+skill-side invocations and Q-IMPL-MARKETPLACE-027.
 
 **Duplicated, not symlinked.** A plugin install may be materialised from a git
 archive, which does not reliably preserve symlinks, so a symlink is a silent
 broken-install mode. Each bundled copy must be a regular file byte-identical to
 its repository-root original.
 
-**The identity is verified once per cycle, by design — not continuously.** The
-`cmp` assertion of the criterion below runs at this cycle's close and is not
-added as a seventh hook to the commit gate. This is a deliberate choice, recorded
-here so a later reader does not read the gap as an oversight. `pre-commit.md`
-§No rule of the gate's own would not forbid such a hook — the rule it would
-enforce is stated right here, in a requirement — but the gate's hook set is
-closed at six (`pre-commit.md` §The hook set) and the cost/benefit does not
-justify reopening it: the duplication is created once, in one chunk, by one
-mechanical copy, and the far more likely failure mode is a future edit to a
-bundled tool that forgets the copy — a hazard a later cycle can answer, either by
-reopening the hook set or by folding the assertion into the drift sweep, which is
-already a whole-corpus invariant checker and already runs in the gate. Either
-route is preferable to a bespoke seventh hook today. If the duplication ever
-grows past two files or past one chunk, that reconsideration becomes due.
+**The identity is verified continuously, by a linter rule.** An earlier reading
+of this section deferred the check to a once-per-cycle `cmp` at the criterion
+below, on the reasoning that the duplication is created once by one mechanical
+copy. That reasoning did not survive its own cycle: the red round showed that
+appending to a repository-root tool on a clean clone left both quality gates
+exiting 0 while `cmp` reported the bundled copy had drifted — the "future edit
+that forgets the copy" hazard, arriving immediately rather than in a later
+cycle. The check is therefore enforced now, by the `bundled-drift` rule inside
+the skill linter, which the commit gate already runs. The gate's hook set stays
+closed at six (`pre-commit.md` §The hook set): folding the assertion into a tool
+that already runs is the route this section named as preferable to a bespoke
+seventh hook, and it is the route taken. See Q-IMPL-MARKETPLACE-028.
 
 **Loss check by identity, not by name.** Because the rename changed every
 tool's filename, a name-set comparison against git history would fail by
@@ -227,14 +234,31 @@ repository the bundled sweep first died for a missing linter, and once the
 linter was bundled beside it, it reported this repository's suite-specific
 contract rows as ~40 "file missing entirely" findings about the consumer's tree.
 The telemetry tool's source therefore stays frozen unconditionally, while the
-drift sweep's source is frozen **apart from a single provenance conditional**:
-when the linter was resolved as a sibling of the running script and that sibling
-directory is not the subject root's own `tools/`, the sweep runs the linter with
-its suite-specific rows off. A run from this repository's own `tools/` directory
-is unchanged, and the condition is derived from paths at run time — no flag, no
-environment variable, no config file. The skill linter is bundled beside the
-sweep as a **file**, not declared as a plugin component: the component list
-still omits it, as REQ-PKG-MARKETPLACE-005 requires.
+drift sweep's source is frozen **apart from a single provenance conditional**.
+That conditional is keyed to the **root being swept**, never to where the running
+script lives (Q-IMPL-MARKETPLACE-027): the suite rules describe *this*
+repository's contract rows, so they run exactly when this repository is the
+subject, and the repository that owns them is exactly the one carrying the linter
+at `<root>/tools/skill-lint.py`. Sweeping this repository therefore behaves
+identically whether the command was `tools/gc.py` or the driver skill's bundled
+copy — the invocation the skill documents — while a consumer tree, which has no
+such file, is swept with the suite-specific rows off. The condition is derived
+from paths at run time — no flag, no environment variable, no config file. The
+skill linter is bundled beside the sweep as a **file**, not declared as a plugin
+component: the component list still omits it, as REQ-PKG-MARKETPLACE-005
+requires.
+
+**Bundled copies are kept byte-identical by a linter rule, not by a hook
+(Q-IMPL-MARKETPLACE-028).** A bundled copy is only trustworthy while it is the
+same program the repository tests, so the skill linter carries a `bundled-drift`
+rule that derives its population at run time — every `skills/*/tools/*.py`
+joined on basename to `tools/` — and raises a blocking finding for a copy that
+differs from its source, has no source, or is a symlink. The symlink half is
+load-bearing on its own: a link passes a byte comparison while resolving its
+run-time paths from the source directory. The rule lives in the linter rather
+than in a seventh pre-commit hook because the linter is already a hook, so the
+check runs on every commit without reopening REQ-PC-MARKETPLACE-006's closed
+six-hook set.
 
 ### No skill body depends on the plugin-root variable
 
@@ -304,9 +328,9 @@ root with any nested `.worktrees/` path excluded from tree walks.
 - [ ] A script derives, at run time, the set of basenames in the manifest's `skills` list and the set of directories under `skills/` containing a `SKILL.md`, and asserts set equality; likewise the manifest's `agents` list against `*.md` files directly under `agents/`; and asserts no listed path starts with `docs/` (REQ-PKG-MARKETPLACE-003).
 - [ ] `grep -rnE '(^|[^A-Za-z0-9._/-])(/|~/|\$\{?[A-Z_]*PLUGIN_ROOT)[A-Za-z0-9._/-]*docs/' --include='*.md' skills/` returns no match, and the manifest check above shows no `docs/` path (REQ-PKG-MARKETPLACE-004).
 - [ ] A run-time grep over `skills/` for an invocation prefix (`python3 ` or `./`) of any of the three contributor tools returns zero matches, and none of the three appears in the manifest component list (REQ-PKG-MARKETPLACE-005).
-- [ ] For each of the two bundled tools: `cmp` against the repository-root file exits 0 and `test ! -L` succeeds on the bundled copy. `git log --follow` resolves every post-change `tools/*.py` to pre-change history, and `ls tools/*.py | wc -l` after is not less than the same count taken at the cycle's entry commit — both sides derived by command (REQ-PKG-MARKETPLACE-006).
+- [ ] The bundled-tool population is derived at run time — every file matching `skills/*/tools/*.py` paired with the repository-root file of the same basename, no count written down — and for **each** derived pair `cmp` exits 0 and `test ! -L` succeeds on the bundled copy; the same derivation drives the linter's `bundled-drift` rule, whose `--self-test` fixture proves it fires on a drifted, an orphaned and a symlinked copy and stays silent on an identical one. `git log --follow` resolves every post-change `tools/*.py` to pre-change history, and `ls tools/*.py | wc -l` after is not less than the same count taken at the cycle's entry commit — both sides derived by command (REQ-PKG-MARKETPLACE-006).
 - [ ] At least one drift-sweep invocation under `skills/` resolves to the **bundled** copy: a run-time grep over `skills/**/*.md` for invocations of the sweep returns a non-empty set whose script path is skill-directory-relative rather than cwd-relative, and the file that path names exists under the driver skill's own directory — derived by command, no count pinned (REQ-PKG-MARKETPLACE-006).
-- [ ] Every drift-sweep invocation found in `skills/` by a run-time grep carries an explicit root argument; no telemetry invocation in `skills/` passes a file path beginning with a skill or plugin directory; `git diff <rename-chunk-close-sha> HEAD -- tools/<telemetry tool>` is empty, and the same diff over `tools/<drift sweep>` contains the provenance conditional (Q-IMPL-MARKETPLACE-026) and no other hunk (REQ-PKG-MARKETPLACE-007).
+- [ ] Every drift-sweep invocation found in `skills/` by a run-time grep carries an explicit root argument; no telemetry invocation in `skills/` passes a file path beginning with a skill or plugin directory; `git diff <rename-chunk-close-sha> HEAD -- tools/<telemetry tool>` is empty, and the same diff over `tools/<drift sweep>` contains the provenance conditional (Q-IMPL-MARKETPLACE-026, re-keyed by Q-IMPL-MARKETPLACE-027) and no other hunk (REQ-PKG-MARKETPLACE-007).
 - [ ] A scratch consumer repository built at run time with a `docs/` corpus and no `tools/` directory, swept with the driver skill's documented bundled invocation, exits non-2 and its finding set contains no finding from a rule keyed to this repository's contract rows — both the exit code and the rule set derived from the run's own output (REQ-PKG-MARKETPLACE-007).
 - [ ] A run-time grep for the plugin-root variable name over `skills/**/*.md` returns no match outside a fenced code block documenting its manifest-only scope (REQ-PKG-MARKETPLACE-008).
 - [ ] `CONTRIBUTING.md` contains a paragraph stating that spec citations inside skills resolve in the repository, not in an installed plugin; the same `docs/spec/*.md` citation grep over `skills/` yields the same count before and after the packaging change (REQ-PKG-MARKETPLACE-009).
@@ -447,3 +471,48 @@ cycle's measurement discipline exists to catch, so the honest move is to narrow
 the criterion with the reason stated and add a criterion that measures what was
 actually missing — a consumer-repository run. The freeze is narrowed, not
 dropped: any further edit to either tool remains outside it.
+
+### Q-IMPL-MARKETPLACE-027: the provenance conditional is keyed to the root swept, not to where the script lives
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Root resolution for skill-side invocations; §Acceptance Criteria, the REQ-PKG-MARKETPLACE-007 criteria
+**Decision**: Replace the script-location predicate of Q-IMPL-MARKETPLACE-026
+with a root predicate: the suite-specific contract rows are ON if and only if
+`<root>/tools/skill-lint.py` is a file — the root being swept is the repository
+that owns the rules. The old helper is removed rather than kept dead.
+**Rationale**: the original predicate asked "was the linter resolved as a sibling
+of the running script, in a directory that is not the subject root's `tools/`?"
+That is true whenever the **bundled** copy sweeps **this** repository — precisely
+the invocation the driver skill documents — so this repository's own REQUIRED and
+version-gate rows were silently disabled by its own documented command. Measured
+on a clean clone with one skill's version-gate paragraph broken: the root script
+reported `FAIL: 1 finding` while the bundled copy on the same `--root` reported
+`OK: 9 sweeps clean`. Keying on the root makes the two agree by construction,
+because ownership of the rules is a property of the corpus being swept, not of
+the file system location of the interpreter's argv[0]. It is also strictly
+simpler — one `is_file()` test, still derived at run time, still no flag,
+environment variable or config.
+**Impact**: the narrowing REQ-PKG-MARKETPLACE-007 records stands, with its
+condition corrected; the consumer-repository criterion is unaffected, since a
+consumer tree carries no `tools/skill-lint.py` and is still swept with the
+suite-specific rows off.
+
+### Q-IMPL-MARKETPLACE-028: bundled-copy byte identity is a linter rule, not a seventh hook
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Tools: root stays, the skill-runnable set is duplicated into the driver skill; §Acceptance Criteria, the REQ-PKG-MARKETPLACE-006 criteria
+**Decision**: Add a `bundled-drift` rule to the skill linter. It derives its
+population at run time — every `skills/*/tools/*.py` paired with the
+repository-root file of the same basename — and raises one blocking finding per
+pair that differs byte-for-byte, has no root source, or is a symlink. A
+`--self-test` fixture seeds all four shapes and pins which of them must speak.
+**Rationale**: byte identity was asserted once, by a criterion, and enforced by
+nothing standing: on a clean clone, appending to a root tool left both quality
+gates exiting 0 while `cmp` reported the bundled copy had drifted. A seventh
+pre-commit hook would enforce it but would reopen REQ-PC-MARKETPLACE-006's
+closed six-hook set; the linter is already a hook, so a rule there is enforced
+on every commit at no new hook cost. The symlink clause is not redundant with
+`cmp`: a link compares equal while resolving its run-time paths from the source
+directory.
+**Impact**: the population is derived, never pinned, so the rule and the
+REQ-PKG-MARKETPLACE-006 criterion both extend themselves when a further tool is
+bundled — which is what Q-IMPL-MARKETPLACE-022's measurement discipline requires
+of both.
