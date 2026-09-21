@@ -631,7 +631,7 @@ and is not required by any requirement.
 against the moved tree.
 **Depends on**: Chunk 6.
 **Tasks**:
-1. [ ] [verify] The zero-argument post-move run: `python3
+1. [x] [verify] The zero-argument post-move run: `python3
    plugins/sdd/tools/skill-lint.py` from the repository root sweeps a set that
    **includes at least one `docs/spec/` path**, asserted by membership on the
    swept set derived at run time, never on the exit code. On the pinned pattern
@@ -642,7 +642,7 @@ against the moved tree.
    `--suite-root`; every `suite_rules=False` site is inside the self-test —
    traces to `two-root-linter.md` §Acceptance Criteria (REQ-PKG-PACKAGING-002,
    REQ-PKG-PACKAGING-003)
-2. [ ] [verify] The retarget's **post-move** confirmation. The equal-roots
+2. [x] [verify] The retarget's **post-move** confirmation. The equal-roots
    finding-set comparison itself is **not** run here — it ran at **C2.6**,
    against the live pre-change tree, because after the move that tree exists
    only in git history and the post-move `suite_root` default is the plugin
@@ -655,7 +655,7 @@ against the moved tree.
    REQ-PKG-PACKAGING-004's acceptance. If C2.6 was not run, this task fails
    rather than substituting a post-move measurement for it — traces to
    `two-root-linter.md` §3 (REQ-PKG-PACKAGING-004)
-3. [ ] [verify] `python3 plugins/sdd/tools/skill-lint.py --print-population` exits 0,
+3. [x] [verify] `python3 plugins/sdd/tools/skill-lint.py --print-population` exits 0,
    prints the `corpus: FILES_SWEPT=<n>  policed-areas=<n>` line (asserted by
    **shape**, not number), and prints one run-time-derived line per rule table
    whose set **includes** the four required populations `REQUIRED=40
@@ -667,7 +667,7 @@ against the moved tree.
    place in the corpus where a row population is compared against a number, and
    it is the regression check on Chunk 2 task 3's retarget — traces to
    `two-root-linter.md` §6 (REQ-LINT-PACKAGING-007, REQ-LINT-PACKAGING-004)
-4. [ ] [verify] **Carried note M3 — the vacuous-glob hole.** The `test -d` guard in
+4. [x] [verify] **Carried note M3 — the vacuous-glob hole.** The `test -d` guard in
    `marketplace-packaging.md`'s blanket clause does not cover glob-derived empty
    populations: a criterion quantifying over `skills/*/tools/*.py` still passes
    vacuously when the glob derives nothing. Before running the per-pair `cmp` /
@@ -676,26 +676,54 @@ against the moved tree.
    (`ls plugins/sdd/tools/*.py | wc -l` not less than
    `git ls-tree --name-only <pre-move sha> tools/ | grep -c '\.py$'`) — traces to
    `marketplace-packaging.md` §Acceptance Criteria
-5. [ ] [verify] The paired retired-filename removal, evaluated post-move: a run-time
+5. [x] [verify] The paired retired-filename removal, evaluated post-move: a run-time
    grep of `plugins/sdd/tools/skill-lint.py` for the retired filename returns
    zero matches; the same grep over `docs/spec/skill-namespace-rename.md`
    returns zero matches and that file's tuple lists five names; both tuples have
    five entries and are equal — traces to `skill-namespace-rename.md`
    §Two-Root Amendment (REQ-LINT-PACKAGING-008)
-6. [ ] [verify] `python3 plugins/sdd/tools/skill-lint.py --self-test` passes (all
+6. [x] [verify] `python3 plugins/sdd/tools/skill-lint.py --self-test` passes (all
    fourteen cases) and `pre-commit run --all-files` exits 0 and leaves the
    working tree clean on an immediate second run — traces to
    `two-root-linter.md` §Acceptance Criteria, `pre-commit.md`
-7. [ ] [verify] Manual: re-run REQ-PKG-MARKETPLACE-010's real-install observation
+7. [x] [verify] Manual: re-run REQ-PKG-MARKETPLACE-010's real-install observation
    against the moved tree, recorded as an observation with its command — traces
    to `two-root-linter.md` §Verification → Manual
-8. [ ] [verify] **The no-pinned-count greps, re-run at the post-move path.** The
+8. [x] [verify] **The no-pinned-count greps, re-run at the post-move path.** The
    three greps of C4.2, verbatim, over `plugins/sdd/tools/skill-lint.py` — the
    path at which REQ-LINT-PACKAGING-004's acceptance is written, and the first
    point in the plan at which that file exists. Each returns zero matches. The
    file must be confirmed present (`test -f`) **before** the greps run, so a
    missing-file exit 2 cannot be read as "empty" — traces to
    `two-root-linter.md` §6 (REQ-LINT-PACKAGING-004)
+9. [x] [implement] **The §Acceptance Criteria bullet that is literally false.**
+   *Provenance*: added at Chunk 7 on the Chunk 6 verifier's advisory finding.
+   C6.14 recorded the fifth `--print-population` line as
+   `Q-IMPL-PACKAGING-001` and C6.15 repaired the plan's C7.3, but the Approved
+   bullet in `two-root-linter.md` §Acceptance Criteria still read "prints the
+   **four** run-time-derived populations" while the flag prints five — true
+   only by cross-referencing the Q-IMPL, which a criterion must not require.
+   Restate the bullet as an explicit **required-subset** check naming the four
+   by name and exact value (`REQUIRED=40`, `VERSION_GATED=9`,
+   `V4_CONTRACT=7`, `FORBIDDEN=13`), citing `Q-IMPL-PACKAGING-001` for the
+   further lines. Not weakened to "prints something": a missing line or a
+   changed value still fails — traces to `two-root-linter.md` §6,
+   §Acceptance Criteria (REQ-LINT-PACKAGING-007)
+**C7.7 recorded observation (orchestrator-run, 2026-09-21).** The leaf could not
+perform this — a non-interactive subagent has no slash commands and
+`~/.claude/plugins` is sandbox write-denied — so the orchestrator ran it, as
+`RS-PACKAGING-002` did, into a throwaway `CLAUDE_CONFIG_DIR`. Command:
+`CLAUDE_CONFIG_DIR=<tmp> claude plugin marketplace add <repo>` then
+`claude plugin install sdd@sdd-commons`, against local HEAD `7be5b63`. Result:
+the cache root materialised as exactly `agents/ skills/ tools/` — the
+`plugins/sdd` segment stripped and **no `docs/`**, versus `agents/ skills/
+tools/ docs/ CLAUDE.md CONTRIBUTING.md LICENSE README.md` from `main`. Ten
+skills (`implement`…`verify`) and three agents resolved;
+`skills/orchestrate/references/loop-control.md` (806 lines) was read from the
+installed copy. Installed file count **50**, against **199** pre-move. The
+global install still shows the pre-move shape, correctly: its marketplace
+tracks `main`, where the move is unmerged.
+
 **Entry criteria**: Chunk 6 complete.
 **Exit criteria**: Every after-the-move criterion across the 22 requirements has
 been evaluated against the moved tree, with its result recorded.

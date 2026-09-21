@@ -375,9 +375,13 @@ expectation fails the self-test):
   (REQ-LINT-PACKAGING-004).
 - [ ] The guard runs on every invocation and is skippable by no mode; the
   checked-in negative case produces a `fail` finding naming the duplicated path
-  (REQ-LINT-PACKAGING-005). `--print-population` exits 0 and prints the four
-  run-time-derived populations with §6's values, and the plan orders the flag
-  task before the task evaluating that criterion (REQ-LINT-PACKAGING-007).
+  (REQ-LINT-PACKAGING-005). `--print-population` exits 0 and its run-time-derived
+  output **includes**, as a required subset, the four §6 populations by name and
+  value — `REQUIRED=40`, `VERSION_GATED=9`, `V4_CONTRACT=7`, `FORBIDDEN=13` —
+  each asserted present and unchanged, a missing line or a changed value
+  failing; further table lines (today `TEMPLATE_PAIRS`) neither satisfy nor
+  break it, per Q-IMPL-PACKAGING-001. The plan orders the flag task before the
+  task evaluating that criterion (REQ-LINT-PACKAGING-007).
 - [ ] `python3 plugins/sdd/tools/skill-lint.py --self-test` passes and
   `pre-commit run --all-files` exits 0 at the close of the cycle.
 
