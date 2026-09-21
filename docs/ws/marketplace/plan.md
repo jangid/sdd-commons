@@ -1,6 +1,6 @@
 ---
 workstream: marketplace
-status: in-progress
+status: complete
 research_id: RS-MARKETPLACE-001
 last_updated: 2026-09-21
 ---
