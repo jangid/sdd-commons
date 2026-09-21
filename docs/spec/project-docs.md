@@ -7,6 +7,9 @@ requires:
   - REQ-DOCS-MARKETPLACE-003
   - REQ-DOCS-MARKETPLACE-004
   - REQ-DOCS-MARKETPLACE-005
+  - REQ-DOCS-PACKAGING-001
+  - REQ-DOCS-PACKAGING-002
+  - REQ-DOCS-PACKAGING-003
 ---
 
 # Project Documentation for Public Release
@@ -197,3 +200,41 @@ would have made the repository's own quality instructions disagree with the hook
 config a contributor installs — the drift this cycle's document work exists to
 close. The addition is additive and touches none of the sections the spec fences
 as unchanged in substance.
+
+## Carried Documentation Repairs (2026-09-21, packaging)
+
+**The project README's live filename** (REQ-DOCS-PACKAGING-001).
+`orchestration.md` §the project README still names the front door by the
+retired filename in backticked prose — passing the drift sweep only by the
+backtick skip, and stale since that file was deleted. The spelling becomes
+`README.md`; nothing else in the paragraph changes. *Criterion*: a run-time
+grep of `orchestration.md` for the retired filename returns zero matches,
+inside backticks or out; the paragraph names `README.md`; the drift sweep
+raises no new broken-link finding on the file.
+
+**One marker for this repository** (REQ-DOCS-PACKAGING-002). `CLAUDE.md`
+contradicts itself — §Phase Detection says the repository migrated to marker
+`4`, §Multi-Workstream Layout says marker `3` "is what this repo uses today".
+The two are reconciled to the marker `docs/.sdd-version` carries, keeping the
+true statement that marker `3` remains **supported** and dropping the false
+one. *Criterion*: the marker named as this repository's own string-equals the
+trimmed contents of `docs/.sdd-version`, both read at run time; exactly one
+marker is named as its own anywhere in the file; the two sections are otherwise
+unchanged (reviewer-checkable diff).
+
+**The deferral-backlog screen is item-scoped** (REQ-DOCS-PACKAGING-003). The
+liveness rule of `requirements-artifacts.md` §`## Out of Scope` Discipline
+examines lines `L` and `L-1` only, so an adjacent item's bracketed dated marker
+can mark a *following* item not-live. The rule becomes **item-scoped**: a
+marker suppresses only the item it belongs to. The phrase table and the marker
+regex stay where they are and keep being read from that spec rather than
+retyped, and the screen's standing qualification — a screen over observed
+backlog vocabulary, not a proof of absence — is unchanged. *Placement*: the
+rule's text lives in `requirements-artifacts.md`, outside this stage's write
+scope, so the contract is stated here once and the implement stage lands the
+wording there. *Criterion*: a fixture of two adjacent items — the first
+carrying a bracketed dated marker, the second a backlog phrase with no marker
+of its own — scores the second **live**, and scores it not-live under the
+`L`/`L-1` rule, so the fixture distinguishes the two; re-running the screen
+over `docs/ws/*/verification.md` reports counts measured by that run and no
+other.

@@ -15,28 +15,29 @@ orchestrator's post-gate bookkeeping.
 `Verified` takes the values of `docs/spec/ws-traceability.md` §Legal `Verified`
 Cell Values — `pass | fail | pending-red | descoped`. All rows below were added
 at the requirements stage on 2026-09-21 and are not yet specced or implemented,
-so every downstream column is intentionally blank.
+and the `Spec` column was filled by `sdd:specs` on 2026-09-21; `Test`,
+`Implementation` and `Verified` are intentionally blank.
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-DOCS-PACKAGING-001 | | packaging | | | |
-| REQ-DOCS-PACKAGING-002 | | packaging | | | |
-| REQ-DOCS-PACKAGING-003 | | packaging | | | |
-| REQ-LINT-PACKAGING-001 | | packaging | | | |
-| REQ-LINT-PACKAGING-002 | | packaging | | | |
-| REQ-LINT-PACKAGING-003 | | packaging | | | |
-| REQ-LINT-PACKAGING-004 | | packaging | | | |
-| REQ-LINT-PACKAGING-005 | | packaging | | | |
-| REQ-LINT-PACKAGING-006 | | packaging | | | |
-| REQ-LINT-PACKAGING-007 | | packaging | | | |
-| REQ-LINT-PACKAGING-008 | | packaging | | | |
-| REQ-PC-PACKAGING-001 | | packaging | | | |
-| REQ-PKG-PACKAGING-001 | | packaging | | | |
-| REQ-PKG-PACKAGING-002 | | packaging | | | |
-| REQ-PKG-PACKAGING-003 | | packaging | | | |
-| REQ-PKG-PACKAGING-004 | | packaging | | | |
-| REQ-PKG-PACKAGING-005 | | packaging | | | |
-| REQ-PKG-PACKAGING-006 | | packaging | | | |
-| REQ-PKG-PACKAGING-007 | | packaging | | | |
-| REQ-PKG-PACKAGING-008 | | packaging | | | |
-| REQ-PKG-PACKAGING-009 | | packaging | | | |
+| REQ-DOCS-PACKAGING-001 | project-docs.md | packaging | | | |
+| REQ-DOCS-PACKAGING-002 | project-docs.md | packaging | | | |
+| REQ-DOCS-PACKAGING-003 | project-docs.md | packaging | | | |
+| REQ-LINT-PACKAGING-001 | two-root-linter.md | packaging | | | |
+| REQ-LINT-PACKAGING-002 | two-root-linter.md | packaging | | | |
+| REQ-LINT-PACKAGING-003 | two-root-linter.md | packaging | | | |
+| REQ-LINT-PACKAGING-004 | two-root-linter.md | packaging | | | |
+| REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging | | | |
+| REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging | | | |
+| REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging | | | |
+| REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | | | |
+| REQ-PC-PACKAGING-001 | pre-commit.md | packaging | | | |
+| REQ-PKG-PACKAGING-001 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-003 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-004 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-005 | skill-lint-v5.md | packaging | | | |
+| REQ-PKG-PACKAGING-006 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-007 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-008 | two-root-linter.md | packaging | | | |
+| REQ-PKG-PACKAGING-009 | two-root-linter.md | packaging | | | |

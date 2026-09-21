@@ -230,9 +230,9 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-DOCS-MARKETPLACE-003 | project-docs.md | marketplace | Chunk 6 task 7 — retired front door absent; deletion visible at `1b6295a` | `README.md` (replaces the deleted `.org` front door) | pass |
 | REQ-DOCS-MARKETPLACE-004 | project-docs.md | marketplace | Chunk 6 task 8 — four owed statements present as sections; cross-spec criteria re-run | `CONTRIBUTING.md` | pass |
 | REQ-DOCS-MARKETPLACE-005 | project-docs.md | marketplace | Chunk 6 task 9 — retired-prefix grep zero; both manifest paths named; diff shows only name substitution outside the three edited sections | `CLAUDE.md` | pass |
-| REQ-DOCS-PACKAGING-001 |  | packaging |  |  |  |
-| REQ-DOCS-PACKAGING-002 |  | packaging |  |  |  |
-| REQ-DOCS-PACKAGING-003 |  | packaging |  |  |  |
+| REQ-DOCS-PACKAGING-001 | project-docs.md | packaging |  |  |  |
+| REQ-DOCS-PACKAGING-002 | project-docs.md | packaging |  |  |  |
+| REQ-DOCS-PACKAGING-003 | project-docs.md | packaging |  |  |  |
 | REQ-EVAL-HARNESSP2-001 | evaluation.md | harness-p2 | Chunk 7 task 4 guards: grep -rn decision_by skills/ = references/telemetry.md only; never-auto-advance sentence at sdd-orchestrate/SKILL.md §The gate + §Rules; REQ-ORCH-011 text unamended; no decision_by: policy record | docs/spec/evaluation.md §Evaluation Mode — Defined, Not Built (definition only; no skill implements the policy) | pass |
 | REQ-EVAL-HARNESSP2-002 | evaluation.md | harness-p2 | python3 tools/sdd-eval.py --self-test (six-record fixture yields fields 1–9 + aggregate; empty/missing file → N = 0); --help; derivation table = 9 rows | tools/sdd-eval.py (load, score_run, aggregate, evaluate, render); skills/sdd-orchestrate/references/telemetry.md §6 | pass |
 | REQ-EVAL-HARNESSP2-003 | evaluation.md | harness-p2 | deferred to §Next Steps — `- REQ-EVAL-HARNESSP2-003: run the N = 3 pilot on the toy` (operator-run; not executable by a dispatched leaf) | docs/spec/evaluation.md §Manual N = 3 Pilot (verify task Chunk 7 task 5, deferred) | pass |
@@ -279,14 +279,14 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-LINT-HARNESSP6-001 | skill-lint-v5.md | harness-p6 | Chunk 4 task 3: `python3 tools/sdd-skill-lint.py --self-test` exits 0 — the generic `REQUIRED` mutation loop now strips each of the four new rows from a temp copy of its own file and asserts the row's own `fix:` string is printed, plus pair-shape assertions pinning two `PLAN: INCOMPLETE` rows (producer `references/loop-control.md`, consumer `SKILL.md`) and two `GIT_STATE` rows (producer `references/write-scope.md`, consumer `SKILL.md`), each row's `fix:` target, and that the `GIT_STATE` pattern carries no trailing colon and no alternation. Chunk 4 task 4: `python3 tools/sdd-skill-lint.py` exits 0 with `OK: N file(s) clean` on the corpus as it stands, and a temp copy of each of the three guarded files with the marker's lines removed exits 1 with a `[required]` line naming that row — all four demonstrated, no count pinned as a literal | `tools/sdd-skill-lint.py`: four new `REQUIRED` rows appended after the harness-p4 `COMMIT:` pair — `PLAN: INCOMPLETE` × 2 (`fix:` → `harness-loop-control.md` §Plan Completion Ownership) and `GIT_STATE` × 2 (`fix:` → `harness-write-scope.md` §Git-State Observation), the `GIT_STATE` pattern deliberately bare because the name is rendered inside the `SCOPE:` block and is not an own-line token; the harness-p6 assertion block in `self_test()` after the `COMMIT:` block. `skills/sdd-orchestrate/SKILL.md` §The gate: the signal-2 row now names the `VIOLATION` block's findings by name (`HISTORY_REWRITE`, `GIT_STATE`), satisfying the consumer row without adding a line (file stays at 399, under the `[size]` warn threshold) | pass |
 | REQ-LINT-HARNESSP6-002 | skill-lint-v5.md | harness-p6 | Chunk 6 task 2: `python3 tools/sdd-skill-lint.py` exits 0 and `python3 tools/sdd-gc.py --report` is byte-identical to a baseline captured immediately before the edit (0 findings located on `docs/requirements/integration/skill-lint.md`, 2 findings naming it, before and after); manual criterion — REQ-LINT-007 and REQ-LINT-HARNESSP5-001 read in sequence show no contradiction | docs/requirements/integration/skill-lint.md: the `[Updated: 2026-09-20, harness-p6 — REQ-LINT-HARNESSP6-002]` qualification note appended under REQ-LINT-007, naming the authorised exception and REQ-LINT-HARNESSP5-001 as the authorising requirement; the id, its number and its original text are unchanged | pass |
 | REQ-LINT-HARNESSP6-003 | skill-lint-v5.md | harness-p6 | Chunk 9 task 8: `python3 tools/sdd-skill-lint.py --self-test` exits 0 — the generic `REQUIRED` mutation loop strips each of the two new `CONVERGENCE:` rows from a temp copy of its own file and asserts that row's own `fix:` string is printed, and the new assertion block pins the pair shape (two rows; producer `references/loop-control.md`, consumer `SKILL.md`; each `fix:` pointing at `harness-loop-control.md` §Convergence Signal; the pattern still matching a rendered token line). The `>= 32` bound is replaced by the exact `len(REQUIRED)` total the table now holds, so an accidental drop of any row fails. `python3 tools/sdd-skill-lint.py` exits 0 on the corpus | `tools/sdd-skill-lint.py`: the `CONVERGENCE:` `REQUIRED` row pair appended after the harness-p6 `GIT_STATE` pair (producer `skills/sdd-orchestrate/references/loop-control.md` §5 item 6c / §5b, consumer `skills/sdd-orchestrate/SKILL.md` §The gate; pattern `CONVERGENCE:` keeping its trailing colon because it IS an own-line gate token, unlike the bare `GIT_STATE` finding name), and in `self_test()` the exact-total check replacing the `>= 32` bound plus the `conv_rows` pair-shape assertions beside the `plan_rows` / `git_rows` blocks | pass |
-| REQ-LINT-PACKAGING-001 |  | packaging |  |  |  |
-| REQ-LINT-PACKAGING-002 |  | packaging |  |  |  |
-| REQ-LINT-PACKAGING-003 |  | packaging |  |  |  |
-| REQ-LINT-PACKAGING-004 |  | packaging |  |  |  |
-| REQ-LINT-PACKAGING-005 |  | packaging |  |  |  |
-| REQ-LINT-PACKAGING-006 |  | packaging |  |  |  |
-| REQ-LINT-PACKAGING-007 |  | packaging |  |  |  |
-| REQ-LINT-PACKAGING-008 |  | packaging |  |  |  |
+| REQ-LINT-PACKAGING-001 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-002 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-003 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-004 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-005 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging |  |  |  |
+| REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging |  |  |  |
 | REQ-NAME-MARKETPLACE-001 | skill-namespace-rename.md | marketplace | Chunk 1 task 4 — 10 skill dirs, basename free of retired prefix, frontmatter `name` == basename | `skills/*/SKILL.md` | pass |
 | REQ-NAME-MARKETPLACE-002 | skill-namespace-rename.md | marketplace | Chunk 1 task 4 — cross-skill path-reference greps return zero | `skills/**/*.md` | pass |
 | REQ-NAME-MARKETPLACE-003 | skill-namespace-rename.md | marketplace | Chunk 1 tasks 4–5 — `--help` exit 0 per tool; self-reference grep zero; `git log --follow` resolves each tool | `tools/*.py` | pass |
@@ -305,7 +305,7 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-PC-MARKETPLACE-004 | pre-commit.md | marketplace | Chunk 3 task 4 + Chunk 6 task 8 — config grep for the three contributor tools = 0; all three named with commands in CONTRIBUTING | `.pre-commit-config.yaml`; `CONTRIBUTING.md` §The three heavier checks | pass |
 | REQ-PC-MARKETPLACE-005 | pre-commit.md | marketplace | Chunk 3 task 5 / Chunk 7 task 3 — tree clean after re-run; `git diff d1ef8f2 HEAD -- tools/fixtures/` empty; four excludes each with a reason comment | `.pre-commit-config.yaml` `exclude:`; normalisation committed at `3ddfdb3` | pass |
 | REQ-PC-MARKETPLACE-006 | pre-commit.md | marketplace | Chunk 3 task 4 — every entry is one of the six; no `args:` key in the config | `.pre-commit-config.yaml` | pass |
-| REQ-PC-PACKAGING-001 |  | packaging |  |  |  |
+| REQ-PC-PACKAGING-001 | pre-commit.md | packaging |  |  |  |
 | REQ-PKG-MARKETPLACE-001 | marketplace-packaging.md | marketplace | Chunk 5 task 8 — parsed `name` == `sdd-commons`, `owner` present, one plugin entry `sdd` | `.claude-plugin/marketplace.json` | pass |
 | REQ-PKG-MARKETPLACE-002 | marketplace-packaging.md | marketplace | Chunk 5 task 8 — `source` == `./`; plugin manifest carries name/description/version; `test ! -d plugins` | `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json` | pass |
 | REQ-PKG-MARKETPLACE-003 | marketplace-packaging.md | marketplace | Chunk 5 task 8 — derived set equality: skills 10 == 10, agents 3 == 3; no listed path under `docs/` | `.claude-plugin/marketplace.json` component list | pass |
@@ -316,15 +316,15 @@ the owning `docs/ws/<id>/traceability.md`.
 | REQ-PKG-MARKETPLACE-008 | marketplace-packaging.md | marketplace | Chunk 5 task 9 — plugin-root variable outside a fenced block over `skills/**/*.md` = 0 | `skills/**/*.md` | pass |
 | REQ-PKG-MARKETPLACE-009 | marketplace-packaging.md | marketplace | Chunk 5 task 12 + Chunk 6 task 8 — `docs/spec/*.md` citation count 150 == 150 across the packaging change; CONTRIBUTING paragraph present | `CONTRIBUTING.md` §Where the contracts live | pass |
 | REQ-PKG-MARKETPLACE-010 | marketplace-packaging.md | marketplace | Chunk 7 task 2 — real install by the operator; 10 skills + 3 agents listed; all ten `references/*.md` resolve from the installed copy | `.claude-plugin/` manifest pair as installed at cache sha `0d2d71e` | pass |
-| REQ-PKG-PACKAGING-001 |  | packaging |  |  |  |
-| REQ-PKG-PACKAGING-002 |  | packaging |  |  |  |
-| REQ-PKG-PACKAGING-003 |  | packaging |  |  |  |
-| REQ-PKG-PACKAGING-004 |  | packaging |  |  |  |
-| REQ-PKG-PACKAGING-005 |  | packaging |  |  |  |
-| REQ-PKG-PACKAGING-006 |  | packaging |  |  |  |
-| REQ-PKG-PACKAGING-007 |  | packaging |  |  |  |
-| REQ-PKG-PACKAGING-008 |  | packaging |  |  |  |
-| REQ-PKG-PACKAGING-009 |  | packaging |  |  |  |
+| REQ-PKG-PACKAGING-001 | two-root-linter.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-003 | two-root-linter.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-004 | two-root-linter.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-005 | skill-lint-v5.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-006 | two-root-linter.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-007 | two-root-linter.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-008 | two-root-linter.md | packaging |  |  |  |
+| REQ-PKG-PACKAGING-009 | two-root-linter.md | packaging |  |  |  |
 | REQ-PLAN-HARNESSP6-001 | plan-management.md | harness-p6 | Chunk 6 task 5: in `docs/ws/harness-p5/plan.md` the `## Open Questions / Assumptions` entry count is unchanged by the strike (8 before, 8 after, measured in the same run) and the struck entry carries an adjacent bracketed dated marker; the stale claim has no unmarked occurrence (its single occurrence is inside the struck entry) — verified against `docs/spec/plan-management.md` §Acceptance Criteria, which supersedes the requirement's unsatisfiable `grep -c` literal | skills/sdd-plan/SKILL.md and skills/sdd-replan/SKILL.md: the archival strike rule (struck, not deleted; adjacent bracketed dated marker; unresolvable entries carried unmarked; `plan-history/` copy only) added to each skill's archival step; docs/ws/harness-p5/plan.md: the `telemetry-reader.md` "says 61" entry struck in place with its date and evidence | pass |
 | REQ-QIMPL-HARNESSP5-001 | deviation-protocol.md §Fold-In Status Note | harness-p5 | `grep -c 'folded into' docs/spec/{telemetry,telemetry-reader,skill-lint-v5,harness-chunk-verifier}.md` sums to 6; `grep -n '^  CHUNK_VERDICT:' docs/spec/harness-chunk-verifier.md` empty | fold-in status notes on Q-IMPL-HARNESSP4-004..007 (`telemetry-reader.md`), -008 (`skill-lint-v5.md`), -009 (`harness-chunk-verifier.md`) | pass |
 | REQ-QIMPL-HARNESSP5-002 | deviation-protocol.md §Spec-Reference Integrity | harness-p5 | `python3 tools/sdd-gc.py --report &#124; grep -c 'qimpl-broken-ref'` prints 0; and, per the criterion rescoped 2026-09-20 (the original empty-`git diff --stat` guard was superseded by REQ-GC-HARNESSP5-001's edits to the same file), `git diff main -- tools/sdd-gc.py &#124; grep -E '^[+-]' &#124; grep -v '^[+-][+-]' &#124; grep -ci 'qimpl'` prints 0 — no qimpl-related hunk in `tools/sdd-gc.py` | re-pointed **Spec reference** of Q-IMPL-009 (`ws-ids.md`), Q-IMPL-014 (`ws-integration.md`), Q-IMPL-072 (`ws-orchestration.md`) | pass |

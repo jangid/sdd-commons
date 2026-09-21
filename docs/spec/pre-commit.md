@@ -8,6 +8,7 @@ requires:
   - REQ-PC-MARKETPLACE-004
   - REQ-PC-MARKETPLACE-005
   - REQ-PC-MARKETPLACE-006
+  - REQ-PC-PACKAGING-001
 ---
 
 # Pre-Commit Gate
@@ -301,3 +302,29 @@ holds: `cmp` between each derived bundled copy and its root source exits 0, so
 no copy carries a normalisation its source does not; and the
 forbidden-directory half of the criterion reports zero violations outside the
 Q-IMPL-MARKETPLACE-003 carve-out.
+
+## Two-Root Amendment (2026-09-21, REQ-PC-PACKAGING-001)
+
+[Changed 2026-09-21: the suite moved to `plugins/sdd/`, so both local hook
+entries take that prefix.] Both `repo: local` entries — the drift sweep and the
+skill linter — have their `entry` script paths prefixed with `plugins/sdd/` in
+the **same change** that performs the move (`two-root-linter.md` §1); editing
+one alone leaves the gate invoking a dead path for the other, failing the
+commit for a reason unrelated to the contributor's change. Every other field is
+unchanged: each hook still runs once per commit over the repository
+(`pass_filenames: false`, `always_run: true`) and still fails the commit
+exactly when its tool exits non-zero. The linter hook's entry stays
+**zero-argument**, the prefix being the only edit — correct only because the
+corpus root defaults to the invocation cwd (`two-root-linter.md` §2): left
+defaulting to the script's own location it would take `plugins/sdd` as its
+corpus and stop sweeping `docs/` silently, with a green exit. The drift sweep's
+root argument is governed by `two-root-linter.md` §8 — the gate sweeps the
+repository, not the suite.
+
+*Criterion*: every `entry` parsed from the two local hooks names a path that
+exists after the move (`test -f` per parsed path); the linter hook's parsed
+`entry` carries no positional root; running that entry verbatim from the
+repository root sweeps a set containing at least one `docs/spec/` path
+(membership, not exit code); `pre-commit run --all-files` exits 0 at the close
+of this cycle; reverting the prefix on either hook alone makes that hook fail
+with a missing-file error (REQ-PC-PACKAGING-001).

@@ -12,6 +12,7 @@ requires:
   - REQ-NAME-MARKETPLACE-008
   - REQ-NAME-MARKETPLACE-009
   - REQ-NAME-MARKETPLACE-010
+  - REQ-LINT-PACKAGING-008
 ---
 
 # Skill Namespace Rename
@@ -427,3 +428,21 @@ occurrence in every area, requiring one finding per non-exempt area.
 rule reads would shrink with it — the population assertion has to come from
 somewhere the mutation cannot reach, which is why the enumeration is duplicated
 into the fixture rather than imported.
+
+## Two-Root Amendment (2026-09-21, REQ-LINT-PACKAGING-008)
+
+[Changed 2026-09-21: the retired front door's filename leaves the scope-file
+tuple.] The fenced enumeration in §The live rename scope is the live corpus,
+enumerated documents `RETIRED_SCOPE_FILES` by name. The retired front door's
+filename — `README` followed by `.org` — is **dropped from that fence, from
+`RETIRED_SCOPE_FILES` and from the self-test's independent `policed_files`
+tuple in one change**, leaving five names in each: the two code tuples are
+compared against each other by the scope-drift check, so editing one alone
+trips it, and this fence documents the same tuple by name. The entry is
+behaviour-neutral today only because the walk never finds a file by that name;
+`two-root-linter.md` §4's union binding is unchanged by the removal, and its
+table is already the post-removal five-name state. *Criterion*: a run-time grep
+for the retired filename returns zero matches in
+`plugins/sdd/tools/skill-lint.py` and in this file; both code tuples have five
+entries and are equal; `--self-test` passes, and removing the name from only
+one tuple fails it naming the scope drift (REQ-LINT-PACKAGING-008).
