@@ -284,17 +284,20 @@ further tool extends the set by itself.
 Two properties are distinct and must not be conflated. *Frozen across the
 packaging step* means the packaging chunk itself performed no source edit: that
 holds for every derived source, and it is what the criterion protects.
-*Unchanged since the rename close* is the stronger property, and it does not
-hold for every source: at this cycle's close `tools/telemetry.py` has an empty
-path-limited diff against the rename-chunk-close sha, while `tools/gc.py` and
-`tools/skill-lint.py` are status `M` inside the window because the verify
-stage's red rounds repaired them. Those repairs are ordinary corrective work
-against the specs, not packaging-step edits or normalisation rewrites, so they
-fall outside what this criterion freezes — the criterion is not weakened to make
-that so, it never covered them. Two further observations confirm the protected
-property still holds: `cmp` between each derived bundled copy and its root
-source exits 0, so no copy carries a normalisation its source does not — and
-that comparison is no longer a one-off, since the linter's `bundled-drift` rule
-(Q-IMPL-MARKETPLACE-028) re-runs it on every commit; and the
+*Unchanged since the rename close* is the stronger property, and at this cycle's
+close it happens to hold for every derived bundled source as well: the
+path-limited diff against the rename-chunk-close sha is empty for each of them.
+It is empty for different reasons, and the difference is worth recording. The
+telemetry tool was never touched inside the window at all. The drift sweep was
+modified inside the window by the verify stage's red rounds and then restored
+byte-for-byte when the operator reverted the consumer-repository extension on
+2026-09-21 (Q-IMPL-MARKETPLACE-029), so its net diff is empty although its
+history inside the window is not — a `--name-status` run over the window will
+show it. That is ordinary corrective work against the specs, not a
+packaging-step edit or a normalisation rewrite, so it falls outside what this
+criterion freezes either way; the criterion is not weakened to make that so, it
+never covered it. Two further observations confirm the protected property still
+holds: `cmp` between each derived bundled copy and its root source exits 0, so
+no copy carries a normalisation its source does not; and the
 forbidden-directory half of the criterion reports zero violations outside the
 Q-IMPL-MARKETPLACE-003 carve-out.

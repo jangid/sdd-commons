@@ -787,62 +787,12 @@ class Linter:
                               "appear bare in the live corpus (REQ-NAME-MARKETPLACE-009)",
                               RETIRED_FIX)
 
-    def bundled_tool_pairs(self) -> list[tuple[Path, Path]]:
-        """Every (bundled copy, repository-root source) pair, derived at run time.
-
-        The population is `skills/*/tools/*.py` joined to `<root>/tools/` on
-        basename — never a pinned list and never a pinned count, so bundling a
-        further tool extends the policed set by itself (REQ-PKG-MARKETPLACE-006,
-        Q-IMPL-MARKETPLACE-028)."""
-        out: list[tuple[Path, Path]] = []
-        for d in sorted((self.root / "skills").glob("*/tools")):
-            if not d.is_dir():
-                continue
-            for copy in sorted(d.glob("*.py")):
-                if "__pycache__" in copy.parts:
-                    continue
-                out.append((copy, self.root / "tools" / copy.name))
-        return out
-
-    def check_bundled_sync(self) -> None:
-        """A bundled tool copy must be a byte-identical regular file of its source.
-
-        Byte identity is what makes the bundled copy the same program the
-        repository tests; `test ! -L` matters on its own because a symlink
-        changes what a run-time path derivation resolves to (a copy that is a
-        link to the source would pass `cmp` while running from a different
-        directory).  Enforced here rather than as a seventh pre-commit hook so
-        the closed six-hook set stays closed — the linter is already a hook, so
-        the rule costs nothing per commit (REQ-PC-MARKETPLACE-006)."""
-        for copy, src in self.bundled_tool_pairs():
-            rel = copy.relative_to(self.root).as_posix()
-            srel = src.relative_to(self.root).as_posix() if src.is_absolute() else str(src)
-            if copy.is_symlink():
-                self.flag(copy, None, "bundled-drift",
-                          f"`{rel}` is a symlink — a bundled tool must be a real file, "
-                          "because a link resolves its run-time paths from the source "
-                          "directory (REQ-PKG-MARKETPLACE-006)",
-                          f"replace the link with a byte copy: cp {srel} {rel}")
-                continue
-            if not src.is_file():
-                self.flag(copy, None, "bundled-drift",
-                          f"`{rel}` has no repository-root source at `{srel}` — a bundled "
-                          "copy must track a contributor tool (REQ-PKG-MARKETPLACE-006)",
-                          f"add {srel}, or remove the orphaned bundled copy {rel}")
-                continue
-            if copy.read_bytes() != src.read_bytes():
-                self.flag(copy, None, "bundled-drift",
-                          f"`{rel}` differs from its source `{srel}` — the bundled copy "
-                          "must be byte-identical (REQ-PKG-MARKETPLACE-006)",
-                          f"re-sync the copy: cp {srel} {rel}")
-
     # -- driver -------------------------------------------------------------
 
     def run(self) -> int:
         self.check_structure()
         self.check_forbidden()
         self.check_retired_prefix()
-        self.check_bundled_sync()
         self.check_required()
         self.check_template_drift()
         self.check_ordinals()
@@ -1333,47 +1283,11 @@ def self_test() -> int:
             check(rel not in pop_text,
                   f"self-exempt {rel} must stay silent although it is walked:\n{pop_text}")
 
-    # -- 10. bundled-tool byte identity (R5 of the verify stage's second red
-    #        round, Q-IMPL-MARKETPLACE-028). The population is derived at run
-    #        time from skills/*/tools/*.py joined to tools/ on basename, so the
-    #        fixture states no count: it seeds three bundled copies and pins
-    #        WHICH of them must speak.
-    bs_root = root / "bundled-sync"
-    (bs_root / "tools").mkdir(parents=True, exist_ok=True)
-    (bs_root / "skills" / "driver" / "tools").mkdir(parents=True, exist_ok=True)
-    for name, src_body, copy_body in (("same.py", "x = 1\n", "x = 1\n"),
-                                      ("drifted.py", "x = 1\n", "x = 2\n")):
-        (bs_root / "tools" / name).write_text(src_body, encoding="utf-8")
-        (bs_root / "skills" / "driver" / "tools" / name).write_text(copy_body, encoding="utf-8")
-    # an orphan: bundled with no repository-root source of that basename
-    (bs_root / "skills" / "driver" / "tools" / "orphan.py").write_text("x = 3\n", encoding="utf-8")
-    # a symlink that would pass `cmp` yet must still be refused
-    (bs_root / "tools" / "linked.py").write_text("x = 4\n", encoding="utf-8")
-    (bs_root / "skills" / "driver" / "tools" / "linked.py").symlink_to(bs_root / "tools" / "linked.py")
-    bs = Linter(bs_root, suite_rules=False)
-    pairs = {c.relative_to(bs_root).as_posix() for c, _ in bs.bundled_tool_pairs()}
-    check(pairs == {"skills/driver/tools/same.py", "skills/driver/tools/drifted.py",
-                    "skills/driver/tools/orphan.py", "skills/driver/tools/linked.py"},
-          f"bundled pair derivation missed a copy: {sorted(pairs)}")
-    bs.check_bundled_sync()
-    bs_text = "\n".join(tx for _, tx in bs.findings)
-    for rel, why in (("drifted.py", "a copy differing from its source"),
-                     ("orphan.py", "a copy with no root source"),
-                     ("linked.py", "a symlinked copy")):
-        check(rel in bs_text, f"bundled-drift stayed silent on {why} ({rel}):\n{bs_text}")
-    check("same.py" not in bs_text,
-          f"bundled-drift fired on a byte-identical copy:\n{bs_text}")
-    check(len(bs.findings) == 3,
-          f"expected exactly 3 bundled-drift findings, got {len(bs.findings)}:\n{bs_text}")
-    check(all(sev == "fail" for sev, _ in bs.findings),
-          "bundled-drift must be a blocking finding, not a warning")
-
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
     print("SELF-TEST OK: all rule classes fire; fix/warn/size/backtick/allow_files/"
-          "retired-prefix fixtures pass; bundled-drift fires on a drifted, an "
-          "orphaned and a symlinked bundled copy and stays silent on an identical one")
+          "retired-prefix fixtures pass")
     return 0
 
 

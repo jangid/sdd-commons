@@ -31,6 +31,26 @@ REQ-PKG-MARKETPLACE-007 now permits), and the skill-body spec-citation count is
 **after** the packaging change the criterion is scoped to, which still measures
 150 == 150. Two new Minors are recorded that the first pass did not have.
 
+**Amended again on 2026-09-21, after red round 3 — the consumer-repository
+extension is reverted.** Round 3 found three further breaks, all of them inside
+the extension the round-1/2 repairs had built: the provenance predicate that let
+a bundled sweep suppress this repository's suite-specific contract rows. The
+predicate had already failed once in each direction (keyed to the script's
+location it disabled this repository's own rows under the driver's documented
+invocation; keyed to the root swept it cannot tell a consumer tree from this one
+by anything a consumer tree carries), and what it actually needs — a marker of
+the repository that owns the suite rules — is a design, not a patch. The
+operator's decision was to revert the extension whole and carry the
+consumer-repository question to a later cycle. Consequently the sections below
+that measured the narrowed freeze and the consumer-repository criterion are
+**withdrawn, not merely re-measured**: those criteria no longer exist.
+REQ-PKG-MARKETPLACE-007 reads in its original unamended form, the bundled
+population is two again (`gc.py`, `telemetry.py`), `git diff 3ddfdb3 HEAD --
+tools/gc.py` is **empty**, and the consumer-repository limitation is restored and
+recorded as a Minor below. The cycle's own deliverables — the rename, the commit
+gate, the agents, the manifests and the project docs — are untouched by the
+reversal and remain 37/37.
+
 `status:` is `pending-red` because the dispatch carries `Red team: enabled`:
 blue passes, the red verdict is outstanding, and the orchestrator flips
 `pending-red → pass` at the DONE gate. This skill never writes `pass` while a
@@ -59,7 +79,14 @@ All run from the worktree root at `d2741f1`, with nested `.worktrees/` and
 The red round rewrote four criteria. Each is re-derived here against its
 **current** text, independently of the first pass.
 
-### 1. REQ-PKG-MARKETPLACE-007 — narrowed freeze (`Q-IMPL-MARKETPLACE-026`)
+### 1. REQ-PKG-MARKETPLACE-007 — narrowed freeze (`Q-IMPL-MARKETPLACE-026`) — **WITHDRAWN 2026-09-21**
+
+> **This subsection is superseded by the reversal (see §Red Round 3).** The
+> narrowing it measures was withdrawn with the extension; the criterion reads in
+> its original unamended form, and both bundled tool sources are byte-frozen
+> against `3ddfdb3` again — `git diff 3ddfdb3 HEAD -- tools/gc.py` and the same
+> diff over `tools/telemetry.py` are each **0 lines**. The text below is kept as
+> the record of what was measured while the narrowing stood.
 
 The criterion no longer says both bundled tools are byte-frozen from the
 rename-chunk close. It now says the **telemetry tool's source is frozen
@@ -159,7 +186,16 @@ template byte-for-byte against its spec) exits 0; REQUIRED contract rows are
 
 - **Verdict: pass**, on a derived population rather than a judged one.
 
-## The New Consumer-Repository Criterion — Re-Measured
+## The New Consumer-Repository Criterion — Re-Measured — **WITHDRAWN 2026-09-21**
+
+> **This whole section is superseded by the reversal (see §Red Round 3).** The
+> criterion it measures was added by the extension and was removed with it.
+> Re-measured after the reversal, the honest behaviour is the one this section
+> was written to replace: a consumer repository with a `docs/` corpus and no
+> `tools/` directory, swept with the driver's documented bundled invocation,
+> exits **2** with `error: linter missing`. That is now a documented limitation
+> (§Issues Found → Minor), not a passing criterion. The text below is kept as
+> the record of what was measured while the criterion stood.
 
 REQ-PKG-MARKETPLACE-007 gained a criterion the old one did not measure: a
 scratch consumer repository with a `docs/` corpus and **no** `tools/` directory,
@@ -247,6 +283,11 @@ repository's contract rows. The earlier repair still holds.
 
 ### R2 (BROKEN → fixed) — a literal count in the bundled-tool criterion
 
+> **Partly superseded by the reversal.** The run-time derivation of the bundled
+> population is **kept** — it is correct practice regardless of the population's
+> size — but the population is two again (`gc.py`, `telemetry.py`) and the
+> "derivation drives the new linter rule" clause went with the rule.
+
 The REQ-PKG-MARKETPLACE-006 criterion pinned "the two bundled tools" while three
 exist, leaving the bundled linter covered by no `cmp` and no `test ! -L`.
 
@@ -269,6 +310,12 @@ skills/orchestrate/tools/telemetry.py  <- tools/telemetry.py
 
 ### R4 (BROKEN → fixed) — a false statement of the live freeze-window set
 
+> **Re-corrected by the reversal.** The paragraph's live-set derivation stands;
+> its worked example does not. After the reversal every derived bundled source
+> has an **empty** path-limited diff against `3ddfdb3` — `tools/telemetry.py`
+> because nothing touched it, `tools/gc.py` because the red-round edits were
+> reverted byte-for-byte. `pre-commit.md` now says that.
+
 `pre-commit.md`'s impact paragraph asserted that the two bundled tool sources
 `gc.py` and `telemetry.py` "do not appear in the window at all" — false now that
 the linter is bundled and that the red rounds edited two of the three sources.
@@ -289,6 +336,12 @@ REQ-PKG-MARKETPLACE-007's "the provenance conditional and no other hunk" still
 holds over the drift sweep.
 
 ### R5 (BROKEN → fixed) — byte identity was asserted once and enforced by nothing
+
+> **Superseded by the reversal.** The `bundled-drift` rule and its `--self-test`
+> fixture are removed with the extension; bundled-copy identity is verified once
+> per cycle again, as `marketplace-packaging.md` §Tools describes, and the gap
+> this break named is live again — carried forward with the consumer-repository
+> question rather than re-patched.
 
 **Fix**: a `bundled-drift` **rule** in `tools/skill-lint.py` — not a seventh
 pre-commit hook, so REQ-PC-MARKETPLACE-006's closed six-hook set stays closed and
@@ -343,6 +396,73 @@ sweep.
 All three bundled copies were re-synced after the last edit; `cmp` exits 0 for
 each, now also enforced by the `bundled-drift` rule itself.
 
+## Red Round 3 — Dispositions: closed BY REVERSAL
+
+Round 3 raised **three** breaks. All three lie inside the consumer-repository
+extension — the bundled linter, the drift sweep's provenance predicate, and the
+`bundled-drift` rule that grew out of it. None is closed by a repair. All three
+are closed **by reversal**: on 2026-09-21 the operator directed that the whole
+extension be removed and the consumer-repository question be taken into a later
+cycle, because the predicate had by then failed in both directions and what it
+needs is an owning-repository marker the swept corpus carries — a design, not a
+third patch.
+
+The closure evidence is common to all three, because the code each break
+concerned no longer exists:
+
+| Claim | `reproduce:` | outcome |
+|---|---|---|
+| the drift sweep is byte-identical to its rename-close content | `git diff 3ddfdb3 HEAD -- tools/gc.py` | **0 lines** |
+| the telemetry tool is unchanged, as always | `git diff 3ddfdb3 HEAD -- tools/telemetry.py` | **0 lines** |
+| no provenance predicate survives | `grep -n 'suite_root\|bundled_run' tools/gc.py` | **no match** |
+| the bundled linter is gone | `ls skills/orchestrate/tools/` | `gc.py`, `telemetry.py` only |
+| the `bundled-drift` rule is gone | `grep -c bundled tools/skill-lint.py` | **0** |
+| bundled copies are still real byte-identical files | for each pair derived from `skills/*/tools/*.py`: `cmp` and `test ! -L` | `cmp` exit 0 and not-a-link, both pairs |
+
+The corpus keeps its record rather than rewriting it:
+`Q-IMPL-MARKETPLACE-026`, `-027` and `-028` are **kept** in
+`docs/spec/marketplace-packaging.md`, each carrying a `**Status**: REVERTED
+2026-09-21` line with its reason, and `Q-IMPL-MARKETPLACE-029` records the
+reversal itself — what was reverted, why, and the resulting behaviour.
+
+### Resulting behaviour — measured, not assumed
+
+Both cases were measured in `$TMPDIR` clones (`git clone --no-hardlinks`, then
+the working tree rsynced over it with `--delete`; the worktree was never
+mutated).
+
+| Case | `reproduce:` | outcome |
+|---|---|---|
+| **this repository** — bundled and root sweeps agree | in a clone: `python3 tools/gc.py --report --root .` and `python3 skills/orchestrate/tools/gc.py --report --root .`, then `diff` the two outputs | both **exit 0**, `OK: 9 sweep(s) clean, 1 warning(s), 31 info`, outputs **identical**. The bundled copy finds no sibling linter, falls back to `<root>/tools/skill-lint.py`, and runs with suite rules ON |
+| **a consumer repository** — no `tools/` | build a scratch `git init` repo with `docs/.sdd-version` = `4`, `docs/requirements/index.md` and a copy of `skills/orchestrate/`, then `python3 skills/orchestrate/tools/gc.py --report --root .` | **exit 2**, `error: linter missing — expected <root>/tools/skill-lint.py` |
+
+The second row is the honest documented limitation the reversal restores. It is
+recorded below as a Minor and carried forward as a Next Step, together with the
+`docs/`-outside-the-install item — they are one question: what an installed
+plugin actually needs, measured against a real install rather than a manifest.
+
+### Round 1 regression check after the reversal — all four still hold
+
+| Round 1 fix | `reproduce:` (all mutation in a `$TMPDIR` clone) | outcome |
+|---|---|---|
+| the retired-prefix rule reaches `agents/` | append a bare `sdd-implement` mention to `agents/reviewer.md`, run `python3 tools/skill-lint.py` | clone baseline **exit 0**; after injection **exit 1**, `agents/reviewer.md:56: [retired-prefix]`, exactly 1 finding |
+| the self-test pins the policed population | rewrite `RETIRED_SCOPE_DIRS` to `("skills",)`, run `python3 tools/skill-lint.py --self-test` | **exit 1** — `SELF-TEST FAIL`, the seeded-area assertions report `got 0`; restoring the file returns it to **exit 0** |
+| agent role text is not duplicated from the templates | shingle-compare each agent's §How you judge against its `dispatch-templates.md` block, both sides read from disk and normalised | **0** shared normalised 8-word shingles for all three pairs |
+| the driver's sweep invocations stay skill-directory-relative | diff every `gc.py` line under `skills/orchestrate/**/*.md` against the same lines at `HEAD` | **identical** (sorted; grep traversal order only); **8** invocations spell `<skill-dir>/tools/gc.py` |
+
+### Quality gates after the reversal
+
+| Command | Exit |
+|---|---|
+| `python3 tools/skill-lint.py` | **0** — `OK: 25 file(s) clean` |
+| `python3 tools/skill-lint.py --self-test` | **0** |
+| `python3 tools/gc.py --report --root .` | **0** — `OK: 9 sweep(s) clean, 1 warning(s), 31 info` |
+| `python3 tools/gc.py --self-test` | **0** |
+
+The `[traceability-aggregate]` warning is the same pre-existing one recorded
+above; both traceability files are outside this chunk's write scope and
+regenerating the aggregate stays the orchestrator's post-gate bookkeeping.
+
 ## Acceptance Criteria
 
 ### skill-namespace-rename.md
@@ -390,10 +510,10 @@ each, now also enforced by the `bundled-drift` rule itself.
 | REQ-PKG-MARKETPLACE-002 — `source: ./`, plugin manifest fields, no `plugins/` | pass | `source` == `./`; `.claude-plugin/plugin.json` parses with `name` `sdd`, `version` `0.1.0`, `license` `MIT` and a 199-character `description`; `os.path.isdir('plugins')` is `False` |
 | REQ-PKG-MARKETPLACE-003 — component list set equality, no `docs/` path | pass | manifest `skills` basenames vs directories under `skills/` holding a `SKILL.md`: **10 == 10**, sets equal; manifest `agents` vs `agents/*.md`: sets equal; listed paths starting `docs/` = **[]** |
 | REQ-PKG-MARKETPLACE-004 — no absolute / home / plugin-root `docs/` citation | pass | the spec's own `grep -rnE '(^\|[^A-Za-z0-9._/-])(/\|~/\|\$\{?[A-Z_]*PLUGIN_ROOT)[A-Za-z0-9._/-]*docs/' --include='*.md' skills/` returns **0** matches |
-| REQ-PKG-MARKETPLACE-005 — contributor tools out of both the skills and the list | pass | grep over `skills/**/*.md` for a `python3 ` or `./` invocation prefix of `scope-check-selftest.py` or `eval.py` = **0**. None of the three appears in the component list; note the linter is now *bundled as a file* (below) but is still **not declared as a component** — the list holds 13 entries and contains none of the three |
-| REQ-PKG-MARKETPLACE-006 — bundled copies are regular byte-identical files; no tool lost | pass | `cmp skills/orchestrate/tools/<f> tools/<f>` exits 0 and `test ! -L` succeeds for **all three** bundled files — `gc.py`, `telemetry.py` and the newly bundled `skill-lint.py`. `ls tools/*.py` = 5, not less than the 5 at `d1ef8f2`; `git log --follow` resolves all five (Chunk 5 tasks 10–11) |
+| REQ-PKG-MARKETPLACE-005 — contributor tools out of both the skills and the list | pass | grep over `skills/**/*.md` for a `python3 ` or `./` invocation prefix of `scope-check-selftest.py` or `eval.py` = **0**. None of the three appears in the component list; the linter is **no longer bundled at all** after the 2026-09-21 reversal, so the row reads as it did before the extension — the list holds 13 entries and contains none of the three |
+| REQ-PKG-MARKETPLACE-006 — bundled copies are regular byte-identical files; no tool lost | pass | the bundled population is derived at run time from `skills/*/tools/*.py` joined to `tools/` on basename — **two** pairs after the reversal, `gc.py` and `telemetry.py`, no count pinned in the criterion — and `cmp` exits 0 and `test ! -L` succeeds for each. `ls tools/*.py` = 5, not less than the 5 at `d1ef8f2`; `git log --follow` resolves all five (Chunk 5 tasks 10–11) |
 | REQ-PKG-MARKETPLACE-006 (added criterion) — at least one invocation resolves to the bundled copy | pass | **8** invocations under `skills/` spell the script as `<skill-dir>/tools/<tool>.py` — skill-directory-relative, not cwd-relative. Substituting `<skill-dir>` = `skills/orchestrate` yields `skills/orchestrate/tools/gc.py`, which exists on disk as a regular file. This is the criterion R5 showed was missing |
-| REQ-PKG-MARKETPLACE-007 — explicit root, narrowed freeze, consumer repository | pass | **all three halves re-derived above.** Explicit root: **9** drift-sweep invocations found under `skills/`, **9** carrying an explicit root; **0** telemetry invocations pass a skill- or plugin-rooted file path. Narrowed freeze: `git diff 3ddfdb3 -- tools/telemetry.py` empty; `git diff 3ddfdb3 -- tools/gc.py` = the provenance conditional and nothing else. Consumer repository: freshly built scratch repo, exit **1** (not 2), 3 findings, **0** from a contract-row rule. See the Minor below on the one remaining cwd-relative invocation |
+| REQ-PKG-MARKETPLACE-007 — explicit root, freeze (**unnarrowed again**) | pass | **all three halves re-derived above.** Explicit root: **9** drift-sweep invocations found under `skills/`, **9** carrying an explicit root; **0** telemetry invocations pass a skill- or plugin-rooted file path. Freeze, in the criterion's **original unamended** wording after the 2026-09-21 reversal: `git diff 3ddfdb3 HEAD -- tools/telemetry.py` and `git diff 3ddfdb3 HEAD -- tools/gc.py` are each **0 lines**, so no edit was made to either tool beyond the rename step's name strings. The consumer-repository criterion was withdrawn with the extension; the limitation it covered is a Minor below. See also the Minor on the one remaining cwd-relative invocation |
 | REQ-PKG-MARKETPLACE-008 — no skill body depends on the plugin-root variable | pass | fence-aware scan of `skills/**/*.md` for `PLUGIN_ROOT` outside a fenced code block: **0** occurrences |
 | REQ-PKG-MARKETPLACE-009 — dangling spec citations documented, count invariant | pass | `CONTRIBUTING.md` §Where the contracts live states "**Those citations resolve in this repository, not in an installed plugin.**" The `docs/spec/*.md` citation count over `skills/**/*.md`, derived with the same command at each sha: `d1ef8f2`=150, `016da07`=150, `464107a`=150, `1b6295a`=150, `a576316`=150, **HEAD=151**. The criterion is scoped to the **packaging change**, and across it the count is **150 == 150** — it passes. The single added citation arrived with `d2741f1` (the R5 repair citing `docs/spec/marketplace-packaging.md` §No skill body depends on the plugin-root variable); it is recorded as a Minor below so the first pass's "150 at HEAD" is not carried forward as true |
 | REQ-PKG-MARKETPLACE-010 — install observation recorded with commands | pass (cited, not re-run) | recorded at plan Chunk 7 task 2, performed by the operator in a real session — the install commands write the operator's own Claude Code configuration, outside a dispatched leaf's permissions, so this verifier **cites** rather than re-runs it, as the dispatch directs. `claude plugin marketplace add <worktree>` → "Successfully added marketplace: sdd-commons"; `claude plugin install sdd@sdd-commons` → "Successfully installed plugin: sdd@sdd-commons (scope: user)". The plugin materialised to a **separate** cache copy, `~/.claude/plugins/cache/sdd-commons/sdd/0.1.0`, pinned to `gitCommitSha` `0d2d71eb…`, which is what makes the reference-resolution observation non-circular. `claude plugin details sdd@sdd-commons` listed Skills (10) and Agents (3) — equal to the manifest's 13 declared components, re-derived as 13 here. All ten of the driver's lazily-read reference files resolved from the installed copy under `<install>/skills/orchestrate/references/` |
@@ -501,7 +621,25 @@ which is what makes it settled rather than live.
 ### Minor (can ship, fix later)
 
 - **[closed 2026-09-21 — operator decision: accept and document; recorded as `Q-IMPL-MARKETPLACE-020`]** The installed plugin carries `docs/` (144 files, 48,462 lines) because `"source": "./"` materialises the whole repository tree. An **accepted cost, not a correctness defect**: the component list governs what Claude Code *loads*, not what an install *copies*; `claude plugin details` reports zero components from `docs/`; every `docs/` citation in a skill body is a bare relative path resolving against the operator's own project. The over-claiming text in `docs/requirements/integration/packaging.md` and `docs/spec/marketplace-packaging.md` was corrected in-cycle. Note for whoever picks this up: the component list **cannot express the exclusion**, so a criterion written against the manifest passes while the condition persists — assert against the **materialised install tree**.
-- **[closed 2026-09-21 — operator decision: bundle the linter and add the provenance conditional; recorded as `Q-IMPL-MARKETPLACE-026`]** Residual of red break R5. With the bundled sweep reachable, a consumer run got further and exited 2 for want of a sibling linter. `tools/skill-lint.py` is now bundled beside the bundled sweep as a regular byte-identical file (`cmp` exit 0, `test ! -L` succeeds, re-derived above), still **absent from the component list** so REQ-PKG-MARKETPLACE-005 is untouched; and `tools/gc.py` gained one **provenance conditional**. Bundling the linter alone was rejected because it turns a clean failure into a misleading success — measured here as 42 findings, 40 of them `[required]`, against a stranger's tree. REQ-PKG-MARKETPLACE-007's freeze is narrowed, not dropped.
+- **[REVERTED 2026-09-21 — operator decision after red round 3; recorded as `Q-IMPL-MARKETPLACE-029`. The closure below is withdrawn; the live statement of this issue is the next bullet.]** Residual of red break R5. With the bundled sweep reachable, a consumer run got further and exited 2 for want of a sibling linter. `tools/skill-lint.py` is now bundled beside the bundled sweep as a regular byte-identical file (`cmp` exit 0, `test ! -L` succeeds, re-derived above), still **absent from the component list** so REQ-PKG-MARKETPLACE-005 is untouched; and `tools/gc.py` gained one **provenance conditional**. Bundling the linter alone was rejected because it turns a clean failure into a misleading success — measured here as 42 findings, 40 of them `[required]`, against a stranger's tree. REQ-PKG-MARKETPLACE-007's freeze is narrowed, not dropped.
+- **New after the reversal — the restored limitation.** Run from a **consumer**
+  repository that has no `tools/` directory, the bundled drift sweep exits **2**
+  with `error: linter missing — expected <root>/tools/skill-lint.py`: it
+  delegates its structural sweeps to the skill linter, which is a
+  contributor-only tool and is not shipped in the plugin. In **this** repository
+  the limitation does not bite — the bundled copy resolves
+  `<root>/tools/skill-lint.py`, which exists, and produces a finding set
+  identical to the root copy's (both exit 0, outputs `diff`-clean, measured
+  above). `reproduce:` build a scratch `git init` repository with
+  `docs/.sdd-version` = `4`, `docs/requirements/index.md` and a copy of
+  `skills/orchestrate/`, no `tools/` directory, then run `python3
+  skills/orchestrate/tools/gc.py --report --root .` → exit 2. Two attempts to
+  remove the limitation in-cycle (bundle the linter; gate this repository's
+  suite-specific rows behind a provenance predicate) each introduced a worse
+  break — a misleading success in the first case, a silently disabled rule set in
+  the second — so the operator reverted both and carried the question forward.
+  What it needs is a marker of the repository that **owns** the suite rules,
+  carried by the swept corpus; that is a design question for a later cycle.
 - **New in this re-verification.** One drift-sweep invocation under `skills/` is still **cwd-relative**: `skills/verify/SKILL.md:169` spells it `python3 tools/gc.py --report --root .`. It satisfies REQ-PKG-MARKETPLACE-007's letter — it carries an explicit root — and it satisfies REQ-PKG-MARKETPLACE-006's added criterion, which asks only that *at least one* invocation resolve to the bundled copy (8 do). But it is the same class of unreachability R5 found: read out of an installed plugin in a consumer repository that has no `tools/`, that command does not resolve. Behaviour-neutral in this repository. Fix by spelling it `<skill-dir>/tools/gc.py` as the driver skill's eight invocations already do — with the caveat that `skills/verify/` bundles no `tools/` of its own, so the fix needs a decision about where a non-driver skill's bundled copy lives.
 - **New in this re-verification.** The `docs/spec/*.md` citation count over `skills/**/*.md` is **151 at HEAD**, not the 150 the first pass recorded. The delta is one citation added by the R5 repair (`docs/spec/marketplace-packaging.md` §No skill body depends on the plugin-root variable, cited from a driver-skill body). REQ-PKG-MARKETPLACE-009 is scoped to the packaging change and measures 150 == 150 across it, so the criterion holds; this is recorded so the superseded "150 at HEAD" assertion is not inherited as true by a later reader.
 - `CLAUDE.md:251` says marker `3` is "what this repo uses today" while `CLAUDE.md:215` says the repository migrated to marker `4` on 2026-09-17. Pre-existing contradiction, inherited from before this cycle; left alone because §Multi-Workstream Layout (v4) is one of the sections this cycle was forbidden to change in substance (`project-docs.md` §`CLAUDE.md`). Both line numbers re-measured at HEAD.
@@ -537,6 +675,7 @@ cycle's commits.
 ## Next Steps
 
 - **[closed 2026-09-21 — operator decision: accept and document]** Moving `docs/` outside the installed tree in a following cycle: the component list cannot express the exclusion, so a criterion written against the manifest passes while the condition persists — any future assertion must be made against the **materialised install tree**, not the manifest. Cheapest path first: spike whether an exclusion declaration exists before touching the plugin root layout. Recorded as `Q-IMPL-MARKETPLACE-020`.
+- **Carried to a later cycle (operator decision, 2026-09-21): what an installed plugin actually needs, measured against a real install.** One question, two faces — the bundled sweep exits 2 in a consumer repository for want of the contributor-only linter it delegates to, and `docs/` ships inside the install because `"source": "./"` materialises the whole tree. Both were attacked in-cycle from the manifest side and both resisted it: the component list cannot express an exclusion, and a provenance predicate cannot tell whose repository it is sweeping from paths alone. The next cycle should start from a **materialised install tree** and a real consumer repository, and decide whether the suite rules get an owning-repository marker in the swept corpus, whether the linter becomes shippable, or whether the driver stops delegating. Do not re-patch the predicate.
 - gc note: `skills/verify/SKILL.md:169` — the one remaining cwd-relative drift-sweep invocation in a shipped skill body; decide where a non-driver skill's bundled tool copy lives, then spell it skill-directory-relative.
 - gc note: `docs/spec/orchestration.md:574` — name the project README by its current filename.
 - gc note: `tools/skill-lint.py:381` **and** `tools/skill-lint.py:1252` — drop the deleted front door's filename from `RETIRED_SCOPE_FILES` and from the self-test's independent `policed_files` tuple together (`Q-IMPL-MARKETPLACE-017`); behaviour-neutral, but editing one alone trips the scope-drift check.

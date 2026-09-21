@@ -504,24 +504,10 @@ class Gc:
                 return cand
         return None
 
-    def suite_root(self) -> bool:
-        """True when the root BEING SWEPT is the repository that owns the suite
-        rules.  The rules are THIS repository's contract rows, keyed to its own
-        skill paths, so they must run whenever this repository is the subject —
-        whether the sweep was launched through `tools/gc.py` or through a bundled
-        plugin copy of it — and must stay off for a consumer's tree
-        (REQ-PKG-MARKETPLACE-007).  The predicate is therefore keyed to the root,
-        never to where the running script lives: the owning repository is exactly
-        the one that carries the linter at `<root>/tools/skill-lint.py`.  Derived
-        from paths at run time — no flag, no environment variable, no config.
-        See Q-IMPL-MARKETPLACE-027."""
-        return (self.root / "tools" / "skill-lint.py").is_file()
-
     def lint_command(self, lint: Path) -> list[str]:
-        if self.lint_suite_rules and self.suite_root():
+        if self.lint_suite_rules:
             return [sys.executable, str(lint), str(self.root)]
-        # Fixture mode / consumer tree: same linter, same output, suite-specific
-        # rows off.
+        # Fixture mode: same linter, same output, suite-specific rows off.
         shim = ("import importlib.util, sys; from pathlib import Path; "
                 "s = importlib.util.spec_from_file_location('sdd_skill_lint', sys.argv[1]); "
                 "m = importlib.util.module_from_spec(s); s.loader.exec_module(m); "
