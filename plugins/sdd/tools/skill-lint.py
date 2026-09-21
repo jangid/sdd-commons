@@ -2671,7 +2671,10 @@ def self_test() -> int:
             """C10.1: `check_structure()`'s `seen_dirs` dedupe, reached from production.
 
             The same hole `walk_dedupes_repeated_roots` closed for `walk()`,
-            in the second of the file's three deduplications. `swept_roots()`
+            in the second of the file's four deduplications (the fourth,
+            `retired_scope_entries()`'s own `seen` set, is unpinned and is
+            recorded as an open finding in `two-root-linter.md` §6).
+            `swept_roots()`
             appends the suite term only when it differs from the corpus, so no
             geometry yields two walk terms over the same subtree and
             `seen_dirs` can be deleted with all four gates green — the
@@ -2702,7 +2705,7 @@ def self_test() -> int:
         def check_size_dedupes_repeated_roots() -> None:
             """C10.2: `check_size()`'s `seen_size` dedupe, reached from production.
 
-            The third of the file's three deduplications, and unreachable from
+            The third of the file's four deduplications, and unreachable from
             production input for the same reason as the other two, so
             `seen_size` can be deleted with all four gates green — the deletion
             then measures and reports the same oversized `SKILL.md` once per

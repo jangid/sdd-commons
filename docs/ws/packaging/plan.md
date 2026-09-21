@@ -951,8 +951,10 @@ by running the mutation. Task numbers are the `C10.<n>` refs used in
 new scope.
 
 1. [x] [implement] **Pin `check_structure()`'s `seen_dirs` dedupe (B2b, first of
-   two).** The file carries **three** deduplications, not one; §6's amended
-   paragraph covered only `walk()`'s. `seen_dirs` was deletable with all four
+   two).** The file carries **four** deduplications, not one; §6's amended
+   paragraph covered only `walk()`'s. (*Corrected 2026-09-21, round 4*: this
+   task said **three**. The fourth, in `retired_scope_entries()`, is unpinned
+   and recorded as an open finding in §Chunk 11 below.) `seen_dirs` was deletable with all four
    gates green, the deletion re-reporting every skill directory once per
    repeated root. New case `check_structure_dedupes_repeated_roots`, the
    `walk_dedupes_repeated_roots` shape (monkeypatch `swept_roots()` to `[r, r]`,
@@ -977,10 +979,15 @@ new scope.
    `flag()`'s docstring leans on that raise to explain why a per-entry-bound
    check must supply its own rendering; `skill_dir_of()` states the same. New
    case `rel_raises_outside_the_swept_roots` drives both against a disjoint
-   geometry. Pinned rather than softened. *Recorded, not claimed*: mutating
-   `rel()`'s root set to suite-only remains survivable and is
-   **behaviour-preserving**, not a defect — the corpus fallback returns the
-   same rendering the union would — traces to `two-root-linter.md` §2
+   geometry. Pinned rather than softened. *Corrected 2026-09-21 (round 4)*:
+   this task originally recorded that mutating `rel()`'s root set to suite-only
+   "remains survivable" and is behaviour-preserving. **That is false** — the
+   mutation `roots = [self.suite_root]` was run and is killed by
+   `rel_raises_outside_the_swept_roots` itself (`SELF-TEST FAIL: - rel() must
+   raise ValueError on a path under no swept root, as its docstring states;
+   got skills/outside/SKILL.md`). The mutant errs conservatively, so coverage
+   is better than was claimed, and the case pins `rel()`'s union binding as
+   well as its documented raise — traces to `two-root-linter.md` §2
    (REQ-PKG-PACKAGING-002)
 5. [x] [implement] **Pin `suite_contained()`'s equality clause (S2).** §2 states
    equality counts as containment, and `check_links()` reads the predicate to
@@ -1058,10 +1065,55 @@ recorded, plus the five round-2 classes re-run and still killed; any surviving
 mutation reported as a finding rather than claimed as a repair.
 
 
+### Chunk 11: Recorded open findings — carried to verify (no tasks)
+
+**This section contains no tasks.** It is a record, written by the round-4
+text-only correction pass (2026-09-21, operator-authorised extra iteration),
+of gaps that were measured and left unrepaired because closing any of them
+needs new test code or an exit-contract change — neither of which that pass
+was authorised to make. Nothing here is to be ticked; each item carries the
+mutation that demonstrates it so the verify stage, or a later cycle, does not
+have to rediscover it.
+
+1. **`check_retired_prefix()`'s `rel=Path(rel)` argument is unpinned.** Highest
+   value of the three. Reverting the `rel=Path(rel)` clause at
+   `plugins/sdd/tools/skill-lint.py:1163` survives all four gates
+   (`skill-lint.py`, `skill-lint.py --self-test`, `gc.py --fast`,
+   `gc.py --self-test`, all exit 0) and raises `ValueError` in the disjoint
+   consumer geometry, where the entry's file lies under no swept root of the
+   default rendering. The rule's finding severity is `fail` — so the breakage
+   is gateable in principle — and `two-root-linter.md` §4 calls the clause
+   load-bearing. Closing it is one new self-test case driving
+   `check_retired_prefix()` against the disjoint geometry and asserting no
+   raise.
+
+2. **`main()`'s `print_population(root, default_suite_root())` wiring is
+   unpinned.** Mis-rooting the call to `print_population(root, root)` reports
+   `FILES_SWEPT=0` with exit 0 on every gate — the same mis-rooting class
+   `REQ-PKG-PACKAGING-002` describes, and the same one C9.2/C10.6 closed for
+   the `Linter` half of the identical wiring in `main()`. Only the `Linter`
+   half is pinned; the `print_population()` half is not.
+
+3. **The fourth deduplication, `retired_scope_entries()`'s `seen` set, is
+   unpinned.** Deleting the `if key in seen: return` / `seen.add(key)` guard in
+   its `add()` helper survives all four gates. It is reachable from production
+   by the technique C10.1/C10.2 use — monkeypatching the union source,
+   `lin.retired_scope_roots = lambda e: [d, d]`, which yields 1 finding with
+   the guard and 2 without. Recorded in `two-root-linter.md` §6 as well; C10.1
+   and C10.2's prose said *three* deduplications and now says *four*.
+
+4. **The `warn` severity class stays exempt, as §Verification records it.**
+   Unchanged from C10.8: rebinding `resolve_backtick_path()`'s `docs/spec/…`
+   base to the suite root yields 136 spurious `[path]` warnings with exit 0 on
+   all four gates, because no gate reads warning counts. Closing it means
+   changing the linter's exit contract, which is out of scope for this cycle
+   and is carried as a stated boundary rather than as work.
+
+
 ## Requirement → Task Coverage
 
 All 22 approved requirements, each mapped to the tasks that reach it, plus the
-two `REQ-PC-MARKETPLACE-*` rows this workstream delivered evidence for at
+three `REQ-PC-MARKETPLACE-*` rows this workstream delivered evidence for at
 chunks 9 and 10. This table
 lives here rather than in `docs/ws/packaging/traceability.md` because that
 matrix's shape is pinned at six columns by `docs/spec/ws-traceability.md` — a
@@ -1094,6 +1146,7 @@ not merely the one that exercises the behaviour.
 | REQ-PC-PACKAGING-001 | pre-commit.md | C5.4, C5.7, **C5.8** (membership: the entry run verbatim sweeps a `docs/spec/` path), C7.6 |
 | REQ-PC-MARKETPLACE-001 | pre-commit.md | C9.4 (the two self-test hooks), **C10.7** (closed set amended to eight; parsed ids == derived union) |
 | REQ-PC-MARKETPLACE-004 | pre-commit.md | C9.4 (three-name grep re-run), **C10.9** (grep strings pinned to the three script filenames) |
+| REQ-PC-MARKETPLACE-006 | pre-commit.md | **C10.7** (re-checked against the amended eight-hook set: every entry one of the eight, no `args:` key; supersedes the `marketplace` row's six-entry assertion) |
 | REQ-DOCS-PACKAGING-001 | project-docs.md | C6.2, C6.6 (incl. the positive `README.md` clause) |
 | REQ-DOCS-PACKAGING-002 | project-docs.md | C0.3, C0.4, C6.9 (root-doc path spellings, marker sections untouched) |
 | REQ-DOCS-PACKAGING-003 | project-docs.md | C6.4, C6.5, C6.7 |

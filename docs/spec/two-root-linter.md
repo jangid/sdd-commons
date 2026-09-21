@@ -216,7 +216,8 @@ case `walk_dedupes_repeated_roots` closes that by monkeypatching
 `walk()` — and asserting each path comes back once and the guard stays silent
 (C9.4, implement-stage review round 2).
 
-**There are three such deduplications, not one, and all three are now pinned.**
+**There are four such deduplications, not one; three are pinned and the
+fourth is an open gap (see below).**
 The paragraph above was written as though `walk()` were the file's only one; it
 is the only one the §6 guard backstops, which is not the same thing.
 `check_structure()` and `check_size()` each carry their own resolved-path
@@ -227,8 +228,29 @@ re-measuring every `SKILL.md`, once per repeated root. The cases
 `check_structure_dedupes_repeated_roots` and
 `check_size_dedupes_repeated_roots` close those two by the same monkeypatch,
 asserting the seeded finding is reported exactly once (C10.1, C10.2,
-implement-stage review round 3). A future edit that removes any of the three
+implement-stage review round 3). A future edit that removes any of those three
 deduplications contradicts this paragraph.
+
+**The fourth deduplication is unpinned — a recorded open gap (round 4).** The
+count above read *three* until round 4; it was wrong. `retired_scope_entries()`
+(`plugins/sdd/tools/skill-lint.py`) carries its **own** resolved-path `seen`
+set, over the `both`-bound `retired_scope_roots()` union rather than over
+`swept_roots()`, and nothing pins it:
+
+- **Mutation that survives:** delete the `if key in seen: return` / `seen.add(key)`
+  guard in `retired_scope_entries()`'s `add()` helper. All four gates
+  (`skill-lint.py`, `skill-lint.py --self-test`, `gc.py --fast`,
+  `gc.py --self-test`) exit 0, and a repeated root then re-reports every
+  `retired-prefix` finding once per repetition.
+- **Reachable from production by the same technique as C10.1/C10.2:** the
+  entry union is built from `retired_scope_roots()`, so monkeypatching it —
+  `lin.retired_scope_roots = lambda e: [d, d]` — reaches the loop. Measured:
+  1 finding with the guard, 2 without.
+
+This is recorded, not repaired: closing it is a new self-test case, which the
+round-4 correction pass was not authorised to add. It carries into the verify
+stage as an open finding, recorded with the other carried gaps in
+`docs/ws/packaging/plan.md` §Chunk 11.
 
 **Live zero-sweep detection is deliberately given up.** A bare `FILES_SWEPT >=
 1` is wrong (an empty sweep is legitimate in a consumer repository) and the
@@ -371,11 +393,27 @@ redundant with the clause beside it and deleting it is behaviour-preserving,
 not a defect. `equal_roots_count_as_contained` pins the **property** §2 states
 — equality counts as containment, which `check_links()` reads to decide
 whether the `TEMPLATE_PAIRS` spec side is checked at all — and its docstring
-says plainly that the disjunct itself is documentary. Likewise, mutating
-`rel()`'s root set to the suite alone survives every gate because the corpus
-fallback returns the same rendering the union would; what
-`rel_raises_outside_the_swept_roots` pins is the documented raise, which is
-what `flag()`'s docstring leans on.
+says plainly that the disjunct itself is documentary.
+
+**Correction (2026-09-21, round 4).** An earlier revision of the paragraph
+above extended the same claim to `rel()`, saying that mutating its root set to
+the suite alone *"survives every gate because the corpus fallback returns the
+same rendering the union would"*. **That claim is false**, and was verified
+false by running the mutation. `roots = [self.suite_root]` in `rel()` is killed
+by `rel_raises_outside_the_swept_roots` — the very case the sentence named:
+
+```
+SELF-TEST FAIL:
+- rel() must raise ValueError on a path under no swept root, as its docstring states; got skills/outside/SKILL.md
+```
+
+The mutant errs conservatively — it raises where the union would have rendered
+— so `rel()`'s coverage is **better** than the sentence advertised, not worse.
+`rel_raises_outside_the_swept_roots` therefore pins both the documented raise
+that `flag()`'s docstring leans on **and** `rel()`'s binding to the swept-root
+union. The `suite_contained()` half of this boundary is unaffected and stands
+exactly as written above. Recorded here, in the section written to stop making
+unverified survivability claims, because it was one.
 
 **Stated boundary: the `warn` severity class is outside what the four-gate
 harness can observe.** Recorded here as a limitation rather than left as a

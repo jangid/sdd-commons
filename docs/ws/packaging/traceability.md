@@ -16,10 +16,13 @@ orchestrator's post-gate bookkeeping.
 Cell Values — `pass | fail | pending-red | descoped`. Rows were added at the
 requirements stage on 2026-09-21, the `Spec` column filled by `sdd:specs` the
 same day, and `Test` / `Implementation` filled by `sdd:implement` as each chunk
-landed — `Verified` is `sdd:verify`'s cell and is intentionally blank. The two
+landed — `Verified` is `sdd:verify`'s cell and is intentionally blank. The three
 `REQ-PC-MARKETPLACE-*` rows are here because this workstream delivered their
 evidence: the gate's hook set was amended and re-checked inside this cycle
-(C9.4, C10.7). Their requirement text lives in the shared corpus, as every
+(C9.4, C10.7). Two of them (`-001`, `-006`) carry an explicit **supersedes**
+note against the `marketplace` workstream's older six-id rows, so the
+regenerated aggregate no longer reads as two unqualified contradictory
+assertions; the `marketplace` rows themselves are that workstream's to edit. Their requirement text lives in the shared corpus, as every
 row's does.
 
 **Requirement → plan task.** The matrix shape is fixed at the six columns of
@@ -43,8 +46,9 @@ row per requirement in this table, keyed by the same ids.
 | REQ-LINT-PACKAGING-006 | two-root-linter.md | packaging | `fixture_counts_exact` (C3.6) | per-fixture literal counts (C3.6) |  |
 | REQ-LINT-PACKAGING-007 | two-root-linter.md | packaging | `print_population_shape` (C4.3) | `--print-population`, `population_tables()` (C4.1) |  |
 | REQ-LINT-PACKAGING-008 | skill-namespace-rename.md | packaging | `skill-lint.py --self-test` retired-prefix scope drift | `tools/skill-lint.py`:381,:1252; `skill-namespace-rename.md`:76 (C0.2) |  |
-| REQ-PC-MARKETPLACE-001 | pre-commit.md | packaging | parsed-hook-id set == derived union, 8 == 8; `pre-commit validate-config` exit 0 (C10.7) | `.pre-commit-config.yaml` two `--self-test` local hooks (C9.4); closed set amended to eight in requirement + `pre-commit.md` §Hook-Set Amendment (C10.7) |  |
+| REQ-PC-MARKETPLACE-001 | pre-commit.md | packaging | parsed-hook-id set == derived union, **8 == 8** (C10.7); `pre-commit validate-config` exit 0. **Supersedes** the `marketplace` row's six-id assertion ("parsed id set == the six-id set", Chunk 3 task 4) as of 2026-09-21 — the closed set is eight, not six | `.pre-commit-config.yaml` two `--self-test` local hooks (C9.4); closed set amended to eight in the requirement + `pre-commit.md` §Hook-Set Amendment (C10.7) |  |
 | REQ-PC-MARKETPLACE-004 | pre-commit.md | packaging | three-script-filename grep re-run, 0/0/0 (C9.4, re-run C10.7) | acceptance's grep strings pinned to the three script filenames; `CONTRIBUTING.md` reversal recorded in place (C9.4, C10.7) |  |
+| REQ-PC-MARKETPLACE-006 | pre-commit.md | packaging | re-checked after the hook-set amendment: every parsed entry is one of the **eight** (two local tool hooks, two local `--self-test` hooks, four upstream hygiene hooks) and no entry carries an `args:` key at all — the `--fast` / `--self-test` mode selectors live inside `entry:` (C10.7). **Supersedes** the `marketplace` row's "every entry is one of the six" assertion as of 2026-09-21 | `.pre-commit-config.yaml` — the two added entries invoke the same two repository tools, so the gate still adds no rule of its own (C9.4, C10.7) |  |
 | REQ-PC-PACKAGING-001 | pre-commit.md | packaging | revert-either-prefix failure; swept-set membership >=1 `docs/spec/` path (C5.7, C5.8) | both `.pre-commit-config.yaml` hook entries prefixed (C5.4) |  |
 | REQ-PKG-PACKAGING-001 | two-root-linter.md | packaging | C5.5 per-name membership vs pre-move sha 95c28b7; `git log --follow` 45/45 (C5.2, C5.5) | the move commit e26f81f — 45 renames, 0 add, 0 delete (C5.2) |  |
 | REQ-PKG-PACKAGING-002 | two-root-linter.md | packaging | `two_roots_construct_distinct_and_equal`; `--help` grep (C1.7); `zero_arg_run_sweeps_the_corpus` — the acceptance's own case, corpus half (C9.2) and suite-default half (C10.6); `rel_raises_outside_the_swept_roots` (C10.4); `equal_roots_count_as_contained` (C10.5) | `skill-lint.py` `__init__`/`main()` cwd default; `default_suite_root()`; `rel()` / `skill_dir_of()` fallbacks; `skill-lint-v5.md` REPO_ROOT sentences (C1.1, C1.6) |  |
