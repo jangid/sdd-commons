@@ -572,7 +572,7 @@ the implement row unchanged (Q-PLAN-PO-E).
 **Estimated**: ~8 hours.
 **Tasks**:
 
-1. [spike] `PreToolUse` hook enforcement of read-only leaves (Q-REQ-PO-O,
+1. [x] [spike] `PreToolUse` hook enforcement of read-only leaves (Q-REQ-PO-O,
    RS-PIPELINEOBSERVABILITY-001 §Q2) — budget: **one live dispatch with a
    logging hook, ~10 tool calls, 0 test runs**. Question: does the hook input
    carry the subagent type, so a deny-list could be scoped to the three
@@ -584,6 +584,14 @@ the implement row unchanged (Q-PLAN-PO-E).
    git-state sentence and the void rule stay the contract; a positive answer
    is a next-cycle requirement, never a task added to this plan. — traces to
    `harness-agents.md` §The frontmatter contract.
+   **Performed by the orchestrator, 2026-09-22** (a leaf cannot dispatch, so
+   the spike is orchestrator-only work): answered from Claude Code's hooks and
+   sub-agents documentation, not from a live logging hook — `PreToolUse` stdin
+   carries `agent_id` and `agent_type` inside a subagent, and an agent's
+   frontmatter may declare hooks that run only while it is active; a positive
+   answer, no contract changed this cycle, a next-cycle requirement candidate;
+   the finding is carried into the verify dispatch for `verification.md`
+   §Next Steps. A live measurement stays the precondition before binding.
 2. [x] [implement] `plugins/sdd/tools/scope-check-selftest.py` — scenario A4 in
    the offline arbitration fixture: a round-N+1 finding under a heading
    absent at `sha_N` classifies as an ordinary finding in `W_N`; a control
