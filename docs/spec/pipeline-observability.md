@@ -394,6 +394,36 @@ in for it and found no field-name mismatch.
   command's output can be re-run by the reader. No number in this file is
   asserted without one of the three markers; a count that moves with the
   corpus is written as its command, never as its value alone.
+- **Q-SPEC-PO-W** (frozen counts in `requirements-artifacts.md` replaced by
+  derived forms after the 27.4 row landed): the pipeline-observability block
+  of that spec's §Acceptance Criteria had frozen `36` rows, `9 = 9` files and
+  `thirty-six` in prose, written before REQ-LINT-PACKAGING-007 joined the
+  workstream's traceability at requirements 27.4 (plan review round 1 M5).
+  Each bullet now states its command — the row population is
+  `grep -c '^| REQ-' docs/ws/<id>/traceability.md`, the `(amended)` count
+  `grep -c '^| REQ-.* (amended)' …`, the file-set equality the two derivation
+  commands of REQ-REQ-PIPELINEOBSERVABILITY-001 (d) compared by `diff` — with
+  the measured value (37, 16, 10 = 10 on 2026-09-22) labelled as a dated
+  observation, never as the criterion's comparand. Why: the same rule as
+  Q-SPEC-PO-V applied to the one spec it had not reached — a stated count
+  cannot be told from a stale one, and this one went stale within the cycle.
+- **Q-SPEC-PO-X** (criterion 2's comparand is derived, not a frozen date):
+  the plan's closing review (round 1, C1) found criterion 2 pinning
+  `last_updated: 2026-09-22` and two whole-corpus `wc -l` counts as its
+  comparand while three plan chunks edit members of the amended set during
+  implement — `two-root-linter.md` §6, the repaired self-matching lines, the
+  carried notes — each bumping `last_updated` past the pin. Criterion 2 now
+  derives its spec set from the traceability `Spec` cells by command, checks
+  (a) `Approved`, (b) the amendment heading, (c) a dated marker in a section
+  of record (the per-file check of `requirements-artifacts.md` §Amendment
+  Landing (b), carried by reference), and (d) `last_updated` on or after the
+  latest marker, printing `<N> specs, 0 failures`; the old counts stay as
+  dated observations beside their commands. Implement-stage edits bump
+  `last_updated` and add no new dated marker unless they land a new contract.
+  Why (d) is `>=` and not `==`: an edit that only bumps the date must keep the
+  criterion true, and an edit that lands a new contract adds a newer marker
+  the bump must still cover — the same rule as Q-SPEC-PO-V and -W applied to
+  the last frozen comparand in this file.
 
 ### Reference values recorded, never pinned
 
@@ -465,15 +495,46 @@ section under the date 2026-09-22; this file adds none. The corpus-level checks 
   A `Spec` cell matches a heading by **prefix** (`## `/`### ` text begins with
   the cell's section text) because headings of record carry a trailing
   requirement list — `### VERDICT Token (REQ-HARN-013)` — that the cell omits.
-- [ ] Each of the sixteen amended specs (`two-root-linter.md` the sixteenth,
-  Q-SPEC-PO-U) carries `status: Approved`,
-  `last_updated: 2026-09-22`, a `## Pipeline-Observability Amendment`
-  heading and at least one `[Updated: 2026-09-22]` marker in a section of
-  record — `grep -l '^## Pipeline-Observability Amendment' docs/spec/*.md | wc -l`
-  reads 16 (this map file has no such heading) and
+- [ ] Every spec named in a `Spec` cell of
+  `docs/ws/pipeline-observability/traceability.md` — the set is **derived**
+  by command, never stated as a list:
+  `awk -F'|' '/^\| REQ-/{print $3}' docs/ws/pipeline-observability/traceability.md | sed 's/ §.*//' | tr -d ' ' | sort -u`
+  (16 files on 2026-09-22, `two-root-linter.md` the sixteenth, Q-SPEC-PO-U) —
+  satisfies four checks: (a) `status: Approved`; (b) a
+  `## Pipeline-Observability Amendment` heading exists; (c) at least one dated
+  marker `[Updated: YYYY-MM-DD]` (or `**Amended YYYY-MM-DD**`) exists in a
+  section of record; (d) the frontmatter `last_updated` is **on or after** the
+  latest such marker's date. Decided by one parse, run from the repo root,
+  whose expected output is `<N> specs, 0 failures` with `<N>` the size of the
+  derived set (measured `16 specs, 0 failures` on 2026-09-22):
+
+  ```python
+  import re
+  specs=sorted({m.group(1) for m in re.finditer(r'^\| REQ-[^|]*\| ([a-z0-9-]+\.md) §', open('docs/ws/pipeline-observability/traceability.md').read(), re.M)})
+  bad=[]
+  for f in specs:
+      t=open('docs/spec/'+f).read(); fm=t.split('---')[1]
+      lu=re.search(r'^last_updated:\s*(\S+)',fm,re.M)
+      dates=[a or b for a,b in re.findall(r'\[Updated: (\d{4}-\d{2}-\d{2})\]|\*\*Amended (\d{4}-\d{2}-\d{2})\*\*',t)]
+      ok=(re.search(r'^status:\s*Approved',fm,re.M) and re.search(r'^## Pipeline-Observability Amendment',t,re.M)
+          and dates and lu and lu.group(1)>=max(dates))
+      if not ok: bad.append(f)
+  print(f'{len(specs)} specs, {len(bad)} failures', bad or '')
+  ```
+
+  Check (c) is the per-file dated-marker check of `requirements-artifacts.md`
+  §Amendment Landing (b), carried here by reference so one verify task runs
+  both with this loop. No date is the comparand: implement-stage edits to
+  these specs **bump `last_updated`** and add **no new dated marker** unless
+  they land a new contract, and (d) stays true under every such bump — the
+  frozen `last_updated: 2026-09-22` the earlier form pinned was the
+  snapshot-comparand class this cycle exists to close (Q-SPEC-PO-X). The two
+  whole-corpus counts are dated observations beside their commands, never the
+  criterion: `grep -l '^## Pipeline-Observability Amendment' docs/spec/*.md | wc -l`
+  read 16 on 2026-09-22 (this map file has no such heading) and
   `grep -l 'Updated: 2026-09-22' docs/spec/*.md | grep -vc 'pipeline-observability.md'`
-  reads 16 — the map is excluded because its own prose quotes the marker (the
-  unexcluded count reads 17 on 2026-09-22, one being this file).
+  read 16 on the same day — the map is excluded because its own prose quotes
+  the marker (the unexcluded count read 17, one being this file).
 - [ ] No amendment section and no moved section-of-record text cites a `.md`
   line-number anchor as a comparand — the amendments **added** none, decided
   from the diff rather than from three checkouts:

@@ -1,5 +1,5 @@
 ---
-version: "27.4"
+version: "27.5"
 status: Approved
 last_updated: 2026-09-22
 traceability: traceability.md
@@ -1303,7 +1303,14 @@ was created (Q-REQ-PO-N).
   — no id added or removed. Per (c)/(e) the amendment is a row `(amended)` in
   the per-ws traceability (37 rows = 37 ids carrying a block or marker on
   2026-09-22) and, per (d), `integration/skill-lint.md` joins the derived
-  annotated-file set (ten files = ten annotated rows).
+  annotated-file set (ten files = ten annotated rows). **Version log:** 27.4
+  → 27.5 (specs closing review carried note, patch): one text correction
+  inside REQ-LINT-PACKAGING-007's corpus-sweep block — the
+  `docs/spec/skill-lint-v5.md` §Self-Test Extension hit is now described as
+  formerly "grows by exactly six" (harness-p6), now "grows by exactly
+  fourteen" under the spec's 2026-09-22 marker, with the grep count (2)
+  measured — no id added or removed, no acceptance changed, no other file
+  touched.
 
 Resolved during requirements gathering for RS-MARKETPLACE-001 (marketplace
 release, workstream `marketplace`). That stage also ran **non-interactively**, so

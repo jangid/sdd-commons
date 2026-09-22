@@ -621,9 +621,11 @@ the dated marker and moves them to `56 / 15` with the rows;
 `plugins/sdd/tools/skill-lint.py` self-test `pinned` dict (`42 / 14`, with the
 research-gate comment) — reconciled, the dict's assertion becomes the
 three-way equality and reads `56 / 15` after the delta;
-`docs/spec/skill-lint-v5.md` §Self-Test Extension ("grows by exactly six",
-"asserts the new total") — reconciled, the harness-p5 delta's history; the
-new total is §6's dated number; `docs/requirements/integration/packaging.md`
+`docs/spec/skill-lint-v5.md` §Self-Test Extension (formerly "grows by
+exactly six" (harness-p6), now "grows by exactly fourteen" under the
+2026-09-22 marker; `grep -c 'grows by exactly fourteen'
+docs/spec/skill-lint-v5.md` = 2, "asserts the new total") — reconciled, the
+delta's history under its dated marker; the new total is §6's dated number; `docs/requirements/integration/packaging.md`
 REQ-PKG-PACKAGING-004 ("compared once … `REQUIRED=40 … FORBIDDEN=13`", "the
 56 suite-gated rows" = 40 + 9 + 7) — reconciled by naming this requirement as
 the mover; the sentence records the packaging cycle's numbers as of its date

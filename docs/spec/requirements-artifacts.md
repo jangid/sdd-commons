@@ -527,20 +527,29 @@ across lines). Requirements-review M1.]**
 - [ ] For the active workstream `<id>`, the file set derived from the
   `(amended)` rows of `docs/ws/<id>/traceability.md` (each id's `^### <id>:`
   heading located under `docs/requirements/*/*.md`) equals the file set the
-  index's Files-table annotations name — both listings written to files and
-  `diff` printing nothing (9 = 9 for `pipeline-observability` on 2026-09-22)
+  index's Files-table annotations name — the two derivation commands stated
+  under REQ-REQ-PIPELINEOBSERVABILITY-001 (d)'s Acceptance, each listing
+  written to a file and `diff` printing nothing; the two `wc -l` counts are a
+  dated observation, never the comparand (measured 10 = 10 for
+  `pipeline-observability` on 2026-09-22)
   (REQ-REQ-PIPELINEOBSERVABILITY-001 (c), (d)).
 - [ ] Every amended requirement body holds both `[Updated:` and `**Amended`
   (`grep -c` over each ≥ 1) (REQ-REQ-PIPELINEOBSERVABILITY-001 (a)).
 - [ ] At the specs gate, `grep -c '| [a-z0-9-]*\.md §Pipeline-Observability Amendment |' docs/ws/pipeline-observability/traceability.md`
-  reads 0 over all thirty-six rows, amended and new alike (15 before this
-  re-derivation; measured 0 on 2026-09-22); every spec file named in the Spec
+  reads 0 over every row of the file, amended and new alike — the row
+  population is `grep -c '^| REQ-' docs/ws/pipeline-observability/traceability.md`,
+  never a stated number (measured 37 on 2026-09-22; the amendment-section
+  cells read 15 before this re-derivation, measured 0 on 2026-09-22); every
+  spec file named in the Spec
   cell of an `(amended)` row holds a dated marker in its section of record —
   `grep -c 'Updated: 2026-09-22'` over that file ≥ 1 — and no amendment
   section states a contract the section of record lacks, decided by the specs
   review against clause (b) (REQ-REQ-PIPELINEOBSERVABILITY-001 (b)).
 - [ ] The set of ids in the Requirement column of `docs/ws/<id>/traceability.md`
-  (`(amended)` rows included; 36 for `pipeline-observability`) equals the set
+  (`(amended)` rows included — the population is
+  `grep -c '^| REQ-' docs/ws/<id>/traceability.md`, of which
+  `grep -c '^| REQ-.* (amended)' docs/ws/<id>/traceability.md` are `(amended)`
+  rows; measured 37 and 16 for `pipeline-observability` on 2026-09-22) equals the set
   of ids whose body carries a `Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001
   (e)` block or a `> no binding statement` marker, attributed by `awk` to the
   enclosing `### REQ-` heading — `diff` of the two listings prints nothing;
