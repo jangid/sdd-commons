@@ -51,15 +51,19 @@ line-number anchor: the branch point is always written as
   row, a `--self-test` case, a `--lint` assertion, a gc rule). Each chunk's
   verify task **runs** those mutations in a temp copy — asserted results are
   not accepted (kickoff constraint 2).
-- **Spec writes inside implement chunks**: three tasks write `docs/spec/**`
-  as the specs themselves require it — Chunk 1 task 10 (`two-root-linter.md`
+- **Spec writes inside implement chunks**: three tasks write **contract
+  text** into `docs/spec/**` as the specs themselves require it — Chunk 1 task 10 (`two-root-linter.md`
   §6's dated numbers move with the rows), Chunk 3 task 2 (the spec lines
   `self-matching-grep` would fail are repaired in the rule's landing commit)
   and Chunk 4 task 6 (the carried notes of §Carried notes, one-line spec
   corrections). Chunk 4 task 2 **checks** `docs/spec/arbitrated-handoff.md`
   for its `new[N]` term — landed at the specs stage — and writes only under
   `plugins/`; it is not a spec write. This is the same set Q-PLAN-PO-E
-  names.
+  names. Separately, **every chunk may write Q-IMPL entries** into the owning
+  spec's `## Implementation Questions` section — `implement`'s deviation
+  protocol, ADVISORY in the implement row — so the set of spec *files* a chunk
+  touches is larger than the three contract-writing tasks name; the
+  enumeration counts contract writes, not Q-IMPL entries.
   Those writes stay inside the implement row of `write-scope.md` §2, where
   `docs/spec/*.md` is **ADVISORY**; no task widens the dispatched scope. **No
   task writes `docs/requirements/**`** — it is in no implement row and no
@@ -955,7 +959,9 @@ remaining task of Chunks 1–4 was re-checked against the implement row of
 edits (ADVISORY in that row): Chunk 1 task 10, Chunk 3 task 2 and Chunk 4
 task 6 **write** specs; Chunk 4 task 2 only **checks** that
 `arbitrated-handoff.md` carries `new[N]` (landed at the specs stage) and
-writes under `plugins/` — three writing tasks, the set §Conventions states.
+writes under `plugins/` — three contract-writing tasks, the set §Conventions
+states (Q-IMPL entries, which any chunk may add to the owning spec under the
+deviation protocol, are not counted in it).
 Chunk 3 task 7 now changes the regeneration code only, never the live
 aggregate. A future requirements correction found mid-cycle is
 routed to a requirements dispatch, never added to a chunk.

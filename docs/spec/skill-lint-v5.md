@@ -433,7 +433,7 @@ two arbitration fixture bodies), so the phrase lands at no repair cost. The
 `--self-test` `FORBIDDEN` count pin moves by one with the row
 (REQ-LINT-PACKAGING-008's discipline).
 
-### `REQUIRED` Rows — Pipeline-Observability (p1–p14)
+### `REQUIRED` Rows — Pipeline-Observability (p1–p15)
 
 `[Updated: 2026-09-22]` (workstream `pipeline-observability`). Two rows landed
 before the specs stage with the V3 routing (`proceeds **without re-review**`
@@ -458,6 +458,7 @@ counted among the fourteen below.
 | p12 | `agents/chunk-verifier.md` | `script path in a command` | 1 | the verifier's Check 3 clause (REQ-CHKC-004 as amended) |
 | p13 | `skills/review/SKILL.md`, `agents/reviewer.md` | `at least one Material finding` | 1 | the `Approve with fixes` predicate in **both** producers (`review.md` §Report Format, REQ-REV-PIPELINEOBSERVABILITY-001 (vi)) |
 | p14 | `skills/orchestrate/references/return-contract.md` | `counts as zero` | 1 | §Tier-heading parsing's placeholder normalisation (REQ-HARN-PIPELINEOBSERVABILITY-005) |
+| p15 | `skills/orchestrate/USAGE.md` | `proceeds without re-review` | 1 | §7b `Reading the stage gate` — the operator guide restates the routing by verdict (`review.md` §Report Format; added by the implement-stage fix, Q-IMPL-PIPELINEOBSERVABILITY-011) |
 
 Each row carries `reason` and `fix`. Rows p4, p10, p11 and p12 pin a phrase
 from the sentence they protect rather than a single common word (`consecutive`,
@@ -465,9 +466,13 @@ from the sentence they protect rather than a single common word (`consecutive`,
 already says "conventions" of `CLAUDE.md`), so the row fails when the sentence
 goes, not only when the word does. Row p13 is one row with two `files:`
 entries, so a temp copy with the line removed from either producer fails
-naming that file. The self-test's mutation loop covers all fourteen;
-`len(REQUIRED)` grows by exactly fourteen and the suite asserts the new
-**exact** total, never a `>=` bound. Row p8's pattern is the one place the
+naming that file. The self-test's mutation loop covers all fifteen;
+`len(REQUIRED)` grows by exactly fifteen (fourteen at Chunk 1, one at the
+implement-stage fix) and the suite asserts the new **exact** total, never a
+`>=` bound. Row p15 is the one row on `USAGE.md`, the operator-facing guide:
+the routing sentence it pins is prose a human reads, not a gate line, and the
+row exists because the guide contradicted the landed routing for a whole
+stage before the closing review caught it. Row p8's pattern is the one place the
 linter pins a co-occurrence on one visible line; it is a single row because the
 bound is one sentence. Row p6's pattern is chosen so that p8's bound line
 cannot satisfy it: the bound line says `voided re-dispatch`, never `voids its
@@ -872,7 +877,7 @@ printed — not scope.
   this red (REQ-PKG-CONSUMERGEOMETRY-003 acceptance 4, second half).
 
 
-## Pipeline-Observability Amendment (2026-09-22, REQ-LINT-PIPELINEOBSERVABILITY-001; the fourteen `REQUIRED` rows this cycle adds)
+## Pipeline-Observability Amendment (2026-09-22, REQ-LINT-PIPELINEOBSERVABILITY-001; the fifteen `REQUIRED` rows this cycle adds)
 
 [Added 2026-09-22, workstream `pipeline-observability` —
 RS-PIPELINEOBSERVABILITY-001 §Q5 scope decision, §Mechanical pin R3, R4, R6,
@@ -882,7 +887,7 @@ routing (`proceeds **without re-review**` on `skills/orchestrate/SKILL.md`,
 re-run the review for this stage`); they are recorded here as in force and are
 **not** counted among the rows below.]
 
-**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §`FORBIDDEN` Row — `literal-anchor` carries the drift phrase and its source-line discipline (REQ-LINT-PIPELINEOBSERVABILITY-001); §`REQUIRED` Rows — Pipeline-Observability carries the fourteen rows this cycle adds; §Self-Test Extension's exact totals move with them. Left consistent and not reopened: §Finding Shape, §Severity Tier, §Size Check and baseline, §`references/` Path Resolution, §`[template-drift]`, the `COMMIT:`, `PLAN:`/`GIT_STATE` and `CONVERGENCE:` rows (the `GIT_STATE` pair is unchanged — one row is added beside it), §Two-Root Amendment and §Consumer-Geometry Amendment.
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §`FORBIDDEN` Row — `literal-anchor` carries the drift phrase and its source-line discipline (REQ-LINT-PIPELINEOBSERVABILITY-001); §`REQUIRED` Rows — Pipeline-Observability carries the fifteen rows this cycle adds (fourteen at Chunk 1, p15 at the implement-stage fix); §Self-Test Extension's exact totals move with them. Left consistent and not reopened: §Finding Shape, §Severity Tier, §Size Check and baseline, §`references/` Path Resolution, §`[template-drift]`, the `COMMIT:`, `PLAN:`/`GIT_STATE` and `CONVERGENCE:` rows (the `GIT_STATE` pair is unchanged — one row is added beside it), §Two-Root Amendment and §Consumer-Geometry Amendment.
 
 **Why the linter and not gc for the shipped tree**: the snapshot-comparand class REQ-GC-PIPELINEOBSERVABILITY-001 warns on in the binding corpus is kept out of the shipped skill, reference and agent text through the mechanism that already sweeps that tree, not by widening gc's docs scope (RS-PIPELINEOBSERVABILITY-001 §Q5). **Why spans are read, not blanked** (requirements review round 5 M3): the same discipline as gc's rule, so an anchor in backticks is a finding on both sides. **Why p13 names both producers** (REQ-REV-PIPELINEOBSERVABILITY-001 (vi)): the grammar is bound on the skill template and the agent body alike, and one row with two files fails naming whichever lost the line.
 
@@ -893,3 +898,10 @@ re-run the review for this stage`); they are recorded here as in force and are
 **Spec reference**: §`FORBIDDEN` Row — `literal-anchor` — "a per-row flag — name chosen at implementation (Q-SPEC-PO-E) — that restricts its scan to unfenced lines"
 **Decision**: the row carries `"visible_only": True`. `forbidden_findings()` honours it with the same ```` ``` ```` toggle the ordinal check uses (a line whose stripped text opens with a fence flips the state and is itself skipped); nothing else about the line is altered, so a backticked span on a visible line is still read and an inline-code anchor is a finding. Rows without the key scan raw lines, fence-inclusive, as before. The self-test case `literal_anchor_visible_only` reads the shipped row from the table (the one row carrying the key) and runs the four cases the section names — visible, backticked, fenced, `.py` under `tools/`.
 **Rationale**: the name says what the flag does and nothing about why (the "why" is the row's `reason`); a boolean rather than a mode string keeps the default — absent key, old behaviour — a one-line `dict.get`.
+
+### Q-IMPL-PIPELINEOBSERVABILITY-011: the operator guide is refreshed at the implement-stage fix, and row p15 pins it
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`REQUIRED` Rows — Pipeline-Observability; `review.md` §Report Format (the three predicates and the `Approve with fixes` routing)
+**Date**: 2026-09-22 (pipeline-observability, implement-stage fix, review round 3 M1)
+**Decision**: `plugins/sdd/skills/orchestrate/USAGE.md` §7b is rewritten to the landed vocabulary — routing by verdict (`APPROVE_WITH_FIXES` proceeds without re-review unless the operator opts in; `REJECT` re-reviews), `iteration N` as `reject_run` counting consecutive consumed `REJECT`s, the `GROWTH:` line's position, the `post-manual` review after a manual intervention, and the voided-verdict pause with `restore │ accept (note) │ stop` then `redo │ stop` — mirroring `orchestrate/SKILL.md` §The gate and `references/loop-control.md` §1b/§2/§2b/§5 and inventing no rule. This is an **implement-stage scope addition**: no plan task named the guide (the plan's chunks bind skill, reference and agent text; the operator guide was left to drift for a stage). One `REQUIRED` row, p15 on `skills/orchestrate/USAGE.md` pinning `proceeds without re-review`, is added so the guide cannot silently revert; §6 of `two-root-linter.md` moves to `REQUIRED=57` in the same change (three-way equality).
+**Rationale**: the guide is the human-facing statement of the same gate; a reader who follows it would expect a re-review the driver no longer runs. A row on the guide is the cheapest binding that fails on reversion — the rule of this cycle — and the phrase chosen is the one the skill's own row already pins on `SKILL.md`, so the two surfaces fail together.

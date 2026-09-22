@@ -635,6 +635,13 @@ consumer tree carrying neither a sibling linter nor `<root>/tools/skill-lint.py`
 That is the honest, documented limitation this reversal restores; it is recorded as a Minor in the cycle's verification report
 with its reproduce command, and carried forward as a Next Step.
 
+### Q-IMPL-PIPELINEOBSERVABILITY-012: the changelog ships under `plugins/sdd/`, and is not a component
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The manifest pair (the version-bump rule); `CLAUDE.md` §Repository Structure; `CONTRIBUTING.md` (the components-as-sets rule)
+**Date**: 2026-09-22 (pipeline-observability, implement-stage fix, review round 3 M2)
+**Decision**: `CHANGELOG.md` moves from the repository root to `plugins/sdd/CHANGELOG.md` (content unchanged except its opening paragraph, which now states that it ships with the plugin); the root path is left absent, since nothing in the corpus cited it. It is named in `CLAUDE.md` §Repository Structure. It is **not** added to `README.md` §Components or to `.claude-plugin/marketplace.json`: the components-as-sets discipline (`CONTRIBUTING.md`, `CLAUDE.md` §Repository Structure) compares the manifest's `skills` and `agents` lists against `README.md` §Components, and no tool implements the comparison — `skill-lint.py` and `gc.py` carry no README/manifest component check — so it is a documented convention over skills and agents only. A changelog is neither, and the marketplace manifest has no field for one; naming it there would be an invention.
+**Rationale**: the plugin install materialises `plugins/sdd/` and nothing above it, so a root changelog never reached a consumer — the file's one audience. Placing it under the source root is the minimal change that makes the `0.2.0` entry deliverable; the manifest's version bump (REQ-PKG-PIPELINEOBSERVABILITY-001) remains the mechanical signal and the changelog its prose.
+
 ## Placement (superseded 2026-09-21)
 
 [Changed 2026-09-21: `"source": "./"` and the no-`plugins/` clause of

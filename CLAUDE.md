@@ -10,6 +10,7 @@ plugins/sdd/.claude-plugin/plugin.json — the sdd plugin manifest
 plugins/sdd/skills/   — Composable skill definitions (Claude Code SKILL.md format)
 plugins/sdd/agents/   — Agent configurations and prompt templates
 plugins/sdd/tools/    — Standalone utilities and helper scripts
+plugins/sdd/CHANGELOG.md — Consumer-facing changelog, shipped with the plugin
 docs/                 — Requirements, specs, research and per-workstream execution records
 ```
 

@@ -204,9 +204,10 @@ rule-table rows are static in-code data.
 `[Updated: 2026-09-22]` (workstream `pipeline-observability`,
 REQ-LINT-PACKAGING-007 as amended, Q-REQ-PO-AL; the record of why is
 §Pipeline-Observability Amendment): **the numbers are dated, and the comparand
-is derived.** Current at 2026-09-22: `REQUIRED=56 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=15`
+is derived.** Current at 2026-09-22: `REQUIRED=57 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=15`
 (measured with `python3 plugins/sdd/tools/skill-lint.py --print-population`
-after this cycle's rows landed — fourteen `REQUIRED` rows p1–p14 and one
+after this cycle's rows landed — fifteen `REQUIRED` rows p1–p15, the
+fifteenth added by the implement-stage fix on the operator guide, and one
 `FORBIDDEN` row (`skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability,
 §`FORBIDDEN` Row — `literal-anchor`, REQ-LINT-PIPELINEOBSERVABILITY-001);
 before them, on the same day, the tree measured 42 and 14). The `Current at
@@ -661,7 +662,7 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
   the **three-way equality** holds — the printed counts equal `len()` of the
   four code tables and equal the numbers §6 states under its dated marker
   (`REQUIRED=42 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14` on 2026-09-22,
-  measured with the command §6 names; `56` / `15` once this cycle's rows land)
+  measured with the command §6 names; `57` / `15` once this cycle's rows land)
   — and the self-test asserts the same equality, failing in a temp copy when
   any one of the three is changed alone (a row added without moving §6, a §6
   number edited without a row, a count written into the flag as a literal), a
@@ -1824,7 +1825,7 @@ reinterpreting an Approved literal, applied once more.
 
 ## Pipeline-Observability Amendment (2026-09-22, REQ-LINT-PACKAGING-007 amended; REQ-LINT-PIPELINEOBSERVABILITY-001)
 
-**Trigger.** The pipeline-observability delta adds fourteen `REQUIRED` rows and
+**Trigger.** The pipeline-observability delta adds fifteen `REQUIRED` rows and
 one `FORBIDDEN` row to the linter (`skill-lint-v5.md` §`REQUIRED` Rows —
 Pipeline-Observability, §`FORBIDDEN` Row — `literal-anchor`,
 REQ-LINT-PIPELINEOBSERVABILITY-001). §6 pinned `REQUIRED=42 VERSION_GATED=9
@@ -1841,7 +1842,7 @@ row-adding cycle, and the criterion is the three-way equality —
 REQ-LINT-PACKAGING-007 as amended defines; the acceptance bullet under
 §Acceptance Criteria carries the same equality and its three single-side
 mutation cases. `skill-lint-v5.md` §Self-Test Extension states this cycle's
-totals (`56` / `15`) as the delta's arithmetic and defers to §6 for the
+totals (`57` / `15`) as the delta's arithmetic and defers to §6 for the
 comparand. No other section of this spec changes; Q-IMPL-PACKAGING-001 quotes
 the pre-amendment §6 wording as history and is not rewritten. This section
 states no contract of its own.

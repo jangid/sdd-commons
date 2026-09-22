@@ -315,11 +315,13 @@ REQUIRED = [
      "fix": "keep the `CONVERGENCE:` line in SKILL.md §The gate — its defining "
             "section is docs/spec/harness-loop-control.md §Convergence Signal; its producer "
             "lives in skills/orchestrate/references/loop-control.md"},
-    # -- pipeline-observability (2026-09-22): rows p1–p14 of skill-lint-v5.md
+    # -- pipeline-observability (2026-09-22): rows p1–p15 of skill-lint-v5.md
     #    §`REQUIRED` Rows — Pipeline-Observability. Each pins one gate-facing
     #    sentence this cycle landed, by a phrase from the sentence rather than a
     #    common word, so the row fails when the sentence goes and not only the
     #    word. p13 is ONE row with two `files:` entries (checked once per file).
+    #    p15 (the implement-stage fix, Q-IMPL-PIPELINEOBSERVABILITY-011) pins the
+    #    operator guide, which restates the routing for the human reader.
     {"file": "agents/reviewer.md", "pattern": r"git stash", "min": 1,
      "reason": "p1 — the git-state sentence: a read-only leaf runs no git stash/checkout/switch/reset/"
                "restore/commit/clean and no in-place edit (harness-agents.md §The frontmatter contract, "
@@ -382,6 +384,13 @@ REQUIRED = [
      "reason": "p14 — the placeholder normalisation of §Tier-heading parsing: a `- None` / `- n/a` / `- —` item "
                "counts as zero (REQ-HARN-PIPELINEOBSERVABILITY-005)",
      "fix": "restore the placeholder rule (`counts as zero`) in return-contract.md §6b Tier-heading parsing"},
+    {"file": "skills/orchestrate/USAGE.md", "pattern": r"proceeds without re-review", "min": 1,
+     "reason": "p15 — the operator guide's §7b restates the routing by verdict: an APPROVE_WITH_FIXES fix "
+               "lands and the stage proceeds without re-review unless the operator opts in "
+               "(review.md §Report Format; skill-lint-v5.md §`REQUIRED` Rows — Pipeline-Observability, "
+               "Q-IMPL-PIPELINEOBSERVABILITY-011)",
+     "fix": "restore the routing-by-verdict bullet (`proceeds without re-review`) in USAGE.md §7b "
+            "`Reading the stage gate`"},
 ]
 
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
@@ -1726,7 +1735,8 @@ def self_test() -> int:
             # (skill-lint-v5.md §Self-Test Extension, REQ-LINT-HARNESSP6-003).
             # pipeline-observability's manual gate fix (2026-09-22) added two rows
             # (the APPROVE_WITH_FIXES routing sentence, the GROWTH: gate line) and
-            # its Chunk 1 the fourteen rows p1–p14; the total is no longer a
+            # its Chunk 1 the fourteen rows p1–p14, and the implement-stage
+            # fix a fifteenth (p15, on USAGE.md); the total is no longer a
             # literal here — it is the number two-root-linter.md §6 states under
             # its dated marker, read at test time (three-way equality,
             # REQ-LINT-PACKAGING-007 as amended; `print_population_shape` holds

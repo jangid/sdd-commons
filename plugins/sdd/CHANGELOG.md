@@ -1,6 +1,8 @@
 # Changelog
 
-All notable changes to the `sdd` plugin. Versions follow semver as read from
+This file ships with the `sdd` plugin (it lives under `plugins/sdd/`, the
+plugin's source root, so a consumer's install delivers it). All notable
+changes to the plugin are listed here. Versions follow semver as read from
 `plugins/sdd/.claude-plugin/plugin.json`.
 
 ## 0.2.0 — 2026-09-22 (pipeline-observability)
@@ -29,7 +31,7 @@ Changes a consumer repository will notice when it updates:
 - **One review report grammar** for both producers (`skills/review/SKILL.md`
   and `agents/reviewer.md`), with three disjoint verdict predicates; the gate
   consumes a report whose tiers disagree with its token as malformed.
-- `skill-lint.py`: fourteen `REQUIRED` rows and one `FORBIDDEN` row pin the
+- `skill-lint.py`: fifteen `REQUIRED` rows and one `FORBIDDEN` row pin the
   above; the rule-table population is asserted by a three-way equality
   (`--print-population` == code tables == `docs/spec/two-root-linter.md` §6).
 - The `.claude/` directory is excluded from the hygiene hooks in

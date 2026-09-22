@@ -532,9 +532,10 @@ section under the date 2026-09-22; this file adds none. The corpus-level checks 
   whole-corpus counts are dated observations beside their commands, never the
   criterion: `grep -l '^## Pipeline-Observability Amendment' docs/spec/*.md | wc -l`
   read 16 on 2026-09-22 (this map file has no such heading) and
-  `grep -l 'Updated: 2026-09-22' docs/spec/*.md --exclude=pipeline-observability.md | grep -vc 'pipeline-observability.md'`
-  read 16 on the same day — the map is excluded because its own prose quotes
-  the marker (the unexcluded count read 17, one being this file).
+  `find docs/spec -type f ! -path docs/spec/pipeline-observability.md -exec grep -l 'Updated: 2026-09-22' {} + | wc -l`
+  read 16 on the same day — the map is excluded by path, the form Q-REQ-PO-AN
+  fixes, because its own prose quotes the marker (the unexcluded count read
+  17, one being this file).
 - [ ] No amendment section and no moved section-of-record text cites a `.md`
   line-number anchor as a comparand — the amendments **added** none, decided
   from the diff rather than from three checkouts:

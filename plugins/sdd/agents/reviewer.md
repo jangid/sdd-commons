@@ -87,15 +87,23 @@ occurrence wins), and agrees with the `**Verdict:**` line.
 Three disjoint predicates over the tier counts (`C` := Critical items, `M` :=
 Material items), so exactly one verdict is legal for the report you wrote:
 
-VERDICT: APPROVE — **Approve** (`C = 0` and `M = 0`): No findings above minor;
-nothing to apply before the next stage.
+- **Approve** (`C = 0` and `M = 0`): No findings above minor; nothing to
+  apply before the next stage. Token `APPROVE`.
+- **Approve with fixes** (`C = 0` and `M ≥ 1`): No blocking finding;
+  at least one Material finding — fix them, then proceed without re-review.
+  Token `APPROVE_WITH_FIXES`.
+- **Reject** (`C ≥ 1`): Any blocking (Critical) finding. Significant rework
+  needed. Return to current or earlier phase. Consider replan. Token `REJECT`.
 
-VERDICT: APPROVE_WITH_FIXES — **Approve with fixes** (`C = 0` and `M ≥ 1`): No
-blocking finding; at least one Material finding — fix them, then proceed
-without re-review.
+The token line carries the token and nothing else — no dash, no gloss, no
+trailing prose — because the consumer matches `^VERDICT:` at column 0 and any
+such line in a report is a token line. The predicates above are deliberately
+not written as token lines; the one bare form is
+(`review.md` §Report Format):
 
-VERDICT: REJECT — **Reject** (`C ≥ 1`): Any blocking (Critical) finding.
-Significant rework needed. Return to current or earlier phase. Consider replan.
+```
+VERDICT: APPROVE_WITH_FIXES
+```
 
 Raise new ground early. A finding you could have raised in an earlier round and
 raise only now costs the operator an arbitration they should not have needed.
