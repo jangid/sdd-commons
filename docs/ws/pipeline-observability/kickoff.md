@@ -107,9 +107,20 @@ Gaps 1–8 as work; gaps 9–11 as one-line fixes, each with a falsifier.
    dispatch.
 3. **Dogfooding as decided above.** A gate that runs under a rule this cycle
    introduced says so on the gate block.
-4. **`FIX_LOOP_MAX` = 3, no extra-iteration authorisations.** Gap 3's
-   rejection-counting semantics apply from the commit that lands them, not
-   retroactively.
+4. **Exit bar: a stage exits only on `VERDICT: APPROVE`** (amended at the
+   specs gate, 2026-09-22 — the original "no extra-iteration authorisations"
+   existed to stop the approve-with-fixes re-review loop, which the V3 routing
+   now stops by construction). With the verdict definitions made disjoint,
+   `APPROVE` is the only verdict that says nothing needs applying, and a stage
+   that closes on `APPROVE_WITH_FIXES` ships its Material findings uncorrected.
+   `FIX_LOOP_MAX` stays 3 as a checkpoint, not a ceiling: past it, each extra
+   iteration is an explicit operator decision at the gate, allowed only while
+   the compiled findings log shows every Material of the latest round to be
+   new ground or fix-introduced **and** the Material count falling; a Material
+   that persists across two rounds, or a rising count, is a stop signal and
+   goes to the operator. Every fix leaf re-runs each count and arithmetic it
+   states before returning. Gap 3's consecutive-`REJECT` counting applies from
+   the commit that lands it, not retroactively.
 
 ## Open questions
 
