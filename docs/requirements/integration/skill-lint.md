@@ -1,6 +1,6 @@
 ---
 domain: LINT
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-008, RS-HARNESSP4-001, RS-HARNESSP5-001, RS-HARNESSP6-001, RS-PACKAGING-002, RS-PACKAGING-003]
 workstream: harness-p2, packaging
@@ -600,4 +600,32 @@ filename — the grep pattern is the name fenced above, `README` followed by
 tuple lists five names; both tuples have five entries and are equal;
 `python3 plugins/sdd/tools/skill-lint.py --self-test` passes, and removing the
 name from only one tuple makes it fail naming the scope drift.
+[Priority: must]
+
+### REQ-LINT-PIPELINEOBSERVABILITY-001: the `literal-anchor` pattern is a skill-lint drift phrase over the shipped skill text
+`plugins/sdd/tools/skill-lint.py` must carry the `literal-anchor` pattern
+(`[\w./-]+\.md:\d+` on a visible, non-fenced line) as a `FORBIDDEN` drift
+phrase over the **swept markdown set** — every `*.md` the linter sweeps under
+`plugins/sdd/**` (files: the swept markdown set, not `plugins/sdd/tools/*.py`
+nor `plugins/sdd/tools/fixtures/**`, which the zero-cost measurement did not
+cover; Q-REQ-PO-S), so the
+snapshot-comparand class REQ-GC-PIPELINEOBSERVABILITY-001 warns on in the
+binding corpus is kept **out** of the shipped skill, reference and agent text
+through the mechanism that already sweeps that tree — not by widening gc's docs
+scope. The tree carries 0 such anchors on 2026-09-22 (measured over 28 files),
+so the phrase lands at no repair cost. (see RS-PIPELINEOBSERVABILITY-001 §Q5
+scope decision.) Leaves REQ-LINT-002/-003 (drift-phrase mechanism — one row
+added), REQ-LINT-HARNESSP5-003 and REQ-LINT-PACKAGING-001..-008 consistent; the
+self-test's `FORBIDDEN` count pin moves by one with the row, as
+REQ-LINT-PACKAGING-008's discipline requires. Extending the phrase to the
+Python tools and their fixtures is a later decision, taken only after a
+read-only measurement over that set.
+**Acceptance**: `python3 plugins/sdd/tools/skill-lint.py` exits 0 on this
+tree; in a temp copy with a `.md` path followed by a colon and a line number
+(the anchor form) placed on a visible line of one `SKILL.md` the linter exits
+non-zero with the phrase finding naming that file, and with the same text
+inside a fenced block it exits 0; the same anchor form placed in a `.py` file
+under `plugins/sdd/tools/` in the temp copy raises no finding from this row;
+the `--self-test` pinned `FORBIDDEN` count equals the row count after the
+addition.
 [Priority: must]

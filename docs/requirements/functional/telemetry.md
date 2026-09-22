@@ -1,6 +1,6 @@
 ---
 domain: TELEM
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001]
 workstream: harness-p2
@@ -125,6 +125,17 @@ and the same `proceed | loop-back-to-fix | stop` options as before; no
 > **between sessions**, never by a leaf and never while a session is
 > appending. The orchestrator-only-writer rule is otherwise unchanged: no
 > dispatch template names `migrate`, and the orchestrator itself never runs it.
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R1) `[Updated: 2026-09-22]`: a **validation
+> failure is a second cause of `TELEMETRY: WRITE FAILED`**. The append is
+> performed through `telemetry.py append` (REQ-TELEM-PIPELINEOBSERVABILITY-001),
+> which validates the record before writing and exits non-zero without writing
+> when it is not a well-formed schema record; the orchestrator renders
+> `WRITE FAILED` on that exit exactly as on an I/O failure, and the loop
+> continues. The never-rewrite rule, its two exceptions, the orchestrator-only
+> writer and the one-file-per-repository rule are unchanged. Touches
+> REQ-TELEM-HARNESSP3-001 (amended beside it) and leaves REQ-TELEM-HARNESSP2-005
+> and -009 consistent.
 
 ### REQ-TELEM-HARNESSP2-005: Leaf writes to `.sdd/` surface as `OUT`
 Any write to `.sdd/**` by a dispatched subagent must be a boundary finding
@@ -273,6 +284,17 @@ renders `TELEMETRY: rec 1`, then `TELEMETRY: WRITE FAILED`, then
 `grep` for a telemetry-file read in the orchestrator's gate path returns
 nothing.
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R1) `[Updated: 2026-09-22]`: "successful append"
+> now means **validated and written** — `<n>` is incremented only when
+> `telemetry.py append` exits 0 (REQ-TELEM-PIPELINEOBSERVABILITY-001); a
+> non-zero exit renders `WRITE FAILED` and does not advance `<n>`. The
+> zero-reads rule is kept intact by construction: `append` prints nothing that
+> requires reading the file (no line number), so `<n>` remains the orchestrator's
+> session counter. Observed defect this closes: on 2026-09-22 the
+> consumer-geometry gate rendered `rec 39` while `summarize` read zero of that
+> cycle's 53 records (RS-PIPELINEOBSERVABILITY-001 §Q1). The `TELEMETRY:` family
+> stays at four members.
 
 ### REQ-TELEM-HARNESSP3-002: `summarize` reports records-vs-expected per session as a post-cycle backstop
 `tools/sdd-telemetry.py summarize` may report a records-vs-expected count per
@@ -457,6 +479,14 @@ verify stage** (between sessions, with no orchestrator session open) and this
 cycle's `verification.md` records the resulting `--lint` result on the migrated
 live records (expected: no typed-field finding).
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R2) `[Updated: 2026-09-22]`: `migrate` gains a
+> **second migration shape**, `flat-cg`, for the `v`-less flat records the
+> consumer-geometry and packaging cycles wrote
+> (REQ-TELEM-PIPELINEOBSERVABILITY-002). The `chunk-string` shape, its ordering
+> rule, the operator-between-sessions rule and the fixture-never-touched rule
+> are unchanged and apply to the new shape as written; the p3 fixture's sha
+> assertion is unaffected.
 
 ### REQ-TELEM-HARNESSP4-006: `scope.widened` records an operator widening of the write scope
 The record schema must gain `scope.widened` (int — the count of globs the
@@ -660,3 +690,120 @@ validator accepts any string today). (workstream `harness-p5`; see
 fails when its check is removed in a temp copy; the frozen fixtures' outputs
 are unchanged.
 [Priority: should]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R2) `[Updated: 2026-09-22]`: case (c)'s enum
+> for `migration.from` becomes `{chunk-string, flat-cg}` — `flat-cg` is admitted
+> (REQ-TELEM-PIPELINEOBSERVABILITY-002) and any other string is still an
+> `[enum]` finding; the case is re-pointed at a value outside the two-member
+> set. Cases (a) and (b) are unchanged.
+
+### REQ-TELEM-PIPELINEOBSERVABILITY-001: `telemetry.py append` validates a record before writing it; `rec <n>` counts validated writes only
+`plugins/sdd/tools/telemetry.py` must gain an `append [--file F]` subcommand
+that reads exactly one JSON value from stdin and, **before** writing, checks:
+(1) the value parses as a JSON **object**; (2) its `v` is in the admitted set,
+through the shared `v` helper of REQ-TELEM-HARNESSP5-004; (3)
+`lint_records([record])` returns **zero** findings of the classes `enum`,
+`type`, `key-undeclared` and `key-missing` — the same domain table `--lint` and
+`summarize` read (REQ-TELEM-HARNESSP4-004), so a record the summarizer would
+drop cannot be appended (`cross-field` and `mistyped-fix` stay warnings at
+append time because they need a sibling record). Any failure of 1–3 exits
+non-zero with **nothing written**; exit 0 follows one successful append-only
+write. The subcommand must print nothing that requires reading the file — no
+line number — so `<n>` in `TELEMETRY: rec <n>` stays the orchestrator's
+session counter of exit-0 appends (REQ-TELEM-HARNESSP3-001 as amended) and the
+zero-reads rule holds. The orchestrator renders `rec <n>` only on exit 0 and
+`TELEMETRY: WRITE FAILED` otherwise (REQ-TELEM-HARNESSP2-004 as amended); the
+`TELEMETRY:` gate-line family stays at its four members and no dispatch template
+mentions the subcommand. Observed defect: the consumer-geometry cycle's gate
+rendered `rec 39`, the file gained 53 records and `summarize` read 0 of them,
+because the writer never applied the schema the reader enforces. (see
+RS-PIPELINEOBSERVABILITY-001 §Q1, §Requirements-corpus impact R1, §Mechanical
+pin R1.) Touches REQ-TELEM-HARNESSP2-004 and -HARNESSP3-001 (amended, above);
+leaves REQ-TELEM-HARNESSP2-005 (leaf writes → `OUT`), -HARNESSP2-009 (the
+`summarize` reader — a subcommand is added, none changed), -HARNESSP4-004 (one
+domain table — reused, not duplicated), -HARNESSP5-004 (shared `v` helper) and
+REQ-HARN-HARNESSP4-001/-004/-006 (`COMMIT:`) consistent.
+**Acceptance**: `python3 plugins/sdd/tools/telemetry.py --help` names `append`
+(today the `--help` output contains the word 0 times); `--self-test` gains a
+case in which `append` of a `v`-less object (`{"ts":"x","ws":"x"}`) exits
+non-zero and the target file's line count is unchanged, `append` of a
+non-object (`[]`) exits non-zero and writes nothing, and `append` of the
+`references/telemetry.md` §2 example record exits 0, adds exactly one line and
+`summarize --file <that file>` counts 1 record; in a temp copy with the
+validation removed the first case exits 0 and the self-test prints its failure
+— the reversion witness; `references/telemetry.md` §3's gate-line table still
+lists exactly four members and its writer sequence names `append`'s exit code
+as the condition for `rec <n>`; a grep of the orchestrator's gate path for a
+read of the telemetry file returns nothing.
+[Priority: must]
+
+### REQ-TELEM-PIPELINEOBSERVABILITY-002: the `v`-less flat records are migrated where their key sets map, and declared lost where they do not
+`migrate` must gain a second `migration.from` value, `flat-cg`, covering every
+`v`-less record in the live file (53 `ws: consumer-geometry` and 77
+`ws: packaging` on 2026-09-22 — reference values, derived at run time). A flat
+record of kind `pipeline`, `review`, `verifier` or `red` whose keys map
+field-for-field (`ts` → the three timestamps, identical; `sha` →
+`git.head_before`; `budget` / `consumed` → `dispatch.budget` /
+`return.budget_consumed`; `findings.{blocking,substantive,minor}` →
+`verdict.findings.{C,M,m}`; flat `fix_iteration` → `gate.fix_iteration`) is
+rewritten as a `v: 2` record stamped `migration.from: flat-cg`. A flat record
+of a kind with no v2 counterpart (`gate`, `commit`, `pr`) is **declared lost**:
+dropped from the output and named, with its count, in a note carried by the
+first migrated record of its workstream — never back-filled. Dispatches that
+left no record (consumer-geometry chunks 1–8 and its verify dispatch) are
+**missing, not lost**, and are shown by the existing partial stamp
+(REQ-TELEM-HARNESSP4-005); no number the writer did not observe is
+reconstructed. The same rule applies to the packaging records without a
+separate examination. Before the migration task runs, the operator cuts a
+**frozen fixture** of every `v`-less line (the live file is gitignored) under
+`plugins/sdd/tools/fixtures/`, which `migrate` refuses as a target and no test
+modifies (REQ-TELEM-HARNESSP5-007's discipline). The migration is ordered after
+REQ-TELEM-PIPELINEOBSERVABILITY-001 lands and is run by the operator between
+sessions. (see RS-PIPELINEOBSERVABILITY-001 §Q1 migration, R2, §Open Questions
+"the 77 other `v`-less records"; decided at DISCUSS.) Touches
+REQ-TELEM-HARNESSP4-005 and -HARNESSP5-008 (amended); leaves
+REQ-TELEM-HARNESSP5-003 (v1 records never stamped), -HARNESSP5-007 (the p4
+fixture and its sha) and -HARNESSP4-002/-003/-008 (`expected` derivation and
+partial stamps) consistent.
+**Acceptance**: `--self-test` gains a case over the frozen flat fixture in
+which `migrate --file <copy> --out <tmp>` exits 0, the output is `--lint`-clean
+on the typed classes, the count of migrated records equals the count of fixture
+records of the four mappable kinds (expected 36 for consumer-geometry), the
+lost count equals the count of `gate` + `commit` + `pr` records (expected 17),
+and `summarize` on the output renders the consumer-geometry per-chunk blocks
+for chunks 1–8 stamped `partial`; `migrate --file <the fixture itself>` exits
+non-zero without writing; `--lint` on a record with `migration.from: flat-xx`
+reports `[enum]`; the fixture's sha is unchanged at DONE; this cycle's
+`verification.md` records the live `summarize --workstream consumer-geometry`
+record count after the operator's migration (expected: equal to the migrated
+count, no longer 0).
+[Priority: must]
+
+### REQ-TELEM-PIPELINEOBSERVABILITY-003: four cross-field `--lint` assertions witness the gate rules this cycle introduces
+`--lint` must gain four cross-field assertions, each the reversion witness of a
+gate rule bound elsewhere in this delta, checked by `--self-test` against
+minimal two-record shapes derived from the recorded consumer-geometry rounds:
+(a) a `verifier`, `review` or `red` record with `scope.token = VIOLATION` whose
+verdict token is positive (`PASS`, `APPROVE`, `APPROVE_WITH_FIXES`, `HELD`) and
+whose `gate.decision` is `proceed` → finding (a voided verdict was consumed,
+REQ-HARN-PIPELINEOBSERVABILITY-004); (b) a `review` record whose
+`gate.fix_iteration` exceeds the run of consecutive `REJECT` tokens over the
+immediately preceding same-stage `review` records of its cycle — an increment
+across an `APPROVE_WITH_FIXES` — → finding (REQ-HARN-001 as amended); (c) a
+`gate.decision` of `manual_intervention` on a record whose next same-stage
+record is not a `review` record labelled `post-manual` → finding
+(REQ-HARN-PIPELINEOBSERVABILITY-003); (d) a `review` record with
+`verdict.findings.C ≥ 1` and a token other than `REJECT` whose `gate.decision`
+is not the malformed pause → finding (REQ-HARN-PIPELINEOBSERVABILITY-005). The
+domain-table members these need (the `post-manual` review label, the
+`manual_intervention` and malformed-pause decisions) are added to the domain
+table so `schema_diff` keeps the example, the table and the tool in agreement
+(REQ-TELEM-HARNESSP4-004). (see RS-PIPELINEOBSERVABILITY-001 §Mechanical pin
+R4, R6, R8, R10.) Leaves REQ-TELEM-HARNESSP5-006 (`seq`-ordered findings) and
+-HARNESSP5-007 (frozen fixtures' outputs unchanged) consistent.
+**Acceptance**: `--self-test` names four cases, one per assertion, each
+built from a record pair that renders the finding and a control pair that does
+not; each case fails when its assertion is removed in a temp copy; `--lint`
+over the two frozen harness fixtures reports the same finding count as before
+this requirement; `schema_diff` reports no divergence.
+[Priority: must]

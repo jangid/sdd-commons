@@ -1,6 +1,6 @@
 ---
 domain: GC
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP5-001, RS-HARNESSP6-001]
 workstream: harness-p2
@@ -66,6 +66,17 @@ each fail rule once. (Observed on the live repository on 2026-09-17 at commit
 5e6142b: 0 undefined, 8 informational (ii), 0 dead cross-links — reference
 values, not pins.)
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R9, R11; Q-REQ-PO-I) `[Updated: 2026-09-22]`:
+> the **Implemented in gc (needs code)** class gains four rules — the
+> snapshot-comparand pair `literal-anchor` (**warn**, folded per file) and
+> `self-matching-grep` (**fail**), the `dead-path-citation` rule (**warn**,
+> folded per file), all three over `docs/spec/**` + `docs/requirements/**`
+> only (REQ-GC-PIPELINEOBSERVABILITY-001, -002, -004), and the `qimpl-malformed`
+> class (**fail**, REQ-GC-PIPELINEOBSERVABILITY-003). The `--help` listing, the
+> self-test fixture tree and every existing rule's severity are otherwise
+> unchanged; none of the new rules joins the `--fix` whitelist
+> (REQ-GC-HARNESSP2-007).
 
 ### REQ-GC-HARNESSP2-003: Pinned Q-IMPL counting rule with fenced/quoted-example skip
 The Q-IMPL sweeps must use exactly this rule: a **definition** is a
@@ -94,6 +105,16 @@ repository on 2026-09-17 at commit 5e6142b: 28 definitions, 20 both, 8
 defined-only, 0 referenced-only, template-example ids `Q-IMPL-003/-007/-021`
 skipped — reference values, not pins.)
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R11; Q-REQ-PO-F) `[Updated: 2026-09-22]`: the
+> placeholder exclusion "or a legacy bare counter" is narrowed — a bare id is
+> well-formed only when a **bare definition** with that counter exists under
+> `docs/spec/**` (derived from the definition scan at read time, never from a
+> list); a bare reference with no bare definition is reported as
+> `[qimpl-malformed]` under marker `4`, not as `[qimpl-undefined]` and not
+> skipped (REQ-GC-PIPELINEOBSERVABILITY-003). The fence/backtick skip, the
+> `docs/research/**` exclusion, the foreign-`<WS>` placeholder rule and the
+> definition/reference vocabulary are unchanged.
 
 ### REQ-GC-HARNESSP2-004: Finding shape is the linter's
 Every gc finding must be printed as `<file>:<line> [<rule>] <message>` followed
@@ -308,6 +329,27 @@ routing for the shared-spec class returns no `record` option.
 clause cannot pass until the closed-workstream skip also lands, so a plan must
 not schedule this verification before that requirement (m3).
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R15; Q-REQ-PO-H) `[Updated: 2026-09-22]`: the
+> `info` severity gains one narrow exception — a folded `(spec, category
+> file)` pair whose spec is **traced by the active workstream's plan**
+> (`docs/ws/<id>/plan.md` `traces to`, the live plan-walk of
+> `docs/spec/ws-staleness.md`, with `--workstream <id>` given) is emitted at
+> **`warn`**; an untraced pair stays `info`. The rationale above holds for
+> untraced pairs and is why the exception is narrow: a spec this cycle's own
+> plan traces and this cycle's requirements re-dated is not the steady state
+> but the cycle's own stale chain, which the consumer-geometry cycle closed by
+> argument (its write-scope acceptance section, clause (b)) rather than by a
+> gate. gc still never blocks a gate (REQ-GC-HARNESSP2-006): the `warn` routes
+> through `record | ignore` at DONE, and the §DONE routing of
+> `docs/spec/drift-sweep.md` lists the traced sub-class there beside the
+> plan-level one. **Acceptance, added**: `--self-test` gains a case in which a
+> folded pair traced by the fixture's active plan is `warn` and an untraced
+> pair in the same fixture is `info`, failing when the exception is removed in
+> a temp copy; the "0 `[stale-chain]` warnings" clause above is re-read as "0
+> warnings on untraced pairs". Leaves REQ-GC-HARNESSP6-001 (closed workstreams
+> skipped), -HARNESSP6-002 (fold per pair) and REQ-STALE-001 (the skills' own
+> staleness detection) consistent.
 
 ### REQ-GC-HARNESSP6-004: the Q-IMPL definition scan must be fence-symmetric with the reference scan
 `tools/sdd-gc.py`'s Q-IMPL sweep must treat fenced blocks identically on both
@@ -337,3 +379,125 @@ the same `qimpl-undefined` and `qimpl-broken-ref` counts as before the change
 (both **0**); the module docstring's and `--help`'s counting-rule text state the
 fence-symmetric rule.
 [Priority: must]
+
+### REQ-GC-PIPELINEOBSERVABILITY-001: `literal-anchor` — a live line-number citation in binding text is a `warn`, folded per file
+The tool must gain a rule `literal-anchor` over the visible lines (fenced
+blocks excluded, the `visible_lines()` discipline of REQ-GC-HARNESSP6-004) of
+`docs/spec/**/*.md` and `docs/requirements/**/*.md`: an occurrence of
+`[\w./-]+\.md:\d+` is a finding at **`warn`** severity, **folded to one line
+per file** carrying the count, **exempting the sha-pinned form** — a 7-to-40
+hex-digit token within 40 characters before the anchor — which is a frozen
+citation by construction. `docs/research/**` and `docs/ws/**` are **out of
+scope by decision**: research spikes and execution records are dated snapshots
+by contract, where the line number is the evidence being recorded rather than a
+comparand a later reader is asked to trust. The rule never joins `--fix`
+(REQ-GC-HARNESSP2-007) and routes `record | ignore` at DONE
+(REQ-GC-HARNESSP2-006). Observed: 69 such anchors in 7 binding files on
+2026-09-22, and the class is behind 12 of the consumer-geometry cycle's 17
+blocking review findings — a criterion whose comparand the artifact itself
+invalidates. Those 69 anchors in 7 binding files are **not repaired by this
+cycle** (Q-REQ-PO-R): they sit in earlier cycles' approved requirement and spec
+text, rewriting a shared approved body is a human PR decision rather than a
+leaf's, and every one of them names a comparand the anchor's own commit froze.
+The rule therefore lands as a standing `warn` floor — the folded per-file lines
+the DONE `GC:` line routes `record | ignore` — and the repair, if any, is a
+later cycle's bounded task over exactly those 7 files. (see
+RS-PIPELINEOBSERVABILITY-001 §Q5, R9, §Mechanical pin R9.)
+Touches REQ-GC-HARNESSP2-002 (amended); leaves REQ-GC-HARNESSP2-006/-007 and
+REQ-PC-MARKETPLACE-006 (rules live in gc's table, not the hook) consistent.
+**Acceptance**: `--self-test` gains a case whose fixture holds one file with
+two visible anchors, one anchor inside a fence and one sha-pinned anchor, and
+reports exactly one folded `literal-anchor` warn naming that file with count 2;
+the case fails when the rule is removed in a temp copy; `--help` lists the rule
+in the gc class at `warn`; `--report` on this repository exits `OK` with the
+rule's folded lines counted at run time (7 files on 2026-09-22 — a reference
+value, never a pin) and the run's exit status is unaffected by them (`warn`
+never fails `--report`); a grep of the `--fix` whitelist for the rule name
+returns nothing.
+[Priority: must]
+
+### REQ-GC-PIPELINEOBSERVABILITY-002: `self-matching-grep` — a counting criterion that matches its own line is a `fail`, landed with the corpus repaired
+The tool must gain a rule `self-matching-grep` over the same scope and
+visible-line discipline as REQ-GC-PIPELINEOBSERVABILITY-001, with this
+decidable definition derived at read time and from no literal list: for a
+visible line `L` of file `F` holding a `grep` invocation with a **quoted**
+pattern `P` (or `-e P`) and target arguments `T`, the line is self-matching iff
+`F ∈ expand(T)` — globs expanded and directories walked relative to the
+corpus root, the `plugins/sdd/` prefix tried for a bare tool path — **and** `P`
+compiled as a regular expression matches `L` itself. Severity **`fail`**, so
+the commit gate fails through REQ-PC-MARKETPLACE-002; the rule therefore lands
+**in the same commit** as the repair of every instance the live corpus holds
+(fence the criterion, or add `--exclude=<own file>` to the command). The
+unquoted-pattern form is out of scope (RS-PIPELINEOBSERVABILITY-001 §Open
+Questions). Observed: 4 self-matching counting greps in `docs/spec` on
+2026-09-22, each inflating its own count by one; 0 false positives among the
+85 invocations parsed. (see RS-PIPELINEOBSERVABILITY-001 §Q5, R9.) Touches
+REQ-GC-HARNESSP2-002 (amended); leaves REQ-GC-HARNESSP2-006/-007 and
+REQ-PC-MARKETPLACE-006 consistent.
+**Acceptance**: `--self-test` gains a case whose fixture file holds a visible
+line `grep -c 'pending-red' <its own relative path>` (one fail), the same line
+inside a fence (none), and a grep whose target set excludes the file (none);
+the case fails when the rule is removed in a temp copy; `--report` on this
+repository at the landing commit exits `OK` with 0 `self-matching-grep`
+findings, and on a scratch copy of the parent commit reports the pre-repair
+instances (4 on 2026-09-22 — a reference value); `pre-commit run --all-files`
+exits 0 at the landing commit.
+[Priority: must]
+
+### REQ-GC-PIPELINEOBSERVABILITY-003: `qimpl-malformed` — a bare Q-IMPL reference with no bare definition is malformed, not undefined
+Under marker `4` the Q-IMPL reference sweep must report a **bare** reference
+(no `<WS>` segment) whose counter matches **no bare definition** — the set of
+bare `### Q-IMPL-` headings under `docs/spec/**`, derived fence-symmetrically
+at read time (REQ-GC-HARNESSP6-004), never from a list — as a new **`fail`**
+class `[qimpl-malformed]`, distinct from `[qimpl-undefined]`. A bare reference
+that matches a bare definition stays well-formed (the legacy counter,
+REQ-WS-009; 30 bare definitions beside 94 workstream-prefixed on 2026-09-22 —
+reference values); a workstream-prefixed reference whose `<WS>` is not a
+workstream directory stays a placeholder (REQ-GC-HARNESSP2-003 as amended).
+The class is derived from the definition set, not from what "looks local", so
+REQ-GC-HARNESSP3-001's declined scoping is not reopened (Q-REQ-PO-F). Observed:
+a bare id with a three-digit counter and no definition raised a live
+`qimpl-undefined` fail at the consumer-geometry plan gate instead of being
+rejected as malformed; this is not a one-line fix (RS-PIPELINEOBSERVABILITY-001
+§Corrections). (see §Q6 gap 7, R11, §Mechanical pin R11.) Touches
+REQ-GC-HARNESSP2-002/-003 (amended); leaves REQ-GC-HARNESSP3-001,
+REQ-QIMPL-HARNESSP5-001/-002 and REQ-LINT-006 consistent.
+**Acceptance**: `--self-test` gains a case whose marker-`4` fixture holds one
+bare definition, one bare reference to it (well-formed, no finding), one bare
+reference whose counter matches no bare definition (exactly one
+`[qimpl-malformed]` fail and **no** `[qimpl-undefined]` for it), and one
+workstream-prefixed undefined reference (one `[qimpl-undefined]`, unchanged);
+the case fails when the class is removed in a temp copy and reports
+`[qimpl-undefined]` in its place; `--help` names the class; `--report` on this
+repository exits `OK` with 0 `qimpl-malformed` findings.
+[Priority: must]
+
+### REQ-GC-PIPELINEOBSERVABILITY-004: `dead-path-citation` — a cited path the tree does not hold is a `warn`, folded per file
+The tool must gain a third snapshot-comparand rule, `dead-path-citation`, over
+the same scope and visible-line discipline as REQ-GC-PIPELINEOBSERVABILITY-001:
+a backtick-quoted token containing at least one `/`, ending in one of `.md`,
+`.py`, `.yaml`, `.yml`, `.json`, `.jsonl`, `.toml`, `.el`, holding none of `<`,
+`>`, `*`, `{`, `…`, and — after stripping any `:\d+` anchor — resolving to no
+file at the corpus root **nor** under `plugins/sdd/`, is a finding at **`warn`**
+severity, folded per file, with the same sha-pinned exemption. The path-only
+form is the same class as the anchor form and `literal-anchor` cannot see it:
+the three `docs/spec` lines the research names as self-matching greps also cite
+paths dead since the packaging move, so the same-commit repair of
+REQ-GC-PIPELINEOBSERVABILITY-002 repairs two defects per line. Decision
+(Q-REQ-PO-I): a gc rule, not an extension of skill-lint's retired-prefix sweep
+— the class is corpus-comparand, its scope is gc's, and REQ-PC-MARKETPLACE-006
+keeps rules in gc's table; `warn` rather than `fail` because the live count was
+not measured by the research. Beyond the three repaired spec lines, findings of
+this rule in earlier cycles' approved text are **not repaired by this cycle**
+(Q-REQ-PO-R, the same decision as REQ-GC-PIPELINEOBSERVABILITY-001's): the rule
+lands as a standing `warn` floor routed `record | ignore` at DONE. (see
+RS-PIPELINEOBSERVABILITY-001 §Open Questions "Q5 dead-path citations".) Touches REQ-GC-HARNESSP2-002 (amended);
+leaves REQ-LINT-PACKAGING-008 and the retired-prefix sweep untouched.
+**Acceptance**: `--self-test` gains a case whose fixture holds a line citing a
+path absent from the fixture tree (one folded warn), the same path present
+under the fixture's `plugins/sdd/` (none), a placeholder path holding `<id>`
+(none) and a sha-pinned dead path (none); the case fails when the rule is
+removed in a temp copy; `--report` on this repository at the landing commit
+reports 0 `dead-path-citation` findings on the three repaired spec lines and
+counts the rest at run time (never pinned); `--help` lists the rule at `warn`.
+[Priority: should]

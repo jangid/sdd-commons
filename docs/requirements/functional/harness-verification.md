@@ -1,6 +1,6 @@
 ---
 domain: HARN
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP6-001]
 ---
@@ -117,6 +117,20 @@ catalogue B7)
 branching table in `references/return-contract.md`; `tools/sdd-skill-lint.py`
 carries the producer/consumer `REQUIRED` pair (REQ-LINT-005).
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R6, R10; Q-REQ-PO-D, Q-REQ-PO-E)
+> `[Updated: 2026-09-22]`: the `APPROVE_WITH_FIXES` branch reads **"fix, then
+> proceed without re-review (re-review on explicit operator opt-in), findings
+> carried into the packet"** — REQ-HARN-PIPELINEOBSERVABILITY-001 — in place
+> of "proceed or fix offered"; the `APPROVE` and `REJECT` branches and the
+> never-parse-prose rule are unchanged. **Acceptance, added** (no text of the
+> malformed branch changes): a review body with at least one list item under
+> its critical/blocking heading and a token other than `REJECT` — `APPROVE`
+> with blocking items (the spec's literal example) **and** `APPROVE_WITH_FIXES`
+> with blocking items (the recorded shape, three rounds) alike — renders the
+> existing `REVIEW: MALFORMED` pause as `(tier/verdict conflict)`, per
+> REQ-HARN-PIPELINEOBSERVABILITY-005; the branching table names the routing
+> above and `tools/skill-lint.py`'s producer/consumer pair still holds.
 
 ### REQ-HARN-014: Fresh chunk-close verifier re-executes Step 4 mechanics
 Under `sdd-orchestrate`, the orchestrator must dispatch a fresh, context-isolated
@@ -389,4 +403,60 @@ parser finds no section cluster on the file alone; two from different layers in
 the same sectioned file with different sections do not; two from the **same**
 layer do not; two from different layers with equal `(file, section)` cluster
 (retained key); `python3 tools/sdd-skill-lint.py` exits 0. **[Updated: 2026-09-20 — the Chunk 8 resolving spike replayed the rule over the recorded finding sets of harness-p3, -p4 and -p5. This sentence is superseded: the rule HAS been replayed. What it measured is that the co-located `(file, section)` key formed zero clusters over three cycles and clusters none of the three on the harness-p3 §L2 origin case, which is why L2 shipped at a descoped floor. What remains unmeasured is the **live** firing rate of the shipped floor, not the replay.]**
+[Priority: must]
+
+### REQ-HARN-PIPELINEOBSERVABILITY-005: a token that disagrees with its tier headings is the existing `REVIEW: MALFORMED` pause, decided by a count
+The orchestrator must execute the contract's existing "token disagrees with
+prose → `REVIEW: MALFORMED`" condition (REQ-HARN-013's malformed branch;
+`docs/spec/harness-return-contract.md` §Edge Cases) by one structural rule
+over the section REQ-REV-002 (c) requires: `blocking_items` := the count of
+list items between the first heading matching `^#+\s+.*\b(Blocking|Critical)\b`
+and the next heading; when `blocking_items > 0` and the token is not `REJECT`,
+render `REVIEW: MALFORMED (tier/verdict conflict: N blocking under <token>)`
+with the existing option set `re-dispatch review │ accept prose manually │
+stop` — no new token, no conversion. On `accept prose manually` the consumed
+verdict is `REJECT` and counts toward `reject_run`; on `re-dispatch review` the
+re-dispatched round is consumed instead and nothing counts. The predicate covers
+`APPROVE` with blocking items (the contract's literal example) and
+`APPROVE_WITH_FIXES` with blocking items (the recorded shape: specs round 4 and
+research rounds 2 and 4 of consumer-geometry, plus this cycle's second research
+review). The rule is a count over a mandated section, not a classification by
+prose, so REQ-HARN-013's never-parse-prose rule is kept. (see
+RS-PIPELINEOBSERVABILITY-001 §Q3 tier-heading parsing, R10, §Mechanical pin
+R10.) Touches REQ-HARN-013 and REQ-REV-002 (acceptance-only amendments); leaves
+REQ-ARB-HARNESSP2-001/-008 (keys per Critical/Material line), REQ-HARN-019 and
+REQ-AGENT-MARKETPLACE-002 consistent.
+**Acceptance**: `references/return-contract.md` §Tier-heading parsing states
+the count rule and the pause text, pinned by a skill-lint `REQUIRED` row on
+`tier/verdict conflict` whose removal in a temp copy makes the linter exit
+non-zero; a fixture review body of `### Blocking` + one list item +
+`VERDICT: APPROVE_WITH_FIXES`, and one of `### Critical findings` + one item +
+`VERDICT: APPROVE`, each render the pause with `N = 1`; the same bodies with
+`VERDICT: REJECT`, and a body whose blocking section holds no list item under
+`VERDICT: APPROVE`, render no pause; the cross-field assertion (d) of
+REQ-TELEM-PIPELINEOBSERVABILITY-003 fails on a `review` record with
+`verdict.findings.C ≥ 1`, a non-`REJECT` token and a non-pause gate decision.
+[Priority: must]
+
+### REQ-HARN-PIPELINEOBSERVABILITY-006: the implement dispatch's test-run budget is derived, not fixed
+`references/dispatch-templates.md`'s implement template must state the
+derivation `test_runs = 2 × mutations + gates`, where `mutations` is the number
+of mutation/reversion demonstrations the chunk's tasks name and `gates` is the
+number of quality-gate commands the chunk runs, and the orchestrator must size
+each chunk's `Budget:` test-run slot with it rather than with a fixed example
+value. Observed defect: the template pins a fixed `≤ 3 test runs` example and
+the consumer-geometry chunks overran 8 against 6 and 18 against 12, so a budget
+overrun was the honest outcome of an honest chunk. (see
+RS-PIPELINEOBSERVABILITY-001 §Q6 gap 8, R12, §Mechanical pin R12.) No existing
+text is amended: REQ-HARN-005 binds exhaustion, not sizing, and
+REQ-TELEM-HARNESSP2-002 binds the parsed integer form, which the formula
+yields; leaves REQ-HARN-004 (`Budget:` slot present), REQ-HARN-009/-017 (the
+verifier's own `≤ 2 test runs` example is separate) and REQ-HARN-HARNESSP3-003
+(`budget_consumed` shape) consistent.
+**Acceptance**: `grep -c mutations plugins/sdd/skills/orchestrate/references/dispatch-templates.md`
+reads ≥ 1 (today 0), pinned by a skill-lint `REQUIRED` row on the formula
+sentence whose removal in a temp copy makes the linter exit non-zero; the
+template's worked example dispatches a chunk naming 2 mutations and 2 gates
+with `≤ 6 test runs`; the orchestrate skill's implement dispatch step cites the
+derivation.
 [Priority: must]

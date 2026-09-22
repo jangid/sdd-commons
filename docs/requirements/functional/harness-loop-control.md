@@ -1,6 +1,6 @@
 ---
 domain: HARN
-last_updated: 2026-09-19
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP5-001]
 ---
@@ -78,6 +78,36 @@ fourth gate with the compiled log and no automatic fourth dispatch; the
 `iteration N of 3` line appears in each fix dispatch prompt; no file under
 `docs/` records the counter.
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R6, R8; Q-REQ-PO-C) `[Updated: 2026-09-22]`:
+> the **counted quantity** is narrowed to what the acceptance criterion already
+> read — fix re-dispatches that follow a consumed **`REJECT`**, counted as a
+> run of **consecutive** consumed `REJECT`s per stage per session
+> (`reject_run`); a consumed `APPROVE` or `APPROVE_WITH_FIXES` resets the run to
+> 0, and under REQ-HARN-PIPELINEOBSERVABILITY-001 an `APPROVE_WITH_FIXES` fix
+> is applied and the stage proceeds, so an `APPROVE_WITH_FIXES` can never be
+> "at cap" and never renders the exhausted gate. A verdict **voided** under
+> REQ-HARN-PIPELINEOBSERVABILITY-004, a `post-manual` review
+> (REQ-HARN-PIPELINEOBSERVABILITY-003) and a third opinion
+> (REQ-ARB-HARNESSP2-007) are re-dispatches and count nothing. `iteration N of
+> MAX` now reports `reject_run`. The exhausted gate's `manual intervention`
+> option gains the mandatory `post-manual` review before `proceed`
+> (REQ-HARN-PIPELINEOBSERVABILITY-003); the `explicit operator-authorized extra
+> iteration` option is not removed (kickoff constraint 4 is this cycle's
+> operator policy, not a corpus rule). No fourth cap is added: `ROUND_MAX` is
+> **not adopted** (Q-REQ-PO-A) and the three-cap inventories stay at three.
+> Observed defect: the cap fired at all four consumer-geometry document stages
+> on an `APPROVE_WITH_FIXES` with zero blocking findings, forcing four manual
+> interventions. **Acceptance, added**: a session whose consumed verdicts on
+> one stage run `APPROVE_WITH_FIXES, REJECT, REJECT, APPROVE_WITH_FIXES` (the
+> recorded requirements stage) never renders the exhausted gate, while
+> `REJECT, REJECT, REJECT` does; `references/loop-control.md` §2 states the
+> consecutive-`REJECT` rule and is pinned by a skill-lint `REQUIRED` row on the
+> word `consecutive` in that section; the cross-field assertion (b) of
+> REQ-TELEM-PIPELINEOBSERVABILITY-003 fails on a `fix_iteration` that
+> increments across an `APPROVE_WITH_FIXES`. Leaves REQ-HARN-002/-008
+> (`REPLAN_MAX`, `REDO_MAX`), REQ-HARN-011 (the field), REQ-ORCH-018 and
+> REQ-ORCH-034 consistent.
 
 ### REQ-HARN-002: Replan re-entry cap, derived from plan-history
 The orchestrator must cap replan re-entries per cycle at a configurable maximum
@@ -268,4 +298,103 @@ carries "tick tasks, never `status:`"; a walkthrough of an implement stage gate
 COMPLETE`, and a second walkthrough with one unticked task shows the
 `PLAN: INCOMPLETE` pause, no flip and no verify dispatch; `python3 tools/sdd-skill-lint.py` exits 0 (a `REQUIRED` row for the
 flip sentence is optional, `may`).
+[Priority: must]
+
+### REQ-HARN-PIPELINEOBSERVABILITY-001: the review verdict is the routing — `REJECT` → fix → re-review; `APPROVE_WITH_FIXES` → fix → proceed without re-review
+The orchestrator's `loop-back-to-fix` must route by the consumed verdict as
+`skills/review/SKILL.md` §Verdict definitions already defines it: after a
+**`REJECT`**, re-dispatch the pipeline leaf with a repair packet and then
+re-run the review for this stage, the iteration counted by `FIX_LOOP_MAX`
+(REQ-HARN-001 as amended); after an **`APPROVE_WITH_FIXES`**, re-dispatch with
+the packet and then **proceed without re-review** — the next stage's review
+reads the fixed artifact as its upstream — unless the operator opts in to a
+re-review at that gate; after an `APPROVE`, proceed. The repair packet carries
+**Critical/Material findings only**, never minor ones. An `APPROVE_WITH_FIXES`
+returned after the cap is reached is **not** an exhaustion: its fix is applied
+and the stage proceeds. This is the resolution of gaps 3 and 4 together: the
+four forced manual interventions were caused by re-reviewing every
+`APPROVE_WITH_FIXES` fix under a cap that counted every re-dispatch — a fresh
+reviewer over a growing artifact is a generator no cap converges. **Landed
+before this stage** on branch `pipeline-observability`
+(RS-PIPELINEOBSERVABILITY-001 §Gate observation 2026-09-22, V3) with its
+skill-lint pins — the `REQUIRED` row `proceeds **without re-review**` on
+`skills/orchestrate/SKILL.md` and the `FORBIDDEN` phrase `then re-run the
+review for this stage` — which are the comparands; no commit is cited, because
+a sha is a snapshot comparand of the class REQ-GC-PIPELINEOBSERVABILITY-001
+warns on (Q-REQ-PO-A). This requirement records the rule as in force, not as a
+proposal. V2's `ROUND_MAX` backstop and its
+two-consecutive-`APPROVE_WITH_FIXES` terminator are not requirements — they are
+moot under this routing (Q-REQ-PO-A). (see RS-PIPELINEOBSERVABILITY-001 §Q3,
+§Gate observation 2026-09-22, R6.) Touches REQ-HARN-001 and REQ-HARN-013
+(amended); leaves REQ-HARN-011, REQ-ORCH-018 (`REJECT` with no actionable
+findings pauses), REQ-ORCH-034 (gate order) and the REQ-ARB-* keys (per round,
+unchanged) consistent.
+**Acceptance**: `python3 plugins/sdd/tools/skill-lint.py` exits 0 on the
+branch with the two landed pins present — the `REQUIRED` row on
+`skills/orchestrate/SKILL.md` for the phrase `proceeds **without re-review**`
+and the `FORBIDDEN` phrase `then re-run the review for this stage` (files:
+all) — and `python3 plugins/sdd/tools/skill-lint.py --self-test` exits 0 with
+its pinned `REQUIRED` and `FORBIDDEN` counts including these rows; in a temp
+copy, deleting the `without re-review` sentence from §The gate
+makes the linter exit non-zero with the `REQUIRED` finding, and restoring the
+unconditional phrase makes it exit non-zero with the `FORBIDDEN` finding;
+`references/return-contract.md` §6's `APPROVE_WITH_FIXES` row and
+`docs/spec/harness-return-contract.md`'s branching table read fix-then-proceed
+with re-review on opt-in only; `references/loop-control.md` §5a's default is
+proceed and §2a states that an `APPROVE_WITH_FIXES` at or after the cap is not
+an exhaustion; this cycle's `verification.md` names the gates that ran under
+this rule (kickoff decision 3).
+[Priority: must]
+
+### REQ-HARN-PIPELINEOBSERVABILITY-002: an informational `GROWTH:` line renders the deliverable's size delta at review round N ≥ 2
+On a review round N ≥ 2 the stage gate must render one informational own-line
+`GROWTH: <deliverable> +A/−D lines (N₁ → N₂) since round N−1` — the
+deliverable's visible-line delta since the previous round — at position 6d of
+the gate order, after `CONVERGENCE:` and before `TELEMETRY:`. It carries no
+option set, never pauses and never withholds `proceed`; it exists so the
+fix-grows-artifact generator behind gap 3 is visible at the gate where it
+acts. **Landed before this stage** with its skill-lint pin — the `REQUIRED`
+row `GROWTH: ` on `skills/orchestrate/references/loop-control.md`, which is the
+comparand (no commit is cited, Q-REQ-PO-A); recorded here as in force. (see RS-PIPELINEOBSERVABILITY-001
+§Gate observation 2026-09-22.) Leaves REQ-ORCH-034 (`TELEMETRY:` still last)
+and REQ-HARN-027 (no new artifact — the line is text) consistent.
+**Acceptance**: `python3 plugins/sdd/tools/skill-lint.py` exits 0 with the
+landed `REQUIRED` row on `references/loop-control.md` for `GROWTH: `; in a
+temp copy with item 6d removed it exits non-zero; `skills/orchestrate/SKILL.md`
+§The gate's row for positions 6c, 6d, 7 names `GROWTH:` before `TELEMETRY:`;
+`python3 plugins/sdd/tools/skill-lint.py --self-test` exits 0 with the pinned
+`REQUIRED` count including this row; and, **at every stage of this cycle that
+ran a review round N ≥ 2 — if any** (under REQ-HARN-PIPELINEOBSERVABILITY-001 a
+round 2 arises only after a `REJECT` or an operator opt-in, so a correct cycle
+may run none), this cycle's `verification.md` quotes the rendered `GROWTH:`
+line from that gate; when no stage ran a round N ≥ 2, `verification.md` states
+so and the temp-copy and self-test checks alone decide the criterion.
+[Priority: must]
+
+### REQ-HARN-PIPELINEOBSERVABILITY-003: a manual intervention is followed by a `post-manual` review before `proceed`
+When the operator chooses `manual intervention` at an exhausted gate — or
+otherwise edits the stage deliverable at a gate — the orchestrator must observe
+its own edits as it observes a leaf's writes (the `COMMIT:` comparand of
+REQ-HARN-HARNESSP4-001), then dispatch an ordinary review of this stage
+labelled `post-manual` and withhold `proceed` until that review's verdict is
+consumed; the verdict routes per REQ-HARN-PIPELINEOBSERVABILITY-001. The
+`post-manual` review does not increment `reject_run` (REQ-HARN-001 as amended;
+precedent: a third opinion is not a fix iteration, REQ-ARB-HARNESSP2-007) and
+writes one `review` telemetry record carrying the label. Observed defect: four
+interventions in the consumer-geometry cycle each went straight to the next
+stage's dispatch with no review between, and the three orchestrator errors
+attributable in telemetry were caught one stage and 3–4 rounds downstream.
+This rule applies from the first gate of this cycle (kickoff constraint 3).
+(see RS-PIPELINEOBSERVABILITY-001 §Q4, R8, §Mechanical pin R8.) Touches
+REQ-HARN-001 (amended); leaves REQ-HARN-019 (routing orchestrator-only),
+REQ-REV-003 (review inputs — an ordinary review dispatch) and
+REQ-TELEM-HARNESSP4-001 (one record per dispatch) consistent.
+**Acceptance**: `references/loop-control.md` §2b's `manual intervention` option
+names the `post-manual` review and states that `proceed` is withheld until its
+record exists, pinned by a skill-lint `REQUIRED` row on `post-manual` whose
+removal in a temp copy makes the linter exit non-zero; the cross-field
+assertion (c) of REQ-TELEM-PIPELINEOBSERVABILITY-003 fails on a
+`manual_intervention` gate record not followed by a `post-manual` review
+record; this cycle's `verification.md` lists every manual intervention with
+the review round that followed it, and none without.
 [Priority: must]

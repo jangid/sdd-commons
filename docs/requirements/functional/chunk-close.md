@@ -1,6 +1,6 @@
 ---
 domain: CHKC
-last_updated: 2026-05-25
+last_updated: 2026-09-22
 status: Approved
 ---
 
@@ -47,6 +47,23 @@ chunk's tasks has at least one corresponding test file that imports from
 the implementation module. Specs with zero test coverage must be flagged
 as findings.
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R14; Q-REQ-PO-G) `[Updated: 2026-09-22]`: a
+> **test convention declared in `CLAUDE.md`** — an embedded `--self-test` entry
+> point, a pre-commit hook entry that runs it — **satisfies this check for the
+> modules it names**; "a test file that imports from the implementation
+> module" remains the default for every module no declared convention covers.
+> Observed: the identical coverage advisory fired on 9 of 9 consumer-geometry
+> chunks against modules whose self-tests the repository's `CLAUDE.md` names
+> and whose commit gate runs. Both executors of the check — `implement/SKILL.md`
+> Check 3 and `agents/chunk-verifier.md` — state the convention clause, pinned
+> by a skill-lint `REQUIRED` row in each file. **Acceptance, added**:
+> `grep -c convention plugins/sdd/agents/chunk-verifier.md` and the same over
+> `plugins/sdd/skills/implement/SKILL.md` each read ≥ 1 (today 0);
+> `python3 plugins/sdd/tools/skill-lint.py` exits 0 with the two rows and exits
+> non-zero in a temp copy with either sentence removed. Leaves REQ-CHKC-006
+> (gaps stay advisory), REQ-CHKC-007 (report shape) and REQ-HARN-014 (the
+> verifier re-runs Check 3 by reference to this requirement) consistent.
 
 ### REQ-CHKC-005: Q-IMPL audit
 The chunk close checklist must identify any implementation decisions that

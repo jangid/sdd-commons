@@ -1,6 +1,6 @@
 ---
 domain: HARN
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001, RS-HARNESSP6-001]
 ---
@@ -504,4 +504,58 @@ already dirty at `snapshot(before)` yields `SCOPE: CLEAN`; a fan-out merge
 yields `SCOPE: CLEAN`; `skills/sdd-orchestrate/references/write-scope.md` §3
 lists the three extra plumbing reads and the reverse-delta subtraction, §5 the
 `GIT_STATE` line, §8 its options; `python3 tools/sdd-skill-lint.py` exits 0.
+[Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R4; Q-REQ-PO-B) `[Updated: 2026-09-22]`: the
+> options `restore │ accept (note) │ stop` are unchanged, but on a **read-only
+> leaf** neither `restore` nor `accept (note)` returns the gate to `proceed`
+> on that leaf's verdict — the verdict is **voided** and the gate reopens
+> `redo` / re-dispatch (REQ-HARN-PIPELINEOBSERVABILITY-004). Observed: the
+> chunk-0 verifier's `GIT_STATE` finding was resolved `restore` and its
+> `CHUNK_VERDICT: PASS` was then consumed and the chunk proceeded — detection
+> worked twice and the verdict was still trusted. The snapshot, the three
+> plumbing reads, the reverse-delta subtraction and the self-test scenarios are
+> unchanged.
+
+### REQ-HARN-PIPELINEOBSERVABILITY-004: a `GIT_STATE` or `OUT` finding on a read-only leaf voids that leaf's verdict
+When the write-scope observation raises a `GIT_STATE` finding
+(REQ-HARN-HARNESSP6-001) or an `OUT` path (including the content-hash
+observation of REQ-HARN-HARNESSP3-001) against a **read-only** leaf — the
+reviewer, the chunk verifier or the red team — the orchestrator must consume
+that leaf's verdict as the negative token with a note (`CHUNK_VERDICT: FAIL
+(voided: GIT_STATE)`, `VERDICT: REJECT (voided: …)`, `RED_VERDICT: BROKEN
+(voided: …)`): the "unverified is not verified" rule the missing-token case
+already applies. The void holds whichever option the operator picks — `restore`
+**or** `accept (note)` (Q-REQ-PO-B: the verdict was produced by a leaf that
+mutated what it was verifying, and restoring the tree does not restore the
+verdict) — and the gate reopens `redo` / a fresh re-dispatch of the leaf, never
+`proceed` on the voided verdict. A voided verdict counts toward **no** fix or
+redo counter (REQ-HARN-001 as amended — otherwise a stashing reviewer could
+drive a stage to the cap with no defect in the artifact); the re-dispatch it
+causes is bounded by a per-gate count of voided re-dispatches capped at the
+`REDO_MAX` value, rendering the existing exhausted gate `stop │ manual
+intervention` — a session-scoped counter, no new artifact and no fourth cap
+name. The bound is a binding clause, not a stated default: its comparand is one
+sentence in `references/loop-control.md` §1b naming `REDO_MAX` as the cap on
+voided re-dispatches, pinned by a skill-lint `REQUIRED` row (Q-REQ-PO-Q). (see RS-PIPELINEOBSERVABILITY-001 §Q2 recommendation (b), R4,
+§Mechanical pin R4.) Touches REQ-HARN-HARNESSP6-001 (amended); leaves
+REQ-HARN-014 (a `FAIL` routes to a repair packet — consistent), REQ-HARN-022
+(`SCOPE:` token and options — no new token), REQ-HARN-019 (classification
+orchestrator-only — the void is orchestrator-side) and REQ-HARN-HARNESSP3-001
+(content-hash observation — reused) consistent.
+**Acceptance**: `references/loop-control.md` §1b and `references/write-scope.md`
+§8 carry the void sentence, pinned by a skill-lint `REQUIRED` row whose removal
+in a temp copy makes the linter exit non-zero; `references/loop-control.md` §1b
+carries one sentence containing both `voided re-dispatch` and `REDO_MAX`,
+pinned by a second skill-lint `REQUIRED` row on that file (pattern: `voided
+re-dispatch` and `REDO_MAX` on the same visible line) whose removal in a temp
+copy makes the linter exit non-zero, and `python3 plugins/sdd/tools/skill-lint.py
+--self-test` exits 0 with its pinned `REQUIRED` count including both rows; `references/dispatch-templates.md`'s
+missing-token rule is cross-referenced from it; the cross-field assertion (a)
+of REQ-TELEM-PIPELINEOBSERVABILITY-003 fails on the recorded shape (a
+`verifier` record with `scope.token = VIOLATION`, a `PASS` verdict and a
+`proceed` decision); `docs/spec/harness-write-scope.md` (or the spec the specs
+stage names) walks the recorded chunk-0 sequence and shows it now rendering
+`CHUNK_VERDICT: FAIL (voided: GIT_STATE)` with `redo` offered and `proceed`
+withheld.
 [Priority: must]

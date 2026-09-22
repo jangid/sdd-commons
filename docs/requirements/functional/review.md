@@ -1,6 +1,6 @@
 ---
 domain: REV
-last_updated: 2026-05-25
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-004]
 ---
@@ -39,6 +39,16 @@ section, and affected requirement;
 references. The report must be presented inline as conversation output
 and must not be written to disk as a project artifact.
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R10; Q-REQ-PO-E) `[Updated: 2026-09-22]`: the
+> sections and their order are unchanged. **Acceptance, added**: section (c) is
+> the section whose list items REQ-HARN-PIPELINEOBSERVABILITY-005 counts — a
+> report with ≥ 1 item under its critical/blocking heading (headed `Critical`
+> here, `Blocking` in `agents/reviewer.md`; both spellings are matched) and a
+> verdict other than Reject is consumed as malformed (`tier/verdict conflict`)
+> by the orchestrator, never acted on as the stated verdict; `agents/reviewer.md`
+> already defines Approve as "no blocking finding", so the rule enforces the
+> agent's own contract.
 
 ### REQ-REV-003: Required inputs
 The review skill must specify its required inputs: (a) the deliverable

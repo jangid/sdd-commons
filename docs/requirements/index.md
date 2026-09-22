@@ -1,7 +1,7 @@
 ---
-version: "23.0"
+version: "25.0"
 status: Approved
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 traceability: traceability.md
 ---
 
@@ -10,7 +10,7 @@ traceability: traceability.md
 ## Summary
 
 Requirements for SDD (Spec-Driven Development) skill improvements in the
-tools-skills-agents repository. Covers fourteen scopes:
+tools-skills-agents repository. Covers fifteen scopes:
 
 1. **v2 artifact structure** (RS-001): Research structure, requirements
    splitting, plan management, staleness detection, migration, and per-skill
@@ -155,6 +155,26 @@ tools-skills-agents repository. Covers fourteen scopes:
    instead of reporting `[structure] skills/ directory not found`; and removes
    the unreachable bundled `skills/orchestrate/tools/` copy together with every
    record its removal falsifies, each under a stated correction rule (PKG).
+15. **Pipeline observability** (RS-PIPELINEOBSERVABILITY-001): the harness
+   verifying itself — the eleven gaps the consumer-geometry cycle's own run
+   exposed while every gate rendered green. The delta makes the telemetry
+   writer validate through the reader's own schema and migrates the flat
+   records where their keys map (TELEM); binds the review verdict as the
+   routing — `REJECT` → fix → re-review counted by the cap, `APPROVE_WITH_FIXES`
+   → fix → proceed without re-review — with a `post-manual` review after every
+   manual intervention, a voided verdict for a read-only leaf that mutated git
+   state, a count-decided tier/verdict conflict pause and a derived implement
+   test-run budget (HARN); pins a git-state prohibition into the three agent
+   bodies (AGENT); treats a heading the fix created as written ground (ARB);
+   adds the snapshot-comparand rules `literal-anchor`, `self-matching-grep` and
+   `dead-path-citation` plus a `qimpl-malformed` class, and a traced-by-active-
+   plan exception to the `info` stale-chain fold (GC, LINT); honours a declared
+   test convention in Check 3 (CHKC); excludes `.claude/` from the hygiene
+   hooks (PC); bumps the plugin version so `/plugin update` is not a no-op
+   (PKG); and binds `CLAUDE.md` to the landed routing, the counted quantity,
+   the `GROWTH:` line and the real plugin-manifest path (DOCS). Two of the
+   HARN bindings landed manually at the research gate and are recorded as in
+   force, with their skill-lint pins — never a commit sha — as comparands.
 
 ## Stakeholders
 
@@ -170,30 +190,30 @@ tools-skills-agents repository. Covers fourteen scopes:
 | functional | [plan-management.md](functional/plan-management.md) | PLAN | REQ-PLAN-001..004, REQ-PLAN-HARNESSP6-001 | Approved | 2026-09-20 |
 | functional | [staleness-detection.md](functional/staleness-detection.md) | STALE | REQ-STALE-001..003 | Approved | 2026-05-25 |
 | functional | [migration.md](functional/migration.md) | MIG | REQ-MIG-001..015 | Approved | 2026-05-25 |
-| functional | [chunk-close.md](functional/chunk-close.md) | CHKC | REQ-CHKC-001..008 | Approved | 2026-05-25 |
+| functional | [chunk-close.md](functional/chunk-close.md) | CHKC | REQ-CHKC-001..008 (004 amended 2026-09-22) | Approved | 2026-09-22 |
 | functional | [deviation-protocol.md](functional/deviation-protocol.md) | QIMPL | REQ-QIMPL-001..003, REQ-QIMPL-HARNESSP5-001..002 | Approved | 2026-09-19 |
 | functional | [milestone-plans.md](functional/milestone-plans.md) | MPLAN | REQ-MPLAN-001..004 | Approved | 2026-05-25 |
 | functional | [cross-spec-consistency.md](functional/cross-spec-consistency.md) | XSPEC | REQ-XSPEC-001..002 | Approved | 2026-05-25 |
-| functional | [review.md](functional/review.md) | REV | REQ-REV-001..008 | Approved | 2026-05-25 |
+| functional | [review.md](functional/review.md) | REV | REQ-REV-001..008 (002 amended 2026-09-22) | Approved | 2026-09-22 |
 | functional | [orchestration.md](functional/orchestration.md) | ORCH | REQ-ORCH-001..034, REQ-ORCH-HARNESSP6-001..002 | Approved | 2026-09-20 |
 | functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030, REQ-WS-HARNESSP3-001, REQ-WS-HARNESSP5-001..002 | Approved | 2026-09-19 |
-| functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027, REQ-HARN-HARNESSP5-001 | Approved | 2026-09-19 |
-| functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019, REQ-HARN-HARNESSP3-002..003, -005, REQ-HARN-HARNESSP4-007, REQ-HARN-HARNESSP6-002 | Approved | 2026-09-20 |
-| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002, REQ-HARN-HARNESSP3-001, -004, REQ-HARN-HARNESSP4-001..006, REQ-HARN-HARNESSP5-002, REQ-HARN-HARNESSP6-001 | Approved | 2026-09-20 |
-| functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001..003, REQ-ARB-HARNESSP5-001..003 | Approved | 2026-09-19 |
+| functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027, REQ-HARN-HARNESSP5-001, REQ-HARN-PIPELINEOBSERVABILITY-001..003 | Approved | 2026-09-22 |
+| functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019, REQ-HARN-HARNESSP3-002..003, -005, REQ-HARN-HARNESSP4-007, REQ-HARN-HARNESSP6-002, REQ-HARN-PIPELINEOBSERVABILITY-005..006 | Approved | 2026-09-22 |
+| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002, REQ-HARN-HARNESSP3-001, -004, REQ-HARN-HARNESSP4-001..006, REQ-HARN-HARNESSP5-002, REQ-HARN-HARNESSP6-001, REQ-HARN-PIPELINEOBSERVABILITY-004 | Approved | 2026-09-22 |
+| functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001..003, REQ-ARB-HARNESSP5-001..003, REQ-ARB-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | functional | [adversarial-verify.md](functional/adversarial-verify.md) | REDB | REQ-REDB-HARNESSP2-001..009, REQ-REDB-HARNESSP3-001..004, REQ-REDB-HARNESSP4-001 | Approved | 2026-09-18 |
-| functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009, REQ-TELEM-HARNESSP3-001..002, REQ-TELEM-HARNESSP4-001..008, REQ-TELEM-HARNESSP5-001..008 | Approved | 2026-09-19 |
+| functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009, REQ-TELEM-HARNESSP3-001..002, REQ-TELEM-HARNESSP4-001..008, REQ-TELEM-HARNESSP5-001..008, REQ-TELEM-PIPELINEOBSERVABILITY-001..003 | Approved | 2026-09-22 |
 | functional | [cycle-identity.md](functional/cycle-identity.md) | CYCID | REQ-CYCID-HARNESSP3-001..002, REQ-CYCID-HARNESSP4-001..002 | Approved | 2026-09-18 |
-| functional | [agents.md](functional/agents.md) | AGENT | REQ-AGENT-MARKETPLACE-001..006 | Approved | 2026-09-21 |
+| functional | [agents.md](functional/agents.md) | AGENT | REQ-AGENT-MARKETPLACE-001..006, REQ-AGENT-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
 | non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
-| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001, REQ-GC-HARNESSP6-001..004 | Approved | 2026-09-20 |
+| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001, REQ-GC-HARNESSP6-001..004, REQ-GC-PIPELINEOBSERVABILITY-001..004 | Approved | 2026-09-22 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
-| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008 | Approved | 2026-09-21 |
+| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008, REQ-LINT-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | integration | [naming.md](integration/naming.md) | NAME | REQ-NAME-MARKETPLACE-001..010 | Approved | 2026-09-21 |
-| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..010, REQ-PKG-CONSUMERGEOMETRY-001..006 | Approved | 2026-09-21 |
-| integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006, REQ-PC-PACKAGING-001 | Approved | 2026-09-21 |
-| integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005, REQ-DOCS-PACKAGING-001..003 | Approved | 2026-09-21 |
+| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..010, REQ-PKG-CONSUMERGEOMETRY-001..006, REQ-PKG-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
+| integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006, REQ-PC-PACKAGING-001, REQ-PC-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
+| integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005, REQ-DOCS-PACKAGING-001..003, REQ-DOCS-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
 
 > **ORCH delta note:** The ORCH domain mixes shipped requirements (REQ-ORCH-001..015,
@@ -762,6 +782,42 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Q1 — `lint_command()`'s second (shim) return path | REQ-PKG-CONSUMERGEOMETRY-003 acceptance 3 (ii) (added at iteration 2) |
 | Constraint 2 — every binding's reversion fails a gate, demonstrated | REQ-PKG-CONSUMERGEOMETRY-001 acceptance 2, and a stated mutation on every other acceptance in the delta |
 
+### pipeline-observability item coverage (kickoff §The observation gaps 1-11, RS-PIPELINEOBSERVABILITY-001 R1-R15, §Gate observation V3 and review round 1 C1-C2/M1-M5, none dropped)
+
+| Research row / gap | Disposition | Requirement(s) |
+|---|---|---|
+| R1 / gap 1 — `append` validates through `lint_records`; `rec <n>` on exit 0 only | new + amend | REQ-TELEM-PIPELINEOBSERVABILITY-001; REQ-TELEM-HARNESSP2-004, -HARNESSP3-001 amended |
+| R2 / gap 1 — `flat-cg` migration, 36 migrated / 17 lost, 77 packaging under the same rule, frozen fixture | new + amend | REQ-TELEM-PIPELINEOBSERVABILITY-002; REQ-TELEM-HARNESSP4-005, -HARNESSP5-008 (c) amended |
+| R3 / gap 2a — git-state sentence in the three agent bodies, lint-pinned | new + amend | REQ-AGENT-PIPELINEOBSERVABILITY-001; REQ-AGENT-MARKETPLACE-002 amended |
+| R4 / gap 2b — `GIT_STATE` / `OUT` on a read-only leaf voids its verdict; `accept (note)` voids too | new + amend | REQ-HARN-PIPELINEOBSERVABILITY-004; REQ-HARN-HARNESSP6-001 amended; Q-REQ-PO-B |
+| R5 / gap 2c — `PreToolUse` deny-list hook | **excluded** — OPEN on whether hook input carries the subagent type; a spike task at plan time, not a requirement | none (§Open Questions) |
+| R6 / gap 3 — the cap counts consecutive consumed `REJECT`s; V3 routing (landed) | new ×2 + amend | REQ-HARN-PIPELINEOBSERVABILITY-001, -002; REQ-HARN-001, REQ-HARN-013 amended; Q-REQ-PO-A, -C, -D |
+| R6 — `ROUND_MAX`, the two-consecutive-AWF terminator, V2 rules 3-4, decisions (i)-(iii) | **excluded** — moot under V3 | none (Q-REQ-PO-A) |
+| R7 / gap 3b — fix-induced ground: a heading absent at `sha_N` is in `W_N` | new + amend | REQ-ARB-PIPELINEOBSERVABILITY-001; REQ-ARB-HARNESSP2-002, -HARNESSP3-001 amended |
+| R8 / gap 4 — `post-manual` review before `proceed`, no counter increment | new + amend | REQ-HARN-PIPELINEOBSERVABILITY-003; REQ-HARN-001 amended |
+| R9 / gap 5 — `literal-anchor` (warn, folded) and `self-matching-grep` (fail), corpus repaired in the same commit | new ×2 + amend | REQ-GC-PIPELINEOBSERVABILITY-001, -002; REQ-GC-HARNESSP2-002 amended |
+| §Q5 scope — `plugins/sdd/**` through skill-lint's drift-phrase mechanism | new | REQ-LINT-PIPELINEOBSERVABILITY-001 |
+| §Open Questions — dead-path citation form | new, by decision | REQ-GC-PIPELINEOBSERVABILITY-004; Q-REQ-PO-I |
+| R10 / gap 6 — tier/verdict conflict is the existing `REVIEW: MALFORMED` pause, decided by a count | new + acceptance-only amend | REQ-HARN-PIPELINEOBSERVABILITY-005; REQ-HARN-013, REQ-REV-002 acceptance added; Q-REQ-PO-E |
+| R11 / gap 7 — `qimpl-malformed` under marker 4 | new + amend | REQ-GC-PIPELINEOBSERVABILITY-003; REQ-GC-HARNESSP2-003 amended; Q-REQ-PO-F |
+| R12 / gap 8 — `test_runs = 2 × mutations + gates` | new | REQ-HARN-PIPELINEOBSERVABILITY-006 |
+| R13 / gap 9 — `.claude/` in the hygiene hooks' `exclude`, sandbox-independent reproduction | new | REQ-PC-PIPELINEOBSERVABILITY-001; Q-REQ-PO-K |
+| R14 / gap 10 — Check 3 honours a declared test convention | amend | REQ-CHKC-004 amended; Q-REQ-PO-G |
+| R15 / gap 11 — traced-by-active-plan stale-chain pair is `warn` | amend | REQ-GC-HARNESSP6-003 amended; Q-REQ-PO-H |
+| gap 11 — making the finding block a gate | **excluded** — reverses the never-blocks rule (REQ-GC-HARNESSP2-006) | none |
+| gap 1 — back-filling the 17 lost and the 16 never-written records | **excluded** — declared lost / missing, never reconstructed | REQ-TELEM-PIPELINEOBSERVABILITY-002 states the exclusion |
+| gap 5 — unquoted-pattern `self-matching-grep`; `docs/ws/**` and `docs/research/**` as lint scope; a folded `info` per research spike | **excluded** — pending the fifth observed case; dated snapshots by contract; default no | none (§Open Questions) |
+| §Q3 — the three replay claims (cap 2× not 4×, interventions 3 not 4, specs closes at r3) | **excluded as criteria** — conditional on verdict invariance and prose acceptance; no acceptance criterion quotes them | none (Q-REQ-PO-M) |
+| Kickoff decision — plugin version bump so `/plugin update` is not a no-op | new | REQ-PKG-PIPELINEOBSERVABILITY-001; Q-REQ-PO-L, -T (plugin.json is the sole version field) |
+| Review round 1 C1 — commit shas as comparands | repaired — the two skill-lint `REQUIRED` rows and the `FORBIDDEN` phrase are the comparands; no sha anywhere in the delta | REQ-HARN-PIPELINEOBSERVABILITY-001, -002; Q-REQ-PO-A (amended) |
+| Review round 1 C2 — `CLAUDE.md` unbound (§Gate vocabulary, §Cycle signals, §Repository Structure's phantom `plugin.json`) | new | REQ-DOCS-PIPELINEOBSERVABILITY-001; Q-REQ-PO-U |
+| Review round 1 M1 — the voided-re-dispatch bound had no comparand | acceptance added (a second `REQUIRED` row on `loop-control.md`) | REQ-HARN-PIPELINEOBSERVABILITY-004; Q-REQ-PO-Q |
+| Review round 1 M2 — a round-2 `GROWTH:` quote is unreachable in a correct cycle | acceptance made conditional | REQ-HARN-PIPELINEOBSERVABILITY-002 |
+| Review round 1 M3 — no corpus-repair decision for the 69 anchors | decided: not repaired, standing `warn` floor | REQ-GC-PIPELINEOBSERVABILITY-001, -004; Q-REQ-PO-R; §Out of Scope |
+| Review round 1 M4 — `literal-anchor` phrase scope wider than its measurement | scoped to the swept markdown set | REQ-LINT-PIPELINEOBSERVABILITY-001; Q-REQ-PO-S |
+| Review round 1 M5 — marketplace.json `version` grep satisfied by absence | absence asserted as the criterion | REQ-PKG-PIPELINEOBSERVABILITY-001; Q-REQ-PO-T |
+| Kickoff constraint 2 — every binding's reversion fails a gate, demonstrated | — | a stated reversion witness on every new acceptance above; prose-only consequences are marked in the research's §Mechanical pin and are not criteria |
+
 ## Domain Prefixes
 
 | Prefix | Domain | File |
@@ -778,7 +834,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | REV | External Review | functional/review.md |
 | ORCH | SDD Orchestration Driver | functional/orchestration.md |
 | WS | Multi-Workstream SDD | functional/multi-workstream.md |
-| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md, `HARNESSP3`-prefixed additions split across harness-verification.md and harness-boundaries.md — the `HARNESSP3` counter is per domain and runs 001..005 across both files; `HARNESSP4` likewise runs 001..007 — 001..006 in harness-boundaries.md, 007 in harness-verification.md; `HARNESSP5` runs 001..002 — 001 in harness-loop-control.md, 002 in harness-boundaries.md; `HARNESSP6` runs 001..002 — 001 in harness-boundaries.md, 002 in harness-verification.md) |
+| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md, `HARNESSP3`-prefixed additions split across harness-verification.md and harness-boundaries.md — the `HARNESSP3` counter is per domain and runs 001..005 across both files; `HARNESSP4` likewise runs 001..007 — 001..006 in harness-boundaries.md, 007 in harness-verification.md; `HARNESSP5` runs 001..002 — 001 in harness-loop-control.md, 002 in harness-boundaries.md; `HARNESSP6` runs 001..002 — 001 in harness-boundaries.md, 002 in harness-verification.md; `PIPELINEOBSERVABILITY` runs 001..006 — 001..003 in harness-loop-control.md, 004 in harness-boundaries.md, 005..006 in harness-verification.md) |
 | ARB | Arbitrated Handoff (contradicting review rounds) | functional/arbitrated-handoff.md |
 | REDB | Adversarial (Red/Blue) Verify | functional/adversarial-verify.md |
 | TELEM | Per-Dispatch Telemetry | functional/telemetry.md |
@@ -797,6 +853,129 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | CFG | Configuration | configuration/version-marker.md |
 
 ## Q-REQ Resolutions
+
+Resolved during requirements gathering for RS-PIPELINEOBSERVABILITY-001 (the
+harness verifying itself, workstream `pipeline-observability`). The stage ran
+**non-interactively**; every decision the dispatch handed it or that it met was
+resolved by choice and is recorded here with its reason. No new domain prefix
+was created (Q-REQ-PO-N).
+
+- **Q-REQ-PO-A** (V3 versus V2; gaps 3 and 4 together): **V3 is bound as
+  landed** — `REJECT` → fix → re-review counted by `FIX_LOOP_MAX`;
+  `APPROVE_WITH_FIXES` → fix → proceed without re-review unless the operator
+  opts in; packets carry Critical/Material only; an `APPROVE_WITH_FIXES` after
+  the cap is not an exhaustion; the informational `GROWTH:` line
+  (REQ-HARN-PIPELINEOBSERVABILITY-001, -002). The acceptance comparands are
+  the two skill-lint `REQUIRED` rows — `proceeds **without re-review**` on
+  `skills/orchestrate/SKILL.md` and `GROWTH: ` on
+  `skills/orchestrate/references/loop-control.md` — and the `FORBIDDEN`
+  phrase `then re-run the review for this stage`, decided by `python3
+  plugins/sdd/tools/skill-lint.py --self-test` and by the linter over a
+  mutated copy; recorded as in force. **No commit sha is cited** (amended at
+  review round 1, C1: the sha first written did not exist, and a sha is a
+  snapshot comparand of the class `literal-anchor` warns on). V2's `ROUND_MAX`, its
+  two-consecutive-AWF terminator, rules 3-4 and the R6 decisions (i)-(iii) are
+  **not adopted**: under V3 an AWF ends the stage's review chain, so nothing
+  they bound can arise. The three caps stay three.
+- **Q-REQ-PO-B** (does `accept (note)` also void a read-only leaf's verdict):
+  **yes** — the verdict was produced by a leaf that mutated what it was
+  verifying, and restoring the tree does not restore the verdict
+  (REQ-HARN-PIPELINEOBSERVABILITY-004). The re-dispatch this causes is bounded
+  by a per-gate voided-re-dispatch count at the `REDO_MAX` value — a
+  session-scoped counter, no fourth cap name — because the research's own
+  argument for `ROUND_MAX` (a leaf that mutates on every dispatch loops
+  unbounded) survives the rejection of `ROUND_MAX` and needs some bound.
+- **Q-REQ-PO-C** (REQ-HARN-001's counted quantity): **amended in place** to
+  consecutive consumed `REJECT`s, which its acceptance criterion already read;
+  voided, `post-manual` and third-opinion rounds count nothing. The
+  `explicit operator-authorized extra iteration` option stays — kickoff
+  constraint 4 is this cycle's operator policy, not a corpus rule.
+- **Q-REQ-PO-D** (REQ-HARN-013's `APPROVE_WITH_FIXES` branch): **amended in
+  place** to fix-then-proceed; the id is kept because the token contract and
+  the never-parse-prose rule are unchanged and a successor id would separate
+  the branch table from the rule it belongs to.
+- **Q-REQ-PO-E** (R10's form — new requirement, or acceptance on the existing
+  ones): **both, as the research asks** — REQ-HARN-PIPELINEOBSERVABILITY-005
+  holds the count rule and its fixtures (a testable criterion needs a home);
+  REQ-HARN-013 and REQ-REV-002 gain acceptance-only notes and no text change,
+  because the contract already forbade the recorded rounds.
+- **Q-REQ-PO-F** (gap 7 and the legacy bare counter): REQ-GC-HARNESSP2-003's
+  "or a legacy bare counter" is **narrowed** to bare ids with a bare
+  definition, derived from the definition scan at read time. This is not the
+  "looks local" scoping REQ-GC-HARNESSP3-001 declines: membership is decided by
+  the definition set, not by the id's shape.
+- **Q-REQ-PO-G** (REQ-CHKC-004 versus an embedded self-test): **amended in
+  place** — a convention declared in `CLAUDE.md` satisfies the check for the
+  modules it names; the import-file form stays the default elsewhere.
+- **Q-REQ-PO-H** (REQ-GC-HARNESSP6-003's mandated `info`): **amended in
+  place** with the traced-by-active-plan exception at `warn`; blocking a gate
+  is excluded (REQ-GC-HARNESSP2-006 stands).
+- **Q-REQ-PO-I** (the dead-path citation form — a third gc rule, or
+  skill-lint's retired-prefix sweep extended to specs): **a third gc rule,
+  `dead-path-citation`, at `warn`** (REQ-GC-PIPELINEOBSERVABILITY-004). The
+  class is a corpus comparand over gc's scope; the retired-prefix sweep is a
+  rename-specific check over skill text and would import a docs scope it does
+  not have. `warn` because the research measured the anchor form and the grep
+  form but not the path-only count. `should`, not `must`: it is the one rule
+  the research raised at a gate rather than measured.
+- **Q-REQ-PO-J** (telemetry migration): 36 migrated / 17 lost for
+  consumer-geometry and the same key-set rule over the 77 packaging records,
+  against a frozen fixture the operator cuts; nothing back-filled
+  (REQ-TELEM-PIPELINEOBSERVABILITY-002). Decided at DISCUSS; recorded here.
+- **Q-REQ-PO-K** (gap 9's sandbox-dependent falsifier): the acceptance names
+  two reproductions that never open the file — a `re` match of the parsed
+  `exclude` value and `pre-commit run … --files .claude/settings.json`
+  reporting the hook skipped (REQ-PC-PIPELINEOBSERVABILITY-001).
+- **Q-REQ-PO-L** (plugin version bump): one `PKG` requirement bound to the
+  branch point by semantic-version comparison (REQ-PKG-PIPELINEOBSERVABILITY-001);
+  the field's presence is REQ-PKG-MARKETPLACE's, its movement is this cycle's.
+- **Q-REQ-PO-M** (the Q3 replay claims): **not acceptance criteria.** They
+  hold only under verdict invariance and prose acceptance; the research says a
+  criterion built on them is false, and V3 supersedes the routing they measure.
+- **Q-REQ-PO-N** (domain for the delta): **no new prefix** — every change
+  amends or extends an existing domain (TELEM, HARN, AGENT, ARB, GC, LINT,
+  CHKC, REV, PC, PKG, and — from review round 1 — DOCS); the
+  per-domain-and-workstream counter makes collision impossible.
+- **Q-REQ-PO-O** (Q2 hook enforcement): **stays OPEN**; a spike task at plan
+  time (one live dispatch with a logging hook), not a requirement now.
+- **Q-REQ-PO-P** (where the amended requirements' traceability rows go): the
+  dispatch's deliverable contract asks for one row per new **or amended**
+  requirement in `docs/ws/pipeline-observability/traceability.md`, and that is
+  what was written; the consumer-geometry precedent of not duplicating rows an
+  earlier workstream owns is noted in §Open Questions for the orchestrator's
+  regeneration step.
+- **Q-REQ-PO-Q** (review round 1 M1 — where the voided-re-dispatch bound's
+  comparand lives): **a comparand, not a demotion** — one sentence in
+  `references/loop-control.md` §1b naming `REDO_MAX` as the cap on voided
+  re-dispatches, pinned by a second skill-lint `REQUIRED` row on that file
+  (REQ-HARN-PIPELINEOBSERVABILITY-004). Chosen over a fifth cross-field
+  `--lint` assertion because the bound is a gate-rendering rule, and the
+  linter already pins the file that renders it; the specs stage may add the
+  telemetry witness as well but may not drop the row.
+- **Q-REQ-PO-R** (review round 1 M3 — the 69 `literal-anchor` findings in 7
+  binding files, and any `dead-path-citation` findings beyond the three
+  repaired spec lines): **not repaired by this cycle.** They are earlier
+  cycles' approved requirement and spec text, each anchored to a comparand its
+  own commit froze; rewriting a shared approved body is a human PR decision.
+  Both rules land as a standing `warn` floor that the DONE `GC:` line routes
+  `record | ignore`; a repair, if wanted, is a later cycle's task bounded to
+  those 7 files (REQ-GC-PIPELINEOBSERVABILITY-001, -004; §Out of Scope).
+- **Q-REQ-PO-S** (review round 1 M4 — the `literal-anchor` drift phrase's
+  file set): **the swept markdown set only.** The zero-cost claim was measured
+  over the 28 markdown files skill-lint sweeps; `plugins/sdd/tools/*.py` and
+  `plugins/sdd/tools/fixtures/**` were not measured and are outside the
+  phrase's `files:` (REQ-LINT-PIPELINEOBSERVABILITY-001). Widening it is a
+  later decision taken after a read-only measurement of that set.
+- **Q-REQ-PO-T** (review round 1 M5 — the second `version` grep):
+  `plugins/sdd/.claude-plugin/plugin.json` is **the sole plugin-version
+  field**; `.claude-plugin/marketplace.json` carries none, and the acceptance
+  now asserts that absence rather than reading it as agreement
+  (REQ-PKG-PIPELINEOBSERVABILITY-001).
+- **Q-REQ-PO-U** (review round 1 C2 — `CLAUDE.md` unbound): one `DOCS`
+  requirement, REQ-DOCS-PIPELINEOBSERVABILITY-001, binds §Gate vocabulary and
+  §Cycle signals to the landed routing, the counted quantity and the `GROWTH:`
+  line, and §Repository Structure to the real `plugin.json` path, every clause
+  decided by a grep. `DOCS` is an existing prefix (Q-REQ-PO-N stands).
 
 Resolved during requirements gathering for RS-MARKETPLACE-001 (marketplace
 release, workstream `marketplace`). That stage also ran **non-interactively**, so
@@ -1664,6 +1843,31 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003)_
   from the kickoff and measured again by the research; no later stage re-measures
   it.
 
+### pipeline-observability (2026-09-22)
+
+- **The `PreToolUse` deny-list hook** (gap 2c): OPEN on whether hook input
+  carries the subagent type; detection stays the ground truth. A spike task,
+  not a requirement.
+- **`ROUND_MAX`, the two-consecutive-AWF terminator and V2 rules 3-4**: moot
+  under the landed V3 routing (Q-REQ-PO-A).
+- **Back-filling** the 17 lost (`gate`/`commit`/`pr`) and the 16 never-written
+  implement/verifier records: declared lost / missing, never reconstructed.
+- **Making the same-cycle stale-chain finding block a gate**: reverses the
+  never-blocks rule (REQ-GC-HARNESSP2-006).
+- **An unquoted-pattern form of `self-matching-grep`**, and `docs/ws/**` /
+  `docs/research/**` as lint scope for the snapshot-comparand rules: dated
+  snapshots by contract; a folded `info` per research spike is declined by
+  default.
+- **The Q3 replay's round arithmetic** as acceptance criteria (Q-REQ-PO-M).
+- **Repairing the 69 `literal-anchor` findings in the 7 binding files**, and
+  any `dead-path-citation` findings beyond the three repaired spec lines: the
+  two rules land as a standing `warn` floor routed `record | ignore` at DONE;
+  the repair is a later cycle's task bounded to those files (Q-REQ-PO-R).
+- The six carried tool-debt items from `consumer-geometry`, the
+  `docs/spec/packaging.md` split, any new SDD phase, skill or agent, and any
+  change to the nine phase skills' own workflow semantics (kickoff §Out of
+  scope, unchanged).
+
 ## Open Questions
 
 - **[consumer-geometry, OWED TO SPECS — recorded at the requirements cap gate,
@@ -2007,6 +2211,32 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003 §Open Questions
   is a specs-stage decision; the requirement fixes only that the new ones carry
   it.
 
+### pipeline-observability (2026-09-22)
+
+- **Q2 enforcement** — whether `PreToolUse` hook input carries the subagent
+  type. One live dispatch with a logging hook decides it; the plan stage owns
+  the spike task (Q-REQ-PO-O).
+- **The 36/17 split** is derived from key sets, not executed; the `migrate`
+  extension is written against the frozen fixture before the live file is
+  touched, and the expected counts in REQ-TELEM-PIPELINEOBSERVABILITY-002 are
+  fixture-derived at run time, not pinned.
+- **Where the void's bound lives** (Q-REQ-PO-B, -Q): the per-gate
+  voided-re-dispatch count at the `REDO_MAX` value is bound to one sentence in
+  `references/loop-control.md` §1b under a skill-lint `REQUIRED` row; the
+  specs stage may add a telemetry witness beside it but may not move it to a
+  fourth cap name.
+- **Duplicate traceability rows for amended requirements.** Fifteen amended
+  requirements owned by earlier workstreams have rows in
+  `docs/ws/pipeline-observability/traceability.md` per this stage's deliverable
+  contract; the consumer-geometry precedent avoided such rows so the
+  regenerated aggregate carries one assertion per id. The orchestrator's
+  regeneration step should either keep both (the per-ws file states which is
+  the amendment row) or drop the amendment rows at regeneration — decide once,
+  at the requirements gate.
+- **`dead-path-citation`'s live count** is unmeasured; if the DONE `GC:` line
+  shows it burying the other two rules' folds, the severity or the extension
+  set is the first thing to revisit.
+
 ## Research References
 
 - [RS-001: SDD Artifact Structure](../research/RS-001-sdd-artifact-structure/findings.md)
@@ -2027,6 +2257,7 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003 §Open Questions
 - [RS-PACKAGING-002: The root-interface question (the `plugins/sdd/` move, option (B), the suite-gated population and its costing)](../research/RS-PACKAGING-002-root-interface/findings.md) — an **input** to RS-PACKAGING-003, cited rather than superseded
 - [RS-PACKAGING-003: The four open decisions, capped (suite-row retargeting, per-entry root bindings, the `FILES_SWEPT` replacement, the two-root fixture geometries)](../research/RS-PACKAGING-003-decisions/findings.md)
 - [RS-CONSUMERGEOMETRY-001: The disjoint suite root (the eight reducing checks in three classes, the REQ-PKG-MARKETPLACE-007 scoping, the per-geometry split, the gate that can observe it, and the unreachable bundled tools directory)](../research/RS-CONSUMERGEOMETRY-001-disjoint-suite-root/findings.md) — **supersedes RS-PACKAGING-003 D3 only**; D1, D2 and D4 are inputs
+- [RS-PIPELINEOBSERVABILITY-001: Pipeline Observability (the harness verifying itself — telemetry validation and migration, read-only leaves, the fix-loop routing and V3, post-manual review, the snapshot-comparand lint rules, tier/verdict parsing, and gaps 7-11)](../research/RS-PIPELINEOBSERVABILITY-001-harness-self-verification/findings.md) — supersedes RS-CONSUMERGEOMETRY-001 as the newest research reference; consumer-geometry's evidence is carried, not re-derived
 
 ## See Also
 
