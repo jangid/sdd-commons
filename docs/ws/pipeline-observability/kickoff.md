@@ -121,6 +121,14 @@ Gaps 1–8 as work; gaps 9–11 as one-line fixes, each with a falsifier.
    goes to the operator. Every fix leaf re-runs each count and arithmetic it
    states before returning. Gap 3's consecutive-`REJECT` counting applies from
    the commit that lands it, not retroactively.
+5. **Requirements are the root; no clean approve anywhere means go back to
+   them** (added at the specs gate, 2026-09-22, after four specs rounds whose
+   Material findings kept tracing to requirement text). When any stage's
+   review returns anything but `VERDICT: APPROVE`, the loop routes back to
+   requirements: requirements are re-reviewed against the research and fixed
+   until they receive a clean approve; only then is the downstream stage
+   re-reviewed against them, and only a clean approve there advances the
+   loop. The origin of a finding is where it is fixed.
 
 ## Open questions
 
