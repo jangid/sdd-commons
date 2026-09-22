@@ -82,12 +82,16 @@ values, not pins.)
 > grep over `docs/requirements docs/spec plugins/sdd/skills
 > plugins/sdd/agents`; hits in this requirement's own text and in the index
 > rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'needs code|Implemented in gc' --exclude=drift-sweep.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/drift-sweep.md -exec grep -nHE 'needs code|Implemented in gc' {} +`.
 > hits only in `docs/requirements/**` — this requirement's class heading and an
 > REQ-ARB-HARNESSP2 confidence note ("needs code, not research", off-subject) —
 > reconciled; no spec or skill text restates the class list; the four rules
 > themselves are swept by REQ-GC-PIPELINEOBSERVABILITY-001..-004, each naming
 > its `docs/spec/drift-sweep.md` row 16–19.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names:
+> `docs/requirements/functional/arbitrated-handoff.md` (the REQ-ARB-HARNESSP2
+> confidence note named above) — reconciled, off-subject.
 
 ### REQ-GC-HARNESSP2-003: Pinned Q-IMPL counting rule with fenced/quoted-example skip
 The Q-IMPL sweeps must use exactly this rule: a **definition** is a
@@ -131,12 +135,15 @@ skipped — reference values, not pins.)
 > grep over `docs/requirements docs/spec plugins/sdd/skills
 > plugins/sdd/agents`; hits in this requirement's own text and in the index
 > rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'qimpl-malformed|legacy bare counter|bare definition' --exclude=drift-sweep.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/drift-sweep.md -exec grep -nHE 'qimpl-malformed|legacy bare counter|bare definition' {} +`.
 > the listing is REQ-GC-PIPELINEOBSERVABILITY-003's: `docs/spec/drift-sweep.md`
 > §Q-IMPL Counting Rule "nor absent (legacy bare counter)" — the old side,
 > narrowed in place by the dated paragraph below it and carried by
 > §`qimpl-malformed` and the narrowed placeholder exclusion — reconciled; no
 > `plugins/sdd/**` hit.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names: `docs/spec/pipeline-observability.md` —
+> reconciled, the cycle's index spec, it lists.
 
 ### REQ-GC-HARNESSP2-004: Finding shape is the linter's
 Every gc finding must be printed as `<file>:<line> [<rule>] <message>` followed
@@ -377,7 +384,7 @@ not schedule this verification before that requirement (m3).
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rn 'stale-chain' --exclude=drift-sweep.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/drift-sweep.md -exec grep -nH 'stale-chain' {} +`.
 > `plugins/sdd/skills/orchestrate/references/drift-sweep.md` routing table and
 > "`stale-chain` always routes to `record | ignore` … `--fix` refuses it", and
 > `USAGE.md` — reconciled, the traced `warn` routes the same way and is never
@@ -466,7 +473,7 @@ value, never a pin) and the run's exit status is unaffected by them (`warn`
 never fails `--report`); a grep of the `--fix` whitelist for the rule name
 returns nothing.
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `literal-anchor` source-line discipline — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'literal-anchor' --exclude=drift-sweep.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/drift-sweep.md -exec grep -nHE 'literal-anchor' {} +`.
 `docs/spec/drift-sweep.md` (the rule's section of record and its amendment)
 and `docs/spec/pipeline-observability.md` — reconciled, consistent;
 `docs/spec/skill-lint-v5.md` §`literal-anchor` as a `FORBIDDEN` drift phrase
@@ -477,6 +484,10 @@ the linter over the shipped skill text, no second definition;
 reconciled, they cite this rule; `plugins/sdd/skills/**` and
 `plugins/sdd/agents/**` — no hit (the rule lives in `plugins/sdd/tools/gc.py`,
 outside the swept trees, and no skill restates it).
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names: `docs/spec/two-root-linter.md` (citing the
+`literal-anchor` `FORBIDDEN` row of REQ-LINT-PIPELINEOBSERVABILITY-001) —
+reconciled, a citation of the linter-side row.
 [Priority: must]
 `[Updated: 2026-09-22]` — requirements review round 5 C1: the source-line
 discipline is now stated explicitly (fence half applied, span-blanking half
@@ -534,13 +545,19 @@ findings, and on a scratch copy of the parent commit reports the pre-repair
 instances (4 on 2026-09-22 — a reference value); `pre-commit run --all-files`
 exits 0 at the landing commit.
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `self-matching-grep` operand rule — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'self-matching-grep' --exclude=drift-sweep.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/drift-sweep.md -exec grep -nHE 'self-matching-grep' {} +`.
 `docs/spec/drift-sweep.md` (section of record and amendment) and
 `docs/spec/pipeline-observability.md` — reconciled, consistent with the
 operand grammar and the piped-form exclusion (Q-REQ-PO-AB);
 `docs/requirements/index.md` (ledger, Q-REQ-PO-AB, §Out of Scope) —
 reconciled, citations only; `plugins/sdd/skills/**` and `plugins/sdd/agents/**`
 — no hit.
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names:
+`docs/requirements/functional/requirements-structure.md`
+REQ-REQ-PIPELINEOBSERVABILITY-001 clause (e) (Q-REQ-PO-AM, -AN: the gc count
+as its acceptance) — reconciled, it consumes the rule's count and defines no
+grammar.
 [Priority: must]
 `[Updated: 2026-09-22]` — the command-line grammar and one fixture per form
 added at requirements review iteration 3.
@@ -576,7 +593,7 @@ repository exits `OK` with 0 `qimpl-malformed` findings.
 exclusion — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'qimpl-malformed|legacy bare counter|bare definition' --exclude=drift-sweep.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/drift-sweep.md -exec grep -nHE 'qimpl-malformed|legacy bare counter|bare definition' {} +`.
 `docs/spec/drift-sweep.md` §Q-IMPL Counting Rule "nor absent (legacy bare
 counter)" — the old exclusion; reconciled: its dated in-place amendment below
 it narrows the exclusion, and §`qimpl-malformed` and the narrowed placeholder
@@ -636,7 +653,7 @@ this repository at the landing commit reports 0 `dead-path-citation` findings
 on the three repaired spec lines and counts the rest at run time (never
 pinned); `--help` lists the rule at `warn`.
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `dead-path-citation` source-line discipline — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'dead-path-citation' --exclude=drift-sweep.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/drift-sweep.md -exec grep -nHE 'dead-path-citation' {} +`.
 `docs/spec/drift-sweep.md` (section of record and amendment) and
 `docs/spec/pipeline-observability.md` — reconciled, consistent with the token
 grammar (Q-REQ-PO-W); `docs/requirements/index.md` (ledger, Q-REQ-PO-W, -R) —

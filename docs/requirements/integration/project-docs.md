@@ -208,7 +208,7 @@ vocabulary and §Cycle signals beyond these substitutions.
 root-level manifest path — a listing grep over `docs/requirements docs/spec
 plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and
 in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnF 'iteration N of FIX_LOOP_MAX' --exclude=project-docs.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/project-docs.md -exec grep -nHF 'iteration N of FIX_LOOP_MAX' {} +`.
 `docs/spec/project-docs.md` §Pipeline-Observability Amendment (the defect quote
 and the `grep -Fc … = 0` check) and `docs/spec/harness-loop-control.md` (naming
 the phrase as retired from `CLAUDE.md`) — reconciled, both name the phrase in

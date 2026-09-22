@@ -198,7 +198,7 @@ and still declares `Bash`.
 listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'git stash|git state|read-only commands' --exclude=agents.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/agents.md -exec grep -nHE 'git stash|git state|read-only commands' {} +`.
 `plugins/sdd/agents/*.md` — no hit (today 0 of 3 bodies; the acceptance above
 is the witness that adds the sentence);
 `plugins/sdd/skills/orchestrate/references/write-scope.md` §3 git-state
@@ -213,6 +213,14 @@ body) — reconciled, they carry this requirement;
 reconciled, observation-side and off-subject respectively;
 `docs/requirements/functional/harness-boundaries.md` REQ-HARN-HARNESSP6-001 —
 reconciled, detection stays the gate's ground truth as stated above.
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names: `plugins/sdd/agents/chunk-verifier.md`,
+`red-team.md` and `reviewer.md` ("You run no `git stash` …", `Bash` is for
+read-only commands and the quality gates) — reconciled, the git-state sentence
+and read-only-gates clause the acceptance above adds, landed by the implement
+stage, so the "no hit" baseline above is history;
+`docs/spec/pipeline-observability.md` — reconciled, the cycle's index spec, it
+lists rows p1–p3.
 [Priority: must]
 `[Updated: 2026-09-22]` (workstream `pipeline-observability`; Q-REQ-PO-V,
 -X, superseded by Q-REQ-PO-Z; an own-id rewrite, not an amendment —

@@ -246,14 +246,18 @@ requirement's own text and in the index rows that cite it are the statement
 itself and are not listed. Every other hit is reconciled (consistent as-is,
 with the reason) or retired (covered by a zero-count witness).
 - **Label list** —
-  `grep -rnE '^\*\*(Verdict|Strengths|Critical findings|Material findings|Minor findings|Recommendation|Blocking|Substantive):\*\*|^#+ +(Blocking|Critical findings|Substantive)|blocking, then substantive' --exclude=review.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/review.md -exec grep -nHE '^\*\*(Verdict|Strengths|Critical findings|Material findings|Minor findings|Recommendation|Blocking|Substantive):\*\*|^#+ +(Blocking|Critical findings|Substantive)|blocking, then substantive' {} +`:
   `plugins/sdd/skills/review/SKILL.md` §Step 5 template (six labels) —
   reconciled, it is the list this grammar transcribes; `docs/spec/review.md`
   §Report template (the same six) — reconciled, same list;
   `docs/spec/arbitrated-handoff.md` (`**Material findings:**` in the packet
   example) — reconciled, quotes the label form; `plugins/sdd/agents/reviewer.md`
   "blocking, then substantive, then minor" — retired, witness (v).
-- **Prefixes** — `grep -rnE '^ *- (C|M|m)[0-9]+: ' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names: `docs/spec/harness-agents.md` ("blocking, then
+  substantive, then minor" quoted as the pre-delta baseline) — reconciled,
+  quoted history of witness (v).
+- **Prefixes** — `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/review.md -exec grep -nHE '^ *- (C|M|m)[0-9]+: ' {} +`:
   `plugins/sdd/skills/review/SKILL.md` §Step 5 template and
   `docs/spec/review.md` §Report template (`C1:`/`M1:`/`m1:` examples) —
   reconciled, the same three prefixes; `docs/spec/arbitrated-handoff.md`
@@ -261,8 +265,12 @@ with the reason) or retired (covered by a zero-count witness).
   (`- M1:`, `- M2:` under §Milestones) — reconciled, a different subject: plan
   milestone ids, and the prefix rule applies only to list items under a tier
   label line.
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names: `plugins/sdd/agents/reviewer.md` §Report
+  template (`- C1:`, `- M1:`, `- m1:` lines) — reconciled, the same three
+  prefixes.
 - **Verdict predicates** —
-  `grep -rnE 'No findings above minor|at least one Material finding|Any blocking \(Critical\) finding|No blocking findings\. Proceed|Critical findings exist but are bounded|Material and minor findings only|[Nn]o blocking finding;' --exclude=review.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/review.md -exec grep -nHE 'No findings above minor|at least one Material finding|Any blocking \(Critical\) finding|No blocking findings\. Proceed|Critical findings exist but are bounded|Material and minor findings only|[Nn]o blocking finding;' {} +`:
   `plugins/sdd/skills/review/SKILL.md` §Verdict definitions (the old `Approve`
   and `Approve with fixes` lines) — retired, witness (v), replaced under (iii);
   `plugins/sdd/agents/reviewer.md` §What your token means ("no blocking
@@ -283,7 +291,7 @@ with the reason) or retired (covered by a zero-count witness).
   for a live sentence finds it in this requirement, the two producers and the
   specs only.
 - **Token line** —
-  `grep -rnE 'anywhere in its report|last occurrence wins|position is not part of the contract' --exclude=review.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/review.md -exec grep -nHE 'anywhere in its report|last occurrence wins|position is not part of the contract' {} +`:
   `plugins/sdd/skills/orchestrate/references/return-contract.md` §6,
   `plugins/sdd/skills/orchestrate/SKILL.md` §The gate,
   `plugins/sdd/skills/review/SKILL.md` §`VERDICT:` token paragraph,
@@ -294,9 +302,13 @@ with the reason) or retired (covered by a zero-count witness).
   they state the rule (1) quotes, and the revert of Q-REQ-PO-AD is what makes
   them consistent; `docs/requirements/index.md` Q-REQ-PO-AD — retired, the
   entry now reads as reverted by Q-REQ-PO-AF.
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names: `docs/spec/review.md` (the "position is not
+  part of the contract" sentence, kept as the live consumer rule) —
+  reconciled, consistent with (1).
 - **Rule-table population** (re-run with the population terms, specs closing
   review C2, Q-REQ-PO-AL, 2026-09-22) —
-  `grep -rnE 'REQUIRED=|FORBIDDEN=|print-population|population' --exclude=review.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py`:
+  `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py -type f ! -path docs/requirements/functional/review.md -exec grep -nHE 'REQUIRED=|FORBIDDEN=|print-population|population' {} +`:
   the `REQUIRED` rows this requirement binds on the linter (rows p1–p14 of
   `docs/spec/skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability)
   move the population REQ-LINT-PACKAGING-007 compares — `REQUIRED` 42 today
@@ -320,6 +332,17 @@ with the reason) or retired (covered by a zero-count witness).
   as of its date; every other `population` hit — a different subject
   (bundled-tool and policed-area populations); `plugins/sdd/skills/**`,
   `plugins/sdd/agents/**` — no hit.
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names: every other `population` hit, named:
+  `docs/requirements/integration/naming.md` (seeded occurrences),
+  `docs/spec/adversarial-verify.md` (shingle population),
+  `docs/spec/pre-commit.md` and `docs/spec/marketplace-packaging.md`
+  (bundled-tool population), `docs/spec/skill-namespace-rename.md`
+  (policed-area population), `docs/spec/requirements-artifacts.md` (the
+  amended-row population of REQ-REQ-PIPELINEOBSERVABILITY-001 (d)) — a
+  different subject each, reconciled; `docs/spec/pipeline-observability.md` —
+  reconciled, the cycle's index spec, it lists Q-SPEC-PO-U, the
+  `--print-population` equality by citation of -007.
 [Priority: must]
 `[Updated: 2026-09-22]` — requirements review round 5 M2, m2, m3: the
 label-line definition split into the Verdict form, the token form and the

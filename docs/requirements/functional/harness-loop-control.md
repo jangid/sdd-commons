@@ -116,7 +116,7 @@ fourth gate with the compiled log and no automatic fourth dispatch; the
 > of MAX` label — a listing grep over `docs/requirements docs/spec
 > plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text
 > and in the index rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'consecutive|reject_run|iteration N of' --exclude=harness-loop-control.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-loop-control.md -exec grep -nHE 'consecutive|reject_run|iteration N of' {} +`.
 > `plugins/sdd/skills/orchestrate/references/loop-control.md` (§1 marker
 > literals, §1b, the §2b contradiction line, §5 counters),
 > `references/return-contract.md` ("one review round is one fix iteration"),
@@ -142,6 +142,15 @@ fourth gate with the compiled log and no automatic fourth dispatch; the
 > round 8 M2): `docs/spec/harness-loop-control.md` §Pipeline-Observability
 > Amendment's consistency line repeats the `REQ-HARN-002/-008 (REPLAN_MAX,
 > REDO_MAX)` miscitation this note has dropped — out of this stage's scope.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names: the `docs/requirements/**` hits summarised
+> above, named: `docs/requirements/functional/cycle-identity.md`,
+> `harness-verification.md`, `telemetry.md`,
+> `docs/requirements/integration/project-docs.md`, `skill-lint.md` and
+> `skill-updates.md` — the `iteration N of MAX` label or an off-subject
+> "consecutive", reconciled; `docs/spec/telemetry.md` (the `fix_iteration`
+> row) — reconciled, the label; `docs/spec/pipeline-observability.md` —
+> reconciled, the cycle's index spec, it lists.
 
 ### REQ-HARN-002: Replan re-entry cap, derived from plan-history
 The orchestrator must cap replan re-entries per cycle at a configurable maximum
@@ -379,7 +388,7 @@ proceed and §2a states that an `APPROVE_WITH_FIXES` at or after the cap is not
 an exhaustion; this cycle's `verification.md` names the gates that ran under
 this rule (kickoff decision 3).
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `APPROVE_WITH_FIXES` routing — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'proceed without re-review|proceed or fix offered|fix, then proceed' --exclude=harness-loop-control.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-loop-control.md -exec grep -nHE 'proceed without re-review|proceed or fix offered|fix, then proceed' {} +`.
 `plugins/sdd/skills/orchestrate/references/return-contract.md` §6 branching
 table (`APPROVE_WITH_FIXES` row: fix, then proceed without re-review, re-review
 on explicit opt-in) and `plugins/sdd/skills/orchestrate/references/loop-control.md`
@@ -395,6 +404,10 @@ original body's "proceed or fix offered" and the amendment note that reads
 this routing "in place of" it) — reconciled, the note supersedes the body
 sentence and points here; `plugins/sdd/tools/skill-lint.py` carries the
 `REQUIRED` pin but lies outside the four swept trees.
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names: `docs/requirements/functional/review.md`
+REQ-REV-PIPELINEOBSERVABILITY-001 (v) (quoting the old `Approve with fixes`
+line it retires) — reconciled, quoted history.
 [Priority: must]
 
 ### REQ-HARN-PIPELINEOBSERVABILITY-002: an informational `GROWTH:` line renders the deliverable's size delta at review round N ≥ 2
@@ -421,7 +434,7 @@ may run none), this cycle's `verification.md` quotes the rendered `GROWTH:`
 line from that gate; when no stage ran a round N ≥ 2, `verification.md` states
 so and the temp-copy and self-test checks alone decide the criterion.
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `GROWTH:` line — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'GROWTH:' --exclude=harness-loop-control.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-loop-control.md -exec grep -nHE 'GROWTH:' {} +`.
 `plugins/sdd/skills/orchestrate/references/loop-control.md` §5 item 6d and
 `plugins/sdd/skills/orchestrate/SKILL.md` §The gate (the row naming
 `CONVERGENCE:` then `GROWTH:`) — reconciled, they render the line this
@@ -483,7 +496,7 @@ two-record fixture — a `reason: REVIEW` record at `iteration: 1` with no
 loop-back followed by a `reason: POST_MANUAL` record — emits one
 `[reason-review]` warning, for the first record only.
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `post-manual` footprint — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'post-manual|POST_MANUAL' --exclude=harness-loop-control.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-loop-control.md -exec grep -nHE 'post-manual|POST_MANUAL' {} +`.
 `docs/spec/harness-loop-control.md` §2b and `docs/spec/skill-lint-v5.md` row
 p5 — reconciled, consistent; `docs/spec/telemetry-reader.md` (reader check (c)
 and its amendment, which spell the reason `post-manual` in lower case where
@@ -496,6 +509,18 @@ REQ-TELEM-PIPELINEOBSERVABILITY-003 — reconciled, it owns the record shape;
 `docs/spec/pipeline-observability.md` — reconciled, consistent;
 `plugins/sdd/**` — no hit (today 0: the shipped loop-control carries the
 review only after landing).
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names:
+`plugins/sdd/skills/orchestrate/references/loop-control.md` §2b
+(`dispatch.reason = POST_MANUAL`, the `post-manual` review) and
+`references/telemetry.md` (the `reason` row and the `manual intervention`
+walkthrough) — reconciled, the review this requirement defines, landed by the
+implement stage, so the "no hit" baseline above is history;
+`docs/spec/telemetry.md` (the same two rows) and
+`docs/spec/harness-write-scope.md` (manual intervention is followed by the
+`post-manual` review) — reconciled, they carry it by citation;
+`docs/requirements/functional/harness-boundaries.md` (one citation) —
+reconciled.
 [Priority: must]
 `[Updated: 2026-09-22]` — footprint paragraph and its witnesses added at
 requirements review iteration 3 (the dispatch had no record shape and no

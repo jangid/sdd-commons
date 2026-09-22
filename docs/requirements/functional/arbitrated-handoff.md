@@ -79,7 +79,7 @@ finding at §A renders no contradiction.
 > a listing grep over `docs/requirements docs/spec plugins/sdd/skills
 > plugins/sdd/agents`; hits in this requirement's own text and in the index
 > rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' --exclude=arbitrated-handoff.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/arbitrated-handoff.md -exec grep -nHE 'W_N|fix-induced|did not exist (in|at)' {} +`.
 > the listing is REQ-ARB-PIPELINEOBSERVABILITY-001's:
 > `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a (two-term
 > `W_N`) and its "may over-fire … accepted" sentence, and
@@ -89,6 +89,11 @@ finding at §A renders no contradiction.
 > `docs/spec/arbitrated-handoff.md` §Retained Per-Round State and §Fix-induced
 > ground is written ground — reconciled, they carry the rule; every other hit
 > is the unchanged regeneration term.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names: `docs/spec/adversarial-verify.md` —
+> reconciled, the unchanged regeneration term;
+> `docs/spec/pipeline-observability.md` — reconciled, the cycle's index spec,
+> it lists.
 
 ### REQ-ARB-HARNESSP2-003: Class (c) — verdict regression without new ground
 The orchestrator must flag a contradiction of class **(c)** when round N's
@@ -247,7 +252,7 @@ fixture with the findings in a file the loop never touched still pauses as class
 > union) — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
 > plugins/sdd/agents`; hits in this requirement's own text and in the index
 > rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' --exclude=arbitrated-handoff.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/arbitrated-handoff.md -exec grep -nHE 'W_N|fix-induced|did not exist (in|at)' {} +`.
 > the listing is REQ-ARB-PIPELINEOBSERVABILITY-001's: the two-term `W_N` of
 > `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a and §`W_N` —
 > the old side, amended by REQ-ARB-PIPELINEOBSERVABILITY-001;
@@ -255,6 +260,9 @@ fixture with the findings in a file the loop never touched still pauses as class
 > dated) and §Fix-induced ground is written ground — reconciled, they carry the
 > term; §`W_N` Includes Regeneration Writes and
 > `docs/spec/adversarial-verify.md` — reconciled, the second term is unchanged.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names: `docs/spec/pipeline-observability.md` —
+> reconciled, the cycle's index spec, it lists.
 
 ### REQ-ARB-HARNESSP4-001: REQ-ARB-HARNESSP3-001 is exercised live in this cycle and its non-pause is recorded
 This cycle must exercise the unioned `W_N` of REQ-ARB-HARNESSP3-001 on a live
@@ -452,7 +460,7 @@ term; A1–A3's outputs are unchanged.
 ground) — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' --exclude=arbitrated-handoff.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/arbitrated-handoff.md -exec grep -nHE 'W_N|fix-induced|did not exist (in|at)' {} +`.
 `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a schema block
 (`W_N = sections(fix[N].written) UNION sections(regen[N].written)`, two terms)
 — the old side; reconciled by naming this requirement as its amender (the

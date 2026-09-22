@@ -92,7 +92,7 @@ as findings.
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rnE 'imports from the implementation|declared convention|test convention' --exclude=chunk-close.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/chunk-close.md -exec grep -nHE 'imports from the implementation|declared convention|test convention' {} +`.
 > `plugins/sdd/skills/implement/SKILL.md` Check 3 and
 > `plugins/sdd/agents/chunk-verifier.md` — no hit (today 0; the acceptance
 > above adds the clause, pinned by rows p11/p12);
@@ -101,6 +101,12 @@ as findings.
 > convention`) — reconciled, they carry this clause, and the pinned phrase
 > satisfies the `grep -c convention` check above;
 > `docs/spec/pipeline-observability.md` — reconciled, lists.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names: `plugins/sdd/skills/implement/SKILL.md` Check
+> 3 — now a hit: the declared-convention clause the acceptance above adds,
+> landed by the implement stage, so the "no hit" baseline above is history;
+> `plugins/sdd/agents/chunk-verifier.md` — still no hit under this pattern
+> today.
 
 ### REQ-CHKC-005: Q-IMPL audit
 The chunk close checklist must identify any implementation decisions that

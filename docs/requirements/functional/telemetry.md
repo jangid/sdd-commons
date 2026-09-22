@@ -141,7 +141,7 @@ and the same `proceed | loop-back-to-fix | stop` options as before; no
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rn 'WRITE FAILED' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/telemetry.md -exec grep -nH 'WRITE FAILED' {} +`.
 > `plugins/sdd/skills/orchestrate/references/telemetry.md` §3 table ("the
 > previous append raised an error") and its walkthrough rows, `USAGE.md`'s
 > table, `orchestrate/SKILL.md` and `references/loop-control.md` §5 item 7 —
@@ -318,7 +318,7 @@ nothing.
 > listing grep over `docs/requirements docs/spec plugins/sdd/skills
 > plugins/sdd/agents`; hits in this requirement's own text and in the index
 > rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'rec <n>|successful append' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/telemetry.md -exec grep -nHE 'rec <n>|successful append' {} +`.
 > the listing is REQ-TELEM-PIPELINEOBSERVABILITY-001's:
 > `references/telemetry.md` §3, `references/loop-control.md` §5 item 7,
 > `orchestrate/SKILL.md` and `USAGE.md` ("`<n>` counts successful appends this
@@ -327,6 +327,15 @@ nothing.
 > name `append`'s exit code — amended by REQ-TELEM-PIPELINEOBSERVABILITY-001;
 > `docs/spec/telemetry.md` §Positive Gate Line and §Pipeline-Observability
 > Amendment — reconciled, carry it.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names:
+> `plugins/sdd/skills/orchestrate/references/write-scope.md` (`rec <n>` as the
+> pattern `COMMIT:` follows) — reconciled, an analogy;
+> `docs/spec/harness-commit-fidelity.md` and
+> `docs/spec/harness-loop-control.md` §5 table — reconciled, they cite the
+> family; `docs/requirements/functional/harness-boundaries.md` (one citation)
+> — reconciled; `docs/spec/pipeline-observability.md` — reconciled, the
+> cycle's index spec, it lists.
 
 ### REQ-TELEM-HARNESSP3-002: `summarize` reports records-vs-expected per session as a post-cycle backstop
 `tools/sdd-telemetry.py summarize` may report a records-vs-expected count per
@@ -524,11 +533,19 @@ live records (expected: no typed-field finding).
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rnE 'flat-cg|migration\.from' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/telemetry.md -exec grep -nHE 'flat-cg|migration\.from' {} +`.
 > the listing is REQ-TELEM-PIPELINEOBSERVABILITY-002's: no `plugins/sdd/**`
 > hit; `docs/spec/telemetry-reader.md` §Second migration shape — `flat-cg` —
 > reconciled, carries it; the same file's `--lint` case (c) (one-member enum) —
 > amended by REQ-TELEM-HARNESSP5-008 as amended beside this note.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names:
+> `plugins/sdd/skills/orchestrate/references/telemetry.md` and
+> `docs/spec/telemetry.md` (the `migration` schema row, `from: chunk-string \|
+> flat-cg`) — reconciled, the two-member enum this note states, landed by the
+> implement stage, so the "no hit" baseline above is history;
+> `docs/spec/pipeline-observability.md` — reconciled, the cycle's index spec,
+> it lists (the `v: 2` key-set note).
 
 ### REQ-TELEM-HARNESSP4-006: `scope.widened` records an operator widening of the write scope
 The record schema must gain `scope.widened` (int — the count of globs the
@@ -743,7 +760,7 @@ are unchanged.
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rnE 'flat-cg|migration\.from' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/telemetry.md -exec grep -nHE 'flat-cg|migration\.from' {} +`.
 > the listing is REQ-TELEM-PIPELINEOBSERVABILITY-002's:
 > `docs/spec/telemetry-reader.md`'s `--lint` case (c) ("`migration.from`
 > outside the `chunk-string` enum") — the old one-member enum; reconciled by
@@ -751,6 +768,14 @@ are unchanged.
 > at a value outside `{chunk-string, flat-cg}`, acceptance in that spec's
 > amendment section); the same file's `lost`-admission rule — reconciled,
 > consistent; no `plugins/sdd/**` hit.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names:
+> `plugins/sdd/skills/orchestrate/references/telemetry.md` and
+> `docs/spec/telemetry.md` (the `migration` schema row, `from: chunk-string \|
+> flat-cg`) — reconciled, the two-member enum, landed by the implement stage,
+> so the "no hit" baseline above is history;
+> `docs/spec/pipeline-observability.md` — reconciled, the cycle's index spec,
+> it lists (the `v: 2` key-set note).
 
 ### REQ-TELEM-PIPELINEOBSERVABILITY-001: `telemetry.py append` validates a record before writing it; `rec <n>` counts validated writes only
 `plugins/sdd/tools/telemetry.py` must gain an `append [--file F]` subcommand
@@ -795,7 +820,7 @@ read of the telemetry file returns nothing.
 over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits
 in this requirement's own text and in the index rows citing it are the
 statement itself and are excluded.
-Command: `grep -rnE 'rec <n>|successful append' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/telemetry.md -exec grep -nHE 'rec <n>|successful append' {} +`.
 `plugins/sdd/skills/orchestrate/references/telemetry.md` §3 gate-line table and
 family note ("`<n>` counts successful appends this session"),
 `references/loop-control.md` §5 item 7, `orchestrate/SKILL.md` §The gate and
@@ -812,6 +837,9 @@ reconciled, the family stays at four members;
 `docs/requirements/functional/telemetry.md` REQ-TELEM-HARNESSP2-004 and
 -HARNESSP3-001 (amended beside) and `harness-boundaries.md` (one citation) —
 reconciled, the notes point here.
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names: `docs/spec/pipeline-observability.md` —
+reconciled, the cycle's index spec, it lists.
 [Priority: must]
 
 ### REQ-TELEM-PIPELINEOBSERVABILITY-002: the `v`-less flat records are migrated where their key sets map, and declared lost where they do not
@@ -859,7 +887,7 @@ count, no longer 0).
 listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'flat-cg|migration\.from' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/telemetry.md -exec grep -nHE 'flat-cg|migration\.from' {} +`.
 `plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit (the migration shapes
 are stated in `docs/spec/telemetry-reader.md` and the tool, never in a skill
 text); `docs/spec/telemetry-reader.md` §Second migration shape — `flat-cg`, its
@@ -871,6 +899,12 @@ and the specs re-derivation of that case as its amender;
 `docs/spec/pipeline-observability.md` (the `v: 2` key-set note) — reconciled;
 `docs/requirements/functional/telemetry.md` REQ-TELEM-HARNESSP4-005 and
 -HARNESSP5-008 (amended) — reconciled, they point here.
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names:
+`plugins/sdd/skills/orchestrate/references/telemetry.md` and
+`docs/spec/telemetry.md` (the `migration` schema row, `from: chunk-string \|
+flat-cg`) — reconciled, the two-member enum, landed by the implement stage, so
+the "no hit" baseline above is history.
 [Priority: must]
 
 ### REQ-TELEM-PIPELINEOBSERVABILITY-003: four cross-field `--lint` assertions witness the gate rules this cycle introduces
@@ -916,7 +950,7 @@ this requirement; `schema_diff` reports no divergence; `grep -c 'POST_MANUAL'`,
 members they need — a listing grep over `docs/requirements docs/spec
 plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and
 in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'POST_MANUAL|manual_intervention|cross-field' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/telemetry.md -exec grep -nHE 'POST_MANUAL|manual_intervention|cross-field' {} +`.
 `plugins/sdd/skills/orchestrate/references/telemetry.md` — hits only on the
 existing cross-field rules (`[mistyped-fix]`, the `chunk_verdict` rule, the
 `expected` derivation); reconciled, unchanged rules; the same file's
@@ -933,6 +967,13 @@ its Q-IMPL entries, `docs/spec/telemetry.md` (warnings at append time),
 `docs/requirements/functional/harness-loop-control.md`, `harness-boundaries.md`
 and `harness-verification.md` — reconciled, each names its assertion as the
 witness.
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names:
+`plugins/sdd/skills/orchestrate/references/loop-control.md` §2b
+(`dispatch.reason = POST_MANUAL`) — reconciled, the member
+REQ-HARN-PIPELINEOBSERVABILITY-003 adds, landed by the implement stage, so the
+"no hit" baseline above is history; `docs/spec/pipeline-observability.md` —
+reconciled, the cycle's index spec, it lists.
 [Priority: must]
 `[Updated: 2026-09-22]` — assertion (c) and the member list restated over the
 `post-manual` footprint of REQ-HARN-PIPELINEOBSERVABILITY-003 at requirements

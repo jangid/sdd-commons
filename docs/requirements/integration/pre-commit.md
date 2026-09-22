@@ -201,7 +201,7 @@ branch.
 `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 this requirement's own text and in the index rows citing it are the statement
 itself and are excluded.
-Command: `grep -rnE '\\.claude/|exclude (regex|pattern|value)' --exclude=pre-commit.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/pre-commit.md -exec grep -nHE '\\.claude/|exclude (regex|pattern|value)' {} +`.
 `docs/spec/pre-commit.md` §Pipeline-Observability Amendment (the alternative,
 its comment, the scratch-copy check) — reconciled, carries this requirement;
 `plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit (the hook

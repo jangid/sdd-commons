@@ -1,5 +1,5 @@
 ---
-version: "27.6"
+version: "27.7"
 status: Approved
 last_updated: 2026-09-22
 traceability: traceability.md
@@ -1314,8 +1314,10 @@ was created (Q-REQ-PO-N).
   touched.
 - **Q-REQ-PO-AM** (Chunk 3 replan trigger, Q-IMPL-PIPELINEOBSERVABILITY-009,
   routed back to requirements under kickoff constraint 5 — the sweep blocks
-  were self-matching greps): **the stated grep excludes the file that states
-  it.** Cause: clause (e) demanded a stated, re-runnable grep over the four
+  were self-matching greps; **superseded on the exclusion form by
+  Q-REQ-PO-AN** — the `--exclude=<own basename>` it chose excludes by
+  basename in every operand tree, so it stays here as history): **the stated
+  grep excludes the file that states it.** Cause: clause (e) demanded a stated, re-runnable grep over the four
   trees but never required that grep to exclude its own file; every block
   this cycle wrote therefore named its own requirement file among its
   recursive operands with a pattern that, being the block's subject, matches
@@ -1343,6 +1345,45 @@ was created (Q-REQ-PO-N).
   fourteen category files — no id added or removed; the (e) set equality
   still holds (37 = 37 on 2026-09-22) and the gc `[self-matching-grep]`
   count under `docs/requirements/**` reads 0 (40 before).
+- **Q-REQ-PO-AN** (implement-stage review C1/M1, routed to its requirements
+  origin under kickoff constraint 5 — amends Q-REQ-PO-AM on the exclusion
+  form): **the stated grep excludes the file that states it by path, never
+  by basename alone.** Cause: grep's `--exclude=<glob>` is matched against
+  the basename of every file in every operand tree, and seventeen
+  requirement-file basenames also exist under `docs/spec/` (`arbitrated-handoff`,
+  `harness-loop-control`, `review`, `telemetry`, `drift-sweep`, `pre-commit`,
+  `project-docs` among the swept files), so 27.6's rewrite silently dropped
+  the same-named spec — the file most of those blocks name as their section
+  of record — from 22 command lines while their listings still named it,
+  falsifying clause (e)'s `-l` acceptance on those sites. Decision: every
+  corpus-sweep command line enumerates its operands with
+  `find <four trees> -type f ! -path <own file path> -exec grep -nH<flags>
+  '<pattern>' {} +` — the exclusion is the file's path, the four trees and the
+  pattern are unchanged, and the same-named spec stays in the operand set;
+  all 42 command lines (40 `Command:` lines plus the two bullet-form re-runs
+  of `functional/review.md` and `integration/skill-lint.md` that share the
+  block shape) are rewritten uniformly, unique basenames included, so there is
+  one form to check; every listing is re-derived from its re-run and gains a
+  dated "re-run under the path-precise form" sentence naming the files the
+  earlier listing lacked (the colliding spec, and the skill and agent
+  sentences the implement stage has since landed, which turned several "no
+  hit (today 0)" baselines into hits); clause (e)'s acceptance gains the
+  collision witness. Alternatives rejected: (a) keep `--exclude=<basename>`
+  where the basename is unique across the four trees — two forms to check,
+  and a basename is unique only until a spec of that name is written; (b) the
+  piped `grep … | grep -v '^<own path>'` — the packet proposed it as
+  lint-clean under Q-REQ-PO-AB, but the rule's grammar cuts the first
+  invocation at the unquoted `|` and reads its operands, which still include
+  the own file, so `gc --report` flags it (Q-REQ-PO-AB exempts only a grep
+  with no operands of its own); (c) a path glob in `--exclude` — gc's
+  `expand(T)` would honour it but grep itself would not. **Version log:**
+  27.6 → 27.7 (implement-stage review loop-back, minor): one clause sentence
+  rewritten and two added, the acceptance's `-l` sentence rewritten with the
+  collision witness, 42 command lines rewritten across fourteen category
+  files with their listings re-derived — no id added or removed; the (e) set
+  equality still holds (37 = 37 on 2026-09-22), the gc `[self-matching-grep]`
+  count under `docs/requirements/**` reads 0, and the collision witness reads
+  26 of 26 matching same-named specs listed.
 
 Resolved during requirements gathering for RS-MARKETPLACE-001 (marketplace
 release, workstream `marketplace`). That stage also ran **non-interactively**, so

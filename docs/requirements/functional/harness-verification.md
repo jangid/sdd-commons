@@ -136,7 +136,7 @@ carries the producer/consumer `REQUIRED` pair (REQ-LINT-005).
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rnE 'proceed without re-review|proceed or fix offered|fix, then proceed' --exclude=harness-verification.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-verification.md -exec grep -nHE 'proceed without re-review|proceed or fix offered|fix, then proceed' {} +`.
 > the listing is REQ-HARN-PIPELINEOBSERVABILITY-001's, re-run 2026-09-22:
 > `plugins/sdd/skills/orchestrate/references/return-contract.md` §6 branching
 > table and `references/loop-control.md` §5a — reconciled, they state this
@@ -147,6 +147,13 @@ carries the producer/consumer `REQUIRED` pair (REQ-LINT-005).
 > `docs/spec/review.md` and `docs/spec/pipeline-observability.md` — reconciled;
 > this requirement's original body sentence "proceed or fix offered" —
 > reconciled, this note supersedes it in place.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names:
+> `docs/requirements/functional/harness-loop-control.md`
+> REQ-HARN-PIPELINEOBSERVABILITY-001 — reconciled, the amender this note
+> cites; `docs/requirements/functional/review.md`
+> REQ-REV-PIPELINEOBSERVABILITY-001 (v) (quoting the old line as history) —
+> reconciled.
 
 ### REQ-HARN-014: Fresh chunk-close verifier re-executes Step 4 mechanics
 Under `sdd-orchestrate`, the orchestrator must dispatch a fresh, context-isolated
@@ -540,7 +547,7 @@ over the two binding statements this requirement makes; listing greps over
 `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`, hits in this requirement's own
 text and in the index rows citing it excluded.
 - **Count rule and its two pauses** —
-  `grep -rnE 'tier/verdict conflict|missing section: (Critical|Material)|token disagrees with prose|blocking_items|material_items|material under APPROVE' --exclude=harness-verification.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-verification.md -exec grep -nHE 'tier/verdict conflict|missing section: (Critical|Material)|token disagrees with prose|blocking_items|material_items|material under APPROVE' {} +`:
   `docs/spec/harness-return-contract.md` §Tier-heading parsing (the
   `blocking_items` definition, the `blocking_items > 0 and token != REJECT`
   predicate and the `tier/verdict conflict` rendering) — reconciled,
@@ -558,8 +565,17 @@ text and in the index rows citing it excluded.
   parsing's `blocking_items`-only rule — reconciled by naming this requirement
   as its amender, which the specs re-derivation applies per
   REQ-REQ-PIPELINEOBSERVABILITY-001 (b).
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names:
+  `plugins/sdd/skills/orchestrate/references/return-contract.md` §Tier-heading
+  parsing (`blocking_items`, `material_items`, the conflict table) —
+  reconciled, the rule the acceptance above adds, landed by the implement
+  stage, so the "no hit" baseline above is history (the M-side terms
+  included); `docs/spec/pipeline-observability.md` — reconciled, the cycle's
+  index spec, it lists; `docs/requirements/functional/review.md`
+  REQ-REV-PIPELINEOBSERVABILITY-001 (3) — reconciled, its citation.
 - **Placeholder rule** —
-  `grep -rnE 'counts as zero|normalis(ed|ing) out|- None' --exclude=harness-verification.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-verification.md -exec grep -nHE 'counts as zero|normalis(ed|ing) out|- None' {} +`:
   `docs/spec/harness-return-contract.md` §Tier-heading parsing's placeholder
   step ("a lone placeholder counts as zero … two or more items count as
   written") — states Q-REQ-PO-Y's lone-only rule, which Q-REQ-PO-AE replaced
@@ -569,8 +585,17 @@ text and in the index rows citing it excluded.
   (producer side: "never by a placeholder item") and `docs/spec/skill-lint-v5.md`
   row p14 (`counts as zero`) — reconciled, consistent; `plugins/sdd/**` — no
   hit (today 0).
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names:
+  `plugins/sdd/skills/orchestrate/references/return-contract.md` §Tier-heading
+  parsing ("counts as zero", the normalised-out placeholder) and
+  `plugins/sdd/agents/reviewer.md` ("never by a placeholder such as `- None`")
+  — reconciled, landed by the implement stage, so the "no hit" baseline above
+  is history; `docs/requirements/functional/review.md`
+  REQ-REV-PIPELINEOBSERVABILITY-001 (the producer-side sentence) — reconciled,
+  consistent.
 - **Exhaustiveness over the predicate table (Q-REQ-PO-AK, 2026-09-22)** —
-  `grep -rnwE 'material under|blocking under|tier/verdict' --exclude=harness-verification.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-verification.md -exec grep -nHwE 'material under|blocking under|tier/verdict' {} +`:
   REQ-HARN-013's amendment note in this file — reconciled, it points here;
   `docs/spec/harness-return-contract.md` §Tier-heading parsing (a two-row
   conflict table rendering `N blocking under <token>` and `N material under
@@ -582,6 +607,15 @@ text and in the index rows citing it excluded.
   consistent, the pin's text is shared by every conflict pause; the index
   §Summary sentence and ledger rows citing it — excluded as citations;
   `plugins/sdd/**` — no hit (today 0, the acceptance's baseline).
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names:
+  `plugins/sdd/skills/orchestrate/references/return-contract.md` (the two-row
+  conflict table and the exhaustiveness table) — reconciled, the Q-REQ-PO-AK
+  cells, landed by the implement stage, so the "no hit" baseline above is
+  history; `docs/spec/review.md` §Pipeline-Observability Amendment (the
+  `tier/verdict conflict` pause) and `docs/spec/pipeline-observability.md` —
+  reconciled, the cycle's index spec, it lists (the amendment table and the
+  exhaustiveness note) — reconciled, they cite.
 [Priority: must]
 `[Updated: 2026-09-22]` — rewritten at requirements review iteration 3
 (C1–C3) over the grammar of REQ-REV-PIPELINEOBSERVABILITY-001; the section
@@ -630,7 +664,7 @@ derivation.
 `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 this requirement's own text and in the index rows citing it are the statement
 itself and are excluded.
-Command: `grep -rnE 'mutations \+ gates|≤ [0-9]+ test runs' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-verification.md -exec grep -nHE 'mutations \+ gates|≤ [0-9]+ test runs' {} +`.
 `plugins/sdd/skills/orchestrate/references/dispatch-templates.md` implement
 example (`budget: "1 chunk, ≤ 25 tool calls, ≤ 3 test runs"`) — the fixed
 example this requirement replaces; reconciled by naming this requirement as its

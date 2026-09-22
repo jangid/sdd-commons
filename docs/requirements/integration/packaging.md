@@ -1503,7 +1503,7 @@ installed cache's version after `/plugin update` equal to the bumped value.
 listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'plugin version|"version"' --exclude=packaging.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/packaging.md -exec grep -nHE 'plugin version|"version"' {} +`.
 `docs/spec/marketplace-packaging.md` manifest shape (`"version": "<semver>"`)
 and §The plugin version is bumped in the cycle that changes the plugin (the
 `grep -c '"version"'` checks) — reconciled, they carry this requirement; the
@@ -1513,4 +1513,8 @@ value is the pre-bump one and the path the pre-packaging root (the packaging
 cycle moved the file), and it states no rule on when the value moves;
 `plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit;
 `docs/requirements/integration/packaging.md` — the hits are this requirement.
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names: `docs/requirements/integration/project-docs.md`
+(quoting `docs/spec/marketplace-packaging.md`'s dated `"version": "0.1.0"`
+decision) — reconciled, a citation of the dated record.
 [Priority: must]

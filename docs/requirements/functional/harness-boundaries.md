@@ -521,7 +521,7 @@ lists the three extra plumbing reads and the reverse-delta subtraction, §5 the
 > over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`;
 > hits in this requirement's own text and in the index rows citing it are the
 > statement itself and are excluded.
-> Command: `grep -rnwE 'voided' --exclude=harness-boundaries.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-boundaries.md -exec grep -nHwE 'voided' {} +`.
 > the listing is REQ-HARN-PIPELINEOBSERVABILITY-004's: `plugins/sdd/skills/**`,
 > `plugins/sdd/agents/**` — no hit (today 0; the §1b and §8 sentences are that
 > requirement's acceptance); `docs/spec/harness-write-scope.md`
@@ -530,6 +530,22 @@ lists the three extra plumbing reads and the reverse-delta subtraction, §5 the
 > (`restore │ accept (note) │ stop`) — reconciled, the options are unchanged
 > and the verdict consequence is REQ-HARN-PIPELINEOBSERVABILITY-004's, which
 > amends `references/write-scope.md` §8.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names:
+> `plugins/sdd/skills/orchestrate/references/loop-control.md` §1b (the voided
+> verdict and its `voided re-dispatch` bound) and
+> `references/dispatch-templates.md` (the missing-token rule applied to a
+> voided verdict) — reconciled, the sentences
+> REQ-HARN-PIPELINEOBSERVABILITY-004's acceptance adds, landed by the
+> implement stage, so the "no hit" baseline above is history;
+> `docs/spec/harness-loop-control.md` §Fix-Loop Cap ("re-dispatches that count
+> nothing"), `docs/spec/skill-lint-v5.md` rows p7–p8 and
+> `docs/spec/telemetry-reader.md` assertion (a) — reconciled, they carry or
+> check the void; `docs/spec/pipeline-observability.md` — reconciled, the
+> cycle's index spec, it lists;
+> `docs/requirements/functional/harness-loop-control.md` (REQ-HARN-001's note)
+> and `docs/requirements/functional/telemetry.md` (assertion (a)) —
+> reconciled, citations of the void.
 
 ### REQ-HARN-PIPELINEOBSERVABILITY-004: a `GIT_STATE` or `OUT` finding on a read-only leaf voids that leaf's verdict
 When the write-scope observation raises a `GIT_STATE` finding
@@ -590,7 +606,7 @@ withheld.
 over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits
 in this requirement's own text and in the index rows citing it are the
 statement itself and are excluded.
-Command: `grep -rnwE 'voided|REDO_MAX' --exclude=harness-boundaries.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-boundaries.md -exec grep -nHwE 'voided|REDO_MAX' {} +`.
 (word-bounded, so `avoided` in `plugins/sdd/skills/implement/SKILL.md` and
 `docs/spec/skill-updates.md` is not a hit; widened from `voided` alone at
 requirements review round 8 M1 — Q-REQ-PO-AI — because the bound reuses
@@ -654,4 +670,11 @@ Every hit, by tree:
   REQ-TELEM-PIPELINEOBSERVABILITY-003 (a)) — reconciled, per-chunk / points
   here; `index.md` Q-REQ-PO-B, -Q, -AI and the pipeline-observability §Open
   Questions entry — the statement itself.
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names: `voided` now hits
+  `plugins/sdd/skills/orchestrate/references/loop-control.md` §1b,
+  `references/write-scope.md` §8's rows and `references/dispatch-templates.md`
+  (the missing-token rule) — reconciled, the sentences the acceptance above
+  adds, landed by the implement stage, so the "no hit" baseline above is
+  history.
 [Priority: must]
