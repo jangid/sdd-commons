@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-05-25
+last_updated: 2026-09-22
 requires:
   - REQ-CHKC-001
   - REQ-CHKC-002
@@ -129,6 +129,45 @@ file and source file correspond to each requirement.
 "tested via integration test in `test_e2e.py`" or "verification task in
 next chunk covers this").
 
+**A declared test convention satisfies Check 3 for the modules it names** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-CHKC-004 as amended; Q-REQ-PO-G; the record of why is §Pipeline-Observability Amendment).
+
+A **test convention declared in `CLAUDE.md`** **satisfies this check for the
+modules it names**, and the named module set is derived to the character
+(round 8 M4 of the requirements review): a module is *named* by a convention
+only when it is the **script path in a command the convention quotes** — the
+command word of a fenced or inline-code command in `CLAUDE.md` (a `--self-test`
+invocation, for instance), or the `entry:` value of a hook in the
+`.pre-commit-config.yaml` that `CLAUDE.md` names as the commit gate — with any
+leading interpreter word (`python3`) dropped; a module named only in prose is
+**not** named by that mention. "A test file that imports from the
+implementation module" remains the default for every module the derived set
+omits. Check 3's process therefore reads, for each expected implementation
+module: (1) if the module is in the derived set, it is covered → no finding;
+(2) otherwise search the test directory for a test file importing from the
+module; none → advisory finding. The derived set is decided by one command over
+the two declaring files:
+
+```
+{ grep -ohE '(^|`|python3 )plugins/sdd/tools/[a-z-]+\.py' CLAUDE.md;
+  grep -ohE '^\s*entry: (python3 )?[^ ]+\.py' .pre-commit-config.yaml; } \
+  | grep -oE '[^ `]+\.py' | sort -u
+```
+
+— on this tree exactly `plugins/sdd/tools/gc.py`, `plugins/sdd/tools/skill-lint.py`,
+`plugins/sdd/tools/telemetry.py` (a reference value, never a pin), with
+`plugins/sdd/tools/scope-check-selftest.py` and `plugins/sdd/tools/eval.py`
+absent from it although `CLAUDE.md` names them in prose. Both executors state
+the derivation — `skills/implement/SKILL.md` Check 3 and
+`agents/chunk-verifier.md` (which re-runs Check 3 by reference to this spec,
+`harness-chunk-verifier.md` §Positioning, REQ-HARN-014) — each pinned by a
+skill-lint `REQUIRED` row on the phrase `script path in a command` (rows p11
+and p12 of `skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability). The
+earlier `grep -c convention … ≥ 1` criterion is **withdrawn**: it decided no
+module set, and `skills/implement/SKILL.md` already satisfied it by an
+unrelated sentence. Why in place rather than a new requirement: the check's
+intent (every module has a test that runs at the gate) is unchanged; only the
+evidence it accepts widens.
+
 #### Check 4: Q-IMPL Audit
 
 **Input**: Implementation code written during this chunk, spec files
@@ -256,6 +295,25 @@ is more granular and runs more frequently.
 - [ ] Chunk close report lists each check with status and findings (REQ-CHKC-007)
 - [ ] Chunks are identified by `### Chunk N: <name>` headers in the plan (REQ-CHKC-008)
 
+**Pipeline-observability (2026-09-22, chunk close)**
+
+- [ ] `grep -c 'script path in a command' plugins/sdd/agents/chunk-verifier.md`
+  and the same over `plugins/sdd/skills/implement/SKILL.md` each read ≥ 1 (0
+  before this delta), pinned by skill-lint rows p11 and p12;
+  `python3 plugins/sdd/tools/skill-lint.py` exits 0 with the two rows and
+  exits non-zero in a temp copy with either sentence removed (REQ-CHKC-004 as
+  amended).
+- [ ] The derivation command of §Checklist › Check 3, run on this tree, lists
+  exactly `plugins/sdd/tools/gc.py`, `plugins/sdd/tools/skill-lint.py` and
+  `plugins/sdd/tools/telemetry.py`, and neither `scope-check-selftest.py` nor
+  `eval.py` (reference values, never pins) (REQ-CHKC-004 as amended).
+- [ ] One chunk-verifier fixture: a chunk whose spec's implementation module is
+  `plugins/sdd/tools/gc.py` (in the derived set) and which has no importing
+  test file reports **no** Check 3 advisory, while the same chunk with the
+  module `plugins/sdd/tools/scope-check-selftest.py` (prose-only, outside the
+  set) still reports it; the real-chunk consequence is recorded in this
+  cycle's `verification.md` from a chunk gate (REQ-CHKC-004 as amended).
+
 ## Implementation Questions
 
 ### Q-IMPL-001: Step 5 (Handle Spec Gaps) folded into Q-IMPL Protocol
@@ -263,3 +321,16 @@ is more granular and runs more frequently.
 **Spec reference**: §Integration with implement, step 8 ("Proceed to chunk N+1")
 **Decision**: Removed the former Step 5 (Handle Spec Gaps) entirely. Q-IMPL Tier 3 covers spec gaps with more structure (stop, escalate, classify). The "Do NOT" rules (no silent additions, no assumptions, no verification skipping) were folded into implement's Rules section.
 **Impact**: Step numbering cascade adjusted — Step 5 is now Milestone Checkpoints, Step 6 is Completion.
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-CHKC-004 amended)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q6 gap 10, R14; Q-REQ-PO-G. Observed defect: the
+identical coverage advisory fired on 9 of 9 consumer-geometry chunks against
+modules whose self-tests the repository's `CLAUDE.md` names and whose commit
+gate runs.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §Checklist › Check 3: Test Coverage Per Spec carries the declared-convention clause and the derivation of the named module set (REQ-CHKC-004 as amended); `harness-chunk-verifier.md` §Positioning inherits it by reference and is not re-dated. Left consistent and not reopened: Checks 1, 2 and 4; §Tiered Enforcement (Check 3 stays advisory); §Chunk Close Report (a convention-covered module reports `pass`).
+
+**Why the set is derived from commands and not prose** (round 8 M4): a prose mention decides no module set — `CLAUDE.md` names three contributor-tool self-tests in a sentence while its commit gate runs a different three — and the `grep -c convention` criterion it replaced was already satisfied by an unrelated sentence.

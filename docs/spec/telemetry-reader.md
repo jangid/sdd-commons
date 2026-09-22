@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 requires:
   - REQ-TELEM-HARNESSP2-007
   - REQ-TELEM-HARNESSP2-009
@@ -21,6 +21,8 @@ requires:
   - REQ-TELEM-HARNESSP5-007
   - REQ-TELEM-HARNESSP5-008
   - REQ-LINT-HARNESSP5-003
+  - REQ-TELEM-PIPELINEOBSERVABILITY-002
+  - REQ-TELEM-PIPELINEOBSERVABILITY-003
 ---
 
 # Per-Dispatch Telemetry — Reader, Lint and Fixture Contract
@@ -313,6 +315,45 @@ tested, not only stated; (c) `migration.from` outside the `chunk-string` enum �
 `[enum]` (the validator accepted any string). The frozen fixtures' outputs are
 unchanged by all three.
 
+**Four cross-field assertions — the gate rules' reversion witnesses** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-TELEM-PIPELINEOBSERVABILITY-003; REQ-TELEM-HARNESSP5-008 as amended; the record of why is §Pipeline-Observability Amendment).
+
+`--lint` carries four cross-field assertions. Each is the mechanical witness of a
+gate rule bound in another spec, so reverting the rule in the orchestrator's text
+leaves a recorded shape the lint rejects:
+
+| Id | Fires on | Witness of |
+|---|---|---|
+| (a) voided verdict consumed | a `verifier`, `review` or `red` record with `scope.token = VIOLATION`, a positive verdict token (`PASS`, `APPROVE`, `APPROVE_WITH_FIXES`, `HELD`) and `gate.decision = proceed` | `harness-write-scope.md` §Git-State Observation (REQ-HARN-PIPELINEOBSERVABILITY-004) |
+| (b) `fix_iteration` counts a non-`REJECT` | a `review` record whose `gate.fix_iteration` exceeds the run of consecutive `REJECT` tokens over the immediately preceding same-stage `review` records of its cycle — an increment across an `APPROVE_WITH_FIXES` | `harness-loop-control.md` §Fix-Loop Cap (REQ-HARN-001 as amended) |
+| (c) un-reviewed manual intervention | a record with `gate.decision = manual_intervention` whose next same-stage record is not a `review` record with `dispatch.reason = POST_MANUAL`, **or** whose next such record carries a `gate.fix_iteration` different from the `manual_intervention` record's | `harness-loop-control.md` §Fix-Loop Cap (REQ-HARN-PIPELINEOBSERVABILITY-003 §Footprint) |
+| (d) tier items under the wrong token | a `review` record with `verdict.findings.C ≥ 1` and a token other than `REJECT`, **or** with `verdict.findings.C = 0`, `verdict.findings.M ≥ 1` and the token `APPROVE` (Q-REQ-PO-AJ), **or** with `verdict.findings.C = 0`, `verdict.findings.M = 0` and the token `APPROVE_WITH_FIXES`, **or** with `verdict.findings.C = 0` and the token `REJECT` (Q-REQ-PO-AK — the four conflict shapes are the non-`legal` cells of the consumer's 4×3 case table), whose `gate.decision` is not the malformed pause | `harness-return-contract.md` §VERDICT Token (REQ-HARN-PIPELINEOBSERVABILITY-005) |
+
+**Domain-table members added** so the assertions have vocabulary and
+`schema_diff` keeps the example, the table and the tool in agreement
+(REQ-TELEM-HARNESSP4-004): `dispatch.reason` gains **`POST_MANUAL`** — the
+reason of the review dispatched after a manual intervention, a member of the
+repair-packet `reason` enum and **not** of the fix-only subset
+(`FIX_ONLY_REASONS` is unchanged); `gate.decision` gains **`manual_intervention`**
+and **`malformed`** (the decision recorded when the gate paused as `REVIEW:
+MALFORMED`, whichever pause option the operator then chose). The implement stage
+adds the same members to the two renderings (`telemetry.md` §Record Schema,
+`skills/orchestrate/references/telemetry.md` §2) in the same commit, which
+`test_schema_table_agrees` enforces. Assertion (b)'s "cycle" is the session
+boundary `summarize` already derives (Q-IMPL-HARNESSP3-018); assertion (c)
+reads records in `seq` order. The `post-manual` review's footprint is
+`harness-loop-control.md` §Fix-Loop Cap's: `dispatch.kind = review`,
+`dispatch.reason = POST_MANUAL`, `dispatch.stage` the stage of the gate,
+`dispatch.iteration` that stage's current `reject_run`, and `gate.fix_iteration`
+**equal to** the preceding same-stage gate record's value — the review counts
+nothing, which is exactly what (c)'s second clause checks. Left consistent: the
+existing `[reason-review]` warning fires on `dispatch.reason = REVIEW` at
+`iteration ≥ 1` with no preceding loop-back-to-fix; `POST_MANUAL` is a distinct
+member, so the warning does not fire on a post-manual record and is neither
+re-worded nor given an exception clause. **Frozen fixtures unchanged**: the two
+frozen harness fixtures hold none of the four shapes, so `--lint` over each
+reports the same finding count as before — asserted by the existing
+sorted-lines comparison.
+
 ### Lint Guard (REQ-TELEM-HARNESSP2-007, REQ-LINT-HARNESSP2-002)
 
 [Moved from `telemetry.md` 2026-09-19 with §Skill and Lint Changes — the guard
@@ -413,6 +454,70 @@ The block therefore cannot be read as a full per-chunk history. The frozen
 fixture `tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl` is read-only
 evidence and is **never** modified, reformatted or migrated (its sha256 is in
 `tools/fixtures/README.md`).
+
+**Second migration shape — `flat-cg`** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-TELEM-PIPELINEOBSERVABILITY-002; REQ-TELEM-HARNESSP4-005, REQ-TELEM-HARNESSP5-008 as amended; the record of why is §Pipeline-Observability Amendment).
+
+`migrate` gains a second `migration.from` value, **`flat-cg`**, covering every
+`v`-less record in the live file. The `chunk-string` shape, its ordering rule,
+the operator-between-sessions rule and the fixture-never-touched rule are
+unchanged and apply to the new shape as written (REQ-TELEM-HARNESSP4-005 as
+amended).
+
+**Key mapping** (a flat record is *mappable* when its `kind` is one of
+`pipeline`, `review`, `verifier`, `red` and every key below maps):
+
+| Flat key | `v: 2` key |
+|---|---|
+| `ts` | `ts_dispatch`, `ts_return`, `ts_gate` — the same value in all three (the flat writer took one timestamp), so a migrated record has zero elapsed time between dispatch, return and gate and any duration assertion over it reads 0; a duration check must skip records carrying the `migration` marker rather than read that 0 as a measurement |
+| `sha` | `git.head_before` |
+| `budget` / `consumed` | `dispatch.budget` / `return.budget_consumed` |
+| `findings.{blocking,substantive,minor}` | `verdict.findings.{C,M,m}` |
+| flat `fix_iteration` | `gate.fix_iteration` |
+| `kind`, `ws`, `stage`, `chunk` | `dispatch.kind`, `ws`, `dispatch.stage`, `dispatch.chunk` (int-or-null, the header-string rewrite of the first shape applied where needed) |
+
+Every other `v: 2` key the flat record cannot supply takes its schema null /
+zero, and the rewritten record is stamped `migration: {from: flat-cg, at:
+<date>}`.
+
+**Lost, not reconstructed.** A flat record of a kind with no `v: 2`
+counterpart — `gate`, `commit`, `pr` — is dropped from the output and counted.
+The count is carried on the **first migrated record of its workstream** inside
+the OPTIONAL `migration` marker, whose declared shape becomes
+`{from: chunk-string | flat-cg, at: date, lost?: {<kind>: int}}`: `lost` is
+admitted **only** beside `from: flat-cg` (a `lost` beside `chunk-string` is
+`[type]`), so the `v: 2` key set is untouched and `--lint` needs no new
+top-level key (decision Q-SPEC-PO-C, `pipeline-observability.md`). Nothing is
+back-filled: dispatches that left no record (consumer-geometry chunks 1–8 and
+its verify dispatch) are **missing, not lost**, and `summarize` shows them
+through the existing `partial` stamp of §Records-vs-Expected. The same rule
+covers the `ws: packaging` flat records without separate examination.
+
+**Reference values, never pins.** On 2026-09-22 the live file held 53
+consumer-geometry and 77 packaging `v`-less records; the key-set rule yields 36
+migrated and 17 lost for consumer-geometry. Every count in the self-test is
+**derived from the fixture at run time** (migrated = fixture records of the
+four mappable kinds; lost = fixture `gate` + `commit` + `pr` records), so the
+case cannot go stale when the operator cuts the fixture.
+
+**Frozen fixture.** Before the migration task runs, the operator cuts every
+`v`-less line of the live file into a frozen fixture under
+`plugins/sdd/tools/fixtures/` (the live file is gitignored), records its sha256
+in `plugins/sdd/tools/fixtures/README.md`, and never modifies it; `migrate`
+refuses it as `--file` or `--out` (exit 2, no write — the existing guard). The
+migration is **ordered after** REQ-TELEM-PIPELINEOBSERVABILITY-001 lands and is
+run by the operator between sessions, as the first shape was.
+
+**Operator prerequisite for the plan stage** (specs review round 5 m3): the
+fixture cut and the live `migrate` run are **operator steps, not verify tasks
+the harness executes** — no leaf reads `.sdd/` and no session may be open
+while the live file is rewritten. `sdd:plan` records them as two operator
+tasks with this ordering constraint: (1) the fixture cut precedes the
+telemetry chunk that lands `flat-cg` (the `--self-test` case reads the
+fixture); (2) the live `migrate` run follows that chunk's landing and
+precedes the verify stage. The verify-typed task that reads the live
+`summarize --workstream consumer-geometry` count (§Verification) depends on
+(2) and only reports what it finds — an unmigrated live file reads as that
+task's failure, never as a step the verifier performs.
 
 ### `--plan` Floor for Implement-Stage Expectations (REQ-TELEM-HARNESSP4-008) [may]
 
@@ -544,6 +649,63 @@ above are unchanged — sha256 asserted before and after each run):
 - [ ] The three advisory cases are named in `--self-test` output and each fails when its check is removed in a temp copy; the frozen fixtures' outputs are unchanged (REQ-TELEM-HARNESSP5-008)
 - [ ] The Q-IMPL-HARNESSP4-004..009 fold-in status notes count six across the three carrying specs (REQ-QIMPL-HARNESSP5-001's grep) — Q-IMPL-HARNESSP4-004, -005, -006, -007 here, -008 in `skill-lint-v5.md`, -009 in `harness-chunk-verifier.md` (REQ-QIMPL-HARNESSP5-001, owned by `deviation-protocol.md`)
 - [ ] This file is under the amended ~800-line bound of REQ-LINT-HARNESSP5-003 (Q-REQ-P5-I, 2026-09-19; 697 lines as split); every `## Implementation Questions` entry sits with the section it amends, unrenumbered; `python3 tools/sdd-gc.py --report` raises no `qimpl-broken-ref` finding here (REQ-LINT-HARNESSP5-003)
+
+**Pipeline-observability (2026-09-22, reader and migration)**
+
+- [ ] `python3 plugins/sdd/tools/telemetry.py --self-test` exits 0 and names a
+  `flat-cg` case over the frozen flat fixture: `migrate --file <copy> --out
+  <tmp>` exits 0; `--lint --file <tmp>` reports zero findings of the classes
+  `enum`, `type`, `key-undeclared`, `key-missing`; the migrated-record count
+  equals the count of fixture records whose `kind` is one of the four mappable
+  kinds; the lost count on the first migrated record of each workstream equals
+  that workstream's fixture `gate` + `commit` + `pr` count; `summarize --file
+  <tmp> --workstream consumer-geometry` renders per-chunk blocks for chunks
+  1–8 stamped `partial` (REQ-TELEM-PIPELINEOBSERVABILITY-002).
+- [ ] `migrate --file <the fixture itself>` exits 2 and the fixture's sha256
+  equals the value recorded in `plugins/sdd/tools/fixtures/README.md` before
+  and after every test run; `git diff <cycle entry sha> HEAD --
+  plugins/sdd/tools/fixtures/` lists only the **added** fixture and the README
+  line that records it (REQ-TELEM-PIPELINEOBSERVABILITY-002,
+  REQ-TELEM-HARNESSP4-005 as amended).
+- [ ] `--lint` on a record carrying `migration.from: flat-xx` reports `[enum]
+  migration.from`; on `migration.from: flat-cg` it reports no `[enum]` finding;
+  the self-test case (c) of §Schema Lint's verifier-advisory group is
+  re-pointed at a value outside `{chunk-string, flat-cg}` and still fails when
+  the enum check is removed in a temp copy (REQ-TELEM-HARNESSP5-008 as amended).
+- [ ] `--lint` on a `flat-cg` record carrying `migration.lost` reports nothing;
+  on a `chunk-string` record carrying `migration.lost` it reports `[type]
+  migration` (REQ-TELEM-PIPELINEOBSERVABILITY-002).
+- [ ] `--self-test` names four cross-field cases, (a)–(d), each built from a
+  two-record pair that renders the finding and a control pair that does not;
+  each case fails when its assertion is removed in a temp copy of the tool
+  (REQ-TELEM-PIPELINEOBSERVABILITY-003).
+- [ ] `--lint --file plugins/sdd/tools/fixtures/telemetry-harness-p3-2026-09-18.jsonl`
+  and the same over the p4 fixture each report the finding count recorded for
+  them before this delta (the sorted-lines comparison of §Schema Lint);
+  `schema_diff` reports no divergence between the code table and its two
+  renderings (REQ-TELEM-PIPELINEOBSERVABILITY-003).
+- [ ] This cycle's `verification.md` records the live `summarize --workstream
+  consumer-geometry` record count after the operator's migration, equal to the
+  migrated count the fixture case derived and no longer 0
+  (REQ-TELEM-PIPELINEOBSERVABILITY-002).
+- [ ] `grep -c 'POST_MANUAL'`, `grep -c 'manual_intervention'` and `grep -c
+  'malformed'` over `plugins/sdd/tools/telemetry.py` each read ≥ 1 (0, 0, ≥ 1
+  before this delta — the last on the `verdict.malformed` field, not the
+  decision member); `grep -c 'post-manual' plugins/sdd/tools/telemetry.py`
+  reads 0 — the member is upper-case; `--lint` over a two-record fixture — a
+  `reason: REVIEW` record at `iteration: 1` with no loop-back followed by a
+  `reason: POST_MANUAL` record — emits one `[reason-review]` warning, for the
+  first record only (REQ-TELEM-PIPELINEOBSERVABILITY-003,
+  REQ-HARN-PIPELINEOBSERVABILITY-003).
+- [ ] Case (c)'s finding pair includes a `manual_intervention` record followed
+  by a `POST_MANUAL` review whose `gate.fix_iteration` differs from the
+  intervention record's, and case (d)'s includes a `review` record with
+  `verdict.findings.C = 0`, `verdict.findings.M ≥ 1`, token `APPROVE` and a
+  non-pause decision, one with `verdict.findings.C = 0`, `verdict.findings.M
+  = 0`, token `APPROVE_WITH_FIXES` and a non-pause decision, and one with
+  `verdict.findings.C = 0`, token `REJECT` and a non-pause decision
+  (Q-REQ-PO-AK); each pair renders its finding and each control pair does
+  not (REQ-TELEM-PIPELINEOBSERVABILITY-003).
 
 ## Edge Cases
 
@@ -698,3 +860,15 @@ record key is added and no side channel from the orchestrator is used
 **Decision**: `references/drift-sweep.md` (Chunk 5) said gc "never reads `.sdd/`"; reworded to "never reads the telemetry file (`telemetry.md`)" so the allow set stays minimal.
 **Rationale**: the row scans raw text incl. fences and negative mentions; rewording is cheaper and spec-conformant.
 **Date**: 2026-09-18 (Chunk 6)
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-TELEM-PIPELINEOBSERVABILITY-002, -003; REQ-TELEM-HARNESSP4-005, REQ-TELEM-HARNESSP5-008 amended)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q1 migration, R2; §Mechanical pin R4, R6, R8,
+R10. Decided at DISCUSS (Q-REQ-PO-J) and at requirements (Q-REQ-PO-M: the Q3
+replay round counts are not criteria anywhere in this delta).]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §In-Place Migration of the 8 p3 Records, Stamped Partial carries the second migration shape `flat-cg`, its key mapping and the `lost` marker (REQ-TELEM-PIPELINEOBSERVABILITY-002; REQ-TELEM-HARNESSP4-005 as amended); §Schema Lint carries the four cross-field assertions — (d) over the four non-`legal` cells of `harness-return-contract.md` §VERDICT Token's case table (Q-REQ-PO-AK) — and the three domain-table members (REQ-TELEM-PIPELINEOBSERVABILITY-003; REQ-TELEM-HARNESSP5-008 as amended — the `migration.from` enum gains `flat-cg`). Left consistent and not reopened: §Out-of-Loop Reader, §Records-vs-Expected, §Lint Guard, §`--plan` Floor, §Fixture-Based Test Contract, and `telemetry.md` §Record Schema (the `v: 2` key set is unchanged).
+
+**Why a second migration shape and not a back-fill**: the flat records carry one timestamp and no gate decision, so anything beyond the key mapping would be invention; the `lost` count lives inside the OPTIONAL `migration` marker (Q-SPEC-PO-C) because a new top-level key would make every live record `key-missing`. **Why assertions and not gate text alone**: each of the four gate rules is a sentence in the orchestrator's skill text, and a sentence can be reverted silently; a recorded shape the lint rejects cannot. **Why `POST_MANUAL` is upper-case**: it is an enum member of `dispatch.reason` beside `REVIEW` and the fix reasons, and the earlier lower-case spelling of this spec was the specs-stage defect the requirements closing review named (Q-REQ-PO-AC).

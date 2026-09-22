@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 requires:
   - REQ-HARN-020
   - REQ-HARN-021
@@ -16,6 +16,7 @@ requires:
   - REQ-HARN-HARNESSP4-004
   - REQ-HARN-HARNESSP4-005
   - REQ-HARN-HARNESSP6-001
+  - REQ-HARN-PIPELINEOBSERVABILITY-004
 ---
 
 # Harness Write Scope
@@ -538,6 +539,86 @@ optional colour:
 | implement leaf commits a path that was already dirty at `snapshot(before)` | `SCOPE: CLEAN` — clause (ii) subtracts the committed delta |
 | fan-out merge performed by the orchestrator between two dispatches | `SCOPE: CLEAN` — the merge lies outside any leaf's window |
 
+**A `GIT_STATE` or `OUT` finding on a read-only leaf voids its verdict** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-HARN-PIPELINEOBSERVABILITY-004; REQ-HARN-HARNESSP6-001 as amended; the record of why is §Pipeline-Observability Amendment).
+
+When the write-scope observation raises a `GIT_STATE` finding or an `OUT` path
+(including one found by the content-hash observation) against a **read-only
+leaf** — the reviewer, the chunk verifier or the red team — the orchestrator
+consumes that leaf's verdict as the **negative token with a note**:
+
+| Leaf | Consumed as |
+|---|---|
+| chunk verifier | `CHUNK_VERDICT: FAIL (voided: GIT_STATE)` / `(voided: OUT)` |
+| reviewer | `VERDICT: REJECT (voided: …)` |
+| red team | `RED_VERDICT: BROKEN (voided: …)` |
+
+This is the missing-token rule of `skills/orchestrate/references/dispatch-templates.md` applied
+one step further: a verdict produced by a leaf that mutated what it was
+verifying is unverified, and unverified is not verified. **The void holds
+whichever option the operator picks** — `restore` **or** `accept (note)`
+(Q-REQ-PO-B: restoring the tree does not restore the verdict). After the
+finding is resolved the gate offers `redo │ stop` where `redo` is a **fresh
+re-dispatch of the same leaf** (not a redo of the chunk — `chunk_redo_count` is
+untouched); `proceed` is never offered on the voided verdict. Options for the
+finding itself stay `restore │ accept (note) │ stop` (REQ-HARN-HARNESSP6-001 as
+amended); a `FAIL` still routes through the existing repair-packet path when
+the operator chooses to treat it as one (REQ-HARN-014).
+
+**Counting.** A voided verdict counts toward **no** fix or redo counter
+(`harness-loop-control.md` §Fix-Loop Cap — otherwise a stashing reviewer could
+drive a stage to the cap with no defect in the artifact). The re-dispatch it
+causes is bounded by a **per-gate count of voided re-dispatches**,
+`voided_redispatch_count[<gate>]`, capped at the `REDO_MAX` **value** — the
+same integer as the per-chunk redo cap, **counted per gate, not per chunk**;
+the per-chunk cap's semantics are untouched (Q-REQ-PO-AI). `REDO_MAX` is
+defined once, in `harness-loop-control.md` §Redo Cap per Chunk, as the
+orchestrator constant (default 3) that `chunk_redo_count[<chunk header>]` is
+counted against; no requirement establishes it, and this rule reuses it as a
+value only. The voided count is a second counter under its own name: it never
+increments `chunk_redo_count`, is never shown in the `Redo: N of REDO_MAX`
+render string (which stays the per-chunk counter's), and on reaching `REDO_MAX`
+renders the existing exhausted gate `stop │ manual intervention` — after which a
+manual intervention is followed by the `post-manual` review of
+`harness-loop-control.md` §Fix-Loop Cap. Session-scoped, no artifact, no fourth
+cap name. The bound is a
+binding clause whose comparand is **one sentence in
+`skills/orchestrate/references/loop-control.md` §1b** naming `REDO_MAX` as the cap on voided
+re-dispatches, pinned by a second skill-lint `REQUIRED` row on that file
+(pattern: `voided re-dispatch` and `REDO_MAX` on the same visible line) —
+placed there because the bound is a gate-rendering rule and the linter already
+pins the file that renders it (Q-REQ-PO-Q).
+
+**The recorded chunk-0 sequence, replayed under this rule.** Sequential mode,
+implement stage, chunk 0; nine paths dirty at `snapshot(before)`:
+
+```
+snapshot(before)   stash_count 0; porcelain: 9 dirty paths
+  verifier runs `git stash` … runs the gates … returns CHUNK_VERDICT: PASS
+snapshot(after)    stash_count 1; porcelain: 0 dirty paths; committed delta: none
+write-scope block  GIT_STATE  stash count 0 -> 1; 9 path(s) dirty before and clean after with no commit (…)
+                   SCOPE: VIOLATION (9 paths)
+CHUNK_VERDICT: FAIL (voided: GIT_STATE)        Redo: 0 of 3
+Options: restore │ accept (note) │ stop        # proceed withheld
+  operator: restore  → git stash pop; tree restored
+Options: redo │ stop                            # proceed still withheld; voided_redispatch_count[chunk 0 gate] = 1 on redo
+  operator: redo     → fresh verifier dispatch; its CHUNK_VERDICT decides the chunk
+```
+
+Before this amendment the block rendered `CHUNK_VERDICT: PASS`, `restore`
+returned the gate to `proceed │ fix │ stop`, and the chunk proceeded on a
+verdict from a leaf that had emptied the working tree it was checking.
+
+**Telemetry witness.** Cross-field assertion (a) of `telemetry-reader.md`
+§Schema Lint fails on the recorded shape — a `verifier`
+record with `scope.token = VIOLATION`, a `PASS` verdict and a `proceed`
+decision — so reverting this rule in the orchestrator's text leaves a record
+the lint rejects. Consistency: REQ-HARN-022's `SCOPE:` token and options are
+unchanged; REQ-HARN-019 holds (the void is orchestrator-side); the agent-body
+prohibition of `harness-agents.md` §The frontmatter contract is the
+leaf-side half of the same gap, and detection here stays the gate's ground
+truth. Hook-based enforcement is **not** specified — it stays OPEN as a
+plan-time spike (`pipeline-observability.md` §Open Questions).
+
 ## Verification
 
 ### Automated
@@ -599,6 +680,42 @@ optional colour:
 - [ ] `python3 tools/sdd-scope-check-selftest.py` exits 0 with the four new scenarios: stash-with-pop and stash-and-drop each violate; an implement leaf committing an already-dirty path and an orchestrator fan-out merge are each `SCOPE: CLEAN` (REQ-HARN-HARNESSP6-001)
 - [ ] `skills/sdd-orchestrate/references/write-scope.md` §3 states the three extra plumbing reads and the reverse-delta subtraction, §5 the `GIT_STATE` line, §8 its options; `python3 tools/sdd-skill-lint.py` exits 0 (REQ-HARN-HARNESSP6-001)
 - [ ] §Commit Ownership names the **second** orchestrator bookkeeping commit with its three writes (aggregate regeneration, a cross-workstream `descoped` cell, the plan `status: complete` flip), states that it lands **after** `HEAD_landed` is captured, and states that a leaf writing any of them is a `SCOPE: VIOLATION`; `grep -cE '^actually runs — .git diff --name-only --no-renames -z' docs/spec/harness-write-scope.md` prints 1 — the `^` anchor matches only the §Comparand quotation, which begins its own line, and never this criterion, which begins `- [ ]`, so the check is not self-matching (the earlier corpus-wide `grep -n 'no-renames…'` form counted itself and could never print 1) — pointing at `harness-commit-fidelity.md` §Comparand Table and `references/write-scope.md` §7a rather than restating the table (REQ-HARN-HARNESSP5-001, REQ-WS-HARNESSP5-001, REQ-HARN-HARNESSP5-002, all owned elsewhere)
+
+**Pipeline-observability (2026-09-22, write scope)**
+
+- [ ] `skills/orchestrate/references/loop-control.md` §1b and `skills/orchestrate/references/write-scope.md` §8
+  carry the void sentence (a `GIT_STATE` or `OUT` finding on a read-only leaf
+  **voids its verdict**, whichever option resolves the finding — the §1b
+  sentence holds that phrase verbatim), pinned by skill-lint `REQUIRED` rows
+  p6 (pattern `voids its verdict`, disjoint from row p8's bound line) and p7
+  (pattern `voided`, on the §8 file); in a temp copy with the §1b void
+  sentence deleted and the bound line left in place the linter exits non-zero
+  naming row p6's `fix` string, and with the §8 sentence deleted it exits
+  non-zero naming p7's (REQ-HARN-PIPELINEOBSERVABILITY-004,
+  REQ-HARN-HARNESSP6-001 as amended).
+- [ ] `skills/orchestrate/references/loop-control.md` §1b carries one visible line containing both
+  `voided re-dispatch` and `REDO_MAX`, pinned by a second skill-lint `REQUIRED`
+  row (p8 of `skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability, pattern
+  `voided re-dispatch` and `REDO_MAX` on the same visible line) whose removal in a
+  temp copy makes the linter exit non-zero;
+  `python3 plugins/sdd/tools/skill-lint.py --self-test` exits 0 with its
+  pinned `REQUIRED` total including both rows
+  (REQ-HARN-PIPELINEOBSERVABILITY-004).
+- [ ] `skills/orchestrate/references/loop-control.md` §1b cross-references the missing-token rule
+  of `skills/orchestrate/references/dispatch-templates.md` by that phrase —
+  `grep -c 'missing-token rule' plugins/sdd/skills/orchestrate/references/loop-control.md`
+  reads ≥ 1 (0 before this delta) (REQ-HARN-PIPELINEOBSERVABILITY-004).
+- [ ] Cross-field assertion (a) fails on the recorded chunk-0 shape and passes
+  on its control pair (REQ-HARN-PIPELINEOBSERVABILITY-004).
+- [ ] A gate-rendering walkthrough of the chunk-0 sequence above renders
+  `CHUNK_VERDICT: FAIL (voided: GIT_STATE)` with `redo` offered and `proceed`
+  withheld after both `restore` and `accept (note)` — its transcript recorded
+  in this cycle's `docs/ws/pipeline-observability/verification.md` under
+  `Gate-rendering walkthroughs` (Q-SPEC-PO-L, `pipeline-observability.md`);
+  the four §Git-State
+  Observation self-test scenarios still pass — `python3
+  plugins/sdd/tools/scope-check-selftest.py` exits 0
+  (REQ-HARN-PIPELINEOBSERVABILITY-004, REQ-HARN-HARNESSP6-001 as amended).
 
 ## Edge Cases
 
@@ -713,3 +830,17 @@ The "absent" pair of REQ-HARN-HARNESSP3-001 is recorded as the literal string
 `ABSENT` in the sha slot, which cannot collide with a hex digest, so the
 comparison stays a plain inequality and needs no separate presence set.
 **Date**: 2026-09-18 (specs stage)
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-HARN-PIPELINEOBSERVABILITY-004; REQ-HARN-HARNESSP6-001 amended)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q2 recommendation (b), R4, §Mechanical pin R4;
+Q-REQ-PO-B, -Q. Observed defect: the consumer-geometry chunk-0 verifier's
+`GIT_STATE` finding was resolved `restore`, its `CHUNK_VERDICT: PASS` was then
+consumed and the chunk proceeded — detection worked twice and the verdict was
+still trusted.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §Git-State Observation carries the void rule, its render table, the per-gate `voided_redispatch_count[<gate>]` bound at the `REDO_MAX` value and the replayed chunk-0 sequence (REQ-HARN-PIPELINEOBSERVABILITY-004; REQ-HARN-HARNESSP6-001 as amended — the **Options** paragraph's `restore` / `accept (note)` no longer return a read-only leaf's gate to `proceed`). Left consistent and not reopened: §Observation: Three Commands, §Content-Hash Observation (reused as a trigger), §Snapshot Ordering, §Commit Ownership, §Finding Format and `SCOPE:` Token (no new token), the four self-test scenarios of §Git-State Observation, and `harness-return-contract.md` §Malformed Returns (the "unverified is not verified" rule this generalises).
+
+**Why the void holds under `restore` too** (Q-REQ-PO-B): the verdict was produced by a leaf that mutated what it was verifying, and restoring the tree does not restore the verdict. **Why a second counter rather than `chunk_redo_count`**: a stashing reviewer must not be able to drive a chunk to its redo cap with no defect in the artifact, and a stage gate has no chunk counter at all; reusing `REDO_MAX` as a *value* keeps the three-cap inventory at three (Q-REQ-PO-AI). **Why the bound's comparand is one sentence in `references/loop-control.md` §1b** (Q-REQ-PO-Q): the bound is a gate-rendering rule and the linter already pins the file that renders it. Hook-based enforcement stays OPEN as a plan-time spike (`pipeline-observability.md` §Open Questions).

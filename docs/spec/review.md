@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-05-25
+last_updated: 2026-09-22
 requires:
   - REQ-REV-001
   - REQ-REV-002
@@ -10,6 +10,7 @@ requires:
   - REQ-REV-006
   - REQ-REV-007
   - REQ-REV-008
+  - REQ-REV-PIPELINEOBSERVABILITY-001
 ---
 
 # External Review
@@ -253,12 +254,17 @@ conversation output:
 **Recommendation:** [specific next action with file/REQ references]
 ```
 
-**Verdict definitions:**
-- **Approve**: No blocking findings. Proceed to next phase.
-- **Approve with fixes**: Critical findings exist but are bounded.
-  Fix them, then proceed without re-review.
-- **Reject**: Significant rework needed. Return to current or
-  earlier phase. Consider replan.
+**Verdict definitions** `[Updated: 2026-09-22]` (REQ-REV-PIPELINEOBSERVABILITY-001 (3):
+three mutually disjoint predicates over the tier counts, verbatim in the
+quoted parts in both producers; the former lines are retired by the
+zero-count witness below):
+- **Approve** (`C = 0` and `M = 0`): "No findings above minor; nothing to
+  apply before the next stage."
+- **Approve with fixes** (`C = 0` and `M ≥ 1`): "No blocking finding; at
+  least one Material finding — fix them, then proceed without re-review."
+- **Reject** (`C ≥ 1`): "Any blocking (Critical) finding. Significant rework
+  needed. Return to current or earlier phase. Consider replan."
+
 
 **Strengths section**: Required. Must be substantive — "the staleness
 detection chain correctly handles the multi-milestone case" is useful;
@@ -270,6 +276,72 @@ It must not be written to disk as a project artifact. Decisions
 informed by the review land in the artifacts themselves (commits,
 spec edits, Q-IMPL entries, replan triggers). Operators may manually
 archive significant reviews if they choose.
+
+**The report grammar** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-REV-PIPELINEOBSERVABILITY-001; REQ-REV-002 as amended; Q-REQ-PO-AF, -Z, -AJ; the record of why is §Pipeline-Observability Amendment).
+
+Every review report the harness consumes is an instance of **one** grammar,
+stated by REQ-REV-PIPELINEOBSERVABILITY-001 and carried in the same words by
+both shipped producers — `skills/review/SKILL.md` (§Step 5 template, §Verdict
+definitions) and `agents/reviewer.md` (`harness-agents.md` §The frontmatter
+contract). Every rule that parses a report (`harness-return-contract.md`
+§VERDICT Token's count, `arbitrated-handoff.md` §Review Key on Material Lines,
+the `verdict.findings` `{C, M, m}` record field) is defined over this grammar
+and over nothing discovered downstream. REQ-REV-002's section list (a)–(f) is
+preserved and maps onto it — (a) = sections 1–2, (b) = 3, (c)–(e) = 4–6,
+(f) = 7.
+
+1. **Sections**, each opened by a label line, in the **producer's order** —
+   the order the template above writes and a reviewer copies; not a parsed
+   constraint (no consumer rule reads section position, and a report whose
+   sections are transposed is parsed section by section like any other):
+   (1) `**Verdict:**` — the **Verdict form**: the bold label at column 0
+   followed on the same line by exactly one of `Approve`, `Approve with
+   fixes`, `Reject`, and by nothing else; (2) `VERDICT: <TOKEN>` — the
+   **token form** of REQ-HARN-013: no bold label, the literal `VERDICT: ` at
+   column 0 followed by one of `APPROVE`, `APPROVE_WITH_FIXES`, `REJECT` and
+   by nothing else, on a line of its own, **anywhere** in the report, exactly
+   one such line, and when more than one is present the **last occurrence
+   wins** — `skills/orchestrate/references/return-contract.md` §6 is the
+   authority, quoted here and restated nowhere; (3) `**Strengths:**`;
+   (4) `**Critical findings:**` — the blocking tier, mandatory;
+   (5) `**Material findings:**` — mandatory; (6) `**Minor findings:**` —
+   mandatory; (7) `**Recommendation:**`. For sections 3–7 a label line is a
+   line whose text begins at column 0 with the bold label exactly as listed,
+   optionally followed on the same line by one bracketed gloss (`[…]`) and by
+   nothing else. The report title (`## Review: …`) and the optional
+   `## Reviewer Context` section (REQ-REV-004) precede section 1 and are the
+   only markdown headings a report carries; **no tier is ever a markdown
+   heading**. A section's **extent** runs from its label line to the line
+   before the next label line of this list or the `VERDICT:` line, whichever
+   comes first, or to the end of the report. The three tier sections are
+   mandatory even when empty, and **an empty tier section carries no list
+   item**: its label line is followed directly by the next label line, never
+   by a placeholder such as `- None`, `- n/a` or `- —`.
+2. **Findings.** Each finding is exactly one list item — a line beginning
+   `- ` directly under its tier's label line — whose text begins with the
+   tier prefix, a 1-based counter, a colon and a space: `C<n>: ` under
+   Critical, `M<n>: ` under Material, `m<n>: ` under Minor. Continuation
+   lines (`Suggested fix:`, citations) are indented and are not list items.
+   This is the corpus's **one** tier vocabulary — Critical / Material / Minor
+   with prefixes `C` / `M` / `m`; "blocking" is a defined synonym for
+   "Critical" and appears only in verdict prose; the tier names `Blocking`
+   and `Substantive` are retired from both producers (Q-REQ-PO-Z).
+3. **Verdict predicates over the tier counts** (`C` := Critical items, `M`
+   := Material items) — the three definitions below, disjoint and
+   exhaustive, so every well-formed report has exactly one legal verdict.
+   Both sides of the `APPROVE` / `APPROVE_WITH_FIXES` boundary are
+   **consumer-checked** by `harness-return-contract.md` §VERDICT Token: a
+   Critical item under a non-`REJECT` token, and a Material item under
+   `APPROVE`, each render a `REVIEW: MALFORMED` pause, so an `APPROVE` can
+   never hide a Material finding — the M-side is not a producer-only
+   obligation (Q-REQ-PO-AJ); since the specs review's round 5 M3
+   (Q-REQ-PO-AK) that consumer's 4×3 case table covers every cell of this
+   predicate table — an empty report under `APPROVE_WITH_FIXES` and a
+   Critical-free report under `REJECT` pause too — so the consumer check is
+   exhaustive over these three predicates, whose three cells are its three
+   `legal` cells. Section 4 is section (c) of REQ-REV-002, the
+   section whose items that count reads first; the producer's obligation is
+   unchanged — a reviewer who finds a blocking item writes Reject.
 
 ### Trigger Classification
 
@@ -311,6 +383,48 @@ highest-value so operators know where to invest review time.
 - [ ] Chunk-close boundaries explicitly excluded from review scope (REQ-REV-005, REQ-REV-006)
 - [ ] Scope boundaries against chunk-close, XSPEC, verify explicit (REQ-REV-006)
 
+**Pipeline-observability (2026-09-22, review)**
+
+- [ ] The report template in `skills/review/SKILL.md` still carries the
+  `VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT` line and the seven
+  label lines in the producer's order — `python3 plugins/sdd/tools/skill-lint.py`
+  exits 0 with the d1 producer row (REQ-REV-002 as amended).
+- [ ] Each producer carries the six bold label lines —
+  `grep -cE '^\*\*(Verdict|Strengths|Critical findings|Material findings|Minor findings|Recommendation):\*\*' plugins/sdd/skills/review/SKILL.md`
+  reads 6 and the same command over `plugins/sdd/agents/reviewer.md` reads 6
+  (6 and 0 before this delta); each shows the three prefixes —
+  `grep -cE '^ *- (C|M|m)1: '` reads 3 over each producer (3 and 0 before);
+  each carries the three predicates — `grep -c 'No findings above minor'`,
+  `grep -c 'at least one Material finding'` and `grep -c 'Any blocking
+  (Critical) finding'` each read 1 over each producer (0 before); each states
+  the empty-tier rule — `grep -c 'carries no list item'` reads ≥ 1 over each
+  producer (0 before) (REQ-REV-PIPELINEOBSERVABILITY-001 (i)–(iv)).
+- [ ] One zero-count witness for every retired wording —
+  `grep -cE 'No blocking findings\. Proceed to next phase|Critical findings exist but are bounded|blocking, then substantive|Substantive findings|^#+ +(Blocking|Critical)|^\*\*(Blocking|Substantive):\*\*' plugins/sdd/skills/review/SKILL.md plugins/sdd/agents/reviewer.md`
+  reads 0 for each file (2 and 1 before this delta); the skill's "its
+  position is not part of the contract" sentence is not retired — it is the
+  live consumer rule the grammar quotes (REQ-REV-PIPELINEOBSERVABILITY-001 (v)).
+- [ ] The skill-lint `REQUIRED` row whose pattern is `at least one Material
+  finding` (row p13 of `skill-lint-v5.md` §`REQUIRED` Rows —
+  Pipeline-Observability) names **both** producers in its `files:`; in a
+  temp copy with the line removed from either file the linter exits non-zero
+  naming that file, and on this tree it exits 0
+  (REQ-REV-PIPELINEOBSERVABILITY-001 (vi)).
+- [ ] No fenced template block in `skills/review/SKILL.md` shows a tier label
+  line followed by a list item whose normalised text is in the placeholder set
+  of `harness-return-contract.md` §VERDICT Token — `none`, `n/a`, `—` after
+  stripping the list marker, emphasis or backticks, trailing punctuation and
+  whitespace, then case-folding — and no other placeholder rule is applied
+  (REQ-REV-002 as amended; REQ-REV-PIPELINEOBSERVABILITY-001 (1)).
+- [ ] Fixture F2 (F1 plus one `C1:` item, `VERDICT: APPROVE_WITH_FIXES`)
+  renders the malformed pause with `N = 1` and F1 renders none; fixtures F8
+  (empty Critical and Material sections under `APPROVE_WITH_FIXES`) and F9
+  (the same under `REJECT`) each render a `tier/verdict conflict` pause, so
+  every non-`legal` cell of the consumer's case table is exercised — the
+  fixture walkthrough of `harness-return-contract.md` §VERDICT Token
+  (REQ-REV-PIPELINEOBSERVABILITY-001 (3), REQ-HARN-PIPELINEOBSERVABILITY-005;
+  F8/F9 by Q-REQ-PO-AK).
+
 ## Implementation Questions
 
 ### Q-IMPL-HARNESSP2-004: Material finding template line gains `affects`
@@ -319,3 +433,19 @@ highest-value so operators know where to invest review time.
 **Decision**: Superseded by `arbitrated-handoff.md` §Review Key on Material Lines (REQ-ARB-HARNESSP2-008 amendment 2026-09-17): the Material template line becomes `- M1: [what's wrong] — [file:section] — affects [REQ-*] | affects —`. Nothing else in the report format (REQ-REV-002) or the scope boundaries (REQ-REV-005/006) changes; `sdd-review` gains no red, telemetry or arbitration text.
 **Rationale**: The arbitration key must be computable on both tiers; the change is one template line.
 **Date**: 2026-09-17 (harness-p2 specs stage)
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-REV-PIPELINEOBSERVABILITY-001; REQ-REV-002 amended)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 R10, §Q3 tier-heading parsing; Q-REQ-PO-E, -V, -X,
+-Y, superseded by Q-REQ-PO-Z; Q-REQ-PO-AF, -AJ. Observed defect: the report lived
+in three texts never unified — the skill's template, its verdict definitions and
+the agent body — and the consumer of REQ-HARN-PIPELINEOBSERVABILITY-005
+discovered the section's start, end, label form and existence one review round
+at a time; the former `Approve with fixes` definition instructed a reviewer to
+emit exactly the shape the tier-count rule rejects.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §Report Format carries the report grammar — the seven label lines and their forms, the extent clause, the one tier vocabulary, the empty-tier rule and the three verdict predicates in §Verdict definitions (REQ-REV-PIPELINEOBSERVABILITY-001; REQ-REV-002 as amended — the sections and their order are unchanged, their grammar is now stated). Left consistent and not reopened: §Non-persistence, §Trigger Classification, §Session Isolation, §Required Inputs.
+
+**Why (3) names the consumer's case table** (Q-REQ-PO-AK, specs review round 5 M3 routed to its requirements origin): the three predicates are the producer's obligation, but exhaustiveness of the consumer check over them is shown by `harness-return-contract.md` §VERDICT Token's 4×3 case table — its three `legal` cells are these three predicates — so §Report Format (3) cross-references it rather than restating a rule; the producer's text is otherwise unchanged. **Why one grammar**: three producers' texts drifting independently is how three reviews of this cycle carried Critical findings under `APPROVE_WITH_FIXES`. **Why the skill text is the side that moves** (Q-SPEC-PO-I): the count rule of `harness-return-contract.md` §VERDICT Token made the former `Approve with fixes` line unreachable, and the former `Approve` line left `Approve` and `Approve with fixes` sharing a predicate; the three predicates are disjoint and exhaustive. **Why the token line's position is not binding** (Q-REQ-PO-AF, reverting Q-REQ-PO-AD): four shipped texts already state "anywhere in its report, last occurrence wins", and the grammar quotes that authority rather than contradicting it. **Why the producer forbids the placeholder the consumer tolerates** (Q-REQ-PO-Y, -AE): a template must not teach a shape the parser has to normalise away.

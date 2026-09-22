@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 requires:
   - REQ-ARB-HARNESSP2-001
   - REQ-ARB-HARNESSP2-002
@@ -20,6 +20,7 @@ requires:
   - REQ-ARB-HARNESSP5-001
   - REQ-ARB-HARNESSP5-002
   - REQ-ARB-HARNESSP5-003
+  - REQ-ARB-PIPELINEOBSERVABILITY-001
 ---
 
 # Arbitrated Handoff Between Contradicting Review Rounds
@@ -64,7 +65,9 @@ regen[N]      = { written: { (file, section) }, hunks: { (file, section): "…" 
                 # (a pipeline re-dispatch of the same stage — Q-IMPL-HARNESSP3-010), PLUS derived artifacts the
                 # orchestrator itself regenerated in that window, e.g. docs/requirements/traceability.md
                 # (by: orchestrator — Q-IMPL-HARNESSP3-017)
-W_N           = sections(fix[N].written) UNION sections(regen[N].written)
+new[N]        = { (file, §heading) : no visible heading line naming §heading exists in `git show <sha_N>:<file>` }
+                # fix-induced ground — both sides of a moved/renamed heading (added 2026-09-22, REQ-ARB-PIPELINEOBSERVABILITY-001)
+W_N           = sections(fix[N].written) UNION sections(regen[N].written) UNION new[N]
                 # the set §Contradiction Classes tests against; (file, *) only where section resolution is unavailable
 ```
 
@@ -123,6 +126,33 @@ is the remedy, not a spike (§Section Resolution).
 **Why not detect (a)**: a rule that guessed "opposite" from text would be a
 semantic judgement inside the orchestrator, which REQ-HARN-019 and REQ-ORCH-012
 keep out; the cap remains the backstop for reversals.
+
+**Fix-induced ground is written ground — the third term of `W_N`** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-ARB-PIPELINEOBSERVABILITY-001; REQ-ARB-HARNESSP2-002 as amended; the schema line of §Retained Per-Round State is edited in place; the record of why is §Pipeline-Observability Amendment).
+
+```
+new[N]  = { (file, §heading) : no visible heading line naming §heading exists in `git show <sha_N>:<file>` }
+          # fence-aware scan; the leading-ordinal strip of §Retained Per-Round State applied to both sides
+W_N     = sections(fix[N].written) UNION sections(regen[N].written) UNION new[N]
+```
+
+A round-N+1 Critical/Material key `(file, §heading)` whose heading **did not
+exist** in `file` at round N's sha is ground the loop created: it belongs to
+`W_N`, and the finding is ordinary — never a `REVIEW: CONTRADICTION (class b)`
+pause. Equivalently, section resolution adds **both sides** of a moved or
+renamed heading to `W_N`, because a diff's hunks are keyed on the heading they
+sat under *before* the fix, so the new heading is otherwise absent from
+`fix[N].written` although the fix wrote it. Decision procedure: read `git show
+<sha_N>:<file>` through the same fence filter section resolution uses, strip
+leading ordinals on both the round-N+1 key and the candidate heading lines, and
+compare the normalised `§Name`s. A heading that existed at `sha_N` with
+identical bytes is unchanged ground and stays out (REQ-ARB-HARNESSP5-001 is not
+reopened). This is **not class (a)**: nothing is reversed. The
+set-operation character of class (b) and its `(file-level)` degradation are
+unchanged (REQ-ARB-HARNESSP2-002 as amended).
+
+Skill side: `skills/orchestrate/references/loop-control.md` §2a's `W_N` definition carries the
+same third term. Fixture: `python3 plugins/sdd/tools/scope-check-selftest.py`
+gains scenario **A4** beside A1–A3.
 
 ### Section Resolution of Fix Hunks (REQ-ARB-HARNESSP2-005) [needs-code]
 
@@ -280,6 +310,8 @@ reviewer raising new Critical/Material findings on ground the previous round
 approved **and the loop did not touch**; a wholesale-regenerated file *was*
 touched by the loop. Admitting it removes false positives only and cannot mask a
 contradiction about a file the loop left alone.
+
+**Amended 2026-09-22** `[Updated: 2026-09-22]` (REQ-ARB-HARNESSP3-001 as amended): the union gains a third term, `new[N]` — fix-induced ground, both sides of a moved or renamed heading — defined in §Contradiction Classes; the regenerated-is-not-new-ground rule of this section is unchanged and the diff-based rule of REQ-ARB-HARNESSP5-001 (a heading present at `sha_N` with identical bytes stays out) still bounds it.
 
 ### Live Exercise of the Union in harness-p4 (REQ-ARB-HARNESSP4-001)
 
@@ -477,6 +509,25 @@ the workstream's `traceability.md`.
 - [ ] The key table's `section` row states the leading-ordinal strip rule and Open Question 3 reads closed, pointing at that row; `references/loop-control.md` §2a agrees; the A1–A3 key parser implements it and a round line with and without the ordinal resolves to the same key in `--self-test`; `python3 tools/sdd-gc.py --report` raises no new finding on this spec (REQ-ARB-HARNESSP5-003)
 - [ ] §Retained Per-Round State's fenced schema shows `round[N]`, `fix[N]` and `regen[N]` with the `W_N` union; its text and `references/loop-control.md` §2a agree on the definition (side-by-side read at specs); `python3 tools/sdd-gc.py --report` raises no new finding on this spec (REQ-ARB-HARNESSP4-003)
 
+**Pipeline-observability (2026-09-22, arbitration)**
+
+- [ ] `python3 plugins/sdd/tools/scope-check-selftest.py` exits 0 with
+  scenario A4: a round-N+1 finding under a heading absent at `sha_N`
+  classifies as an ordinary finding in `W_N`, and a control finding under a
+  heading present at `sha_N` and unwritten by the loop still classifies
+  class (b); in a temp copy with the heading-existence clause removed A4 flips
+  to class (b) and the self-test exits non-zero; A1–A3's outputs are unchanged
+  (REQ-ARB-PIPELINEOBSERVABILITY-001, REQ-ARB-HARNESSP2-002 as amended).
+- [ ] The `W_N` line of §Retained Per-Round State in this spec and in
+  `skills/orchestrate/references/loop-control.md` §2a both carry the third term (`new[N]`) —
+  `sed -n '/^### Retained Per-Round State/,/^### Contradiction/p' docs/spec/arbitrated-handoff.md | grep -c 'new\[N\]'`
+  reads ≥ 1 and `grep -c 'new\[N\]' plugins/sdd/skills/orchestrate/references/loop-control.md`
+  reads ≥ 1 (0 before this delta)
+  (REQ-ARB-PIPELINEOBSERVABILITY-001, REQ-ARB-HARNESSP3-001 as amended).
+- [ ] A4's fixture includes a **moved** heading (present under a new name at
+  `sha_{N+1}`, absent at `sha_N`) and shows both the old and the new
+  `(file, §heading)` in `W_N` (REQ-ARB-PIPELINEOBSERVABILITY-001).
+
 ## Edge Cases
 
 - **Round N+1 raises a new finding in a file the fix created** (untracked →
@@ -599,3 +650,16 @@ same stage's deliverable, not an operator edit, so treating it as untouched
 ground would reintroduce exactly the false positive REQ-ARB-HARNESSP3-001
 removes. An operator's manual edit of the aggregate remains outside `W_N`.
 **Date**: 2026-09-18 (implement stage, Chunk 3)
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-ARB-PIPELINEOBSERVABILITY-001; REQ-ARB-HARNESSP2-002, REQ-ARB-HARNESSP3-001 amended)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q3 "The stale cross-reference", R7, §Mechanical
+pin R7. Observed defect: both class-(b) pauses of the consumer-geometry
+research stage fired on a cross-reference to a section the fix had just
+moved.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §Retained Per-Round State's schema block carries the `W_N` line with its third term `new[N]` (edited in place, as REQ-ARB-HARNESSP4-003 did for `regen[N]`); §Contradiction Classes carries the definition and decision procedure of fix-induced ground (REQ-ARB-PIPELINEOBSERVABILITY-001; REQ-ARB-HARNESSP2-002 as amended — class (b)'s "pairs written by the intervening fix" now includes it); §`W_N` Includes Regeneration Writes records that the union gains the term (REQ-ARB-HARNESSP3-001 as amended). Left consistent and not reopened: §Section Resolution of Fix Hunks (the diff-keyed resolution is exactly why the term is needed), §`REVIEW: CONTRADICTION` Pause, §Third Opinion, §Review Key on Material Lines, REQ-ARB-HARNESSP5-001's diff-based rule, §Offline Arbitration Fixture (A1–A3 unchanged; A4 added beside them).
+
+**Why a third term rather than a wider class (b)**: a diff's hunks are keyed on the heading they sat under *before* the fix, so a heading the fix created is absent from `fix[N].written` although the fix wrote it — both class-(b) pauses of the consumer-geometry research stage fired on exactly this. Nothing is reversed, so this is not class (a), and the `(file-level)` degradation is unchanged.

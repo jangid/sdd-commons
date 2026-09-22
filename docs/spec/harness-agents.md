@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 requires:
   - REQ-AGENT-MARKETPLACE-001
   - REQ-AGENT-MARKETPLACE-002
@@ -8,6 +8,7 @@ requires:
   - REQ-AGENT-MARKETPLACE-004
   - REQ-AGENT-MARKETPLACE-005
   - REQ-AGENT-MARKETPLACE-006
+  - REQ-AGENT-PIPELINEOBSERVABILITY-001
 ---
 
 # The Three Shipped Harness Agents
@@ -109,6 +110,47 @@ applied, because the repository's previous list was written before any agent
 file existed in it (`project-docs.md`, REQ-DOCS-MARKETPLACE-005); the record is
 Q-IMPL-MARKETPLACE-010 below.
 
+**One lint-pinned sentence per body forbids git-state mutation** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-AGENT-PIPELINEOBSERVABILITY-001; REQ-AGENT-MARKETPLACE-002 as amended; the record of why is §Pipeline-Observability Amendment).
+
+Each of `plugins/sdd/agents/reviewer.md`, `chunk-verifier.md` and
+`red-team.md` states, inside the read-only paragraph it already carries ("You
+change nothing…", "You repair nothing…", "You fix nothing…"), one sentence that:
+
+- names the git-state operations it must not run — `git stash`,
+  `git checkout` / `git switch`, `git reset`, `git restore`, `git commit`,
+  `git clean`;
+- names the shell edit forms it must not use on the working tree — `sed -i`
+  and redirection into a tracked path;
+- states that the quality gates it runs are **read-only commands**.
+
+The sentence is pinned by one skill-lint `REQUIRED` row **per body** (pattern
+`git stash`, min 1, file = that agent; rows p1–p3 of `skill-lint-v5.md`
+§`REQUIRED` Rows — Pipeline-Observability), so removing it from any one body
+fails the linter naming that file. The full surface is decided by one
+ordered-alternation grep per body, the names in the order the body lists them
+(`git stash`, then `checkout`/`switch`, `reset`, `restore`, `commit`, `clean`,
+`sed -i`, `read-only commands`) — a body missing any one name is not counted.
+Why the body and not the frontmatter: no frontmatter field can express the
+read-only *use* of a permitted tool, which the paragraph above already records;
+why a sentence and not a hook: hook enforcement is OPEN
+(RS-PIPELINEOBSERVABILITY-001 §Q2) and is a plan-time spike, not a contract.
+Detection (`GIT_STATE`, `OUT`) remains the gate's ground truth; the sentence
+gives the leaf a rule to have broken, and the void rule of
+`harness-write-scope.md` §Git-State Observation gives the gate the consequence.
+
+**A second body obligation on `reviewer.md`** (REQ-AGENT-PIPELINEOBSERVABILITY-001,
+own-id rewrite; REQ-AGENT-MARKETPLACE-002 as amended governs only the
+frontmatter): `plugins/sdd/agents/reviewer.md` carries the review report
+grammar of `review.md` §Report Format (REQ-REV-PIPELINEOBSERVABILITY-001) — its
+seven-label section list, the `C` / `M` / `m` prefix vocabulary, the empty-tier
+rule and the three verdict predicates in that requirement's words — so that a
+review the harness dispatches to the agent is an instance of the same grammar
+the review skill's template emits. This spec states no sentence of its own and
+no count of its own for that grammar: one authority per wording — the wording
+and its witnesses are REQ-REV-PIPELINEOBSERVABILITY-001 (i)–(vi), which measure
+`plugins/sdd/agents/reviewer.md` by name, and `review.md` §Report Format
+carries them as acceptance.
+
 ### Vocabulary, and the token-relocation hazard
 
 Each agent's body ends in the harness's existing structured token, written in
@@ -171,6 +213,30 @@ a literal.
 - [ ] Each agent file contains its token at the start of a line; the skill linter exits 0 and its `--self-test` passes after the extraction; for each of the three tokens, the set of files carrying it — derived by the same grep before and after — is a superset of the pre-change set (REQ-AGENT-MARKETPLACE-004).
 - [ ] For each of the three roles, `skills/orchestrate/references/dispatch-templates.md` contains both the namespaced name and a backticked `agents/<name>.md` path within the same template; the linter's link check resolves each cited path on disk (REQ-AGENT-MARKETPLACE-005).
 - [ ] No rule text appears both in an agent file and in its dispatch template, derived by a run-time shingle comparison rather than by human reading of "role-definition paragraphs": for each agent/template pair, no normalised eight-word sequence from the agent file's rule section occurs in the template (the template cites the agent file instead — Q-IMPL-MARKETPLACE-025); each template retains its pinned `RETURN:` block verbatim (linter-checked); the count of linter contract rows is unchanged across the extraction, derived by running the same count before and after (REQ-AGENT-MARKETPLACE-006).
+
+**Pipeline-observability (2026-09-22, agents)**
+
+- [ ] `grep -lE 'git stash|git state' plugins/sdd/agents/*.md | wc -l` reads 3
+  (0 before this delta) — the presence screen; and
+  `for f in plugins/sdd/agents/reviewer.md plugins/sdd/agents/chunk-verifier.md plugins/sdd/agents/red-team.md; do tr '\n' ' ' < "$f" | grep -qE 'git stash.*(checkout|switch).*reset.*restore.*commit.*clean.*sed -i.*read-only commands' && echo "$f"; done | wc -l`
+  reads 3 (0 before) — the full surface, per body
+  (REQ-AGENT-PIPELINEOBSERVABILITY-001).
+- [ ] `python3 plugins/sdd/tools/skill-lint.py` exits 0 with the three
+  `REQUIRED` rows p1–p3 present (pattern `git stash`, min 1, one row per body)
+  and the self-test's row-count pin moved with them; in a temp copy of the
+  tree with the sentence deleted from any one body the linter exits non-zero
+  naming that file (REQ-AGENT-PIPELINEOBSERVABILITY-001).
+- [ ] Each body's `tools` line, parsed from the frontmatter, still excludes
+  `Write`, `Edit` and `NotebookEdit` and still declares `Bash`
+  (REQ-AGENT-MARKETPLACE-002 as amended).
+- [ ] `plugins/sdd/agents/reviewer.md` satisfies the per-producer witnesses of
+  `review.md` §Report Format: the six-label grep reads 6, the prefix grep
+  reads 3, the three predicate greps each read 1, `grep -c 'carries no list
+  item'` reads ≥ 1, and the retired-wording grep reads 0 on that file (0, 0,
+  0/0/0, 0 and 1 before this delta — the `blocking, then substantive, then
+  minor` sentence); the skill-lint row on `at least one Material finding`
+  names the file (REQ-AGENT-PIPELINEOBSERVABILITY-001,
+  REQ-REV-PIPELINEOBSERVABILITY-001 (i)–(vi)).
 
 ## Implementation Questions
 
@@ -268,3 +334,16 @@ about whether a stage-scoped `Use at` reads better. Nothing mechanical enforces
 the wording, so uniformity is the only thing that keeps it stable; the
 alternative — recording that the parenthetical is illustrative — would license
 a third and fourth spelling with no way to notice.
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-AGENT-PIPELINEOBSERVABILITY-001; REQ-AGENT-MARKETPLACE-002 amended)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q2, R3, §Mechanical pin R3. Observed defect: none
+of the three bodies named git state; a verifier ran `git stash` over nine dirty
+files and a leaf edited `gc.py` in place — each broke no sentence it had been
+given.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §The frontmatter contract carries the git-state sentence, its ordered-alternation witness and the second body obligation — `reviewer.md` carries the report grammar of `review.md` §Report Format by reference (REQ-AGENT-PIPELINEOBSERVABILITY-001; REQ-AGENT-MARKETPLACE-002 as amended — its "read-only *use* is a constraint the agent's body states" is no longer unspecified). Left consistent and not reopened: the five-field frontmatter table (`tools` present, `Write`/`Edit`/`NotebookEdit` excluded, `Bash` permitted), §Three top-level files, §Vocabulary, §Citation, §The agent file is the single source; and `harness-write-scope.md` §Git-State Observation, whose detection stays the gate's ground truth.
+
+**Why one sentence per body**: none of the three bodies named git state, and a verifier ran `git stash` over nine dirty files while a leaf edited `gc.py` in place — each broke no sentence it had been given. **Why the reviewer's grammar obligation states no wording here** (requirements review iteration 3 M1): two requirements had each stated a different verbatim verdict sentence while both named REQ-REV-002 as the authority; REQ-REV-PIPELINEOBSERVABILITY-001 is now the one authority and measures `reviewer.md` by name, which supersedes the earlier `harness-agents.md` wording of the three token paragraphs (Q-REQ-PO-V, -X → Q-REQ-PO-Z).
