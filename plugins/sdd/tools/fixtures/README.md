@@ -127,3 +127,71 @@ here are never modified.
 python3 tools/sdd-scope-check-selftest.py --self-test -v
 shasum -a 256 tools/fixtures/arbitration-harness-p4-regen-2026-09-19/*
 ```
+
+---
+
+## `check3-declared-convention-2026-09-22/`
+
+**Provenance — authored, not captured.** The two-sided fixture
+`chunk-close-review.md` §Checklist's dated acceptance bullet requires
+(REQ-CHKC-004 as amended, workstream `pipeline-observability`, Chunk 1 task 7):
+two plan-chunk fragments of the same shape whose only difference is the
+module they name, and the derivation command's expected output beside them.
+
+| File | What |
+|---|---|
+| `chunk-gc.md` | a chunk whose module is `plugins/sdd/tools/gc.py` — **in** the derived set (a commit-gate `entry:`), with no test file importing from it → Check 3 reports **no** advisory |
+| `chunk-scope-check.md` | the same chunk with `plugins/sdd/tools/scope-check-selftest.py` — named by `CLAUDE.md` in prose only, **outside** the set → Check 3 still reports **one** advisory |
+| `derived-set.txt` | the derivation command's output on this tree on 2026-09-22: `gc.py`, `skill-lint.py`, `telemetry.py` — a reference value, never a pin |
+| `check3.sh` | runs the derivation, diffs it against `derived-set.txt`, and decides Check 3 for the chunk's `**Module**:` line (exit 0 pass, 2 advisory) |
+
+**Why it is here.** The identical coverage advisory fired on 9 of 9
+consumer-geometry chunks against modules whose self-tests `CLAUDE.md` names
+and whose commit gate runs; the clause that stops it must be shown to
+discriminate — a fixture on which the advisory is absent for the covered
+module and present for the uncovered one — rather than to silence Check 3.
+
+```bash
+sh plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/check3.sh \
+   plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/chunk-gc.md            # exit 0
+sh plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/check3.sh \
+   plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/chunk-scope-check.md   # exit 2
+```
+
+## telemetry-flat-2026-09-22.jsonl — frozen flat-record fixture (OP-1, pipeline-observability)
+
+Every `v`-less line of the live `.sdd/telemetry.jsonl` on 2026-09-22, cut once
+by the orchestrator before Chunk 2 of the `pipeline-observability` plan and never
+modified afterwards. Chunk 2's `flat-cg` migration self-test reads it. Counts are
+derived at run time by the case, never pinned here.
+
+sha256: `de57b9608ba3a78fbcdbc2525b8e91870481fe2bc3ecfbfa10eef4a4f7afd358`
+
+## `arbitration-moved-heading-2026-09-22/`
+
+**Provenance — authored, not captured.** A four-file fixture for scenario `A4`
+of `plugins/sdd/tools/scope-check-selftest.py` — fix-induced ground,
+`docs/spec/arbitrated-handoff.md` §Contradiction Classes (workstream
+`pipeline-observability`, Chunk 4 task 2, REQ-ARB-PIPELINEOBSERVABILITY-001).
+It is authored because the live incidents (both class-(b) pauses of the
+consumer-geometry research stage fired on a heading the fix had just moved)
+left no captured before/after pair small enough to read; the shape is theirs.
+
+| File | What | sha256 |
+|---|---|---|
+| `before.md` | a kickoff at `sha_N`: `## Context`, `## Scope`, `## Open Questions`, `## Cross-References` | `026fb3cc2b5e4c5d4d99a7960802552693b5c9e0d1bc90f97e12754065b69594` |
+| `after.md` | the fix: `## Scope` **renamed** to `## Scope and Constraints` (a one-line hunk, so both sides resolve — old name from the before image, new name from the after image); `## Decisions` **created** inside a hunk that begins under `## Open Questions`, so the diff-resolved set never names it; `## Cross-References` byte-identical | `151fe1bf6c54cb5413a445c6de3a41576f444cf9ff4280edd9fdf25f7c876c3e` |
+| `round-1.txt` | `VERDICT: APPROVE_WITH_FIXES`; two Material lines keyed on `§Context` and `§Open Questions` — the sections the fix then changed | `39d5e5c5ab3dfa3c14c0bbba4afeac116ce8d6bf843e321a00d0a0d7518bb8fc` |
+| `round-2.txt` | three Material lines: `§Decisions` and `§Scope and Constraints` (headings absent at `sha_N` — `new[N]`, ordinary findings) and the control `§Cross-References` (present at `sha_N`, unwritten — still `class b`) | `8d0cfb5ad6c35894c9a7115176d17f9646d93de80c0fb471d6d89911113d0b4b` |
+
+**Why it is here.** `A4` must be discriminating: with the heading-existence
+clause of `new_ground()` deleted in a temp copy, `§Decisions` is annotated
+beside the control and the scenario fails (exit 1) — the reversion witness of
+the plan's Chunk 4 task 7. A fixture whose created heading sat at a hunk start
+would pass without the clause, because after-image resolution would already
+name it.
+
+```bash
+python3 plugins/sdd/tools/scope-check-selftest.py -v | grep ' A4 '
+shasum -a 256 plugins/sdd/tools/fixtures/arbitration-moved-heading-2026-09-22/*
+```

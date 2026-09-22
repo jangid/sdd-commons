@@ -94,7 +94,16 @@ Do not perform any stage other than {stage}.
 - `{ids_if_any}` — IDs the orchestrator assigned centrally (e.g. `RS-006`). Never
   let the subagent pick its own ID.
 - `{success_criterion}` — how the stage knows it is done (mandated by REQ-ORCH-007).
-- `{budget}` — explicit scope/time bound for the stage (mandated by REQ-ORCH-007).
+- `{budget}` — explicit scope bound for the stage (mandated by REQ-ORCH-007), in
+  the observable units of `return-contract.md` §Budget grammar. For
+  `stage = implement` the test-run term is **derived, not fixed**:
+  `test_runs = 2 × mutations + gates`, where `mutations` is the number of
+  mutation/reversion demonstrations the chunk's tasks name (each is one red run
+  and one green run) and `gates` is the number of quality-gate commands the
+  chunk runs. Worked example: a chunk naming 2 mutations and 2 gates is
+  dispatched with `≤ 6 test runs` — `Budget: 1 chunk, ≤ 25 tool calls, ≤ 6
+  test runs`. The earlier fixed `≤ 3 test runs` example is retired
+  (`harness-loop-control.md` §Budget Slot).
 - `{write_scope}` — comma-separated repo-relative globs the subagent may
   create, modify, delete or rename (REQ-HARN-020), filled by the orchestrator
   from the default scope table in `write-scope.md` §2 (per stage; for
@@ -142,7 +151,7 @@ Repair packet (fixed shape — act on it; do not re-derive the history):
   stage: implement
   reason: REVIEW                                     # REVIEW | VERIFIER_FAIL | PARTIAL_CONTINUE | MERGE_CONFLICT
   iteration: 2 of 3                                  # harness-loop-control.md §Fix-Loop Cap (REVIEW) / per-chunk redo counter (others)
-  budget: "1 chunk, ≤ 25 tool calls, ≤ 3 test runs"
+  budget: "1 chunk, ≤ 25 tool calls, ≤ 6 test runs"      # 2 × 2 mutations + 2 gates
   write_scope: [src/recon/**, tests/test_recon.py, docs/spec/recon.md]   # harness-write-scope.md
   target: {artifact_paths: [docs/plan.md], chunk: "Chunk 2: Reconciliation"}   # chunk: all — whole-plan fix (return-contract.md §5)
   failures:                                          # verbatim RETURN.failures / verifier failures
@@ -353,9 +362,11 @@ key present, empties allowed) plus the one verifier-only key,
 it — the orchestrator accepts either placement). `check2` / `check4` read
 `deferred` because the verifier does not run them; `files_written` MUST be
 `[]` and the scope check on a verifier return must observe zero writes
-(`harness-write-scope.md`). A missing or unrecognized `CHUNK_VERDICT:` token
-is a malformed return (`return-contract.md` §1); `status: BUDGET_EXHAUSTED`
-is consumed as `CHUNK_VERDICT: FAIL` (unverified is not verified).
+(`harness-write-scope.md`). **The missing-token rule**: a missing or
+unrecognized `CHUNK_VERDICT:` token is a malformed return (`return-contract.md`
+§1); `status: BUDGET_EXHAUSTED` is consumed as `CHUNK_VERDICT: FAIL`
+(unverified is not verified) — and a verdict voided by a `GIT_STATE` / `OUT`
+finding on the leaf is consumed the same way (`loop-control.md` §1b).
 
 ```yaml
 ## Chunk 2 Verification (independent re-run)

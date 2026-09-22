@@ -55,8 +55,13 @@ from pathlib import Path
 # to paths containing that substring; None means every linted file. The
 # optional `allow_files` list names repo-relative files the row skips entirely
 # (file-granular allowlist, consulted before the line loop; the scan itself
-# stays raw-line and fence-inclusive) — rows without it behave as before.
+# stays raw-line and fence-inclusive) — rows without it behave as before. The
+# optional `visible_only` flag restricts one row to unfenced lines (the fence
+# filter only — backticked spans are still read); rows without it are unchanged.
 FORBIDDEN = [
+    {"pattern": r"then re-run the review for this stage", "files": None, "allow": [],
+     "reason": "unconditional re-review after every loop-back-to-fix is the generator that exhausted the cap on eight zero-blocking APPROVE_WITH_FIXES rounds (RS-PIPELINEOBSERVABILITY-001 §Gate observation 2026-09-22)",
+     "fix": "split the row by verdict: REJECT → fix then re-review; APPROVE_WITH_FIXES → fix then proceed without re-review"},
     {
         "pattern": r"docs/spikes",
         "files": None,
@@ -114,12 +119,29 @@ FORBIDDEN = [
      "reason": "telemetry is orchestrator-written and never a phase-detection or staleness input (REQ-ORCH-014)",
      "fix": "remove the reference — skills never read .sdd/; only orchestrate's telemetry stub "
             "and references/telemetry.md may name it"},
+    # -- pipeline-observability (REQ-LINT-PIPELINEOBSERVABILITY-001,
+    #    skill-lint-v5.md §`FORBIDDEN` Row — `literal-anchor`): a `<file>.md:<line>`
+    #    anchor is a snapshot comparand — true at one commit, silently wrong at
+    #    the next. Swept markdown only (tools/*.py and fixtures/ are outside the
+    #    walk); visible lines only, so a fenced illustration raises nothing.
+    {"pattern": r"[\w./-]+\.md:\d+", "files": None, "allow": [], "visible_only": True,
+     "reason": "a `<file>.md:<line>` anchor is a snapshot comparand that drifts with the file "
+               "(REQ-LINT-PIPELINEOBSERVABILITY-001)",
+     "fix": "cite the file and its section heading (`<file>.md §<Heading>`) instead of a line number"},
 ]
 
 # Contract markers that must keep existing where a counterpart file relies on
 # them. `min` is the minimum occurrence count in that file. Rows may carry
 # `"severity": "warn"` (default `fail`).
 REQUIRED = [
+    # -- pipeline-observability, manual gate fix 2026-09-22 (RS-PIPELINEOBSERVABILITY-001
+    #    §Gate observation): the APPROVE_WITH_FIXES routing and the GROWTH: line.
+    {"file": "skills/orchestrate/SKILL.md", "pattern": r"proceeds \*\*without re-review\*\*", "min": 1,
+     "reason": "APPROVE_WITH_FIXES routes fix → proceed, never fix → re-review by default (RS-PIPELINEOBSERVABILITY-001 §Gate observation 2026-09-22)",
+     "fix": "restore `the stage proceeds **without re-review**` in the loop-back-to-fix row of §The gate"},
+    {"file": "skills/orchestrate/references/loop-control.md", "pattern": r"GROWTH: ", "min": 1,
+     "reason": "the informational GROWTH: gate line (item 6d) makes the fix-grows-artifact generator visible",
+     "fix": "restore item 6d (`GROWTH: <deliverable> +A/−D lines`) in §5"},
     {"file": "skills/orchestrate/SKILL.md", "pattern": r"research_id", "min": 3,
      "reason": "kickoff research_id contract (audit F10) spans table/KICKOFF/picker",
      "fix": "keep `research_id` in the entry table, KICKOFF and the picker stub"},
@@ -293,6 +315,82 @@ REQUIRED = [
      "fix": "keep the `CONVERGENCE:` line in SKILL.md §The gate — its defining "
             "section is docs/spec/harness-loop-control.md §Convergence Signal; its producer "
             "lives in skills/orchestrate/references/loop-control.md"},
+    # -- pipeline-observability (2026-09-22): rows p1–p15 of skill-lint-v5.md
+    #    §`REQUIRED` Rows — Pipeline-Observability. Each pins one gate-facing
+    #    sentence this cycle landed, by a phrase from the sentence rather than a
+    #    common word, so the row fails when the sentence goes and not only the
+    #    word. p13 is ONE row with two `files:` entries (checked once per file).
+    #    p15 (the implement-stage fix, Q-IMPL-PIPELINEOBSERVABILITY-011) pins the
+    #    operator guide, which restates the routing for the human reader.
+    {"file": "agents/reviewer.md", "pattern": r"git stash", "min": 1,
+     "reason": "p1 — the git-state sentence: a read-only leaf runs no git stash/checkout/switch/reset/"
+               "restore/commit/clean and no in-place edit (harness-agents.md §The frontmatter contract, "
+               "REQ-AGENT-PIPELINEOBSERVABILITY-001)",
+     "fix": "restore the git-state sentence in the reviewer body's read-only paragraph (`You change nothing.`)"},
+    {"file": "agents/chunk-verifier.md", "pattern": r"git stash", "min": 1,
+     "reason": "p2 — the git-state sentence (harness-agents.md §The frontmatter contract, "
+               "REQ-AGENT-PIPELINEOBSERVABILITY-001)",
+     "fix": "restore the git-state sentence in the chunk-verifier body's read-only paragraph (`You repair nothing.`)"},
+    {"file": "agents/red-team.md", "pattern": r"git stash", "min": 1,
+     "reason": "p3 — the git-state sentence (harness-agents.md §The frontmatter contract, "
+               "REQ-AGENT-PIPELINEOBSERVABILITY-001)",
+     "fix": "restore the git-state sentence in the red-team body's read-only paragraph (`You fix nothing`)"},
+    {"file": "skills/orchestrate/references/loop-control.md", "pattern": r"consecutive consumed", "min": 1,
+     "reason": "p4 — `reject_run` counts consecutive consumed REJECTs per stage and FIX_LOOP_MAX compares "
+               "against it (harness-loop-control.md §Fix-Loop Cap, REQ-HARN-001 as amended)",
+     "fix": "restore the `consecutive consumed` sentence in loop-control.md §2"},
+    {"file": "skills/orchestrate/references/loop-control.md", "pattern": r"post-manual", "min": 1,
+     "reason": "p5 — a manual intervention is followed by the `post-manual` review and `proceed` is withheld "
+               "until its record exists (harness-loop-control.md §Fix-Loop Cap, REQ-HARN-PIPELINEOBSERVABILITY-003)",
+     "fix": "restore loop-control.md §2b — the `manual intervention` option names the `post-manual` review"},
+    {"file": "skills/orchestrate/references/loop-control.md", "pattern": r"voids its verdict", "min": 1,
+     "reason": "p6 — a GIT_STATE or OUT finding on a read-only leaf voids its verdict whichever option resolves "
+               "the finding (harness-write-scope.md §Git-State Observation, REQ-HARN-PIPELINEOBSERVABILITY-004)",
+     "fix": "restore the void sentence (`voids its verdict`) in loop-control.md §1b — the bound line beside it "
+            "does not satisfy this row"},
+    {"file": "skills/orchestrate/references/write-scope.md", "pattern": r"voided", "min": 1,
+     "reason": "p7 — the consumer half of the void rule: `CHUNK_VERDICT: FAIL (voided: GIT_STATE)`, `redo` "
+               "offered, `proceed` withheld after both `restore` and `accept (note)` (REQ-HARN-PIPELINEOBSERVABILITY-004)",
+     "fix": "restore the voided-verdict row in write-scope.md §8"},
+    {"file": "skills/orchestrate/references/loop-control.md",
+     "pattern": r"voided re-dispatch.*REDO_MAX|REDO_MAX.*voided re-dispatch", "min": 1,
+     "reason": "p8 — the bound: voided re-dispatches are counted per gate in voided_redispatch_count[<gate>], "
+               "capped at the REDO_MAX value, stated on one visible line (REQ-HARN-PIPELINEOBSERVABILITY-004, Q-REQ-PO-Q)",
+     "fix": "restore the bound line in loop-control.md §1b naming `voided re-dispatch` and `REDO_MAX` on one line"},
+    {"file": "skills/orchestrate/references/return-contract.md", "pattern": r"tier/verdict conflict", "min": 1,
+     "reason": "p9 — §Tier-heading parsing: blocking_items / material_items and the six REVIEW: MALFORMED pauses "
+               "(harness-return-contract.md §VERDICT Token, REQ-HARN-PIPELINEOBSERVABILITY-005)",
+     "fix": "restore §6b Tier-heading parsing in return-contract.md with its six pauses (`tier/verdict conflict`)"},
+    {"file": "skills/orchestrate/references/dispatch-templates.md", "pattern": r"mutations \+ gates", "min": 1,
+     "reason": "p10 — the implement test-run budget is derived, test_runs = 2 × mutations + gates "
+               "(harness-loop-control.md §Budget Slot, REQ-HARN-PIPELINEOBSERVABILITY-006)",
+     "fix": "restore the derivation sentence (`2 × mutations + gates`) under `{budget}` in dispatch-templates.md "
+            "§Slot contract (pipeline)"},
+    {"file": "skills/implement/SKILL.md", "pattern": r"script path in a command", "min": 1,
+     "reason": "p11 — Check 3's module set is derived from the script path in a command CLAUDE.md quotes or the "
+               "commit gate's entry: values (chunk-close-review.md §Checklist, REQ-CHKC-004 as amended)",
+     "fix": "restore the declared-convention clause (`script path in a command`) in implement/SKILL.md Check 3"},
+    {"file": "agents/chunk-verifier.md", "pattern": r"script path in a command", "min": 1,
+     "reason": "p12 — the verifier's Check 3 clause derives the same module set (REQ-CHKC-004 as amended)",
+     "fix": "restore the declared-convention clause (`script path in a command`) in the chunk-verifier body's "
+            "Check 3 bullet"},
+    {"files": ["skills/review/SKILL.md", "agents/reviewer.md"],
+     "pattern": r"at least one Material finding", "min": 1,
+     "reason": "p13 — the `Approve with fixes` predicate in BOTH review producers "
+               "(review.md §Report Format, REQ-REV-PIPELINEOBSERVABILITY-001 (vi))",
+     "fix": "restore the `Approve with fixes` predicate — `No blocking finding; at least one Material finding — "
+            "fix them, then proceed without re-review` — in the producer named by this finding"},
+    {"file": "skills/orchestrate/references/return-contract.md", "pattern": r"counts as zero", "min": 1,
+     "reason": "p14 — the placeholder normalisation of §Tier-heading parsing: a `- None` / `- n/a` / `- —` item "
+               "counts as zero (REQ-HARN-PIPELINEOBSERVABILITY-005)",
+     "fix": "restore the placeholder rule (`counts as zero`) in return-contract.md §6b Tier-heading parsing"},
+    {"file": "skills/orchestrate/USAGE.md", "pattern": r"proceeds without re-review", "min": 1,
+     "reason": "p15 — the operator guide's §7b restates the routing by verdict: an APPROVE_WITH_FIXES fix "
+               "lands and the stage proceeds without re-review unless the operator opts in "
+               "(review.md §Report Format; skill-lint-v5.md §`REQUIRED` Rows — Pipeline-Observability, "
+               "Q-IMPL-PIPELINEOBSERVABILITY-011)",
+     "fix": "restore the routing-by-verdict bullet (`proceeds without re-review`) in USAGE.md §7b "
+            "`Reading the stage gate`"},
 ]
 
 # SKILL.md size thresholds (strict `>`), module constants so a later audit can
@@ -537,10 +635,60 @@ def forbidden_findings(swept: list[Path], rel: Callable[[Path], Path],
                 continue
             pat = re.compile(rule["pattern"])
             allows = [re.compile(a) for a in rule["allow"]]
+            # `visible_only` (skill-lint-v5.md §`FORBIDDEN` Row — `literal-anchor`)
+            # restricts the row to unfenced lines through the same fence toggle
+            # the ordinal check uses; backticked spans stay in the read line, so
+            # an inline-code anchor is still a finding. Rows without the flag
+            # keep the raw-line, fence-inclusive scan.
+            visible_only = bool(rule.get("visible_only"))
+            in_fence = False
             for no, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+                if visible_only:
+                    if line.lstrip().startswith("```"):
+                        in_fence = not in_fence
+                        continue
+                    if in_fence:
+                        continue
                 if pat.search(line) and not any(a.search(line) for a in allows):
                     out.append((f, local, no, rule))
     return out
+
+
+# two-root-linter.md §6 (REQ-LINT-PACKAGING-007 as amended): the rule-table
+# populations are compared against the numbers §6 states under its dated
+# marker — read from the spec at test time, never carried here as a literal —
+# so a cycle that adds a row moves §6 in the same change, and the self-test
+# fails the change that moves one side alone (skill-lint-v5.md §Self-Test
+# Extension). The four labels are the four tables §6 names.
+POPULATION_SPEC = Path(__file__).resolve().parents[3] / "docs" / "spec" / "two-root-linter.md"
+POPULATION_LABELS = ("REQUIRED", "VERSION_GATED", "V4_CONTRACT", "FORBIDDEN")
+
+
+def spec_population(spec: Path = POPULATION_SPEC) -> dict[str, int] | None:
+    """The populations `two-root-linter.md` §6 states under its dated marker.
+
+    Reads §6's `Current at <date>:` sentence — the one machine-read sentence
+    of that section — and returns its `LABEL=<int>` pairs. Returns None when
+    the spec is not on disk (a consumer install carries no `docs/spec/`,
+    Q-IMPL-PIPELINEOBSERVABILITY-001) and {} when §6 lost the sentence, so
+    the caller fails loudly rather than skipping.
+    """
+    if not spec.is_file():
+        return None
+    text = spec.read_text(encoding="utf-8")
+    m = re.search(r"^### 6\..*?(?=^### 7\.)", text, re.S | re.M)
+    section = m.group(0) if m else ""
+    m = re.search(r"Current at \d{4}-\d{2}-\d{2}: `([^`]+)`", section)
+    if not m:
+        return {}
+    return {k: int(v) for k, v in re.findall(r"([A-Z0-9_]+)=(\d+)", m.group(1))}
+
+
+def required_targets(rule: dict) -> list[str]:
+    """The suite-relative files a REQUIRED row binds: `files` (a list — row
+    p13 names both review producers) or the single `file` every other row
+    carries. The row is one row either way; it is checked once per file."""
+    return list(rule["files"]) if rule.get("files") else [rule["file"]]
 
 
 class Linter:
@@ -913,18 +1061,21 @@ class Linter:
         if not self.suite_rules:
             return
         for rule in REQUIRED:
-            rel, pattern, minimum = rule["file"], rule["pattern"], rule["min"]
+            pattern, minimum = rule["pattern"], rule["min"]
             severity = rule.get("severity", "fail")
-            f = self.suite_root / rel
-            if not f.is_file():
-                self.flag(Path(rel), None, "required", "file missing entirely",
-                          f"restore the file — {rule['reason']}", severity)
-                continue
-            n = len(re.findall(pattern, f.read_text(encoding="utf-8")))
-            if n < minimum:
-                self.flag(f, None, "required",
-                          f"`{pattern}` found {n}x, need >= {minimum} — {rule['reason']}",
-                          rule['fix'], severity, rel=Path(rel))
+            # A row with `files:` (p13) is checked once per file and the
+            # finding names the file that lost the marker.
+            for rel in required_targets(rule):
+                f = self.suite_root / rel
+                if not f.is_file():
+                    self.flag(Path(rel), None, "required", "file missing entirely",
+                              f"restore the file — {rule['reason']}", severity)
+                    continue
+                n = len(re.findall(pattern, f.read_text(encoding="utf-8")))
+                if n < minimum:
+                    self.flag(f, None, "required",
+                              f"`{pattern}` found {n}x, need >= {minimum} — {rule['reason']}",
+                              rule['fix'], severity, rel=Path(rel))
         for name in VERSION_GATED_SKILLS:
             rel = f"skills/{name}/SKILL.md"
             f = self.suite_root / rel
@@ -1539,28 +1690,39 @@ def self_test() -> int:
         # -- 7. contract-row mutation: copy the real suite, strip one REQUIRED
         #       marker at a time; the suite lint must exit 1 and print that
         #       row's own fix string (REQ-LINT-005/006 mutation test).
-        real_skills = Path(__file__).resolve().parent.parent / "skills"
+        real_suite = Path(__file__).resolve().parent.parent
+        real_skills = real_suite / "skills"
         if real_skills.is_dir():
             for rule in REQUIRED:
-                mut_root = root / "mut"
-                if mut_root.exists():
-                    shutil.rmtree(mut_root)
-                shutil.copytree(real_skills, mut_root / "skills")
-                target = mut_root / rule["file"]
-                check(target.is_file(), f"REQUIRED row targets a missing file: {rule['file']}")
-                if not target.is_file():
-                    continue
-                stripped, n = re.subn(rule["pattern"], "", target.read_text(encoding="utf-8"))
-                check(n >= rule["min"],
-                      f"marker `{rule['pattern']}` occurs {n}x in {rule['file']} (< {rule['min']})")
-                target.write_text(stripped, encoding="utf-8")
-                buf = io.StringIO()
-                with contextlib.redirect_stdout(buf):
-                    code = Linter(mut_root, mut_root).run()
-                out = buf.getvalue()
-                check(code == 1, f"stripping `{rule['pattern']}` from {rule['file']} did not fail:\n{out}")
-                check(rule['fix'] in out,
-                      f"fix string not printed for `{rule['pattern']}` in {rule['file']}:\n{out}")
+                # A `files:` row (p13) is mutated once per file: each temp copy
+                # loses the marker in ONE producer and the finding must name it.
+                for rel_target in required_targets(rule):
+                    mut_root = root / "mut"
+                    if mut_root.exists():
+                        shutil.rmtree(mut_root)
+                    shutil.copytree(real_skills, mut_root / "skills")
+                    # rows p1–p3, p12 and p13 bind agent bodies, so the copy
+                    # carries agents/ beside skills/ (harness-agents.md
+                    # §The frontmatter contract).
+                    if (real_suite / "agents").is_dir():
+                        shutil.copytree(real_suite / "agents", mut_root / "agents")
+                    target = mut_root / rel_target
+                    check(target.is_file(), f"REQUIRED row targets a missing file: {rel_target}")
+                    if not target.is_file():
+                        continue
+                    stripped, n = re.subn(rule["pattern"], "", target.read_text(encoding="utf-8"))
+                    check(n >= rule["min"],
+                          f"marker `{rule['pattern']}` occurs {n}x in {rel_target} (< {rule['min']})")
+                    target.write_text(stripped, encoding="utf-8")
+                    buf = io.StringIO()
+                    with contextlib.redirect_stdout(buf):
+                        code = Linter(mut_root, mut_root).run()
+                    out = buf.getvalue()
+                    check(code == 1, f"stripping `{rule['pattern']}` from {rel_target} did not fail:\n{out}")
+                    check(rule['fix'] in out,
+                          f"fix string not printed for `{rule['pattern']}` in {rel_target}:\n{out}")
+                    check(rel_target in out,
+                          f"the finding for `{rule['pattern']}` does not name {rel_target}:\n{out}")
             # every rule-table row carries a fix (the mutation loop above proves REQUIRED;
             # FORBIDDEN rows are asserted by shape)
             check(all(r.get('fix') for r in FORBIDDEN), "FORBIDDEN row without fix")
@@ -1571,11 +1733,23 @@ def self_test() -> int:
             # are all present, and the table counts rows, not files, so the rows
             # that share a target file are distinct rows
             # (skill-lint-v5.md §Self-Test Extension, REQ-LINT-HARNESSP6-003).
-            check(len(REQUIRED) == 40, f"expected exactly 40 REQUIRED rows, found {len(REQUIRED)}")
+            # pipeline-observability's manual gate fix (2026-09-22) added two rows
+            # (the APPROVE_WITH_FIXES routing sentence, the GROWTH: gate line) and
+            # its Chunk 1 the fourteen rows p1–p14, and the implement-stage
+            # fix a fifteenth (p15, on USAGE.md); the total is no longer a
+            # literal here — it is the number two-root-linter.md §6 states under
+            # its dated marker, read at test time (three-way equality,
+            # REQ-LINT-PACKAGING-007 as amended; `print_population_shape` holds
+            # the other two sides).
+            pop = spec_population()
+            if pop is not None:
+                check(pop.get("REQUIRED") == len(REQUIRED),
+                      f"two-root-linter.md §6 states REQUIRED={pop.get('REQUIRED')}; the table holds "
+                      f"{len(REQUIRED)} rows — a row and §6 move in the same change")
             # d2 negative: a SKILL.md carrying only `RED_VERDICT: HELD` must NOT
             # satisfy the review-verdict consumer row (the `(?<!RED_)` lookbehind).
             d2 = next((r for r in REQUIRED
-                       if r["file"] == "skills/orchestrate/SKILL.md" and "VERDICT" in r["pattern"]
+                       if r.get("file") == "skills/orchestrate/SKILL.md" and "VERDICT" in r["pattern"]
                        and "CHUNK" in r["pattern"] and "RED_" in r["pattern"]),
                       {"pattern": "<missing d2 row>"})
             check(d2["pattern"] == r"(?<!CHUNK_)(?<!RED_)VERDICT:",
@@ -2692,6 +2866,50 @@ def self_test() -> int:
                   "the gated rows must not resolve against the CORPUS root: the "
                   "decoy seeded there was reported:\n" + "\n".join(gated))
 
+        def literal_anchor_visible_only() -> None:
+            """skill-lint-v5.md §`FORBIDDEN` Row — `literal-anchor`: four cases.
+
+            A `<file>.md:<line>` anchor on a visible line fails with the row's
+            fix; a backticked anchor on a visible line fails too (spans are
+            read, never blanked); a fenced anchor is an illustration and
+            passes; an anchor in a `.py` under `tools/` is outside the swept
+            markdown set and passes. The shipped row is read from the table,
+            never re-typed, so the case binds the row that ships.
+            """
+            row = next((r for r in FORBIDDEN if r.get("visible_only")), None)
+            check(row is not None, "the literal-anchor FORBIDDEN row (visible_only) is missing")
+            if row is None:
+                return
+            check(row["files"] is None and row["allow"] == [],
+                  "the literal-anchor row must be repo-wide with allow: []")
+            cases = {
+                "visible": ("See docs/spec/telemetry.md:92 for the domain.\n", True),
+                "backticked": ("See `docs/spec/telemetry.md:92` for the domain.\n", True),
+                "fenced": ("Illustration:\n\n```\ndocs/spec/telemetry.md:92\n```\n", False),
+            }
+            for name, (body, fires) in cases.items():
+                la = root / "literal-anchor" / name
+                _fixture_skill(la, "anchor-skill", body)
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    code = Linter(la, la, suite_rules=False).run()
+                out = buf.getvalue()
+                if fires:
+                    check(code == 1 and row["fix"] in out,
+                          f"literal-anchor must fire on the {name} anchor with its fix:\n{out}")
+                else:
+                    check(row["fix"] not in out,
+                          f"literal-anchor must not fire on the {name} anchor:\n{out}")
+            la = root / "literal-anchor" / "py"
+            _fixture_skill(la, "anchor-skill", "Body. Skip for Y.\n")
+            (la / "tools").mkdir(parents=True, exist_ok=True)
+            (la / "tools" / "probe.py").write_text("# see docs/spec/telemetry.md:92\n", encoding="utf-8")
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                Linter(la, la, suite_rules=False).run()
+            check(row["fix"] not in buf.getvalue(),
+                  f"literal-anchor must not fire on a .py file under tools/:\n{buf.getvalue()}")
+
         def print_population_shape() -> None:
             """C4.3 — `--print-population`'s output asserted by SHAPE, not by value.
 
@@ -2730,12 +2948,46 @@ def self_test() -> int:
             # duplicated in any of the four now fails the self-test rather than
             # a one-off evaluation nobody re-runs
             # (added post-plan from the implement-stage review).
-            pinned = {"REQUIRED": 40, "VERSION_GATED": 9, "V4_CONTRACT": 7,
-                      "FORBIDDEN": 13}
-            for label, want in pinned.items():
-                check(f"{label}={want}" in lines,
-                      f"§6 pins {label}={want}; --print-population printed "
-                      f"{[l for l in lines if l.startswith(label + '=')]}")
+            # pipeline-observability (2026-09-22, REQ-LINT-PACKAGING-007 as
+            # amended): the four comparands are READ from §6's dated sentence,
+            # never carried here — the former `pinned = {…}` dict was the third
+            # surface's copy. Three-way equality: printed == len(table) (the
+            # loop above) == §6 (the two checks below). Further table lines
+            # (`TEMPLATE_PAIRS`) neither satisfy nor break it.
+            pop = spec_population()
+            if pop is None:
+                print("  (two-root-linter.md not on disk — the §6 equality is not checked here)")
+            else:
+                check(set(pop) == set(POPULATION_LABELS),
+                      f"§6's `Current at <date>:` sentence must state exactly {POPULATION_LABELS}, "
+                      f"read {sorted(pop)}")
+                tables = dict(expected)
+                for label in POPULATION_LABELS:
+                    want = pop.get(label)
+                    check(f"{label}={want}" in lines,
+                          f"§6 states {label}={want}; --print-population printed "
+                          f"{[l for l in lines if l.startswith(label + '=')]}")
+                    check(tables.get(label) == want,
+                          f"§6 states {label}={want}; the code table holds {tables.get(label)} rows")
+            # Derived, not literal: a synthetic row appended to two tables must
+            # move the printed counts — a count written into the flag as a
+            # literal agrees with the tables today and fails here.
+            probe_req = {"file": "skills/none/SKILL.md", "pattern": "never", "min": 1,
+                         "reason": "population probe", "fix": "population probe"}
+            probe_fb = {"pattern": "never-forbidden-probe", "files": None, "allow": [],
+                        "reason": "population probe", "fix": "population probe"}
+            REQUIRED.append(probe_req)
+            FORBIDDEN.append(probe_fb)
+            try:
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    print_population(pp, pp)
+                moved = buf.getvalue().splitlines()
+                check(f"REQUIRED={len(REQUIRED)}" in moved and f"FORBIDDEN={len(FORBIDDEN)}" in moved,
+                      f"--print-population must print the live table length, not a literal: {moved}")
+            finally:
+                REQUIRED.remove(probe_req)
+                FORBIDDEN.remove(probe_fb)
             corpus_line = lines[-1] if lines else ""
             check(re.fullmatch(r"corpus: FILES_SWEPT=([0-9]+)  policed-areas=([0-9]+)",
                                corpus_line) is not None,
@@ -3677,6 +3929,7 @@ def self_test() -> int:
                       duplicate_guard_negative_case,
                       fixture_counts_exact,
                       template_pairs_bind_per_side,
+                      literal_anchor_visible_only,
                       print_population_shape,
                       skill_dir_of_binds_per_root,
                       forbidden_allow_files_root_correct,

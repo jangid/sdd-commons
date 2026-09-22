@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 requires:
   - REQ-REQ-001
   - REQ-REQ-002
@@ -13,6 +13,7 @@ requires:
   - REQ-STALE-002
   - REQ-SKILL-003
   - REQ-REQ-HARNESSP6-001
+  - REQ-REQ-PIPELINEOBSERVABILITY-001
 ---
 
 # Requirements Artifacts
@@ -429,6 +430,32 @@ rule it is scored **live**, because the marker lies outside its item. The
 fixture therefore distinguishes the two rules rather than merely passing under
 the new one.
 
+### Amendment Landing (REQ-REQ-PIPELINEOBSERVABILITY-001)
+
+`[Updated: 2026-09-22]` (workstream `pipeline-observability`; Q-REQ-PO-AA, -AG,
+-AH; the record of why is §Pipeline-Observability Amendment). When a workstream
+changes a requirement, or a spec section, that an earlier cycle approved, the
+change lands in exactly this way — five clauses, each with its own witness:
+
+| Clause | Where it lands | Rule |
+|---|---|---|
+| (a) requirement | the category file, in place under the existing id | the body carries `[Updated: YYYY-MM-DD]` and a `> **Amended YYYY-MM-DD**` note naming the workstream, the trigger and the Q-REQ; when another requirement is the authority for a wording, the note points at it and states **no verbatim sentence of its own** — one authority per wording |
+| (b) spec | the spec's **section of record**, in place | edited under a dated marker (`[Updated: YYYY-MM-DD]` or `**Amended YYYY-MM-DD**`) so a cold reader of that section sees the current contract; the spec **may** add a `§<Workstream> Amendment` section as the record of *why*, pointing at the section it changed — and **never the reverse**: an amendment section that is the sole carrier of a contract while the section of record still reads the old text is a defect |
+| (c) per-ws traceability | `docs/ws/<id>/traceability.md` (`ws-traceability.md` §Per-Workstream File Shape) | one row per amended id whose Requirement cell reads `<id> (amended)`; the marker means "this workstream changed the id and does not own it" — the owning workstream's row remains the id's row in the regenerated aggregate, and no cell of a marked row is read as the id's completion state. The Spec cell of an `(amended)` row names the section of record — `<file> §<section of record>` — and may name the amendment section only as a **second** reference after it |
+| (d) index | the Files table of `docs/requirements/index.md` | annotates **every** category file holding at least one amended id with those ids and the date, and no other file — the annotated set is derived from the `(amended)` rows of (c) and must equal them; a workstream's rewrite of an id it minted in the current cycle is not an amendment and is not annotated |
+| (e) corpus sweep | in the requirement's or note's own text | any binding statement (a must / never / only / exactly, a grammar, parser or token rule) lists every existing sentence on the same subject in `docs/requirements/**`, `docs/spec/**`, `plugins/sdd/skills/**` and `plugins/sdd/agents/**`, found by a **stated, re-runnable grep**, and marks each hit **reconciled** (with the reason) or **retired** (added to a zero-count witness); where a hit is in a tree the delta does not amend, the reconciliation names the requirement that will amend it. The obligation is decided by a derived set equality: the ids the workstream mints or amends equal the ids whose body carries a sweep block or the literal marker `> no binding statement` (legal only where no binding rule is stated) |
+
+Why clauses (b) and (c) are stated together: the Spec cell is the matrix's
+view of the same fact — a cell naming an amendment section alone is defect (b)
+seen from the matrix. Why (e): each of the six review rounds this cycle's
+requirements ran bound a rule whose contrary the shipped corpus already stated
+somewhere the delta never looked; the sweep makes "nowhere else says
+otherwise" a listed claim rather than an assumption. Left consistent:
+§Category File Format, §Requirement ID Scheme, §Traceability Matrix,
+§Auto-Maintenance Behavior (REQ-REQ-002, -006, -007) and `ws-traceability.md`
+(REQ-WS-008 — row ownership is unchanged; the marker adds a meaning to a row
+the workstream already owns).
+
 ### File Size Management
 
 When a category file approaches 300 lines, the skill should:
@@ -494,3 +521,55 @@ read half its own governed corpus is vacuous until the first annotation lands
 there and then misfires, so both shapes are accepted and the match is anchored
 at the marker's opening rather than requiring its close (the italic form wraps
 across lines). Requirements-review M1.]**
+
+**Pipeline-observability (2026-09-22, amendment landing)**
+
+- [ ] For the active workstream `<id>`, the file set derived from the
+  `(amended)` rows of `docs/ws/<id>/traceability.md` (each id's `^### <id>:`
+  heading located under `docs/requirements/*/*.md`) equals the file set the
+  index's Files-table annotations name — the two derivation commands stated
+  under REQ-REQ-PIPELINEOBSERVABILITY-001 (d)'s Acceptance, each listing
+  written to a file and `diff` printing nothing; the two `wc -l` counts are a
+  dated observation, never the comparand (measured 10 = 10 for
+  `pipeline-observability` on 2026-09-22)
+  (REQ-REQ-PIPELINEOBSERVABILITY-001 (c), (d)).
+- [ ] Every amended requirement body holds both `[Updated:` and `**Amended`
+  (`grep -c` over each ≥ 1) (REQ-REQ-PIPELINEOBSERVABILITY-001 (a)).
+- [ ] At the specs gate, `grep -c '| [a-z0-9-]*\.md §Pipeline-Observability Amendment |' docs/ws/pipeline-observability/traceability.md`
+  reads 0 over every row of the file, amended and new alike — the row
+  population is `grep -c '^| REQ-' docs/ws/pipeline-observability/traceability.md`,
+  never a stated number (measured 37 on 2026-09-22; the amendment-section
+  cells read 15 before this re-derivation, measured 0 on 2026-09-22); every
+  spec file named in the Spec
+  cell of an `(amended)` row holds a dated marker in its section of record —
+  `grep -c 'Updated: 2026-09-22'` over that file ≥ 1 — and no amendment
+  section states a contract the section of record lacks, decided by the specs
+  review against clause (b) (REQ-REQ-PIPELINEOBSERVABILITY-001 (b)).
+- [ ] The set of ids in the Requirement column of `docs/ws/<id>/traceability.md`
+  (`(amended)` rows included — the population is
+  `grep -c '^| REQ-' docs/ws/<id>/traceability.md`, of which
+  `grep -c '^| REQ-.* (amended)' docs/ws/<id>/traceability.md` are `(amended)`
+  rows; measured 37 and 16 for `pipeline-observability` on 2026-09-22) equals the set
+  of ids whose body carries a `Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001
+  (e)` block or a `> no binding statement` marker, attributed by `awk` to the
+  enclosing `### REQ-` heading — `diff` of the two listings prints nothing;
+  each block's stated command re-run with `-l` lists exactly the files the
+  block names plus the requirement's own file and the index; deleting one
+  block in a temp copy makes `diff` print that id, and adding one sentence
+  matching a block's pattern to any swept file makes that block's re-run list
+  a file it does not name (REQ-REQ-PIPELINEOBSERVABILITY-001 (e)).
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-REQ-PIPELINEOBSERVABILITY-001)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q3; requirements review iteration 3 M1, M2, round 5
+M4, round 6 M2, round 7 M1/M2; Q-REQ-PO-AA, -AG, -AH. Observed defect: the
+cycle annotated five of the nine files holding its fifteen amended ids, carried
+three amendment notes on one requirement each stating a different verbatim
+sentence, and had no rule for which side of a spec an amendment lives on — the
+first specs pass of this cycle left fifteen contracts in amendment sections while
+the sections of record read the old text.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §Amendment Landing carries the five clauses (REQ-REQ-PIPELINEOBSERVABILITY-001). Left consistent and not reopened: §Directory Layout, §Category File Format, §Requirement ID Scheme, §Traceability Matrix, §Auto-Maintenance Behavior, §Staleness Detection, §`## Out of Scope` Discipline.
+
+**Why this spec owns it**: it is the spec of the requirements corpus's structure — category files, the index, the traceability matrix — and every clause of the requirement is a rule about where text in that structure lands; `ws-traceability.md` owns row ownership (REQ-WS-008), which the `(amended)` marker does not change. **Why the section of record and not the amendment section carries the contract** (Q-SPEC-PO-M): a cold reader reads the section its cross-references name, and a contract that lives only at the end of the file is one the section of record contradicts.

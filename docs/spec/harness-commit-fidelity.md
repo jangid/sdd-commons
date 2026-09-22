@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 requires:
   - REQ-HARN-HARNESSP4-001
   - REQ-HARN-HARNESSP4-002
@@ -307,8 +307,13 @@ at replan under the cycle's DONE rule, not closed `fail`.
   the per-leaf `COMMIT:` line.
 - `tools/sdd-skill-lint.py` `REQUIRED` row for `COMMIT: COMPLETE | INCOMPLETE`
   in `loop-control.md` and `SKILL.md` (`skill-lint-v5.md`).
-- `grep -rn 'COMMIT: ' skills docs/spec CLAUDE.md` shows only the two members;
-  no `DROPPED`, `PARTIAL` or other third token.
+- The command below shows only the two members; no `DROPPED`, `PARTIAL` or
+  other third token:
+
+  ```
+  grep -rn 'COMMIT: ' plugins/sdd/skills docs/spec CLAUDE.md
+  ```
+
 
 ### Manual
 - Run one sequential implement chunk to `proceed`: the gate text ends with a
@@ -326,7 +331,12 @@ at replan under the cycle's DONE rule, not closed `fail`.
 - [ ] This cycle's `docs/ws/harness-p4/verification.md` records at least one live gate rendering the `COMMIT:` line (REQ-HARN-HARNESSP4-001)
 - [ ] The comparand table names observed writes as the sole sequential `expected` term and cross-references the return-drift warning; `references/return-contract.md` §1 or §3 and `harness-return-contract.md` §Return-Drift Warning define `RETURN.files_written − observed` as a warning, not a pause; the `docs/extra.md` walkthrough renders `COMPLETE` plus the warning (REQ-HARN-HARNESSP4-002)
 - [ ] `references/fan-out.md` §3a.v carries the per-leaf clause (incl. `RETURN.commits ⊆ rev-list`) and its 2b placement; §3b carries the merge-step comparand `PRE_MERGE..HEAD`; the two-commit fast-forward walkthrough renders `COMMIT: COMPLETE (2 paths)`; the true-merge-after-bookkeeping walkthrough renders `COMPLETE` with the leaf's full delta; a claimed sha absent from `rev-list` is reported on the per-leaf line; the token family everywhere is exactly `COMPLETE | INCOMPLETE` (REQ-HARN-HARNESSP4-003)
-- [ ] `grep -n 'no-renames -z' docs/spec/harness-commit-fidelity.md` hits inside §Comparand Table on every `landed` cell; no five-fixture count remains in this file; `python3 tools/sdd-scope-check-selftest.py --self-test` lists C1–C6; `python3 tools/sdd-gc.py --report` raises no new finding (REQ-HARN-HARNESSP5-002)
+- [ ] The command below hits inside §Comparand Table on every `landed` cell; no five-fixture count remains in this file; `python3 plugins/sdd/tools/scope-check-selftest.py --self-test` lists C1–C6; `python3 plugins/sdd/tools/gc.py --report` raises no new finding (REQ-HARN-HARNESSP5-002):
+
+  ```
+  grep -n 'no-renames -z' docs/spec/harness-commit-fidelity.md
+  ```
+
 - [ ] `tools/sdd-scope-check-selftest.py --self-test` exits 0 with the six fixtures C1–C6 listed; the `git show` mutation of C3 fails with a false `INCOMPLETE`; `commit_check(expected, landed)` is pure (REQ-HARN-HARNESSP4-006)
 - [ ] `python3 tools/sdd-skill-lint.py` exits 0; `python3 tools/sdd-gc.py --report` raises no new finding on this spec; Markdown well-formed
 

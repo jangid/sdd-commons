@@ -1,8 +1,8 @@
 ---
 domain: REQ
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 status: Approved
-research_refs: [RS-HARNESSP6-001]
+research_refs: [RS-HARNESSP6-001, RS-PIPELINEOBSERVABILITY-001]
 ---
 
 # Requirements: Requirements Structure
@@ -133,3 +133,172 @@ the §Next Steps section of every path `docs/ws/*/verification.md` returns, and
 this file is neither. The three new settled exclusions named by
 RS-HARNESSP6-001 are each present with their reasoning.
 [Priority: must]
+
+### REQ-REQ-PIPELINEOBSERVABILITY-001: how an amendment lands — in place, dated, and marked once in each of the three places that record it
+When a workstream changes a requirement, or a spec section, that an earlier
+cycle approved, the change must land in exactly this way:
+(a) **Requirement** — the body is edited **in place** under its existing id,
+carrying `[Updated: YYYY-MM-DD]` and a `> **Amended YYYY-MM-DD**` note that
+names the workstream, the trigger (research item or review finding) and the
+Q-REQ that decided it; when another requirement is the authority for a wording,
+the note points at that requirement and states **no verbatim sentence of its
+own** — one authority per wording.
+(b) **Spec** — the spec's **section of record** is edited in place with a
+dated marker (`[Updated: YYYY-MM-DD]` or `**Amended YYYY-MM-DD**`), so a cold
+reader of that section sees the current contract; the spec **may** add a
+`§<Workstream> Amendment` section as the record of *why* — rationale pointing
+at the section it changed — and **never the reverse**: an amendment section
+that is the sole carrier of a contract while the section of record still reads
+the old text is a defect. Consequently the **Spec cell of an `(amended)`
+traceability row (c) must name the section of record** — `<file> §<section of
+record>` — and may name the `§<Workstream> Amendment` section only as a
+**second** reference after it; a Spec cell naming the amendment section alone
+is the same defect seen from the matrix (requirements review round 5 M4).
+(c) **Per-workstream traceability** — `docs/ws/<id>/traceability.md` carries
+one row per amended id whose Requirement cell reads `<id> (amended)`; the
+marker means "**this workstream changed the id and does not own it**" — the
+owning workstream's row remains the id's row in the regenerated aggregate, the
+marked row asserts only that the amendment is delivered by this workstream,
+and no cell of a marked row is read as the id's completion state.
+(d) **Index** — the Files table of `docs/requirements/index.md` annotates
+**every** category file holding at least one amended id with those ids and the
+date, and no other file: the annotated set is derived from the `(amended)` rows
+of (c) and must equal them. A workstream's rewrite of an id it minted in the
+current cycle is not an amendment and is not annotated.
+(e) **Corpus sweep for binding statements** (Q-REQ-PO-AG) — any requirement or
+amendment that introduces or changes a **binding statement** (a must / never /
+only / exactly, a grammar rule, a parser rule, a token contract) lists, **in
+its own text**, every existing sentence on the same subject in
+`docs/requirements/**`, `docs/spec/**`, `plugins/sdd/skills/**` and
+`plugins/sdd/agents/**`, found by a **stated, re-runnable grep**, and marks
+each hit as **reconciled** (consistent as-is, with the reason) or **retired**
+(added to a zero-count witness). The stated grep **must exclude the file that
+states it, by path and never by basename alone** — the operand set is
+enumerated by `find <four trees> -type f ! -path <own file path> -exec grep
+-nH<flags> '<pattern>' {} +`, or the command is fenced as a non-counting
+form — so that a sweep block is never a self-matching grep: a pattern that
+names its subject matches the line that states it, and a command whose
+operands recursively include its own file would count that line as a hit of
+the corpus rather than of the block (Q-REQ-PO-AM; the `[self-matching-grep]`
+rule of REQ-GC-PIPELINEOBSERVABILITY-002 caught exactly this class in forty
+blocks this clause had produced). Basename exclusion is ruled out because
+grep's `--exclude=<glob>` is matched against every file's basename in every
+operand tree, so a requirement file whose basename also exists under
+`docs/spec/` (seventeen of them today — `for f in docs/requirements/*/*.md;
+do test -e docs/spec/$(basename $f) && echo $f; done`) would silently drop
+the same-named spec, the very file most blocks name (Q-REQ-PO-AN). A piped
+`grep … <trees> | grep -v '^<own path>'` is not an alternative: the rule's
+grammar reads the first invocation up to the unquoted `|`, whose operands
+still include the own file, so the pipe does not lint clean (Q-REQ-PO-AB
+exempts only a grep with no operands of its own). Where a hit is in `plugins/**` or
+`docs/spec/**` that the delta does not amend, the reconciliation names the
+requirement that will amend it or states why it is consistent. Why: the
+pipeline-observability requirements ran six review rounds because each round
+bound a rule whose contrary the shipped corpus already stated somewhere the
+delta never looked (round 6 C1: the `VERDICT:` line's position, contradicted
+by four shipped texts) — the sweep makes "nowhere else says otherwise" a
+listed claim rather than an assumption.
+Observed defect: the pipeline-observability cycle annotated five of the nine
+files holding its fifteen amended ids, carried three amendment notes on one
+requirement each stating a different verbatim sentence, and had no rule for
+which side of a spec the amendment lives on (requirements review iteration 3,
+M1 and M2). (see RS-PIPELINEOBSERVABILITY-001 §Q3; Q-REQ-PO-AA.) Leaves
+REQ-REQ-002 (index versioning), REQ-REQ-006 (auto-maintained index),
+REQ-REQ-007 (traceability matrix) and REQ-WS-008 (per-ws row ownership)
+consistent.
+**Acceptance**: for the active workstream `<id>`, the command
+`grep -o '^| REQ-[A-Z0-9-]* (amended)' docs/ws/<id>/traceability.md | sed 's/| //; s/ (amended)//' | while read r; do grep -l "^### $r:" docs/requirements/*/*.md; done | sort -u`
+lists the same files, one per line, as
+`grep -E '^\| (functional|integration|non-functional|configuration) \|.*amended' docs/requirements/index.md | grep -oE '\]\([a-z-]+/[a-z-]+\.md\)' | tr -d '()]' | sed 's|^|docs/requirements/|' | sort -u`
+(for `pipeline-observability`: 9 files by the first and 5 by the second as
+observed at requirements review round 4, before this requirement landed; the
+current measured value is 9 and 9); every amended requirement
+body holds both `[Updated:` and `**Amended` (`grep -c` over each ≥ 1); at the
+specs gate, the Spec cell of every `(amended)` row names a section of record
+first (`grep -c '(amended) | [a-z0-9-]*\.md §Pipeline-Observability Amendment |' docs/ws/pipeline-observability/traceability.md`
+reads 0; today 15 — the cells the specs re-derivation rewrites), and each spec
+file named in the Spec cell of an `(amended)` row holds a
+dated marker in its section of record — `grep -c 'Updated: YYYY-MM-DD'` over
+that file ≥ 1 — and no amendment section states a contract the section of
+record lacks (decided by the specs review against this clause). For (e), a
+derived set equality like (d)'s: the set of ids this workstream mints or
+amends,
+`grep -oE '^\| REQ-[A-Z0-9-]+' docs/ws/<id>/traceability.md | sed 's/^| //' | sort -u`
+(the Requirement column, `(amended)` rows included — 36 today for
+`pipeline-observability`: 21 new ids and 15 amended), equals the set of ids
+whose body carries a sweep block or the exemption marker,
+`awk '/^### REQ-/{id=$2; sub(/:$/,"",id)} /Corpus sweep \(REQ-REQ-PIPELINEOBSERVABILITY-001 \(e\)|^> no binding statement/{print id}' docs/requirements/*/*.md | sort -u`
+(36 today), decided by writing both listings to files and `diff` printing
+nothing — an amended id carries its block or marker inside its
+`> **Amended` note, so the `awk` attributes it to the amended id's heading;
+the exemption marker is the literal line prefix `> no binding statement`
+followed by the reason, and it is legal only where the requirement or note
+states no must / never / only / exactly, grammar, parser or token rule of its
+own (Q-REQ-PO-AH). Each block's stated command, re-run with `-l` in place of
+`-l` in place of `-n`, lists exactly the files the block names (plus the
+index and the aggregate traceability, when they restate the subject); the
+block's own file is absent from that listing because the command excludes
+it by path; and — the collision witness — for every block whose file has a
+same-named file under `docs/spec/` (`test -e docs/spec/<basename>`), that
+spec appears in the `-l` listing whenever the pattern matches it (on
+2026-09-22: 28 of the 42 command lines sit in a colliding file, 26 of those
+list their same-named spec, and the two that do not — the class-list block
+of `integration/drift-sweep.md` and the rule-table re-run of
+`functional/review.md` — have no match in it). No sweep block is a
+`[self-matching-grep]` finding:
+`python3 plugins/sdd/tools/gc.py --report --root . --workstream <id> 2>&1 | grep 'self-matching-grep' | grep -c 'docs/requirements/'`
+reads 0 (0 on 2026-09-22 after Q-REQ-PO-AM and again after Q-REQ-PO-AN; 40
+before it, the reference value the finding measured), and the gc rule is the
+decider — a block whose `Command:` line drops its `! -path <own file>` clause
+(or reverts to a `grep -r` over the four trees) reappears in that listing,
+which is the reversion witness; a block that reverts to `--exclude=<basename>`
+stays lint-clean but loses its same-named spec from the `-l` listing, which
+the collision witness catches. Two temp-copy witnesses: (1) delete one sweep block
+from any body — the second listing loses that id and `diff` prints it, so
+the obligation is decided by the equality, not by which blocks happen to
+exist; (2) add one sentence matching a block's pattern to any swept file —
+the block's re-run lists a file the block does not name, the listed
+reconciliation is then false and the block must be re-derived.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `(amended)` marker's meaning —
+a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/requirements-structure.md -exec grep -nHE '\(amended\)|does not own it' {} +`.
+`docs/requirements/traceability.md` (the fifteen aggregate rows) — reconciled,
+regenerated from `docs/ws/pipeline-observability/traceability.md` whose header
+restates (c) by citation; `docs/requirements/index.md` Files table
+annotations — reconciled, they are (d)'s derived set; the seven category files
+whose amendment notes say `(amended)` in prose — reconciled, each note points
+at its authority and states no marker meaning; `docs/spec/pipeline-observability.md`
+(the amendment table naming the amended ids) — reconciled, it lists ids and
+defines no marker; `plugins/sdd/skills/**` and `plugins/sdd/agents/**` — no
+hit (the `requirements` skill's Step 5 describes the per-ws row and never the
+marker; a future skill sentence on the marker must cite (c)).
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names: the seven category files, named:
+`docs/requirements/functional/agents.md`, `arbitrated-handoff.md`,
+`harness-boundaries.md`, `harness-loop-control.md`, `review.md`,
+`telemetry.md` and `docs/requirements/integration/drift-sweep.md` — reconciled
+as above; `docs/spec/requirements-artifacts.md` (the `(amended)` rows and
+cells of its landing table and their count) — reconciled, it carries
+clauses (c) and (d) and states no marker meaning of its own.
+[Priority: must]
+`[Updated: 2026-09-22]` — requirements review round 5 M4(b): the Spec cell of
+an `(amended)` row names the section of record, the amendment section at most
+second. Requirements review round 6 M2 and the operator's new clause
+(Q-REQ-PO-AG): the 9/5 baseline is dated to round 4 and the current 9/9
+measured; clause (e), the corpus sweep for binding statements, is added with
+its acceptance and applied to every binding statement of this delta.
+Requirements review round 7 M1/M2 (Q-REQ-PO-AH): (e)'s obligation is decided
+by the derived set equality above, and the sweep block or the
+`> no binding statement` marker now sits on all 36 ids the workstream mints
+or amends. Chunk 3 replan trigger routed to its requirements origin (kickoff
+constraint 5; Q-REQ-PO-AM): clause (e) now requires the stated grep to
+exclude the file that states it, every corpus-sweep `Command:` line in
+`docs/requirements/**` carries `--exclude=<own basename>`, and the acceptance
+gains the gc `[self-matching-grep]` count under `docs/requirements/**` as its
+decider (0). Implement-stage review routed to its requirements origin
+(kickoff constraint 5; Q-REQ-PO-AN, superseding Q-REQ-PO-AM on the exclusion
+form): the exclusion is by path (`find … ! -path <own file> -exec grep …`),
+never by basename, because `--exclude=<basename>` dropped the same-named
+`docs/spec/` file from 22 blocks; all 42 command lines are rewritten, every
+listing is re-derived from its re-run, and the acceptance gains the
+collision witness.

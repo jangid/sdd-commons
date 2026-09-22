@@ -240,7 +240,7 @@ explicit operator decision — it never auto-advances (REQ-ORCH-011):
 | Decision | Driver action |
 |----------|---------------|
 | **proceed** | Advance to the next stage. |
-| **loop-back-to-fix** | Re-dispatch the pipeline subagent with **only** the review findings + relevant artifact paths (not a re-litigation of the reviewer's reasoning), then re-run the review for that stage (REQ-ORCH-012). _(v5)_ The re-dispatch carries the fixed-shape repair packet — `harness-return-contract.md` §Repair Packet; for the implement stage, findings are first mapped to chunks (§Finding → Chunk Mapping) and each touched chunk passes its per-chunk gate before the re-review. |
+| **loop-back-to-fix** | Re-dispatch the pipeline subagent with **only** the review findings + relevant artifact paths (not a re-litigation of the reviewer's reasoning), then — after a `REJECT` — re-run the review for that stage (REQ-ORCH-012); after an `APPROVE_WITH_FIXES` the fix is applied and the stage proceeds without re-review (the `review.md` verdict definition), re-review being an explicit operator opt-in at that gate. _(v5)_ The re-dispatch carries the fixed-shape repair packet — `harness-return-contract.md` §Repair Packet; for the implement stage, findings are first mapped to chunks (§Finding → Chunk Mapping) and each touched chunk passes its per-chunk gate before the re-review. |
 | **stop** | Halt the loop; leave artifacts as-is. |
 
 _(v5)_ For the implement stage a lightweight **per-chunk gate** (`proceed │ fix

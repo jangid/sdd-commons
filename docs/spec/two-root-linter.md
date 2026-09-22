@@ -17,6 +17,7 @@ requires:
   - REQ-LINT-PACKAGING-005
   - REQ-LINT-PACKAGING-006
   - REQ-LINT-PACKAGING-007
+  - REQ-LINT-PIPELINEOBSERVABILITY-001
   - REQ-PKG-CONSUMERGEOMETRY-001
   - REQ-PKG-CONSUMERGEOMETRY-002
   - REQ-PKG-CONSUMERGEOMETRY-003
@@ -196,10 +197,35 @@ informational line with no pinned comparand.
 
 **`--print-population`** also prints one line per rule table with its row
 count, derived from the table at run time rather than written into the flag.
-Its population criterion is stated here and nowhere else: `REQUIRED=40
-VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13` — the one place in the corpus where
-a row population is compared against a number, sound because rule-table rows
-are static in-code data.
+Its population criterion is stated here and nowhere else — the one place in
+the corpus where a row population is compared against a number, sound because
+rule-table rows are static in-code data.
+
+`[Updated: 2026-09-22]` (workstream `pipeline-observability`,
+REQ-LINT-PACKAGING-007 as amended, Q-REQ-PO-AL; the record of why is
+§Pipeline-Observability Amendment): **the numbers are dated, and the comparand
+is derived.** Current at 2026-09-22: `REQUIRED=57 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=15`
+(measured with `python3 plugins/sdd/tools/skill-lint.py --print-population`
+after this cycle's rows landed — fifteen `REQUIRED` rows p1–p15, the
+fifteenth added by the implement-stage fix on the operator guide, and one
+`FORBIDDEN` row (`skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability,
+§`FORBIDDEN` Row — `literal-anchor`, REQ-LINT-PIPELINEOBSERVABILITY-001);
+before them, on the same day, the tree measured 42 and 14). The `Current at
+<date>:` sentence is the one machine-read sentence of this section: the
+self-test parses its backticked span for `LABEL=<int>` pairs
+(Q-IMPL-PIPELINEOBSERVABILITY-001 records the absent-spec geometry). These
+numbers are **moved by any cycle that adds rows**, in the same change as the
+table row. The criterion itself is a **three-way equality**, not
+a frozen literal: `--print-population`'s printed counts == `len()` of the four
+code tables == the numbers this paragraph states under its dated marker. The
+self-test asserts that equality — it reads this section's numbers rather than
+carrying its own `pinned = {…}` copy (today's dict is the third surface's
+duplicate and goes) — so in a temp copy the suite fails when any one of the
+three is changed alone: a row added to a table without moving this paragraph,
+a number edited here without a row, or a count written into the flag as a
+literal. Why derived: the earlier frozen form (`40 / 9 / 7 / 13`, then `42 /
+14` after the research-gate routing rows) had to be chased in three places per
+row-adding cycle and failed on the first landing that forgot one.
 
 **What the four populations catch, stated exactly.** They catch an edit to the
 rule **tables**: a row dropped, duplicated or added to `REQUIRED`,
@@ -626,13 +652,24 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
   (REQ-LINT-PACKAGING-004).
 - [ ] The guard runs on every invocation and is skippable by no mode; the
   checked-in negative case produces a `fail` finding naming the duplicated path
-  (REQ-LINT-PACKAGING-005). `--print-population` exits 0 and its run-time-derived
-  output **includes**, as a required subset, the four §6 populations by name and
-  value — `REQUIRED=40`, `VERSION_GATED=9`, `V4_CONTRACT=7`, `FORBIDDEN=13` —
-  each asserted present and unchanged, a missing line or a changed value
-  failing; further table lines (today `TEMPLATE_PAIRS`) neither satisfy nor
-  break it, per Q-IMPL-PACKAGING-001. The plan orders the flag task before the
-  task evaluating that criterion (REQ-LINT-PACKAGING-007).
+  (REQ-LINT-PACKAGING-005).
+
+**Pipeline-observability (2026-09-22, two-root linter)**
+
+- [ ] `[Updated: 2026-09-22]` (REQ-LINT-PACKAGING-007 as
+  amended, Q-REQ-PO-AL): `--print-population` exits 0 and its run-time-derived
+  output **includes**, as a required subset, the four §6 populations by name;
+  the **three-way equality** holds — the printed counts equal `len()` of the
+  four code tables and equal the numbers §6 states under its dated marker
+  (`REQUIRED=42 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14` on 2026-09-22,
+  measured with the command §6 names; `57` / `15` once this cycle's rows land)
+  — and the self-test asserts the same equality, failing in a temp copy when
+  any one of the three is changed alone (a row added without moving §6, a §6
+  number edited without a row, a count written into the flag as a literal), a
+  missing population line failing likewise; further table lines (today
+  `TEMPLATE_PAIRS`) neither satisfy nor break it, per Q-IMPL-PACKAGING-001. The
+  plan orders the flag task before the task evaluating that criterion
+  (REQ-LINT-PACKAGING-007).
 - [ ] `python3 plugins/sdd/tools/skill-lint.py --self-test` passes and
   `pre-commit run --all-files` exits 0 at the close of the cycle.
 
@@ -648,8 +685,11 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
 
 ### Q-IMPL-PACKAGING-001: `--print-population` prints a fifth table line
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §6 Counts: asserted, or only printed — "`REQUIRED=40
-VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13`"
+**Spec reference**: §6 Counts: asserted, or only printed — "`REQUIRED=42
+VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14`" (a historical value: §6's
+wording as it read on 2026-09-22 before this cycle's rows landed; the live
+numbers are the ones under §6's dated `Current at <date>:` marker, which is
+the comparand — dated here 2026-09-22, pipeline-observability Chunk 4)
 **Decision**: the flag prints **one line per rule table**, derived from the
 live tables at run time, which is **five** lines today — the four §6 names it
 enumerates plus `TEMPLATE_PAIRS=4`. §6's enumeration is read as the **required
@@ -1782,3 +1822,44 @@ carries: a **stated** exemption rather than an unexplained failure, with the
 requirement-side half landed as an appended dated note under -005 and the
 plan-side half recorded in Chunk 6's notes. §CG-4's rule for a spec
 reinterpreting an Approved literal, applied once more.
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-LINT-PACKAGING-007 amended; REQ-LINT-PIPELINEOBSERVABILITY-001)
+
+**Trigger.** The pipeline-observability delta adds fifteen `REQUIRED` rows and
+one `FORBIDDEN` row to the linter (`skill-lint-v5.md` §`REQUIRED` Rows —
+Pipeline-Observability, §`FORBIDDEN` Row — `literal-anchor`,
+REQ-LINT-PIPELINEOBSERVABILITY-001). §6 pinned `REQUIRED=42 VERSION_GATED=9
+V4_CONTRACT=7 FORBIDDEN=14` as a literal and its acceptance asserted the four
+values "present and unchanged", so the pin fails on the landing of the very
+rows it cannot know about; the specs closing review raised this as C2 and its
+origin was fixed in the requirements at 27.4 (Q-REQ-PO-AL), the spec mirroring
+it here (Q-SPEC-PO-U).
+
+**Where the contract lives.** §6, edited in place under `[Updated:
+2026-09-22]`: the numbers are stated as current-at-date, moved by any
+row-adding cycle, and the criterion is the three-way equality —
+`--print-population` == the code tables == §6's numbers — that
+REQ-LINT-PACKAGING-007 as amended defines; the acceptance bullet under
+§Acceptance Criteria carries the same equality and its three single-side
+mutation cases. `skill-lint-v5.md` §Self-Test Extension states this cycle's
+totals (`57` / `15`) as the delta's arithmetic and defers to §6 for the
+comparand. No other section of this spec changes; Q-IMPL-PACKAGING-001 quotes
+the pre-amendment §6 wording as history and is not rewritten. This section
+states no contract of its own.
+
+**Why.** A frozen literal is a fourth copy of a number already present in the
+code tables, the flag's output and the self-test, and every row-adding cycle
+had to chase it in each; the research-gate routing landing moved §6 and the
+self-test but not the requirement, which is exactly the one-side-moved failure
+the derived comparand now catches. Naming the surfaces that must agree, and
+dating the numbers, keeps the population check — the one place a row count is
+compared against a number — without making it fail on the contribution it
+exists to police.
+
+## Pipeline-Observability Implementation Questions
+
+### Q-IMPL-PIPELINEOBSERVABILITY-001: the §6 read is skipped, not failed, when the spec is not on disk
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §6 Counts: asserted, or only printed — "the self-test asserts that equality — it reads this section's numbers"
+**Decision**: `spec_population()` in `plugins/sdd/tools/skill-lint.py` resolves `docs/spec/two-root-linter.md` relative to the script (three parents up from `tools/`). When the file is absent — a consumer install's plugin cache ships no `docs/spec/` — the two §6 comparisons print a one-line note and check nothing, exactly as the contract-row mutation loop already skips when the real `skills/` tree is absent. When the file is present but §6 has lost its `Current at <date>:` sentence, the read returns an empty mapping and both comparisons fail loudly. The four labels the sentence must state are exactly `REQUIRED`, `VERSION_GATED`, `V4_CONTRACT`, `FORBIDDEN`; a further printed table line (`TEMPLATE_PAIRS`) is neither read nor required.
+**Rationale**: the three-way equality is a repository gate — this repo's pre-commit runs the self-test — and the geometry cases already state that suite-bound checks skip where their subject is absent; failing a consumer's self-test on a spec it never receives would make the self-test un-runnable outside this repository, which is the opposite of what REQ-LINT-PACKAGING-007 polices.

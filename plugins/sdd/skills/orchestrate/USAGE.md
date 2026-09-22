@@ -128,7 +128,7 @@ you  > proceed
 orch > [requirements pipeline → review]
        GATE (requirements): Approve with fixes — REQ-DRY-003 not testable. ...?
 you  > loop-back-to-fix
-orch > [re-dispatch with that finding → re-review] Approve now. proceed?
+orch > [re-dispatch with that finding; APPROVE_WITH_FIXES proceeds without re-review] fix landed. proceed?
 you  > proceed
        ... specs and plan, each with a gate ...
 orch > [implement: Chunk 1 pipeline → scope check → chunk verifier]
@@ -197,8 +197,10 @@ For each stage in order, three things happen:
    artifact paths and told to invoke `review`. It returns a tiered verdict.
 3. **Gate** — the orchestrator shows you the verdict and waits. You choose:
    - **proceed** → next stage,
-   - **loop-back-to-fix** → re-run the pipeline with just the review findings,
-     then re-review,
+   - **loop-back-to-fix** → re-run the pipeline with just the review findings;
+     after a `REJECT` the stage is re-reviewed, after an `APPROVE_WITH_FIXES`
+     the fix lands and the stage proceeds without re-review unless you opt in
+     to one (§7b),
    - **stop** → halt.
 
 ### DONE
@@ -250,7 +252,9 @@ Idea: *"Add a `--dry-run` flag to our deploy tool."*
 4. **LOOP — requirements.** Pipeline writes the requirements; review returns
    *Approve with fixes* ("REQ-DRY-003 isn't testable"). Gate → you say
    **loop-back-to-fix**. Orchestrator re-dispatches the pipeline with just that
-   finding; re-review returns *Approve*. Gate → **proceed**.
+   finding; an *Approve with fixes* proceeds without re-review once the fix
+   lands (opt in to a re-review at the gate if you want one). Gate →
+   **proceed**.
 5. **LOOP — specs / plan / implement / verify.** Same rhythm. At implement, the
    pipeline runs `implement`; at verify, `verify` writes
    `docs/verification.md`. Each stage is reviewed and gated.
@@ -304,7 +308,7 @@ This section is what the new lines mean when you see them.
 | Gate | When | Options | What it shows |
 |------|------|---------|---------------|
 | **Per-chunk gate** | implement stage only — after each `### Chunk N:` dispatch returns | `proceed │ fix │ stop` | `RETURN.status`, `SCOPE:`, `CHUNK_VERDICT:`, files changed, `Redo: N of 3`; after `proceed`, the `COMMIT:` closing line |
-| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` or the replan re-entry count when a loop is active; verify stage with red on: `RED_VERDICT:` and its `Rn` lines (position per `references/loop-control.md` §5); after `proceed`, the `COMMIT:` closing line |
+| **Stage gate** | after every stage's review (implement: once, after all chunks) | `proceed │ loop-back-to-fix │ stop` | review `VERDICT:`, plus `iteration N of 3` (`N` = `reject_run`) or the replan re-entry count when a loop is active, and on a review round ≥ 2 the informational `GROWTH:` line; verify stage with red on: `RED_VERDICT:` and its `Rn` lines (position per `references/loop-control.md` §5); after `proceed`, the `COMMIT:` closing line |
 
 Signals appear in the order they are produced, which is stated **once** in the
 repo — `references/loop-control.md` §5 "Gate signal order (REQ-ORCH-034)".
@@ -369,18 +373,49 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
 
 - **`VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT`** — the review's own-line
   token, parsed by the orchestrator; it never guesses a verdict from prose.
+  **Routing is by verdict.** `APPROVE` proceeds. `APPROVE_WITH_FIXES` is
+  fix-then-proceed: `loop-back-to-fix` re-dispatches the pipeline with a
+  **repair packet** (the review's Critical/Material findings plus the paths
+  they point at, never the reviewer's reasoning), the fix lands, and the stage
+  proceeds without re-review — the review skill's own definition of that
+  verdict — unless you opt in to a re-review at this gate; the next stage's
+  review reads the fixed artifact as its upstream. `REJECT` is
+  fix-then-re-review: the same repair packet, and the review runs again for
+  this stage. At the implement stage a fix dispatch is followed by the scope
+  check, one verifier per touched chunk and that chunk's per-chunk gate
+  **before** any re-review runs.
 - **`iteration N of 3`** — the fix-loop counter (`FIX_LOOP_MAX`, default 3, per
-  stage). Each `loop-back-to-fix` re-dispatches the pipeline with a **repair
-  packet** (the review's findings plus the paths they point at, never the
-  reviewer's reasoning) and then re-reviews. At the implement stage a fix
-  dispatch is followed by the scope check, one verifier per touched chunk and
-  that chunk's per-chunk gate **before** the re-review runs.
-- **Fix loop exhausted** — after iteration 3 still rejects, no further fix is
-  dispatched. The gate shows the **compiled findings log** (each iteration's
-  Critical/Material finding lines, verbatim, with `(persisting)` marks) and
-  offers only `stop | manual intervention | authorize extra iteration (cap → 4)`.
-  A chunk that hits `Redo: 3 of 3` renders the same shape with the verifier's
-  findings.
+  stage, session-only). `N` is **`reject_run`**: the run of
+  **consecutive consumed** `REJECT` verdicts on this stage. A consumed `APPROVE` or
+  `APPROVE_WITH_FIXES` resets it to 0; it never moves on `proceed`, `stop` or a
+  replan route; and three re-dispatches count nothing — a voided verdict, the
+  `post-manual` review and a third opinion. `N of N` is the last attempt before
+  the circuit-break. An `APPROVE_WITH_FIXES` at or after the cap is not an
+  exhaustion: its fix is applied and the stage proceeds.
+- **`GROWTH: <deliverable> +A/−D lines (N₁ → N₂) since round N−1`** — on a
+  review round N ≥ 2 only, one informational line per deliverable path: the
+  visible-line delta between the tree the previous review read and the tree
+  this review read. It renders after the `CONVERGENCE:` line and before the
+  `TELEMETRY:` line; it never pauses and never withholds `proceed`. It is
+  there so a fix that grows the artifact — and with it the findings — is
+  visible at the gate where you decide whether to opt in to a re-review.
+- **Fix loop exhausted** — a `REJECT` consumed with `reject_run = 3`: no
+  further fix is dispatched. The gate shows the **compiled findings log** (each
+  iteration's Critical/Material finding lines, verbatim, with `(persisting)`
+  marks) and offers only
+  `stop | manual intervention | authorize extra iteration (cap → 4)`. A chunk
+  that hits `Redo: 3 of 3` renders the same shape with the verifier's findings.
+- **Manual intervention is followed by a `post-manual` review** — the
+  `manual intervention` option, or any edit of your own to the stage
+  deliverable at a gate, is not a route to the next stage. The orchestrator
+  observes your edits as it observes a leaf's writes (the `COMMIT:` comparand
+  runs over the manual edit's commit range), dispatches an ordinary review of
+  this stage labelled `post-manual`, and **withholds `proceed` until that
+  review's verdict is consumed** — routed as any verdict: a `REJECT` starts a
+  new `reject_run` at 1, an `APPROVE_WITH_FIXES` fixes and proceeds. The
+  post-manual review itself counts nothing. Per chunk, the same review runs
+  with that chunk's inputs; `Redo: N of 3` is unchanged and the chunk verifier
+  is not re-dispatched.
 - **Replan re-entry cap** — when a stage triggers a replan, the orchestrator
   counts the `-replan-` archives in `docs/plan-history/` dated on or after the
   kickoff's `date:` and shows the count against `REPLAN_MAX` (default 3) with
@@ -395,6 +430,7 @@ Per-chunk gate — implement dispatch #2 (Chunk 2: Reconciliation)   [fan-out: l
 | `RETURN: MALFORMED (<reason>)` | The leaf's `RETURN:` block is missing, has `status:` out of place or invalid, spans multiple lines, or contradicts itself. Shown with the raw tail of the return. | `re-dispatch │ accept manually │ stop` — never treated as `COMPLETE` |
 | `REVIEW: MALFORMED` | The review's `VERDICT:` token is missing, unrecognized, or disagrees with its prose. | `re-dispatch review │ accept prose manually │ stop` |
 | `REVIEW: CONTRADICTION (round N vs round N+1, class b\|c[, file-level])` | Inside a fix loop (stage gate, iteration ≥ 2) the later review round raised a Critical/Material on ground the earlier round did not name and the fix did not write (class b), or regressed `APPROVE_WITH_FIXES → REJECT` without new ground (class c). Both rounds' lines and `fix #N wrote:` are shown side by side. | `accept round N+1 (fix) │ accept round N (proceed, note) │ third opinion (re-dispatch review) │ stop` — see §7c |
+| `CHUNK_VERDICT: FAIL (voided: GIT_STATE)` · `VERDICT: REJECT (voided: OUT)` · `RED_VERDICT: BROKEN (voided: …)` | A `GIT_STATE` or `OUT` finding on a read-only leaf (verifier, reviewer, red team) **voids its verdict**, whichever option resolves the finding — restoring the tree does not restore the verdict; unverified is not verified. A voided verdict counts toward no fix or redo counter. | `restore │ accept (note) │ stop` on the finding, then `redo │ stop` — `redo` is a fresh re-dispatch of the same leaf (`Redo: N of 3` untouched); `proceed` is never offered on the voided verdict. Each voided re-dispatch is counted per gate against the `REDO_MAX` value; at that bound the gate renders `stop │ manual intervention`, and a manual intervention is followed by the `post-manual` review |
 | `RETURN.status: BUDGET_EXHAUSTED` | The leaf hit a term of its `Budget:` line and stopped cleanly; `budget_consumed` is mandatory. | treat like `fix` with a fresh budget, or `stop` |
 | `RETURN.status: BLOCKED` | Stuck detection (3 failed fixes, oscillation, spec contradiction) fired; no verifier runs; the checkpoint is written (sequential) or applied (fan-out). | per-chunk gate with a replan option — default `route to replan`; not a redo (`references/return-contract.md` §7) |
 

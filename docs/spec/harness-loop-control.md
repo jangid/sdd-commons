@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 requires:
   - REQ-HARN-001
   - REQ-HARN-002
@@ -15,6 +15,10 @@ requires:
   - REQ-HARN-HARNESSP6-002
   - REQ-ORCH-HARNESSP6-001
   - REQ-ORCH-HARNESSP6-002
+  - REQ-HARN-PIPELINEOBSERVABILITY-001
+  - REQ-HARN-PIPELINEOBSERVABILITY-002
+  - REQ-HARN-PIPELINEOBSERVABILITY-003
+  - REQ-HARN-PIPELINEOBSERVABILITY-006
 ---
 
 # Harness Loop Control
@@ -97,6 +101,120 @@ Fix loop exhausted — stage: specs, 3 of 3 iterations
 
 Each line is the review's Critical/Material finding line lifted verbatim, one
 group per iteration; no reviewer reasoning, no prose summary (REQ-ORCH-012).
+
+**The verdict is the routing — recorded as in force** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-HARN-PIPELINEOBSERVABILITY-001; REQ-HARN-013 as amended; the record of why is §Pipeline-Observability Amendment).
+
+`loop-back-to-fix` routes by the consumed verdict exactly as
+`skills/review/SKILL.md` §Verdict definitions defines it:
+
+| Consumed verdict | Route | Counted by |
+|---|---|---|
+| `REJECT` | re-dispatch the pipeline leaf with a repair packet, then re-run this stage's review | `reject_run` (below) |
+| `APPROVE_WITH_FIXES` | re-dispatch with the packet, then **proceed without re-review** — the next stage's review reads the fixed artifact as its upstream; a re-review is an explicit operator opt-in at this gate, never the default | nothing |
+| `APPROVE` | proceed | nothing |
+
+The repair packet carries **Critical/Material findings only** — an
+`APPROVE_WITH_FIXES` packet carries Material findings (its report holds no
+Critical finding, by the disjoint definitions of `review.md`
+§Report Format), a `REJECT` packet carries Critical and
+Material. An
+`APPROVE_WITH_FIXES` returned at or after the cap is **not** an exhaustion: its
+fix is applied and the stage proceeds. Why: a fresh reviewer over a growing
+artifact is a generator no cap converges — eight zero-blocking
+`APPROVE_WITH_FIXES` rounds were each fixed and re-reviewed, and every re-review
+raised new Material ground. V2's `ROUND_MAX` and its two-consecutive-`APPROVE_WITH_FIXES`
+terminator are **not adopted**: under this routing an `APPROVE_WITH_FIXES` ends
+the stage's review chain, so nothing they bound can arise (Q-REQ-PO-A). The
+three caps stay three.
+
+This routing **landed on the branch before the specs stage**; its comparands
+are the skill-lint pins, never a commit: the `REQUIRED` row `proceeds
+**without re-review**` on `skills/orchestrate/SKILL.md`, the `REQUIRED` row
+`GROWTH: ` on `skills/orchestrate/references/loop-control.md`, and the
+`FORBIDDEN` phrase `then re-run the review for this stage`. The skill side is
+`skills/orchestrate/references/loop-control.md` §5a (default proceed) and §2a (an
+`APPROVE_WITH_FIXES` at or after the cap is not an exhaustion);
+`skills/orchestrate/references/return-contract.md` §6's branching table and
+`harness-return-contract.md` §VERDICT Token already read fix-then-proceed with
+re-review on opt-in only, and `orchestration.md` §Gate Protocol / §v5 Harness
+Hardening point here rather than restating the routing.
+
+**The counted quantity is `reject_run`** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-HARN-001 as amended; the record of why is §Pipeline-Observability Amendment).
+
+§Fix-Loop Cap's "increments once per fix re-dispatch" is **narrowed** to what
+its acceptance criterion always read: the counter is the run of
+**consecutive consumed `REJECT`s** per stage per session, `reject_run`.
+
+- A consumed `APPROVE` or `APPROVE_WITH_FIXES` resets `reject_run` to 0; under
+  the routing above an `APPROVE_WITH_FIXES` can never be "at cap" and never
+  renders the exhausted gate. §Fix-Loop Cap's parenthesis "(or
+  `APPROVE_WITH_FIXES` and the operator would fix again)" in its exhaustion
+  bullet is **superseded** by this section: exhaustion is `REJECT` consumed
+  with `reject_run = MAX`.
+- Re-dispatches that count **nothing**: a verdict **voided** under
+  `harness-write-scope.md` §Git-State Observation, a `post-manual`
+  review (below), and a third opinion (`arbitrated-handoff.md` §Third Opinion —
+  the existing precedent that a re-dispatch is not a fix iteration).
+- `iteration N of MAX` now reports `reject_run`; the compiled findings log's
+  header `N of MAX iterations` reports the same number. The `explicit
+  operator-authorized extra iteration` option is unchanged — kickoff constraint
+  4 of this cycle is operator policy, not a corpus rule.
+- The skill side states the consecutive-`REJECT` rule in
+  `skills/orchestrate/references/loop-control.md` §2, pinned by skill-lint `REQUIRED` row p4 on the
+  phrase `consecutive consumed` in that file; the telemetry witness is cross-field
+  assertion (b) of `telemetry-reader.md` §Schema Lint.
+- `CLAUDE.md` §Gate vocabulary names the counted quantity and no longer says
+  `iteration N of FIX_LOOP_MAX` (`project-docs.md` §`CLAUDE.md`).
+
+Consistency: REQ-HARN-002 (`REPLAN_MAX`) is untouched, and so is the per-chunk redo cap — `REDO_MAX` is defined only in §Redo Cap per Chunk of this spec (no requirement establishes it; REQ-HARN-008 governs the circuit-break checkpoint written when a cap fires, not the cap — Q-REQ-PO-AI);
+REQ-HARN-011's `iteration` field carries `reject_run`; REQ-ORCH-018's
+no-actionable-findings pause and REQ-ORCH-034's order are unchanged.
+
+**A manual intervention is followed by a `post-manual` review** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-HARN-PIPELINEOBSERVABILITY-003; REQ-HARN-001 as amended; the record of why is §Pipeline-Observability Amendment).
+
+When the operator chooses `manual intervention` at an exhausted gate — or
+otherwise edits the stage deliverable at a gate — the orchestrator:
+
+1. observes its own edits as it observes a leaf's writes: the `COMMIT:`
+   comparand of `harness-commit-fidelity.md` (REQ-HARN-HARNESSP4-001) runs over
+   the manual edit's commit range;
+2. dispatches an **ordinary review** of this stage (the REVIEW template,
+   unchanged inputs per REQ-REV-003) labelled `post-manual`;
+3. withholds `proceed` until that review's verdict is consumed; the verdict
+   routes per the routing table above (a `REJECT` starts a new `reject_run` at
+   1; an `APPROVE_WITH_FIXES` fixes and proceeds).
+
+**Footprint** (Q-REQ-PO-AC) — the review is an ordinary `review` dispatch and
+leaves exactly this trace: `dispatch.kind = review`, `dispatch.reason =
+POST_MANUAL` (a member of the repair-packet `reason` enum, **not** in the
+fix-only subset), `dispatch.stage` = the stage whose gate the intervention
+happened at, `dispatch.iteration` = that stage's current `reject_run`. Its gate
+record carries `gate.fix_iteration` **equal to** the preceding same-stage gate
+record's value — the review counts nothing — and its `gate.decision` routes like
+any review's. The existing `[reason-review]` lint warning is keyed on `reason =
+REVIEW` at `iteration ≥ 1` with no loop-back; `POST_MANUAL` is a distinct
+member, so it does not fire and needs no exception clause. The `post-manual`
+review does **not** increment `reject_run` (precedent: a third opinion is not a
+fix iteration, `arbitrated-handoff.md` §Third Opinion).
+
+**At a per-chunk gate** (implement stage): a manual intervention or an operator
+edit of the chunk's deliverable — including after the void rule's exhaustion
+(`harness-write-scope.md` §Git-State Observation, `voided_redispatch_count` at
+the `REDO_MAX` value) or §Redo Cap per Chunk renders `stop │ manual
+intervention` — dispatches the `post-manual` review with that chunk's
+implement-stage inputs (its plan tasks and the specs they trace to,
+`dispatch.chunk = N`) and withholds that chunk's `proceed` until the verdict is
+consumed; the chunk's `gate.redo_count` (`Redo: N of REDO_MAX`) is untouched,
+and the chunk verifier is **not** re-run by it — it is a review, not a verifier.
+
+This rule applies from the first gate of this cycle (kickoff decision 3),
+before any code lands, because it is a process rule. The skill side is
+`skills/orchestrate/references/loop-control.md` **§2b**, whose `manual
+intervention` option names the `post-manual` review and states that `proceed`
+is withheld until its record exists, pinned by skill-lint `REQUIRED` row p5
+(`post-manual`); the telemetry witness is cross-field assertion (c) of
+`telemetry-reader.md` §Schema Lint. REQ-HARN-019 holds: the routing is
+orchestrator-only.
 
 ### Redo Cap per Chunk (extension, see Open Questions)
 
@@ -195,6 +313,27 @@ units are forbidden (the existing lint `FORBIDDEN` rows `30 min max` /
 `budget: 30min` already enforce this). Default budgets per dispatch type live in
 `references/return-contract.md` next to the `RETURN:` field table so the
 `budget` ↔ `budget_consumed` pairing is documented in one place.
+
+**The implement test-run budget is derived** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-HARN-PIPELINEOBSERVABILITY-006; the record of why is §Pipeline-Observability Amendment).
+
+§Budget Slot's implement row is sized by the formula
+
+```
+test_runs = 2 × mutations + gates
+```
+
+where `mutations` is the number of mutation/reversion demonstrations the
+chunk's tasks name (each is one red run and one green run — kickoff constraint
+2 makes every binding demonstrate its reversion) and `gates` is the number of
+quality-gate commands the chunk runs. The implement template of
+`skills/orchestrate/references/dispatch-templates.md` states the derivation and its worked example
+dispatches a chunk naming 2 mutations and 2 gates with `≤ 6 test runs`; the
+orchestrate skill's implement dispatch step cites it. The fixed `≤ 3 test runs`
+example is retired: the consumer-geometry chunks overran 8 against 6 and 18
+against 12 under it, so a budget overrun was the honest outcome of an honest
+chunk. REQ-HARN-005 (exhaustion) and REQ-TELEM-HARNESSP2-002 (the parsed
+integer form, which the formula yields) are unchanged; the verifier's own `≤ 2
+test runs` example is separate.
 
 ### Budget Exhaustion (REQ-HARN-005)
 
@@ -672,13 +811,14 @@ in `references/loop-control.md` §5 — the two must agree item for item.
 | 6 | `REVIEW: CONTRADICTION (round N vs round N+1, class b\|c[, file-level])` pause block | stage gate, after the counters | `arbitrated-handoff.md` |
 | 6b | **implement stage gate only**: the completion parse of `docs/ws/<id>/plan.md` — when any numbered chunk task is unticked, the own-line `PLAN: INCOMPLETE (N of M ticked)` pause offering `replan │ stop` **only** (`proceed` withheld, so verify is never dispatched while the plan reads `implementing`); when every task is `[x]` no line renders. **Supersedes signal 6's option set when both fire** — 6's block still renders, its options are suppressed, and the gate offers `replan \| stop` only | implement stage gate, after signal 6, before `TELEMETRY:` | this spec §Plan Completion Ownership |
 | 6c | the own-line `CONVERGENCE:` token — one line per cluster whose second member arrived at this gate, naming the cluster's key (shared id, sectionless file, or file and section), the contributing layers and the layer count. **Informational**: no option set, never pauses, never withholds `proceed` | every gate, after 6b, before `TELEMETRY:` | this spec §Convergence Signal |
+| 6d | **stage gate, review round N ≥ 2 only**: the own-line informational `GROWTH: <deliverable> +A/−D lines (N₁ → N₂) since round N−1` — the deliverable's size delta since the previous round. **Informational**: no option set, never pauses, never withholds `proceed` (added 2026-09-22, REQ-HARN-PIPELINEOBSERVABILITY-002) | stage gate, after 6c, before `TELEMETRY:` | this spec §Gate Signal Order, the `GROWTH:` paragraph below |
 | 7 | the `TELEMETRY:` line — `rec <n> │ WRITE FAILED │ OFF │ .gitignore updated`, at most once each, immediately after the last counter-bearing line and **before the options** | every gate | `telemetry.md` |
 | — | the options (`proceed │ fix │ stop` per chunk; `proceed │ loop-back-to-fix │ stop` per stage; pause-family options where a pause fired) | every gate | `orchestration.md` §Gate Protocol |
 | 8 | **post-decision**: `COMMIT: COMPLETE \| INCOMPLETE` — rendered immediately after the orchestrator's own commit (sequential per-chunk and stage gates) or after the merge (fan-out merge step), as the **closing line of the same gate**, before the next dispatch; on `INCOMPLETE` it pauses with `amend \| accept (note) \| stop` and no next dispatch — including the implement-stage review after the last chunk — is issued until resolved | closing line of the gate that decided `proceed` | `harness-commit-fidelity.md` |
 | 8b | **implement stage gate `proceed` only, after item 8**: the orchestrator flips `docs/ws/<id>/plan.md` `status:` to `complete` in its **own bookkeeping commit** — the same post-gate slot as aggregate regeneration and the `pending-red → pass` flip; outside the `COMMIT:` range because `HEAD_landed` is captured before any bookkeeping commit, so it never renders `landed, not observed` | after the `COMMIT:` closing line, before the verify dispatch | this spec §Plan Completion Ownership |
 
 Two rules follow from "produced order": a signal whose data exists before the
-decision renders before the options (items 1–7, 2b, 6b and 6c — the plan's tick
+decision renders before the options (items 1–7, 2b, 6b, 6c and 6d — the plan's tick
 state exists on the leaf's return, and the convergence ledger holds every
 finding this gate surfaced); a signal that is the
 *consequence* of the decision renders after them (items 8 and 8b) and is **not**
@@ -689,6 +829,26 @@ and it may be because telemetry is never load-bearing (`telemetry.md` §Writer).
 option: 6c renders **after** every finding-bearing signal and after both derived
 pauses (6, 6b) because it is derived from them, and the "renders last before the
 options" clause that governs item 7 covers 6c in the same enumeration.
+
+**`GROWTH:` — the size delta is visible at the gate where it acts** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-HARN-PIPELINEOBSERVABILITY-002; the record of why is §Pipeline-Observability Amendment).
+
+On a review round N ≥ 2 the stage gate renders one informational own-line
+
+```
+GROWTH: <deliverable> +A/−D lines (N₁ → N₂) since round N−1
+```
+
+at position **6d** of §Gate Signal Order — after `CONVERGENCE:` (6c), before
+`TELEMETRY:` (7). `A`/`D` are the deliverable's visible-line additions and
+deletions since the previous round's sha (`git diff --numstat` over the
+deliverable path, fenced lines included — the count is a size, not a
+comparand), `N₁ → N₂` its line count then and now. Like 6c it carries no option
+set, never pauses and never withholds `proceed`. It landed with the routing
+above; its comparand is the `REQUIRED` row `GROWTH: ` on
+`skills/orchestrate/references/loop-control.md` (item 6d). Under the routing above a round N ≥ 2
+arises only after a `REJECT` or an operator opt-in, so a correct cycle may
+render it never — which is why the line is informational and why its
+verification is conditional (below).
 
 ## Verification
 
@@ -768,6 +928,77 @@ options" clause that governs item 7 covers 6c in the same enumeration.
 - [ ] The three invariants hold: no file under `docs/` is created by L2; no phase-detection rule in any `sdd-*` skill references the signal; the four-layer verification table is byte-unchanged in `CLAUDE.md` and in every spec that restates it; no telemetry record key is added (REQ-ORCH-HARNESSP6-002)
 - [ ] No leaf `RETURN:` shape in `harness-return-contract.md` or any dispatch template gains a field for L2 (REQ-HARN-HARNESSP6-002, REQ-ORCH-HARNESSP6-002)
 - [ ] `tools/sdd-skill-lint.py` exits 0; Markdown well-formed
+
+**Pipeline-observability (2026-09-22, loop control)**
+
+- [ ] `python3 plugins/sdd/tools/skill-lint.py` exits 0 on the branch with
+  the two landed pins present — the `REQUIRED` row on
+  `skills/orchestrate/SKILL.md` for `proceeds **without re-review**` and the
+  `FORBIDDEN` phrase `then re-run the review for this stage` — and `python3
+  plugins/sdd/tools/skill-lint.py --self-test` exits 0 with its pinned
+  `REQUIRED` and `FORBIDDEN` totals including them; in a temp copy, deleting
+  the `without re-review` sentence from §The gate makes the linter exit
+  non-zero with the `REQUIRED` finding, and restoring the unconditional phrase
+  makes it exit non-zero with the `FORBIDDEN` finding
+  (REQ-HARN-PIPELINEOBSERVABILITY-001).
+- [ ] `skills/orchestrate/references/return-contract.md` §6's `APPROVE_WITH_FIXES` row and
+  `harness-return-contract.md` §VERDICT Token's branching table read
+  fix-then-proceed with re-review on opt-in only; `skills/orchestrate/references/loop-control.md`
+  §5a's default is proceed and §2a states that an `APPROVE_WITH_FIXES` at or
+  after the cap is not an exhaustion —
+  `grep -c 'without re-review' plugins/sdd/skills/orchestrate/references/return-contract.md`
+  ≥ 1, `grep -c 'without re-review' docs/spec/harness-return-contract.md` ≥ 1,
+  `grep -Ec 'default[^.]*proceed' plugins/sdd/skills/orchestrate/references/loop-control.md`
+  ≥ 1 and `grep -c 'not an exhaustion' plugins/sdd/skills/orchestrate/references/loop-control.md`
+  ≥ 1; this cycle's `verification.md` names the gates that ran under this rule
+  (REQ-HARN-PIPELINEOBSERVABILITY-001).
+- [ ] A gate-rendering walkthrough whose consumed verdicts on one stage run
+  `APPROVE_WITH_FIXES, REJECT, REJECT, APPROVE_WITH_FIXES` never renders the
+  exhausted gate, while `REJECT, REJECT, REJECT` does — its transcript
+  recorded in this cycle's `docs/ws/pipeline-observability/verification.md`
+  under `Gate-rendering walkthroughs` (Q-SPEC-PO-L,
+  `pipeline-observability.md`); `skills/orchestrate/references/loop-control.md`
+  §2 states the consecutive-`REJECT` rule, pinned by skill-lint `REQUIRED`
+  row p4 on `consecutive consumed` in that file whose removal in a temp copy
+  makes the linter exit non-zero (REQ-HARN-001 as amended).
+- [ ] `python3 plugins/sdd/tools/skill-lint.py` exits 0 with the landed
+  `REQUIRED` row on `skills/orchestrate/references/loop-control.md` for `GROWTH: `; in a temp copy
+  with item 6d removed it exits non-zero; `skills/orchestrate/SKILL.md` §The
+  gate's row for positions 6c, 6d, 7 names `GROWTH:` before `TELEMETRY:`;
+  §Gate Signal Order of this spec carries row 6d between 6c and 7 and agrees
+  item for item with `skills/orchestrate/references/loop-control.md` §5
+  (REQ-HARN-PIPELINEOBSERVABILITY-002).
+- [ ] **Conditional**: at every stage of this cycle that ran a review round
+  N ≥ 2 — if any — this cycle's `verification.md` quotes the rendered
+  `GROWTH:` line from that gate; when no stage ran a round N ≥ 2,
+  `verification.md` states so and the temp-copy and self-test checks alone
+  decide the criterion (REQ-HARN-PIPELINEOBSERVABILITY-002).
+- [ ] `skills/orchestrate/references/loop-control.md` §2b's `manual intervention` option names the
+  `post-manual` review and states that `proceed` is withheld until its record
+  exists, pinned by a skill-lint `REQUIRED` row on `post-manual` whose removal
+  in a temp copy makes the linter exit non-zero; this cycle's `verification.md`
+  lists every manual intervention with the review round that followed it, and
+  none without (REQ-HARN-PIPELINEOBSERVABILITY-003).
+- [ ] The `post-manual` footprint: `grep -c 'POST_MANUAL' plugins/sdd/tools/telemetry.py`
+  reads ≥ 1 (0 before this delta) and `schema_diff` reports no divergence with the
+  member added; `--lint` over a two-record fixture — a `reason: REVIEW` record at
+  `iteration: 1` with no loop-back followed by a `reason: POST_MANUAL` record —
+  emits one `[reason-review]` warning, for the first record only; a gate-rendering
+  walkthrough of a per-chunk manual intervention shows `dispatch.chunk = N`, the
+  chunk's `Redo: N of REDO_MAX` unchanged and no verifier re-dispatch, recorded
+  in this cycle's `docs/ws/pipeline-observability/verification.md` under
+  `Gate-rendering walkthroughs` (Q-SPEC-PO-L) (REQ-HARN-PIPELINEOBSERVABILITY-003).
+- [ ] `grep -c mutations plugins/sdd/skills/orchestrate/references/dispatch-templates.md`
+  reads ≥ 1 (0 before this delta), pinned by skill-lint `REQUIRED` row p10
+  (pattern `mutations \+ gates`) on the formula sentence whose removal in a
+  temp copy makes the linter exit non-zero;
+  the template's worked example dispatches a chunk naming 2 mutations and 2
+  gates with `≤ 6 test runs`; `skills/orchestrate/SKILL.md`'s implement
+  dispatch step cites the derivation (REQ-HARN-PIPELINEOBSERVABILITY-006).
+- [ ] The telemetry witnesses hold: cross-field assertions (b) and (c) of
+  `telemetry-reader.md` §Schema Lint fail on their
+  recorded shapes and pass on their controls (REQ-HARN-001 as amended,
+  REQ-HARN-PIPELINEOBSERVABILITY-003).
 
 ## Edge Cases
 
@@ -871,3 +1102,16 @@ Run per `sdd-specs` Step 4b against `orchestration.md`, `review.md`,
 **Decision**: "each cluster renders once, at the gate where its second member arrives" is read literally. A third (or later) finding joining a cluster whose line has already rendered adds a ledger entry but emits **no** further `CONVERGENCE:` line, so the layer count a cluster ever displays is the count at its second member — normally `2`.
 **Rationale**: the requirement's wording is "renders once" and its worked example shows `— 2 layers`; re-rendering on each new member would make a Medium-confidence heuristic repeat itself at successive gates, which is precisely the noise the informational-and-quiet choice was made to avoid. The alternative (re-render with a higher count) is a one-line change if operators later report that the higher count would have been worth seeing. Resolved by choice during a non-interactive specs stage; no operator was available to ask.
 **Date**: 2026-09-20 (harness-p6 specs stage)
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-HARN-PIPELINEOBSERVABILITY-001, -002, -003, -006; REQ-HARN-001 amended)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q3, §Q4, §Gate observation 2026-09-22, R6, R8,
+R12; Q-REQ-PO-A, -C. Observed defect: `FIX_LOOP_MAX` fired at all four
+consumer-geometry document stages on an `APPROVE_WITH_FIXES` with zero blocking
+findings, forcing four manual interventions, none of which was reviewed.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §Fix-Loop Cap carries the verdict routing recorded as in force (REQ-HARN-PIPELINEOBSERVABILITY-001), the counted quantity `reject_run` (REQ-HARN-001 as amended — its exhaustion parenthesis is superseded there) and the `post-manual` review with its footprint (REQ-HARN-PIPELINEOBSERVABILITY-003); §Gate Signal Order carries row 6d and the `GROWTH:` line (REQ-HARN-PIPELINEOBSERVABILITY-002); §Budget Slot carries the derived implement test-run budget (REQ-HARN-PIPELINEOBSERVABILITY-006). Left consistent and not reopened: §Redo Cap per Chunk (`REDO_MAX` keeps its meaning and is that section's constant — the voided-re-dispatch bound of `harness-write-scope.md` §Git-State Observation reuses its *value*, not its counter), §Replan Re-entry Cap, §Budget Exhaustion, §Attempt Ledger, §Circuit-Break Checkpoint, §No-New-Artifact Invariant (every counter is session state; the `GROWTH:` line is text), §Plan Completion Ownership, §Convergence Signal.
+
+**Why the verdict is the routing**: a fresh reviewer over a growing artifact is a generator no cap converges — eight zero-blocking `APPROVE_WITH_FIXES` rounds were each fixed and re-reviewed, and every re-review raised new Material ground; under fix-then-proceed an `APPROVE_WITH_FIXES` ends the stage's review chain, so V2's `ROUND_MAX` and its two-consecutive-`APPROVE_WITH_FIXES` terminator have nothing to bound and are not adopted (Q-REQ-PO-A). The routing landed on the branch before the specs stage; its comparands are the skill-lint pins, never a commit. **Why `reject_run`**: the acceptance criterion of REQ-HARN-001 always read "reaches REJECT three times"; the body's "once per fix re-dispatch" was wider than its own test. **Why a `post-manual` review**: four interventions in the consumer-geometry cycle each went straight to the next stage's dispatch, and the three orchestrator errors attributable in telemetry were caught one stage and 3–4 rounds downstream. **Why the budget is derived**: the consumer-geometry chunks overran 8 against 6 and 18 against 12 under a fixed `≤ 3 test runs` example, so a budget overrun was the honest outcome of an honest chunk. **Miscitation corrected** (requirements closing review, round 8 M2): the earlier text of this amendment cited the circuit-break checkpoint requirement (REQ-HARN-008) as the redo cap's; `REDO_MAX` is established by no requirement and is defined only in §Redo Cap per Chunk, which the moved text now cites.

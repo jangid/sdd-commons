@@ -1,6 +1,6 @@
 ---
 domain: PC
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-MARKETPLACE-001, RS-PACKAGING-002, RS-PACKAGING-003]
 workstream: marketplace, packaging
@@ -172,4 +172,42 @@ repository root after the move sweeps a set that includes at least one
 rather than on the exit code; `pre-commit run --all-files` exits 0 on the
 repository at the close of this cycle; reverting the prefix on either hook alone
 makes that hook fail with a missing-file error.
+[Priority: must]
+
+### REQ-PC-PIPELINEOBSERVABILITY-001: `.claude/` is excluded from the hygiene hooks, with its reason on the pattern
+`.pre-commit-config.yaml`'s `exclude` regex must gain the alternative
+`\.claude/` with a comment stating the reason (editor settings, sandbox-denied
+for writing, not corpus text). This is the exclusion REQ-PC-MARKETPLACE-005's
+"named in an explicit `exclude` pattern … with the reason stated in a comment"
+form requires for a path the hooks must not normalise: `.claude/settings.json`
+is git-tracked, already ends in a newline, and `end-of-file-fixer` fails on
+opening it for writing under the sandbox — recurring since the marketplace
+cycle. (see RS-PIPELINEOBSERVABILITY-001 §Q6 gap 9, R13; Q-REQ-PO-K.) Leaves
+REQ-PC-MARKETPLACE-001..-004 (hook set, exit contract), -005 (satisfied by
+construction), -006 (no rule enforced that no requirement states — this is
+that requirement) and REQ-PC-PACKAGING-001 consistent.
+**Acceptance** (sandbox-independent, because the research's falsifier depends
+on the sandbox write-deny list): (1) parsing the `exclude` value of
+`.pre-commit-config.yaml` with Python `re` and matching it against
+`.claude/settings.json` succeeds, and against `plugins/sdd/tools/gc.py` fails;
+(2) `pre-commit run end-of-file-fixer --files .claude/settings.json` reports
+the hook skipped with no files to check — it never opens the file — and exits
+0; in a scratch copy of the config with the alternative removed, (1)'s first
+match fails and (2) reports the file processed; (3) the comment on the
+alternative states the reason; (4) `pre-commit run --all-files` exits 0 on this
+branch.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the `\.claude/` exclusion — a listing grep over
+`docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
+this requirement's own text and in the index rows citing it are the statement
+itself and are excluded.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/pre-commit.md -exec grep -nHE '\\.claude/|exclude (regex|pattern|value)' {} +`.
+`docs/spec/pre-commit.md` §Pipeline-Observability Amendment (the alternative,
+its comment, the scratch-copy check) — reconciled, carries this requirement;
+`plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit (the hook
+configuration is repository-side, not plugin text);
+`docs/requirements/integration/pre-commit.md` — the hit is this requirement;
+REQ-PC-MARKETPLACE-005's "named in an explicit `exclude` pattern … with the
+reason stated in a comment" (bold in the source, so outside this grep; found by
+reading) — reconciled, it is the form this requirement instantiates.
 [Priority: must]

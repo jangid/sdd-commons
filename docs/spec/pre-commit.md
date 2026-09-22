@@ -12,6 +12,7 @@ requires:
   - REQ-PKG-CONSUMERGEOMETRY-001
   - REQ-PKG-CONSUMERGEOMETRY-005
   - REQ-PKG-CONSUMERGEOMETRY-006
+  - REQ-PC-PIPELINEOBSERVABILITY-001
 ---
 
 # Pre-Commit Gate
@@ -166,6 +167,7 @@ recorded as Q-IMPL-MARKETPLACE-009 below):
 | `tools/fixtures/` | frozen fixtures whose bytes are part of what they test — silently normalising one would change what the fixture proves while leaving every test green |
 | `docs/superpowers/` | vendored third-party corpus, not this repository's text to normalise; it is also one of the three areas REQ-NAME-MARKETPLACE-005 forbids the implementing change to touch |
 | `docs/ws/`, `docs/research/` | execution records of closed cycles, excluded for the same reason `skill-namespace-rename.md` excludes them from the rename: a rewrite makes the record disagree with the commits it describes — and REQ-NAME-MARKETPLACE-005 forbids the implementing change from listing a path under either. The pattern is a whole-subtree one, so it also covers the **active** workstream, which is a live record rather than a closed one; that is deliberate — the gate must not rewrite a plan mid-cycle |
+| `.claude/` | editor settings, sandbox-denied for writing, not corpus text; `.claude/settings.json` is git-tracked, already ends in a newline, and the hook fails on opening it for writing rather than on its content *[added 2026-09-22, REQ-PC-PIPELINEOBSERVABILITY-001 — `[Updated: 2026-09-22]`; the record of why is §Pipeline-Observability Amendment]* |
 
 Excluding the last three areas is what lets the normalisation sit inside the
 rename chunk without violating REQ-NAME-MARKETPLACE-005: with them excluded, a
@@ -200,6 +202,21 @@ written-out list, and derive both sides at run time.
 - [ ] Every hook entry in the parsed config is either one of the four local tool entries — the two repository tools, each appearing plain and with `--self-test` (§Hook-Set Amendment, 2026-09-21) — or one of the four upstream hygiene hooks; the requirement's own wording, "one of the two repository **tools**", is unchanged by the amendment because the added entries invoke the same two tools. No entry carries an `args` value at all: `--fast` and `--self-test` are mode selectors inside `entry:` (REQ-PC-MARKETPLACE-006).
 - [ ] Every `exclude` pattern in the config is accompanied by a YAML comment stating its reason, checked by reading the file; the set of excluded areas parsed from the config equals the set in §Normalisation happens inside this cycle's exclude table, both sides derived by parsing rather than by a pasted list (REQ-PC-MARKETPLACE-005).
 - [ ] The plan places the config and the whole-repository normalisation inside the rename chunk, ahead of the rename-chunk-close sha, checkable by reading the plan's chunk order; and `git diff <rename-chunk-close sha> HEAD --name-only` lists no path under `docs/ws/`, `docs/research/` or `docs/superpowers/` and no bundled tool, so the normalisation cannot have landed inside the windows REQ-PKG-MARKETPLACE-007 and REQ-NAME-MARKETPLACE-005 measure (REQ-PC-MARKETPLACE-005).
+
+**Pipeline-observability (2026-09-22, pre-commit) — sandbox-independent**
+
+- [ ] Parsing the `exclude` value of `.pre-commit-config.yaml` with Python `re`
+  and matching it against `.claude/settings.json` succeeds, and against
+  `plugins/sdd/tools/gc.py` fails; in a scratch copy of the config with the
+  `\.claude/` alternative removed the first match fails
+  (REQ-PC-PIPELINEOBSERVABILITY-001).
+- [ ] `pre-commit run end-of-file-fixer --files .claude/settings.json` reports
+  the hook skipped with no files to check and exits 0; in the scratch copy it
+  reports the file processed (REQ-PC-PIPELINEOBSERVABILITY-001).
+- [ ] The `\.claude/` alternative carries a `#` comment stating the reason —
+  `grep -c '#.*\.claude/' .pre-commit-config.yaml` reads ≥ 1 (0 before this
+  delta); `pre-commit run --all-files` exits 0 on this branch
+  (REQ-PC-PIPELINEOBSERVABILITY-001, REQ-PC-MARKETPLACE-005).
 
 ## Implementation Questions
 
@@ -465,3 +482,15 @@ identifies the site**: the criterion below quotes it.
   tool self-tests remain hook entries rather than being moved to the
   run-explicitly set (REQ-PKG-CONSUMERGEOMETRY-001 acceptance 4;
   REQ-PKG-CONSUMERGEOMETRY-005 acceptance 6).
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-PC-PIPELINEOBSERVABILITY-001)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q6 gap 9, R13; Q-REQ-PO-K. Observed:
+`end-of-file-fixer` fails on opening `.claude/settings.json` for writing under
+the sandbox, recurring since the marketplace cycle.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §Design's "Excluded paths, each with the reason inline" table — the table of record — carries the `.claude/` row (REQ-PC-PIPELINEOBSERVABILITY-001), the form REQ-PC-MARKETPLACE-005 requires for a path the hooks must not normalise, so that requirement's parsed-set-equals-table acceptance now includes the new area. Left consistent and not reopened: the hook set and exit contract (REQ-PC-MARKETPLACE-001..-004), §Two-Root Amendment, §Hook-Set Amendment, §Consumer-Geometry Amendment, and Q-IMPL-MARKETPLACE-009's verbose-regex comment form, which the new alternative uses.
+
+**Why an exclusion and not a hook change**: the failure is on opening the file for writing under the sandbox, not on its content, and the hook set is closed (REQ-PC-MARKETPLACE-001); the exclusion table is where such a path already goes (Q-REQ-PO-K).

@@ -1,0 +1,3 @@
+plugins/sdd/tools/gc.py
+plugins/sdd/tools/skill-lint.py
+plugins/sdd/tools/telemetry.py

@@ -1,6 +1,6 @@
 ---
 domain: HARN
-last_updated: 2026-09-20
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-008, RS-005, RS-006, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001, RS-HARNESSP6-001]
 ---
@@ -504,4 +504,177 @@ already dirty at `snapshot(before)` yields `SCOPE: CLEAN`; a fan-out merge
 yields `SCOPE: CLEAN`; `skills/sdd-orchestrate/references/write-scope.md` §3
 lists the three extra plumbing reads and the reverse-delta subtraction, §5 the
 `GIT_STATE` line, §8 its options; `python3 tools/sdd-skill-lint.py` exits 0.
+[Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R4; Q-REQ-PO-B) `[Updated: 2026-09-22]`: the
+> options `restore │ accept (note) │ stop` are unchanged, but on a **read-only
+> leaf** neither `restore` nor `accept (note)` returns the gate to `proceed`
+> on that leaf's verdict — the verdict is **voided** and the gate reopens
+> `redo` / re-dispatch (REQ-HARN-PIPELINEOBSERVABILITY-004). Observed: the
+> chunk-0 verifier's `GIT_STATE` finding was resolved `restore` and its
+> `CHUNK_VERDICT: PASS` was then consumed and the chunk proceeded — detection
+> worked twice and the verdict was still trusted. The snapshot, the three
+> plumbing reads, the reverse-delta subtraction and the self-test scenarios are
+> unchanged.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over the voided verdict on a read-only leaf — a listing grep
+> over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`;
+> hits in this requirement's own text and in the index rows citing it are the
+> statement itself and are excluded.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-boundaries.md -exec grep -nHwE 'voided' {} +`.
+> the listing is REQ-HARN-PIPELINEOBSERVABILITY-004's: `plugins/sdd/skills/**`,
+> `plugins/sdd/agents/**` — no hit (today 0; the §1b and §8 sentences are that
+> requirement's acceptance); `docs/spec/harness-write-scope.md`
+> §Pipeline-Observability Amendment — reconciled, carries the void; the same
+> spec's `GIT_STATE` option row and `references/write-scope.md` §7's option row
+> (`restore │ accept (note) │ stop`) — reconciled, the options are unchanged
+> and the verdict consequence is REQ-HARN-PIPELINEOBSERVABILITY-004's, which
+> amends `references/write-scope.md` §8.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names:
+> `plugins/sdd/skills/orchestrate/references/loop-control.md` §1b (the voided
+> verdict and its `voided re-dispatch` bound) and
+> `references/dispatch-templates.md` (the missing-token rule applied to a
+> voided verdict) — reconciled, the sentences
+> REQ-HARN-PIPELINEOBSERVABILITY-004's acceptance adds, landed by the
+> implement stage, so the "no hit" baseline above is history;
+> `docs/spec/harness-loop-control.md` §Fix-Loop Cap ("re-dispatches that count
+> nothing"), `docs/spec/skill-lint-v5.md` rows p7–p8 and
+> `docs/spec/telemetry-reader.md` assertion (a) — reconciled, they carry or
+> check the void; `docs/spec/pipeline-observability.md` — reconciled, the
+> cycle's index spec, it lists;
+> `docs/requirements/functional/harness-loop-control.md` (REQ-HARN-001's note)
+> and `docs/requirements/functional/telemetry.md` (assertion (a)) —
+> reconciled, citations of the void.
+
+### REQ-HARN-PIPELINEOBSERVABILITY-004: a `GIT_STATE` or `OUT` finding on a read-only leaf voids that leaf's verdict
+When the write-scope observation raises a `GIT_STATE` finding
+(REQ-HARN-HARNESSP6-001) or an `OUT` path (including the content-hash
+observation of REQ-HARN-HARNESSP3-001) against a **read-only** leaf — the
+reviewer, the chunk verifier or the red team — the orchestrator must consume
+that leaf's verdict as the negative token with a note (`CHUNK_VERDICT: FAIL
+(voided: GIT_STATE)`, `VERDICT: REJECT (voided: …)`, `RED_VERDICT: BROKEN
+(voided: …)`): the "unverified is not verified" rule the missing-token case
+already applies. The void holds whichever option the operator picks — `restore`
+**or** `accept (note)` (Q-REQ-PO-B: the verdict was produced by a leaf that
+mutated what it was verifying, and restoring the tree does not restore the
+verdict) — and the gate reopens `redo` / a fresh re-dispatch of the leaf, never
+`proceed` on the voided verdict. A voided verdict counts toward **no** fix or
+redo counter (REQ-HARN-001 as amended — otherwise a stashing reviewer could
+drive a stage to the cap with no defect in the artifact); the re-dispatch it
+causes is bounded by a per-gate count of voided re-dispatches,
+`voided_redispatch_count[<gate>]`, capped at the `REDO_MAX` value — **the same
+integer value as the per-chunk redo cap, counted per gate, not per chunk; the
+per-chunk cap's semantics are untouched** (Q-REQ-PO-AI). `REDO_MAX` is defined
+once, in `docs/spec/harness-loop-control.md` §Redo Cap per Chunk, as the
+orchestrator constant (default 3) that `chunk_redo_count[<chunk header>]` is
+counted against and that the per-chunk gate renders as `Redo: N of REDO_MAX`;
+**no requirement establishes it** — that section is marked an extension of
+REQ-HARN-001, REQ-HARN-008 governs the checkpoint written when the cap fires
+and not the cap, and every `REDO_MAX` mention in `docs/requirements/**` is a
+citation — so this requirement states the definition it relies on: `REDO_MAX`
+is that spec section's constant, reused here as a **value** only. The voided
+count is a second counter under its own name: it never increments
+`chunk_redo_count`, is never shown in the `Redo: N of REDO_MAX` render string
+(which stays the per-chunk counter's), and on reaching `REDO_MAX` renders the
+existing exhausted gate `stop │ manual intervention` — a session-scoped
+counter, no new artifact and no fourth cap name. The bound is a binding clause, not a stated default: its comparand is one
+sentence in `references/loop-control.md` §1b naming `REDO_MAX` as the cap on
+voided re-dispatches, pinned by a skill-lint `REQUIRED` row (Q-REQ-PO-Q). (see RS-PIPELINEOBSERVABILITY-001 §Q2 recommendation (b), R4,
+§Mechanical pin R4.) Touches REQ-HARN-HARNESSP6-001 (amended); leaves
+REQ-HARN-014 (a `FAIL` routes to a repair packet — consistent), REQ-HARN-022
+(`SCOPE:` token and options — no new token), REQ-HARN-019 (classification
+orchestrator-only — the void is orchestrator-side) and REQ-HARN-HARNESSP3-001
+(content-hash observation — reused) consistent.
+**Acceptance**: `references/loop-control.md` §1b and `references/write-scope.md`
+§8 carry the void sentence, pinned by a skill-lint `REQUIRED` row whose removal
+in a temp copy makes the linter exit non-zero; `references/loop-control.md` §1b
+carries one sentence containing both `voided re-dispatch` and `REDO_MAX`,
+pinned by a second skill-lint `REQUIRED` row on that file (pattern: `voided
+re-dispatch` and `REDO_MAX` on the same visible line) whose removal in a temp
+copy makes the linter exit non-zero, and `python3 plugins/sdd/tools/skill-lint.py
+--self-test` exits 0 with its pinned `REQUIRED` count including both rows; `references/dispatch-templates.md`'s
+missing-token rule is cross-referenced from it; the cross-field assertion (a)
+of REQ-TELEM-PIPELINEOBSERVABILITY-003 fails on the recorded shape (a
+`verifier` record with `scope.token = VIOLATION`, a `PASS` verdict and a
+`proceed` decision); `docs/spec/harness-write-scope.md` (or the spec the specs
+stage names) walks the recorded chunk-0 sequence and shows it now rendering
+`CHUNK_VERDICT: FAIL (voided: GIT_STATE)` with `redo` offered and `proceed`
+withheld.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the voided verdict and its `REDO_MAX` bound — a listing grep
+over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits
+in this requirement's own text and in the index rows citing it are the
+statement itself and are excluded.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/harness-boundaries.md -exec grep -nHwE 'voided|REDO_MAX' {} +`.
+(word-bounded, so `avoided` in `plugins/sdd/skills/implement/SKILL.md` and
+`docs/spec/skill-updates.md` is not a hit; widened from `voided` alone at
+requirements review round 8 M1 — Q-REQ-PO-AI — because the bound reuses
+`REDO_MAX` and the narrower pattern never listed that constant's definition.)
+Every hit, by tree:
+- `plugins/sdd/agents/**` — no hit (today 0).
+- `plugins/sdd/skills/**` — `voided`: no hit (today 0; the §1b and §8
+  sentences and their `REQUIRED` rows are the acceptance above). `REDO_MAX`,
+  eight sentences, every one the **per-chunk** cap:
+  `orchestrate/references/loop-control.md` §1a (the per-chunk scoping
+  sentence — `chunk_redo_count[<chunk header>]`, shown as `Redo: N of 3`
+  against `REDO_MAX`, increments only on `fix`, "a verifier re-dispatch does
+  not"), §1a checkpoint on redo exhaustion (REQ-HARN-008, trigger label
+  `fix-cap`) and §5 signal 3 (the `Redo: N of 3` render);
+  `orchestrate/SKILL.md` §The gate (`REDO_MAX` in the per-chunk gate summary);
+  `orchestrate/USAGE.md` ("`Redo: N of 3` — the per-chunk redo counter");
+  `orchestrate/references/telemetry.md` `redo_count` row (`Redo: N of
+  REDO_MAX`); `orchestrate/references/fan-out.md` (`fix-cap` trigger label);
+  `implement/references/stuck-detection.md` (the per-chunk redo cap firing at
+  that chunk's gate) — all reconciled as-is: each scopes `chunk_redo_count` per
+  chunk, which this requirement leaves untouched; the voided count is a
+  distinct counter that never appears in the `Redo: N of REDO_MAX` render
+  string and reaches the same exhausted gate by its own count, and §1a's "a
+  verifier re-dispatch does not" increment is the per-chunk side of this
+  requirement's counts-nothing rule.
+- `docs/spec/**` — `docs/spec/harness-loop-control.md` §Redo Cap per Chunk
+  (the definition: `chunk_redo_count[<chunk header>]` against the orchestrator
+  constant `REDO_MAX`, default 3, `Redo: N of REDO_MAX`), its state-table row,
+  its §Circuit-Break sentence (per-chunk cap firing), its signal-order row 3,
+  its §Pipeline-Observability Amendment ("§Redo Cap per Chunk does not reopen",
+  the voided-verdict counts-nothing sentence, the bound cross-reference) and
+  its closing routing sentence — reconciled: the definition this requirement
+  names, per chunk, untouched; **except** that the amendment's consistency line
+  reads "REQ-HARN-002/-008 (`REPLAN_MAX`, `REDO_MAX`)", citing the
+  circuit-break checkpoint requirement as the redo cap's — a miscitation
+  (round 8 M2) **noted for the specs re-derivation**
+  (REQ-REQ-PIPELINEOBSERVABILITY-001 (b)): no requirement establishes
+  `REDO_MAX`, and the line must cite §Redo Cap per Chunk instead;
+  `docs/spec/harness-write-scope.md` §Pipeline-Observability Amendment (render
+  table, §Counting's `voided_redispatch_count[<gate>]` capped at `REDO_MAX`,
+  the bound sentence, the chunk-0 walkthrough showing `Redo: 0 of 3` beside
+  the voided verdict) and `docs/spec/skill-lint-v5.md` rows p6–p8 with the p8
+  note — reconciled, they carry this requirement and already keep the two
+  counters distinct; `docs/spec/pipeline-observability.md` (the
+  `REDO_MAX`-as-value row: "the counter `voided_redispatch_count[<gate>]` is
+  distinct from `chunk_redo_count[<chunk header>]`") — reconciled, the scope
+  this body now states; `docs/spec/harness-chunk-verifier.md` §Sequencing,
+  `docs/spec/orchestration.md` (`Redo: N of REDO_MAX`), `docs/spec/telemetry.md`
+  `redo_count` row and `docs/spec/skill-updates.md` ("`REDO_MAX` with the
+  per-chunk session counter") — reconciled, per-chunk citations;
+  `docs/spec/telemetry-reader.md` assertion (a) — reconciled, restatement by
+  citation.
+- `docs/requirements/**` — `harness-boundaries.md` REQ-HARN-HARNESSP6-001's
+  note (amended beside) and this requirement — the statement itself;
+  `harness-loop-control.md` REQ-HARN-001's note (after round 8 M2 it cites
+  §Redo Cap per Chunk as `REDO_MAX`'s only definition) and
+  REQ-HARN-PIPELINEOBSERVABILITY-003 ("the chunk's `gate.redo_count` (`Redo: N
+  of REDO_MAX`) is untouched" by a `post-manual` review) — reconciled,
+  per-chunk, consistent with the scope stated here; `telemetry.md` ("redo
+  count per chunk" in REQ-TELEM-HARNESSP2-009's aggregate list, and
+  REQ-TELEM-PIPELINEOBSERVABILITY-003 (a)) — reconciled, per-chunk / points
+  here; `index.md` Q-REQ-PO-B, -Q, -AI and the pipeline-observability §Open
+  Questions entry — the statement itself.
+  Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+  files the `-l` listing names: `voided` now hits
+  `plugins/sdd/skills/orchestrate/references/loop-control.md` §1b,
+  `references/write-scope.md` §8's rows and `references/dispatch-templates.md`
+  (the missing-token rule) — reconciled, the sentences the acceptance above
+  adds, landed by the implement stage, so the "no hit" baseline above is
+  history.
 [Priority: must]

@@ -1,6 +1,6 @@
 ---
 domain: ARB
-last_updated: 2026-09-19
+last_updated: 2026-09-22
 status: Approved
 research_refs: [RS-HARNESSP2-001, RS-008, RS-HARNESSP3-001, RS-HARNESSP4-001, RS-HARNESSP5-001]
 workstream: harness-p2
@@ -64,6 +64,36 @@ Q3 class table)
 renders `REVIEW: CONTRADICTION (… class b)`; the same fixture with round 2's
 finding at §A renders no contradiction.
 [Priority: must]
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R7) `[Updated: 2026-09-22]`: "the
+> `file:section` pairs written by the intervening fix dispatch" include
+> **both sides of a moved or renamed heading** and any heading that did not
+> exist at round N's sha (REQ-ARB-PIPELINEOBSERVABILITY-001) — fix-induced
+> ground is written ground, and a finding on it is ordinary, not class (b).
+> Observed: both class-(b) pauses of the consumer-geometry research stage fired
+> on a cross-reference to a section the fix had just moved. The set-operation
+> character of the rule and the `(file-level)` degradation are unchanged.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over this note's binding clause (both sides of a moved or
+> renamed heading, and a heading absent at round N's sha, are written ground) —
+> a listing grep over `docs/requirements docs/spec plugins/sdd/skills
+> plugins/sdd/agents`; hits in this requirement's own text and in the index
+> rows citing it are the statement itself and are excluded.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/arbitrated-handoff.md -exec grep -nHE 'W_N|fix-induced|did not exist (in|at)' {} +`.
+> the listing is REQ-ARB-PIPELINEOBSERVABILITY-001's:
+> `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a (two-term
+> `W_N`) and its "may over-fire … accepted" sentence, and
+> `docs/spec/arbitrated-handoff.md` §Known Limitations' "accept the over-fire"
+> — the old side, amended by REQ-ARB-PIPELINEOBSERVABILITY-001 and retired with
+> the zero-count witnesses stated in its sweep;
+> `docs/spec/arbitrated-handoff.md` §Retained Per-Round State and §Fix-induced
+> ground is written ground — reconciled, they carry the rule; every other hit
+> is the unchanged regeneration term.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names: `docs/spec/adversarial-verify.md` —
+> reconciled, the unchanged regeneration term;
+> `docs/spec/pipeline-observability.md` — reconciled, the cycle's index spec,
+> it lists.
 
 ### REQ-ARB-HARNESSP2-003: Class (c) — verdict regression without new ground
 The orchestrator must flag a contradiction of class **(c)** when round N's
@@ -210,6 +240,29 @@ fixture with the findings in a file the loop never touched still pauses as class
 > — every fix iteration patched rather than regenerated
 > (`docs/ws/harness-p3/verification.md` §V3). REQ-ARB-HARNESSP4-001 directs the
 > live exercise; the requirement text above is unchanged.
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> RS-PIPELINEOBSERVABILITY-001 R7) `[Updated: 2026-09-22]`: the `W_N` union
+> gains a third term — the `(file, §heading)` pairs whose heading did not exist
+> in `file` at `sha_N` (REQ-ARB-PIPELINEOBSERVABILITY-001). A heading that
+> existed at `sha_N` with identical bytes stays out of `W_N`
+> (REQ-ARB-HARNESSP5-001 is not reopened). The regenerated-not-patched rule and
+> its acceptance are otherwise unchanged.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over this note's binding clause (the third term of the `W_N`
+> union) — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
+> plugins/sdd/agents`; hits in this requirement's own text and in the index
+> rows citing it are the statement itself and are excluded.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/arbitrated-handoff.md -exec grep -nHE 'W_N|fix-induced|did not exist (in|at)' {} +`.
+> the listing is REQ-ARB-PIPELINEOBSERVABILITY-001's: the two-term `W_N` of
+> `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a and §`W_N` —
+> the old side, amended by REQ-ARB-PIPELINEOBSERVABILITY-001;
+> `docs/spec/arbitrated-handoff.md` §Retained Per-Round State (three terms,
+> dated) and §Fix-induced ground is written ground — reconciled, they carry the
+> term; §`W_N` Includes Regeneration Writes and
+> `docs/spec/adversarial-verify.md` — reconciled, the second term is unchanged.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names: `docs/spec/pipeline-observability.md` —
+> reconciled, the cycle's index spec, it lists.
 
 ### REQ-ARB-HARNESSP4-001: REQ-ARB-HARNESSP3-001 is exercised live in this cycle and its non-pause is recorded
 This cycle must exercise the unioned `W_N` of REQ-ARB-HARNESSP3-001 on a live
@@ -375,3 +428,60 @@ the A1–A3 key parser implements it and a round line with and without the
 ordinal resolves to the same key in `--self-test`; `python3 tools/sdd-gc.py --report`
 raises no new finding on the amended spec.
 [Priority: should]
+
+### REQ-ARB-PIPELINEOBSERVABILITY-001: a finding on a heading the fix created is fix-induced ground, never class (b)
+Section resolution must classify a round-N+1 Critical/Material key
+`(file, §heading)` whose heading **did not exist** in `file` at round N's sha —
+decided by reading `git show <sha_N>:<file>` fence-aware for a heading line
+naming it (the leading-ordinal strip of REQ-ARB-HARNESSP5-003 applied to both
+sides) — as ground the loop created: the key belongs to `W_N` and the finding is
+ordinary, not a `REVIEW: CONTRADICTION (class b)` pause. Equivalently, section
+resolution adds **both** sides of a moved or renamed heading to `W_N`, because
+the diff's hunks are keyed on the heading they sat under before the fix. A
+heading that existed at `sha_N` with identical bytes is unchanged ground and
+stays out (REQ-ARB-HARNESSP5-001). This is not class (a): nothing is reversed.
+(see RS-PIPELINEOBSERVABILITY-001 §Q3 "The stale cross-reference", R7,
+§Mechanical pin R7.) Touches REQ-ARB-HARNESSP2-002 and -HARNESSP3-001
+(amended); leaves REQ-ARB-HARNESSP2-004 (class (a) undetected),
+-HARNESSP2-006/-007 (pause token, third opinion), -HARNESSP2-001/-008 (keys),
+-HARNESSP4-001 (historical) and -HARNESSP5-002 (existing fixture cases
+unchanged) consistent.
+**Acceptance**: `python3 plugins/sdd/tools/scope-check-selftest.py` exits 0
+with a fourth offline arbitration scenario **A4** beside A1–A3 — a round-N+1
+finding under a heading absent at `sha_N` classifies as an ordinary finding in
+`W_N`, and a control finding under a heading present at `sha_N`, unwritten by
+the loop, still classifies class (b); in a temp copy with the
+heading-existence clause removed A4 flips to class (b) and the self-test exits
+non-zero; `references/loop-control.md` §2a's `W_N` definition and
+`docs/spec/arbitrated-handoff.md` §Retained Per-Round State carry the third
+term; A1–A3's outputs are unchanged.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the third term of `W_N` (fix-induced ground is written
+ground) — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
+plugins/sdd/agents`; hits in this requirement's own text and in the index rows
+citing it are the statement itself and are excluded.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/functional/arbitrated-handoff.md -exec grep -nHE 'W_N|fix-induced|did not exist (in|at)' {} +`.
+`plugins/sdd/skills/orchestrate/references/loop-control.md` §2a schema block
+(`W_N = sections(fix[N].written) UNION sections(regen[N].written)`, two terms)
+— the old side; reconciled by naming this requirement as its amender (the
+acceptance above names §2a); the same file's known-limitation sentence "the old
+`§Name` is not in `W_N`, so (b) may over-fire … (accepted; renames are rare
+inside a fix)" and `docs/spec/arbitrated-handoff.md` §Known Limitations'
+"Review line references a section heading that was renamed by the fix … accept
+the over-fire" — the accepted over-fire this requirement removes; **retired**: the specs re-derivation under REQ-REQ-PIPELINEOBSERVABILITY-001
+(b) rewrites the spec sentence and the implement stage the skill sentence, and
+`grep -c 'renames are rare' docs/spec/arbitrated-handoff.md` and `grep -c
+'renames are rare' plugins/sdd/skills/orchestrate/references/loop-control.md`
+each read 0 at the specs and implement gates respectively (today 1 and 1); the
+file-level over-fire both files also describe ("may over-fire when the fix
+touched the same file elsewhere") is a different, retained degradation —
+reconciled;
+`docs/spec/arbitrated-handoff.md` §Retained Per-Round State (three-term union,
+dated) and §Fix-induced ground is written ground — reconciled, they carry this
+requirement; the same spec's §`W_N` Includes Regeneration Writes, its Q-IMPL
+entries and `docs/spec/adversarial-verify.md` — reconciled, the regeneration
+term is unchanged; `docs/spec/pipeline-observability.md` — reconciled, lists;
+`docs/requirements/functional/arbitrated-handoff.md` REQ-ARB-HARNESSP2-002 and
+-HARNESSP3-001 (amended beside this requirement) — reconciled, their notes
+state the third term by pointing here.
+[Priority: must]

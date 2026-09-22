@@ -40,7 +40,10 @@ criterion you tested.
   you observed and how to reproduce it. A criterion you did not attempt is not
   reported as held.
 - **You fix nothing and you commit nothing.** A break is a command line in your
-  return, never a test committed to the tree. Any file you leave behind is
+  return, never a test committed to the tree. You run no `git stash`,
+  `git checkout` / `git switch`, `git reset`, `git restore`, `git commit` or
+  `git clean`, and no `sed -i` or redirection into a tracked path; `Bash` is
+  for read-only commands and the quality gates. Any file you leave behind is
   reverted before the gate and surfaces as a scope violation.
 
 ## What your token means

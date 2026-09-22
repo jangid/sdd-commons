@@ -1,7 +1,7 @@
 ---
-version: "23.0"
+version: "27.8"
 status: Approved
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 traceability: traceability.md
 ---
 
@@ -10,7 +10,7 @@ traceability: traceability.md
 ## Summary
 
 Requirements for SDD (Spec-Driven Development) skill improvements in the
-tools-skills-agents repository. Covers fourteen scopes:
+tools-skills-agents repository. Covers fifteen scopes:
 
 1. **v2 artifact structure** (RS-001): Research structure, requirements
    splitting, plan management, staleness detection, migration, and per-skill
@@ -155,6 +155,29 @@ tools-skills-agents repository. Covers fourteen scopes:
    instead of reporting `[structure] skills/ directory not found`; and removes
    the unreachable bundled `skills/orchestrate/tools/` copy together with every
    record its removal falsifies, each under a stated correction rule (PKG).
+15. **Pipeline observability** (RS-PIPELINEOBSERVABILITY-001): the harness
+   verifying itself — the eleven gaps the consumer-geometry cycle's own run
+   exposed while every gate rendered green. The delta makes the telemetry
+   writer validate through the reader's own schema and migrates the flat
+   records where their keys map (TELEM); binds the review verdict as the
+   routing — `REJECT` → fix → re-review counted by the cap, `APPROVE_WITH_FIXES`
+   → fix → proceed without re-review — with a `post-manual` review after every
+   manual intervention, a voided verdict for a read-only leaf that mutated git
+   state, a count-decided tier/verdict conflict pause and a derived implement
+   test-run budget (HARN); pins a git-state prohibition into the three agent
+   bodies (AGENT); treats a heading the fix created as written ground (ARB);
+   adds the snapshot-comparand rules `literal-anchor`, `self-matching-grep` and
+   `dead-path-citation` plus a `qimpl-malformed` class, and a traced-by-active-
+   plan exception to the `info` stale-chain fold (GC, LINT); honours a declared
+   test convention in Check 3 (CHKC); excludes `.claude/` from the hygiene
+   hooks (PC); bumps the plugin version so `/plugin update` is not a no-op
+   (PKG); and binds `CLAUDE.md` to the landed routing, the counted quantity,
+   the `GROWTH:` line and the real plugin-manifest path (DOCS); states the
+   review report grammar once, bound on both producers (REV), and the
+   convention by which an amendment lands in a requirement, a spec, the per-ws
+   traceability and the index (REQ). Two of the
+   HARN bindings landed manually at the research gate and are recorded as in
+   force, with their skill-lint pins — never a commit sha — as comparands.
 
 ## Stakeholders
 
@@ -166,34 +189,34 @@ tools-skills-agents repository. Covers fourteen scopes:
 | Category | File | Domain | Requirements | Status | Last Updated |
 |----------|------|--------|-------------|--------|--------------|
 | functional | [research-structure.md](functional/research-structure.md) | RS | REQ-RS-001..003 | Approved | 2026-04-28 |
-| functional | [requirements-structure.md](functional/requirements-structure.md) | REQ | REQ-REQ-001..007, REQ-REQ-HARNESSP6-001 | Approved | 2026-09-20 |
+| functional | [requirements-structure.md](functional/requirements-structure.md) | REQ | REQ-REQ-001..007, REQ-REQ-HARNESSP6-001, REQ-REQ-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | functional | [plan-management.md](functional/plan-management.md) | PLAN | REQ-PLAN-001..004, REQ-PLAN-HARNESSP6-001 | Approved | 2026-09-20 |
 | functional | [staleness-detection.md](functional/staleness-detection.md) | STALE | REQ-STALE-001..003 | Approved | 2026-05-25 |
 | functional | [migration.md](functional/migration.md) | MIG | REQ-MIG-001..015 | Approved | 2026-05-25 |
-| functional | [chunk-close.md](functional/chunk-close.md) | CHKC | REQ-CHKC-001..008 | Approved | 2026-05-25 |
+| functional | [chunk-close.md](functional/chunk-close.md) | CHKC | REQ-CHKC-001..008 (004 amended 2026-09-22) | Approved | 2026-09-22 |
 | functional | [deviation-protocol.md](functional/deviation-protocol.md) | QIMPL | REQ-QIMPL-001..003, REQ-QIMPL-HARNESSP5-001..002 | Approved | 2026-09-19 |
 | functional | [milestone-plans.md](functional/milestone-plans.md) | MPLAN | REQ-MPLAN-001..004 | Approved | 2026-05-25 |
 | functional | [cross-spec-consistency.md](functional/cross-spec-consistency.md) | XSPEC | REQ-XSPEC-001..002 | Approved | 2026-05-25 |
-| functional | [review.md](functional/review.md) | REV | REQ-REV-001..008 | Approved | 2026-05-25 |
+| functional | [review.md](functional/review.md) | REV | REQ-REV-001..008, REQ-REV-PIPELINEOBSERVABILITY-001 (002 amended 2026-09-22) | Approved | 2026-09-22 |
 | functional | [orchestration.md](functional/orchestration.md) | ORCH | REQ-ORCH-001..034, REQ-ORCH-HARNESSP6-001..002 | Approved | 2026-09-20 |
 | functional | [multi-workstream.md](functional/multi-workstream.md) | WS | REQ-WS-001..030, REQ-WS-HARNESSP3-001, REQ-WS-HARNESSP5-001..002 | Approved | 2026-09-19 |
-| functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027, REQ-HARN-HARNESSP5-001 | Approved | 2026-09-19 |
-| functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019, REQ-HARN-HARNESSP3-002..003, -005, REQ-HARN-HARNESSP4-007, REQ-HARN-HARNESSP6-002 | Approved | 2026-09-20 |
-| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002, REQ-HARN-HARNESSP3-001, -004, REQ-HARN-HARNESSP4-001..006, REQ-HARN-HARNESSP5-002, REQ-HARN-HARNESSP6-001 | Approved | 2026-09-20 |
-| functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001..003, REQ-ARB-HARNESSP5-001..003 | Approved | 2026-09-19 |
+| functional | [harness-loop-control.md](functional/harness-loop-control.md) | HARN | REQ-HARN-001..008, 027, REQ-HARN-HARNESSP5-001, REQ-HARN-PIPELINEOBSERVABILITY-001..003 (001 amended 2026-09-22) | Approved | 2026-09-22 |
+| functional | [harness-verification.md](functional/harness-verification.md) | HARN | REQ-HARN-009..019, REQ-HARN-HARNESSP3-002..003, -005, REQ-HARN-HARNESSP4-007, REQ-HARN-HARNESSP6-002, REQ-HARN-PIPELINEOBSERVABILITY-005..006 (013 amended 2026-09-22) | Approved | 2026-09-22 |
+| functional | [harness-boundaries.md](functional/harness-boundaries.md) | HARN | REQ-HARN-020..026, REQ-HARN-HARNESSP2-001..002, REQ-HARN-HARNESSP3-001, -004, REQ-HARN-HARNESSP4-001..006, REQ-HARN-HARNESSP5-002, REQ-HARN-HARNESSP6-001, REQ-HARN-PIPELINEOBSERVABILITY-004 (HARNESSP6-001 amended 2026-09-22) | Approved | 2026-09-22 |
+| functional | [arbitrated-handoff.md](functional/arbitrated-handoff.md) | ARB | REQ-ARB-HARNESSP2-001..008, REQ-ARB-HARNESSP3-001, REQ-ARB-HARNESSP4-001..003, REQ-ARB-HARNESSP5-001..003, REQ-ARB-PIPELINEOBSERVABILITY-001 (HARNESSP2-002, HARNESSP3-001 amended 2026-09-22) | Approved | 2026-09-22 |
 | functional | [adversarial-verify.md](functional/adversarial-verify.md) | REDB | REQ-REDB-HARNESSP2-001..009, REQ-REDB-HARNESSP3-001..004, REQ-REDB-HARNESSP4-001 | Approved | 2026-09-18 |
-| functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009, REQ-TELEM-HARNESSP3-001..002, REQ-TELEM-HARNESSP4-001..008, REQ-TELEM-HARNESSP5-001..008 | Approved | 2026-09-19 |
+| functional | [telemetry.md](functional/telemetry.md) | TELEM | REQ-TELEM-HARNESSP2-001..009, REQ-TELEM-HARNESSP3-001..002, REQ-TELEM-HARNESSP4-001..008, REQ-TELEM-HARNESSP5-001..008, REQ-TELEM-PIPELINEOBSERVABILITY-001..003 (HARNESSP2-004, HARNESSP3-001, HARNESSP4-005, HARNESSP5-008 amended 2026-09-22) | Approved | 2026-09-22 |
 | functional | [cycle-identity.md](functional/cycle-identity.md) | CYCID | REQ-CYCID-HARNESSP3-001..002, REQ-CYCID-HARNESSP4-001..002 | Approved | 2026-09-18 |
-| functional | [agents.md](functional/agents.md) | AGENT | REQ-AGENT-MARKETPLACE-001..006 | Approved | 2026-09-21 |
+| functional | [agents.md](functional/agents.md) | AGENT | REQ-AGENT-MARKETPLACE-001..006, REQ-AGENT-PIPELINEOBSERVABILITY-001 (MARKETPLACE-002 amended 2026-09-22) | Approved | 2026-09-22 |
 | non-functional | [context-and-compatibility.md](non-functional/context-and-compatibility.md) | CTX, COMPAT | REQ-CTX-001..002, REQ-COMPAT-001..002 | Approved | 2026-05-25 |
 | non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
-| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001, REQ-GC-HARNESSP6-001..004 | Approved | 2026-09-20 |
+| integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001, REQ-GC-HARNESSP6-001..004, REQ-GC-PIPELINEOBSERVABILITY-001..004 (HARNESSP2-002, HARNESSP2-003, HARNESSP6-003 amended 2026-09-22) | Approved | 2026-09-22 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
-| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008 | Approved | 2026-09-21 |
+| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008 (007 amended 2026-09-22), REQ-LINT-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | integration | [naming.md](integration/naming.md) | NAME | REQ-NAME-MARKETPLACE-001..010 | Approved | 2026-09-21 |
-| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..010, REQ-PKG-CONSUMERGEOMETRY-001..006 | Approved | 2026-09-21 |
-| integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006, REQ-PC-PACKAGING-001 | Approved | 2026-09-21 |
-| integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005, REQ-DOCS-PACKAGING-001..003 | Approved | 2026-09-21 |
+| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..010, REQ-PKG-CONSUMERGEOMETRY-001..006, REQ-PKG-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
+| integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006, REQ-PC-PACKAGING-001, REQ-PC-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
+| integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005, REQ-DOCS-PACKAGING-001..003, REQ-DOCS-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
 
 > **ORCH delta note:** The ORCH domain mixes shipped requirements (REQ-ORCH-001..015,
@@ -762,6 +785,80 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Q1 — `lint_command()`'s second (shim) return path | REQ-PKG-CONSUMERGEOMETRY-003 acceptance 3 (ii) (added at iteration 2) |
 | Constraint 2 — every binding's reversion fails a gate, demonstrated | REQ-PKG-CONSUMERGEOMETRY-001 acceptance 2, and a stated mutation on every other acceptance in the delta |
 
+### pipeline-observability item coverage (kickoff §The observation gaps 1-11, RS-PIPELINEOBSERVABILITY-001 R1-R15, §Gate observation V3, review round 1 C1-C2/M1-M5, requirements review iteration 3 C1-C3/M1-M4, round 5 M1-M4/m1-m3 and round 6 C1-C2/M1-M3/m1-m3 plus the operator's corpus-sweep clause, round 7 M1-M2/M4/m1-m2 and round 8 M1-M4/m1-m3, none dropped)
+
+| Research row / gap | Disposition | Requirement(s) |
+|---|---|---|
+| R1 / gap 1 — `append` validates through `lint_records`; `rec <n>` on exit 0 only | new + amend | REQ-TELEM-PIPELINEOBSERVABILITY-001; REQ-TELEM-HARNESSP2-004, -HARNESSP3-001 amended |
+| R2 / gap 1 — `flat-cg` migration, 36 migrated / 17 lost, 77 packaging under the same rule, frozen fixture | new + amend | REQ-TELEM-PIPELINEOBSERVABILITY-002; REQ-TELEM-HARNESSP4-005, -HARNESSP5-008 (c) amended |
+| R3 / gap 2a — git-state sentence in the three agent bodies, lint-pinned | new + amend | REQ-AGENT-PIPELINEOBSERVABILITY-001; REQ-AGENT-MARKETPLACE-002 amended |
+| R4 / gap 2b — `GIT_STATE` / `OUT` on a read-only leaf voids its verdict; `accept (note)` voids too | new + amend | REQ-HARN-PIPELINEOBSERVABILITY-004; REQ-HARN-HARNESSP6-001 amended; Q-REQ-PO-B |
+| R5 / gap 2c — `PreToolUse` deny-list hook | **excluded** — OPEN on whether hook input carries the subagent type; a spike task at plan time, not a requirement | none (§Open Questions) |
+| R6 / gap 3 — the cap counts consecutive consumed `REJECT`s; V3 routing (landed) | new ×2 + amend | REQ-HARN-PIPELINEOBSERVABILITY-001, -002; REQ-HARN-001, REQ-HARN-013 amended; Q-REQ-PO-A, -C, -D |
+| R6 — `ROUND_MAX`, the two-consecutive-AWF terminator, V2 rules 3-4, decisions (i)-(iii) | **excluded** — moot under V3 | none (Q-REQ-PO-A) |
+| R7 / gap 3b — fix-induced ground: a heading absent at `sha_N` is in `W_N` | new + amend | REQ-ARB-PIPELINEOBSERVABILITY-001; REQ-ARB-HARNESSP2-002, -HARNESSP3-001 amended |
+| R8 / gap 4 — `post-manual` review before `proceed`, no counter increment | new + amend | REQ-HARN-PIPELINEOBSERVABILITY-003; REQ-HARN-001 amended |
+| R9 / gap 5 — `literal-anchor` (warn, folded) and `self-matching-grep` (fail), corpus repaired in the same commit | new ×2 + amend | REQ-GC-PIPELINEOBSERVABILITY-001, -002; REQ-GC-HARNESSP2-002 amended |
+| §Q5 scope — `plugins/sdd/**` through skill-lint's drift-phrase mechanism | new | REQ-LINT-PIPELINEOBSERVABILITY-001 |
+| §Open Questions — dead-path citation form | new, by decision | REQ-GC-PIPELINEOBSERVABILITY-004; Q-REQ-PO-I |
+| R10 / gap 6 — tier/verdict conflict is the existing `REVIEW: MALFORMED` pause, decided by a count | new + acceptance-only amend | REQ-HARN-PIPELINEOBSERVABILITY-005; REQ-HARN-013, REQ-REV-002 acceptance added; Q-REQ-PO-E |
+| R11 / gap 7 — `qimpl-malformed` under marker 4 | new + amend | REQ-GC-PIPELINEOBSERVABILITY-003; REQ-GC-HARNESSP2-003 amended; Q-REQ-PO-F |
+| R12 / gap 8 — `test_runs = 2 × mutations + gates` | new | REQ-HARN-PIPELINEOBSERVABILITY-006 |
+| R13 / gap 9 — `.claude/` in the hygiene hooks' `exclude`, sandbox-independent reproduction | new | REQ-PC-PIPELINEOBSERVABILITY-001; Q-REQ-PO-K |
+| R14 / gap 10 — Check 3 honours a declared test convention | amend | REQ-CHKC-004 amended; Q-REQ-PO-G |
+| R15 / gap 11 — traced-by-active-plan stale-chain pair is `warn` | amend | REQ-GC-HARNESSP6-003 amended; Q-REQ-PO-H |
+| gap 11 — making the finding block a gate | **excluded** — reverses the never-blocks rule (REQ-GC-HARNESSP2-006) | none |
+| gap 1 — back-filling the 17 lost and the 16 never-written records | **excluded** — declared lost / missing, never reconstructed | REQ-TELEM-PIPELINEOBSERVABILITY-002 states the exclusion |
+| gap 5 — unquoted-pattern `self-matching-grep`; `docs/ws/**` and `docs/research/**` as lint scope; a folded `info` per research spike | **excluded** — pending the fifth observed case; dated snapshots by contract; default no | none (§Open Questions) |
+| §Q3 — the three replay claims (cap 2× not 4×, interventions 3 not 4, specs closes at r3) | **excluded as criteria** — conditional on verdict invariance and prose acceptance; no acceptance criterion quotes them | none (Q-REQ-PO-M) |
+| Kickoff decision — plugin version bump so `/plugin update` is not a no-op | new | REQ-PKG-PIPELINEOBSERVABILITY-001; Q-REQ-PO-L, -T (plugin.json is the sole version field) |
+| Review round 1 C1 — commit shas as comparands | repaired — the two skill-lint `REQUIRED` rows and the `FORBIDDEN` phrase are the comparands; no sha anywhere in the delta | REQ-HARN-PIPELINEOBSERVABILITY-001, -002; Q-REQ-PO-A (amended) |
+| Review round 1 C2 — `CLAUDE.md` unbound (§Gate vocabulary, §Cycle signals, §Repository Structure's phantom `plugin.json`) | new | REQ-DOCS-PIPELINEOBSERVABILITY-001; Q-REQ-PO-U |
+| Review round 1 M1 — the voided-re-dispatch bound had no comparand | acceptance added (a second `REQUIRED` row on `loop-control.md`) | REQ-HARN-PIPELINEOBSERVABILITY-004; Q-REQ-PO-Q |
+| Review round 1 M2 — a round-2 `GROWTH:` quote is unreachable in a correct cycle | acceptance made conditional | REQ-HARN-PIPELINEOBSERVABILITY-002 |
+| Review round 1 M3 — no corpus-repair decision for the 69 anchors | decided: not repaired, standing `warn` floor | REQ-GC-PIPELINEOBSERVABILITY-001, -004; Q-REQ-PO-R; §Out of Scope |
+| Review round 1 M4 — `literal-anchor` phrase scope wider than its measurement | scoped to the swept markdown set | REQ-LINT-PIPELINEOBSERVABILITY-001; Q-REQ-PO-S |
+| Review round 1 M5 — marketplace.json `version` grep satisfied by absence | absence asserted as the criterion | REQ-PKG-PIPELINEOBSERVABILITY-001; Q-REQ-PO-T |
+| Specs review round 2 M2 — the tier-count rule makes the review skill's `Approve with fixes` definition unreachable; no requirement authorised the text change the specs carry | requirement text now requires the re-specified verdict definitions | REQ-REV-002 (amended), REQ-AGENT-PIPELINEOBSERVABILITY-001 (amended); Q-REQ-PO-V |
+| Specs review round 2 M3 — `dead-path-citation` token matched every backticked command ending in a path | "and no whitespace" clause; fifth and sixth fixture cases | REQ-GC-PIPELINEOBSERVABILITY-004 (amended); Q-REQ-PO-W |
+| Specs review round 3 M2 — `Approve` and `Approve with fixes` indistinguishable by their stated predicates | the three verdict definitions restated as mutually disjoint predicates, requirement text the authority for all three; the reviewer agent carries the same three | REQ-REV-002 (amended, second note), REQ-AGENT-PIPELINEOBSERVABILITY-001 (amended, second note); Q-REQ-PO-X |
+| Specs review round 3 M3 — an empty-section placeholder item (`- None`) counts as a blocking item | consumer: a lone placeholder counts as zero; producer: an empty tier section carries no list item | REQ-HARN-PIPELINEOBSERVABILITY-005 (amended), REQ-REV-002 (amended, second note); Q-REQ-PO-Y |
+| Requirements review iteration 3, root cause — parsers defined over artifacts whose producer grammar was never stated | the review report grammar stated once and bound on both producers; every downstream parser restated over it | REQ-REV-PIPELINEOBSERVABILITY-001; Q-REQ-PO-Z |
+| Requirements review iteration 3 C1 — section end "the next heading" spans all three tiers | section extent := label line to the next label line of the grammar or the `VERDICT:` line, whichever comes first (removed by Q-REQ-PO-AD at round 5, restored by Q-REQ-PO-AF at round 6 — the row is true again) | REQ-REV-PIPELINEOBSERVABILITY-001 (1), cited by REQ-HARN-PIPELINEOBSERVABILITY-005; fixture F1 |
+| Requirements review iteration 3 C2 — label "on its own line" matches nothing (the template carries a gloss) | gloss form stated in the grammar; the count rule parses it | REQ-REV-PIPELINEOBSERVABILITY-001 (1); fixture F2 |
+| Requirements review iteration 3 C3 — nothing obliges `agents/reviewer.md` to emit tier sections | the grammar bound on the agent body with per-producer witnesses; a missing Critical label is `MALFORMED (missing section)` | REQ-REV-PIPELINEOBSERVABILITY-001 (i)-(vi), REQ-AGENT-PIPELINEOBSERVABILITY-001 (amended), REQ-HARN-PIPELINEOBSERVABILITY-005; fixtures F3, F6 |
+| Requirements review iteration 3 M1 — two different verbatim `APPROVE_WITH_FIXES` sentences under one claimed authority | one authority; both amendment notes point at it and state no sentence | REQ-REV-PIPELINEOBSERVABILITY-001 (3); REQ-REV-002, REQ-AGENT-PIPELINEOBSERVABILITY-001 (amended) |
+| Requirements review iteration 3 M2 — the index annotates 5 of 9 amended files | the amendment-landing convention; all nine annotated, own-id rewrites not annotated | REQ-REQ-PIPELINEOBSERVABILITY-001 (d); Q-REQ-PO-AA |
+| Requirements review iteration 3 M3 / M4 — no zero-count for the old `Approve` line; a `reads 1 (today 1)` grep witnesses nothing | one zero-count witness over every retired wording; per-wording positional greps with measured baselines | REQ-REV-PIPELINEOBSERVABILITY-001 (v) |
+| Requirements review iteration 3 shape 3 — `self-matching-grep` and `dead-path-citation` parse lines with no stated grammar | command-line grammar (operands, quoting, piped form out of scope) and token grammar (whitespace-free, backticked-command exclusion), one fixture per form | REQ-GC-PIPELINEOBSERVABILITY-002, -004 (amended); Q-REQ-PO-AB |
+| Requirements review iteration 3 shape 4 — the `post-manual` review had no record shape or per-chunk behaviour | `dispatch.reason = POST_MANUAL`, `fix_iteration` unchanged, `[reason-review]` untouched, per-chunk inputs and `redo_count` stated | REQ-HARN-PIPELINEOBSERVABILITY-003, REQ-TELEM-PIPELINEOBSERVABILITY-003 (amended); Q-REQ-PO-AC |
+| Requirements review round 5 M1 — is the `VERDICT:` line's position part of the grammar? | decided "binding" (Q-REQ-PO-AD), **reverted at round 6** — see the round 6 C1 row | Q-REQ-PO-AD (retired) |
+| Requirements review round 5 M2 — one label-line definition for three differently-shaped lines | the Verdict form, the token form and the bold-label form stated separately | REQ-REV-PIPELINEOBSERVABILITY-001 (1) |
+| Requirements review round 5 M3 — the token-position sentence contradicted the binding order | moot after the revert: the sentence is the live rule and leaves witness (v) | REQ-REV-PIPELINEOBSERVABILITY-001 (v); Q-REQ-PO-AF |
+| Requirements review round 5 M4 — the Spec cell of an `(amended)` row named the amendment section alone | the section of record first, the amendment section at most second | REQ-REQ-PIPELINEOBSERVABILITY-001 (b), (c) |
+| Requirements review round 5 m1 — `- None` beside a real item counted 2 | the placeholder is normalised out before counting | REQ-HARN-PIPELINEOBSERVABILITY-005; Q-REQ-PO-AE; fixture F4 |
+| Requirements review round 5 m2 / m3 — the row ordinal and the bold-label tier form | ordinal dropped; witness (v)'s regex covers the bold-label form | REQ-REV-PIPELINEOBSERVABILITY-001 (v), (vi) |
+| Requirements review round 6 C1 — the binding position contradicted four shipped consumer texts none of which the delta amends | **reverted**: position is not binding; the token line is "on a line of its own, anywhere in the report; last occurrence wins", quoting `return-contract.md` §6 as the authority | REQ-REV-PIPELINEOBSERVABILITY-001 (1); Q-REQ-PO-AF |
+| Requirements review round 6 C2 — the out-of-order malformed condition had no render string, option set, fixture or witness | removed; the extent escape restored; REQ-HARN-013's "(no text of the malformed branch changes)" true again | REQ-HARN-PIPELINEOBSERVABILITY-005; Q-REQ-PO-AF |
+| Requirements review round 6 M1 — the completeness ledger stopped at iteration 3 | round 5 and round 6 rows added; the iteration 3 C1 row made true | this table |
+| Requirements review round 6 M2 — a self-invalidated 9/5 baseline | dated to round 4; the current 9/9 measured | REQ-REQ-PIPELINEOBSERVABILITY-001 acceptance |
+| Requirements review round 6 M3 — HARN-005 restated the extent rule and the label form | HARN-005 cites REQ-REV-PIPELINEOBSERVABILITY-001 (1) and states only the count rule, the placeholder rule and the two pauses | REQ-HARN-PIPELINEOBSERVABILITY-005 |
+| Requirements review round 6 m1 / m2 / m3 — the version log, retired sentences beside live ones, an un-witnessed row count | Q-REQ-PO-AF/-AG carry the log; Q-REQ-PO-V/-X bodies read "(wording retired; see Q-REQ-PO-Z)"; the traceability header names the pending rows | this index; `docs/ws/pipeline-observability/traceability.md` |
+| Operator decision at round 6 — the root cause of non-convergence: binding statements landed without a corpus sweep | clause (e): a stated grep over the four trees, every hit reconciled or retired in the requirement's own text; applied to every binding statement of this delta — at round 7 all 36 ids the workstream mints or amends carry a sweep block or the `> no binding statement` marker, decided by (e)'s set equality (36 = 36 on 2026-09-22) | REQ-REQ-PIPELINEOBSERVABILITY-001 (e); Q-REQ-PO-AG, -AH; sweep blocks on the 21 new ids and 13 amendment notes, the exemption marker on 2 notes |
+| Requirements review round 7 M1 — clause (e) sat on 9 of the 21 new ids and on no amendment note while the row above claimed every binding statement | sweep blocks added to the 12 remaining new ids and to 13 amendment notes; the exemption marker on the 2 notes that bind nothing of their own (REQ-AGENT-MARKETPLACE-002, REQ-REV-002) | every `*-PIPELINEOBSERVABILITY-*` body; every `> **Amended 2026-09-22**` note |
+| Requirements review round 7 M2 — (e)'s acceptance checked the blocks that existed, never which ids owed one | derived set equality: the per-ws Requirement column equals the ids carrying a block or marker (36 = 36 today), with two temp-copy witnesses | REQ-REQ-PIPELINEOBSERVABILITY-001 (e) acceptance; Q-REQ-PO-AH |
+| Requirements review round 7 M4 — AGENT-001's acceptance weaker than its body | the `REQUIRED` row stated verbatim (`git stash`, `files:` the three bodies) and one ordered-alternation grep per body reading 3 only when every named surface is present (today 0) | REQ-AGENT-PIPELINEOBSERVABILITY-001 acceptance |
+| Requirements review round 7 m1 / m2 — the extent clause's redundant escape; the traceability header silent on why specs already ran | the half-sentence added (the token line is a label line whose position is free); the header names the 2026-09-22 loop-back from the specs review | REQ-REV-PIPELINEOBSERVABILITY-001 (1); `docs/ws/pipeline-observability/traceability.md` header |
+| Requirements review round 8 M1 — `REDO_MAX` bound as a binding clause with no defining requirement; the sweep never listed its per-chunk definition | scope stated in the body (same value, counted per gate, per-chunk cap untouched); the definition named as `docs/spec/harness-loop-control.md` §Redo Cap per Chunk, with the finding that no requirement establishes it; the sweep re-run over `voided\|REDO_MAX`, every hit listed | REQ-HARN-PIPELINEOBSERVABILITY-004; Q-REQ-PO-AI |
+| Requirements review round 8 M2 — REQ-HARN-001's note cited REQ-HARN-008 as the redo cap | `-008` dropped; the spec's copy of the miscitation noted for the specs re-derivation | REQ-HARN-001 (amended); Q-REQ-PO-AI |
+| Requirements review round 8 M3 — an `APPROVE` beside Material items raised no pause | option (a): `material_items` with the same normalisation, a third `tier/verdict conflict` pause, the missing-Material pause, fixture F7, assertion (d) extended | REQ-HARN-PIPELINEOBSERVABILITY-005, REQ-REV-PIPELINEOBSERVABILITY-001 (3), REQ-TELEM-PIPELINEOBSERVABILITY-003 (d); Q-REQ-PO-AJ |
+| Requirements review round 8 M4 — the declared-convention clause derived no module set | the set := script paths in commands the convention quotes (inline-code or fenced in `CLAUDE.md`, or a pre-commit hook `entry:`), one command over the two files, a covered/uncovered verifier fixture; the `grep -c convention` criterion withdrawn | REQ-CHKC-004 (amended) |
+| Requirements review round 8 m1 / m2 / m3 — an `Amended` marker on an own id; sweep comparands that exist only in the working tree; an unqualified `69` | the AGENT-001 note in the bare `[Updated:]` form (marker count 15); the traceability header names the uncommitted specs-stage comparands; "a reference value, never a pin" on the `69` | REQ-AGENT-PIPELINEOBSERVABILITY-001; `docs/ws/pipeline-observability/traceability.md` header; REQ-GC-PIPELINEOBSERVABILITY-001 |
+| Specs review round 5 M3, routed to its requirements origin (kickoff constraint 5) — the conflict conditions were not exhaustive over REQ-REV-PIPELINEOBSERVABILITY-001 (3): an empty report under `APPROVE_WITH_FIXES` raised no pause | fifth pause `0 material under APPROVE_WITH_FIXES`; the case table written out, which exposed a sixth cell (`0 blocking under REJECT`) also pausing; fixtures F8 and F9, two witness greps (today 0, 0), assertion (d) extended, the sweep re-run over `material under\|blocking under\|tier/verdict` | REQ-HARN-PIPELINEOBSERVABILITY-005, REQ-REV-PIPELINEOBSERVABILITY-001 (3), REQ-TELEM-PIPELINEOBSERVABILITY-003 (d); Q-REQ-PO-AK |
+| Specs closing review C2, routed to its requirements origin (kickoff constraint 5) — the rule-table population pin was a frozen literal that every row-adding cycle had to chase, and REQ-LINT-PACKAGING-007 had lagged the spec by one manual landing (`40 / 13` against a tree at `42 / 14`) | the comparand becomes derived: the self-test asserts `--print-population` == the code tables' row counts == `docs/spec/two-root-linter.md` §6's numbers, and §6 states them under a dated marker as current-at-date, moved by any cycle that adds rows; today `42 / 9 / 7 / 14` measured with the exact command; the cause and the one-landing lag recorded in the amendment note; the two sweep blocks re-run with the population terms, every hit reconciled by naming the post-delta populations (`REQUIRED` 56, `FORBIDDEN` 15 as stated at the specs stage; `57` / `15` after row p15, 27.8) and the mover | REQ-LINT-PACKAGING-007 (amended); REQ-LINT-PIPELINEOBSERVABILITY-001 and REQ-REV-PIPELINEOBSERVABILITY-001 (second sweep blocks); Q-REQ-PO-AL |
+| Chunk 3 replan trigger (Q-IMPL-PIPELINEOBSERVABILITY-009), routed to its requirements origin (kickoff constraint 5) — clause (e) never required a sweep command to exclude the file that states it, so all 40 corpus-sweep `Command:` lines under `docs/requirements/**` were `[self-matching-grep]` findings by construction | (e) requires `--exclude=<own basename>` (or a fenced non-counting form); every offending `Command:` line rewritten, pattern and the four trees unchanged; the acceptance gains the gc count as decider (0 today, 40 before); the (e) set equality re-run (37 = 37) | REQ-REQ-PIPELINEOBSERVABILITY-001 (e); Q-REQ-PO-AM |
+| Kickoff constraint 2 — every binding's reversion fails a gate, demonstrated | — | a stated reversion witness on every new acceptance above; prose-only consequences are marked in the research's §Mechanical pin and are not criteria |
+
 ## Domain Prefixes
 
 | Prefix | Domain | File |
@@ -778,7 +875,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | REV | External Review | functional/review.md |
 | ORCH | SDD Orchestration Driver | functional/orchestration.md |
 | WS | Multi-Workstream SDD | functional/multi-workstream.md |
-| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md, `HARNESSP3`-prefixed additions split across harness-verification.md and harness-boundaries.md — the `HARNESSP3` counter is per domain and runs 001..005 across both files; `HARNESSP4` likewise runs 001..007 — 001..006 in harness-boundaries.md, 007 in harness-verification.md; `HARNESSP5` runs 001..002 — 001 in harness-loop-control.md, 002 in harness-boundaries.md; `HARNESSP6` runs 001..002 — 001 in harness-boundaries.md, 002 in harness-verification.md) |
+| HARN | Harness Hardening | functional/harness-loop-control.md, functional/harness-verification.md, functional/harness-boundaries.md (one domain, one ID sequence, three files; `HARNESSP2`-prefixed additions in harness-boundaries.md, `HARNESSP3`-prefixed additions split across harness-verification.md and harness-boundaries.md — the `HARNESSP3` counter is per domain and runs 001..005 across both files; `HARNESSP4` likewise runs 001..007 — 001..006 in harness-boundaries.md, 007 in harness-verification.md; `HARNESSP5` runs 001..002 — 001 in harness-loop-control.md, 002 in harness-boundaries.md; `HARNESSP6` runs 001..002 — 001 in harness-boundaries.md, 002 in harness-verification.md; `PIPELINEOBSERVABILITY` runs 001..006 — 001..003 in harness-loop-control.md, 004 in harness-boundaries.md, 005..006 in harness-verification.md) |
 | ARB | Arbitrated Handoff (contradicting review rounds) | functional/arbitrated-handoff.md |
 | REDB | Adversarial (Red/Blue) Verify | functional/adversarial-verify.md |
 | TELEM | Per-Dispatch Telemetry | functional/telemetry.md |
@@ -797,6 +894,508 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | CFG | Configuration | configuration/version-marker.md |
 
 ## Q-REQ Resolutions
+
+Resolved during requirements gathering for RS-PIPELINEOBSERVABILITY-001 (the
+harness verifying itself, workstream `pipeline-observability`). The stage ran
+**non-interactively**; every decision the dispatch handed it or that it met was
+resolved by choice and is recorded here with its reason. No new domain prefix
+was created (Q-REQ-PO-N).
+
+- **Q-REQ-PO-A** (V3 versus V2; gaps 3 and 4 together): **V3 is bound as
+  landed** — `REJECT` → fix → re-review counted by `FIX_LOOP_MAX`;
+  `APPROVE_WITH_FIXES` → fix → proceed without re-review unless the operator
+  opts in; packets carry Critical/Material only; an `APPROVE_WITH_FIXES` after
+  the cap is not an exhaustion; the informational `GROWTH:` line
+  (REQ-HARN-PIPELINEOBSERVABILITY-001, -002). The acceptance comparands are
+  the two skill-lint `REQUIRED` rows — `proceeds **without re-review**` on
+  `skills/orchestrate/SKILL.md` and `GROWTH: ` on
+  `skills/orchestrate/references/loop-control.md` — and the `FORBIDDEN`
+  phrase `then re-run the review for this stage`, decided by `python3
+  plugins/sdd/tools/skill-lint.py --self-test` and by the linter over a
+  mutated copy; recorded as in force. **No commit sha is cited** (amended at
+  review round 1, C1: the sha first written did not exist, and a sha is a
+  snapshot comparand of the class `literal-anchor` warns on). V2's `ROUND_MAX`, its
+  two-consecutive-AWF terminator, rules 3-4 and the R6 decisions (i)-(iii) are
+  **not adopted**: under V3 an AWF ends the stage's review chain, so nothing
+  they bound can arise. The three caps stay three.
+- **Q-REQ-PO-B** (does `accept (note)` also void a read-only leaf's verdict):
+  **yes** — the verdict was produced by a leaf that mutated what it was
+  verifying, and restoring the tree does not restore the verdict
+  (REQ-HARN-PIPELINEOBSERVABILITY-004). The re-dispatch this causes is bounded
+  by a per-gate voided-re-dispatch count at the `REDO_MAX` value — a
+  session-scoped counter, no fourth cap name — because the research's own
+  argument for `ROUND_MAX` (a leaf that mutates on every dispatch loops
+  unbounded) survives the rejection of `ROUND_MAX` and needs some bound.
+- **Q-REQ-PO-C** (REQ-HARN-001's counted quantity): **amended in place** to
+  consecutive consumed `REJECT`s, which its acceptance criterion already read;
+  voided, `post-manual` and third-opinion rounds count nothing. The
+  `explicit operator-authorized extra iteration` option stays — kickoff
+  constraint 4 is this cycle's operator policy, not a corpus rule.
+- **Q-REQ-PO-D** (REQ-HARN-013's `APPROVE_WITH_FIXES` branch): **amended in
+  place** to fix-then-proceed; the id is kept because the token contract and
+  the never-parse-prose rule are unchanged and a successor id would separate
+  the branch table from the rule it belongs to.
+- **Q-REQ-PO-E** (R10's form — new requirement, or acceptance on the existing
+  ones): **both, as the research asks** — REQ-HARN-PIPELINEOBSERVABILITY-005
+  holds the count rule and its fixtures (a testable criterion needs a home);
+  REQ-HARN-013 and REQ-REV-002 gain acceptance-only notes and no text change,
+  because the contract already forbade the recorded rounds.
+- **Q-REQ-PO-F** (gap 7 and the legacy bare counter): REQ-GC-HARNESSP2-003's
+  "or a legacy bare counter" is **narrowed** to bare ids with a bare
+  definition, derived from the definition scan at read time. This is not the
+  "looks local" scoping REQ-GC-HARNESSP3-001 declines: membership is decided by
+  the definition set, not by the id's shape.
+- **Q-REQ-PO-G** (REQ-CHKC-004 versus an embedded self-test): **amended in
+  place** — a convention declared in `CLAUDE.md` satisfies the check for the
+  modules it names; the import-file form stays the default elsewhere.
+- **Q-REQ-PO-H** (REQ-GC-HARNESSP6-003's mandated `info`): **amended in
+  place** with the traced-by-active-plan exception at `warn`; blocking a gate
+  is excluded (REQ-GC-HARNESSP2-006 stands).
+- **Q-REQ-PO-I** (the dead-path citation form — a third gc rule, or
+  skill-lint's retired-prefix sweep extended to specs): **a third gc rule,
+  `dead-path-citation`, at `warn`** (REQ-GC-PIPELINEOBSERVABILITY-004). The
+  class is a corpus comparand over gc's scope; the retired-prefix sweep is a
+  rename-specific check over skill text and would import a docs scope it does
+  not have. `warn` because the research measured the anchor form and the grep
+  form but not the path-only count. `should`, not `must`: it is the one rule
+  the research raised at a gate rather than measured.
+- **Q-REQ-PO-J** (telemetry migration): 36 migrated / 17 lost for
+  consumer-geometry and the same key-set rule over the 77 packaging records,
+  against a frozen fixture the operator cuts; nothing back-filled
+  (REQ-TELEM-PIPELINEOBSERVABILITY-002). Decided at DISCUSS; recorded here.
+- **Q-REQ-PO-K** (gap 9's sandbox-dependent falsifier): the acceptance names
+  two reproductions that never open the file — a `re` match of the parsed
+  `exclude` value and `pre-commit run … --files .claude/settings.json`
+  reporting the hook skipped (REQ-PC-PIPELINEOBSERVABILITY-001).
+- **Q-REQ-PO-L** (plugin version bump): one `PKG` requirement bound to the
+  branch point by semantic-version comparison (REQ-PKG-PIPELINEOBSERVABILITY-001);
+  the field's presence is REQ-PKG-MARKETPLACE's, its movement is this cycle's.
+- **Q-REQ-PO-M** (the Q3 replay claims): **not acceptance criteria.** They
+  hold only under verdict invariance and prose acceptance; the research says a
+  criterion built on them is false, and V3 supersedes the routing they measure.
+- **Q-REQ-PO-N** (domain for the delta): **no new prefix** — every change
+  amends or extends an existing domain (TELEM, HARN, AGENT, ARB, GC, LINT,
+  CHKC, REV, PC, PKG, and — from review round 1 — DOCS); the
+  per-domain-and-workstream counter makes collision impossible.
+- **Q-REQ-PO-O** (Q2 hook enforcement): **stays OPEN**; a spike task at plan
+  time (one live dispatch with a logging hook), not a requirement now.
+- **Q-REQ-PO-P** (where the amended requirements' traceability rows go): the
+  dispatch's deliverable contract asks for one row per new **or amended**
+  requirement in `docs/ws/pipeline-observability/traceability.md`, and that is
+  what was written; the consumer-geometry precedent of not duplicating rows an
+  earlier workstream owns is noted in §Open Questions for the orchestrator's
+  regeneration step.
+- **Q-REQ-PO-Q** (review round 1 M1 — where the voided-re-dispatch bound's
+  comparand lives): **a comparand, not a demotion** — one sentence in
+  `references/loop-control.md` §1b naming `REDO_MAX` as the cap on voided
+  re-dispatches, pinned by a second skill-lint `REQUIRED` row on that file
+  (REQ-HARN-PIPELINEOBSERVABILITY-004). Chosen over a fifth cross-field
+  `--lint` assertion because the bound is a gate-rendering rule, and the
+  linter already pins the file that renders it; the specs stage may add the
+  telemetry witness as well but may not drop the row.
+- **Q-REQ-PO-R** (review round 1 M3 — the 69 `literal-anchor` findings in 7
+  binding files, and any `dead-path-citation` findings beyond the three
+  repaired spec lines): **not repaired by this cycle.** They are earlier
+  cycles' approved requirement and spec text, each anchored to a comparand its
+  own commit froze; rewriting a shared approved body is a human PR decision.
+  Both rules land as a standing `warn` floor that the DONE `GC:` line routes
+  `record | ignore`; a repair, if wanted, is a later cycle's task bounded to
+  those 7 files (REQ-GC-PIPELINEOBSERVABILITY-001, -004; §Out of Scope).
+- **Q-REQ-PO-S** (review round 1 M4 — the `literal-anchor` drift phrase's
+  file set): **the swept markdown set only.** The zero-cost claim was measured
+  over the 28 markdown files skill-lint sweeps; `plugins/sdd/tools/*.py` and
+  `plugins/sdd/tools/fixtures/**` were not measured and are outside the
+  phrase's `files:` (REQ-LINT-PIPELINEOBSERVABILITY-001). Widening it is a
+  later decision taken after a read-only measurement of that set.
+- **Q-REQ-PO-T** (review round 1 M5 — the second `version` grep):
+  `plugins/sdd/.claude-plugin/plugin.json` is **the sole plugin-version
+  field**; `.claude-plugin/marketplace.json` carries none, and the acceptance
+  now asserts that absence rather than reading it as agreement
+  (REQ-PKG-PIPELINEOBSERVABILITY-001).
+- **Q-REQ-PO-U** (review round 1 C2 — `CLAUDE.md` unbound): one `DOCS`
+  requirement, REQ-DOCS-PIPELINEOBSERVABILITY-001, binds §Gate vocabulary and
+  §Cycle signals to the landed routing, the counted quantity and the `GROWTH:`
+  line, and §Repository Structure to the real `plugin.json` path, every clause
+  decided by a grep. `DOCS` is an existing prefix (Q-REQ-PO-N stands).
+- **Q-REQ-PO-V** — *Superseded by Q-REQ-PO-Z (2026-09-22); the wordings
+  below are retired and kept as history only.* (specs review round 2 M2 —
+  verdict definitions vs. the tier-count rule): **the review-skill text is the side that moves, and the
+  requirement now says so.** REQ-HARN-PIPELINEOBSERVABILITY-005's count rule
+  (≥ 1 blocking item under a non-Reject verdict → `REVIEW: MALFORMED`) makes
+  the shipped `Approve with fixes` definition (wording retired; see
+  REQ-REV-PIPELINEOBSERVABILITY-001 (v)) unreachable — the skill instructed reviewers to emit exactly
+  the shape the gate rejects, which is the origin of the tier/verdict
+  conflicts the research records and of three reviews in this cycle. The
+  specs had re-specified the text without an authorising requirement; the
+  repair is at the origin: REQ-REV-002 (amended) required an `Approve with
+  fixes` line and a `Reject` line (wording retired; see Q-REQ-PO-Z), with a
+  zero-count grep of the old wording and a skill-lint `REQUIRED` row on the
+  then `Approve with fixes` phrase as acceptance. The
+  `agents/reviewer.md` `APPROVE_WITH_FIXES`-paragraph obligation sits on
+  REQ-AGENT-PIPELINEOBSERVABILITY-001 (amended; acceptance
+  `grep -c 'no blocking finding' plugins/sdd/agents/reviewer.md` reads 2),
+  where the other body-sentence obligation lives — not on
+  REQ-AGENT-MARKETPLACE-002, which governs frontmatter only. Row count: the
+  skill-lint row is one this cycle adds; no requirement enumerates the
+  cycle's rows, so no ordinal is asserted for it.
+- **Q-REQ-PO-W** (specs review round 2 M3 — `dead-path-citation` token shape):
+  **the token additionally holds no whitespace.** Defined by an
+  excluded-character list alone, the token matched every backticked command
+  whose last argument is a path, a class the research's path-only measurement
+  never counted; a cited path has no spaces. REQ-GC-PIPELINEOBSERVABILITY-004
+  (amended) carries the clause and two more fixture cases — a backticked
+  `grep -c <pattern> <live path>` command (no finding) and the same path cited
+  alone while absent (one finding). Tightening, not widening.
+- **Q-REQ-PO-X** — *Superseded by Q-REQ-PO-Z (2026-09-22); the predicates
+  now live in REQ-REV-PIPELINEOBSERVABILITY-001 (3).* (specs review round 3
+  M2 — `Approve` vs `Approve with fixes` not disjoint): **the three verdict definitions are restated as mutually
+  disjoint predicates over the tier counts, and REQ-REV-002 is the authority
+  for all three lines, not one.** Q-REQ-PO-V moved the `Approve with fixes`
+  and `Reject` lines and left the old `Approve` line (wording retired; see
+  Q-REQ-PO-Z), so a report
+  with Material findings and no blocking finding satisfied both `Approve` and
+  `Approve with fixes` while the gate routes them differently (`proceed` with
+  no packet vs. fix-then-proceed) — a reviewer choosing `Approve` silently
+  dropped every Material finding. Now: three disjoint predicates (wording
+  retired here; see Q-REQ-PO-Z and REQ-REV-PIPELINEOBSERVABILITY-001 (3)).
+  Every report falls under exactly one. The skill-lint `REQUIRED` pattern
+  moves from the Q-REQ-PO-V phrase to the `Approve with fixes` predicate's
+  phrase (same row, same count). The same three-way obligation sits on
+  REQ-AGENT-PIPELINEOBSERVABILITY-001 for `agents/reviewer.md` §What your
+  token means, whose `APPROVE` and `REJECT` paragraphs now change too; its
+  `reads 2` grep is replaced by one grep per wording, each reading 1.
+- **Q-REQ-PO-Y** (specs review round 3 M3 — the placeholder item is a list
+  item): **consumer tolerant, producer clean.** The tier-count rule counted
+  `- None` under `**Critical findings:**` as one blocking item, so a clean
+  `VERDICT: APPROVE` report would pause as `REVIEW: MALFORMED`.
+  REQ-HARN-PIPELINEOBSERVABILITY-005 (amended) counts a lone item whose
+  visible text normalises to `none` / `n/a` / em dash as zero (two or more
+  items count as written), recognises the section start in the bold-label
+  form the review skill's template uses as well as the heading form, and
+  pins a `counts as zero` sentence in `references/return-contract.md`;
+  REQ-REV-002 (amended, second note) adds the producer obligation that an
+  empty tier section carries no list item. Acceptance fixture:
+  `**Critical findings:** - None` + `VERDICT: APPROVE` renders no pause.
+- **Q-REQ-PO-Z** (requirements review iteration 3, root cause — which tier
+  vocabulary, and where the report grammar lives): **one requirement,
+  REQ-REV-PIPELINEOBSERVABILITY-001, states the whole grammar; the vocabulary
+  is Critical / Material / Minor with `C<n>:` / `M<n>:` / `m<n>:` prefixes,
+  and `Blocking` / `Substantive` are retired.** Chosen over the agent's
+  blocking/substantive/minor because the skill's template, the arbitration
+  keys (REQ-ARB-HARNESSP2-001/-008 key per Critical/Material line), the
+  telemetry field `verdict.findings` `{C, M, m}` and every dispatch template
+  already spell the C/M/m form; the agent body was the only text on the other
+  side. The section-start form is the bold label with an optional bracketed
+  gloss, because that is what the template emits and a reviewer copies; no
+  tier is a markdown heading. The verdict definitions of Q-REQ-PO-V/-X and the
+  producer-side empty-tier rule of Q-REQ-PO-Y move into the grammar unchanged
+  in substance; REQ-REV-002's and REQ-AGENT-PIPELINEOBSERVABILITY-001's notes
+  now point at it and carry no sentence of their own. **This is the major
+  version bump (25.2 → 26.0)**: two requirements are added (REV, REQ), and the
+  parser clauses REQ-HARN-PIPELINEOBSERVABILITY-005 had accreted — the
+  "next heading" section end, the heading-or-label dual form, the `Blocking`
+  spelling — are removed rather than reworded.
+- **Q-REQ-PO-AA** (requirements review iteration 3 M2, and the §Open
+  Questions item on duplicate traceability rows): **the amendment-landing
+  convention is a requirement, REQ-REQ-PIPELINEOBSERVABILITY-001.** The
+  `(amended)` row is kept (not dropped at regeneration) and its meaning is
+  fixed — "this workstream changed the id and does not own it" — so the
+  aggregate carries the owner's row as the id's row and the marked row as a
+  delivery assertion only; the Files-table annotation is derived from those
+  rows, so it is all nine files or a defect, never five; a rewrite of an id
+  this workstream minted (REQ-HARN-PIPELINEOBSERVABILITY-005,
+  REQ-GC-PIPELINEOBSERVABILITY-004) is not an amendment and its annotation is
+  removed. Spec side: the section of record moves, the amendment section
+  records why — never the reverse — because a cold reader reads the section,
+  not the appendix.
+- **Q-REQ-PO-AB** (`self-matching-grep`'s piped form): **out of scope by
+  decision, stated in the grammar.** `sed … F | grep P` has no file operand;
+  the rule reads grep's own operands (the 85 invocations the research parsed
+  were all of that form), and naming `F` as a target would mean parsing every
+  upstream command's operand conventions. The fixture asserts the piped form
+  yields no finding, so the exclusion is decided, not silent.
+- **Q-REQ-PO-AC** (the `post-manual` review's footprint): **an ordinary
+  `review` dispatch with `dispatch.reason = POST_MANUAL`, a new enum member
+  outside the fix-only subset; `gate.fix_iteration` unchanged; the
+  `[reason-review]` warning untouched because its predicate names `REVIEW`
+  only; at a per-chunk gate it takes the chunk's implement-stage inputs and
+  leaves `gate.redo_count` alone.** A new member rather than a label field
+  because the domain table has no label field and REQ-TELEM-HARNESSP2-002
+  admits no new record key; `reason` already distinguishes `THIRD_OPINION`,
+  the closest precedent (a round that counts nothing).
+- **Q-REQ-PO-AD** (requirements review round 5 M1 — is the `VERDICT:` line's
+  position part of the grammar?): *Reverted by Q-REQ-PO-AF (2026-09-22):
+  contradicted the shipped consumer contract in four texts; the orchestrator's
+  packet recommendation was the cause.* (decision retired; the three
+  label-line forms it introduced survive in REQ-REV-PIPELINEOBSERVABILITY-001
+  (1); see Q-REQ-PO-AF.)
+- **Q-REQ-PO-AE** (requirements review round 5 m1 — `- None` beside a real
+  item): **the placeholder is normalised out before counting, never counted.**
+  A count that reads 2 for `- None` + `C1:` over-reports by a token the
+  producer grammar forbids and the consumer already recognises; dropping every
+  placeholder item before counting gives 0 for the lone case (Q-REQ-PO-Y,
+  unchanged) and 1 for the mixed case, and the pause text's `N` is then the
+  number of real findings.
+- **Q-REQ-PO-AF** (requirements review round 6 C1, C2 — the `VERDICT:` line's
+  position, second decision): **not binding — reverted, not extended.** The
+  token line is "on a line of its own, anywhere in its report", exactly one,
+  "last occurrence wins", with
+  `plugins/sdd/skills/orchestrate/references/return-contract.md` §6 as the
+  authority; the section list of REQ-REV-PIPELINEOBSERVABILITY-001 (1) is the
+  producer's order, not a parsed constraint; the extent clause's "or the
+  `VERDICT:` line, whichever comes first" escape is restored;
+  REQ-HARN-PIPELINEOBSERVABILITY-005 cites that clause and drops the
+  out-of-order malformed condition (which had no render string, option set,
+  fixture or witness); the "its position is not part of the contract" sentence
+  leaves witness (v) because it is the live rule. Why revert rather than amend
+  the four texts: the contract has one consumer and four shipped statements of
+  it, all agreeing; a fifth text that disagrees is a second contract for one
+  parser, and no observed defect motivated the change — it came from the
+  round-5 packet's recommendation, not from a review finding. **Version log:**
+  26.0 → 26.1 (round 5, minor) carried Q-REQ-PO-AD, -AE and
+  REQ-REQ-PIPELINEOBSERVABILITY-001 (b) — rewordings and acceptance
+  tightenings, no id added or removed. **26.1 → 27.0 (round 6, major)**: a
+  binding condition is removed (the binding section order and the
+  out-of-order `REVIEW: MALFORMED` condition, this entry) and a corpus-wide
+  clause is added (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG) that
+  changes what every future amendment must carry — a major bump under
+  REQ-REQ-002 because a requirement's obligations changed, not its wording.
+- **Q-REQ-PO-AG** (operator decision at round 6 — the root cause of
+  non-convergence): **every binding statement lands with a corpus sweep,
+  stated in the requirement's own text.** REQ-REQ-PIPELINEOBSERVABILITY-001
+  (e): a stated, re-runnable grep over `docs/requirements/**`, `docs/spec/**`,
+  `plugins/sdd/skills/**` and `plugins/sdd/agents/**`; every hit reconciled
+  (consistent, with the reason) or retired (in a zero-count witness); a hit in
+  an unamended `plugins/**` or `docs/spec/**` file names the requirement that
+  will amend it. Applied in this iteration to the report grammar's label list
+  and prefixes, the three verdict predicates, the token-line rule
+  (REQ-REV-PIPELINEOBSERVABILITY-001), the tier-count rule with its two pauses
+  and the placeholder rule (REQ-HARN-PIPELINEOBSERVABILITY-005), the
+  `APPROVE_WITH_FIXES` routing, the `GROWTH:` line and the `post-manual`
+  footprint (REQ-HARN-PIPELINEOBSERVABILITY-001..003), the `literal-anchor`,
+  `self-matching-grep` and `dead-path-citation` disciplines
+  (REQ-GC-PIPELINEOBSERVABILITY-001, -002, -004) and the `(amended)` marker
+  (REQ-REQ-PIPELINEOBSERVABILITY-001 itself). Three sweeps found shipped or
+  spec sentences on the old side of a decided rule and reconciled them by
+  naming the amending requirement (the specs re-derivation under (b)):
+  `docs/spec/review.md`'s verdict definitions, `docs/spec/harness-return-contract.md`'s
+  lone-placeholder step, and `docs/spec/telemetry-reader.md`'s lower-case
+  `post-manual` reason; no sweep found a shipped `plugins/**` sentence the
+  delta contradicts without a witness. `plugins/sdd/tools/**` is outside the
+  swept trees by decision — the tools carry pins, not prose contracts.
+- **Q-REQ-PO-AH** (requirements review round 7 M1/M2 — who owes a sweep
+  block): **the obligation is a derived set, not a list.** The ids that owe a
+  block are exactly the Requirement column of `docs/ws/<id>/traceability.md`,
+  `(amended)` rows included; a requirement or amendment note that states no
+  must / never / only / exactly, grammar, parser or token rule of its own —
+  one that only points at another requirement as the authority — carries the
+  literal marker `> no binding statement` followed by the reason, and nothing
+  else satisfies REQ-REQ-PIPELINEOBSERVABILITY-001 (e). Applied at round 7:
+  the 21 new ids and 13 amendment notes carry a block; the notes on
+  REQ-AGENT-MARKETPLACE-002 and REQ-REV-002 carry the marker. Three sweeps
+  found old-side sentences no earlier round had listed: the accepted rename
+  over-fire in `references/loop-control.md` and `docs/spec/arbitrated-handoff.md`
+  §Known Limitations (retired by REQ-ARB-PIPELINEOBSERVABILITY-001, witness
+  `grep -c 'renames are rare'` reading 0 in each), the fixed implement budget
+  rows of `references/return-contract.md` §Budget table (amended by
+  REQ-HARN-PIPELINEOBSERVABILITY-006) and the one-member `migration.from`
+  enum of `docs/spec/telemetry-reader.md` case (c) (amended by
+  REQ-TELEM-HARNESSP5-008 as amended). Default considered: no exemption
+  marker, every note owes a block — rejected, because a note with no wording
+  of its own has nothing to sweep and a block over nothing is a false claim.
+  **Version log:** 27.0 → 27.1 (round 7, minor): sweep blocks and markers
+  added to bodies, (e)'s acceptance rewritten as a set equality, AGENT-001's
+  acceptance tightened, two half-sentences — no id added or removed, and no
+  obligation changed (the sweep (e) demands was already owed by every binding
+  statement; this round makes its coverage decidable).
+- **Q-REQ-PO-AI** (requirements review round 8 M1/M2 — what `REDO_MAX` is
+  and where it is defined): **the per-gate voided-re-dispatch bound reuses
+  the per-chunk cap's integer value only.** `REDO_MAX` is defined once, in
+  `docs/spec/harness-loop-control.md` §Redo Cap per Chunk (the orchestrator
+  constant `chunk_redo_count[<chunk header>]` is counted against, default 3,
+  rendered `Redo: N of REDO_MAX`); **no requirement establishes it** — the
+  section is an extension of REQ-HARN-001, REQ-HARN-008 governs the checkpoint
+  written when a cap fires, and every requirements-side `REDO_MAX` mention is a
+  citation — so REQ-HARN-PIPELINEOBSERVABILITY-004 now states the definition it
+  relies on, and its counter `voided_redispatch_count[<gate>]` is counted per
+  gate, never increments `chunk_redo_count`, never shows in the `Redo: N of
+  REDO_MAX` render string and leaves the per-chunk cap's semantics untouched.
+  The clause-(e) sweep is re-run over `voided|REDO_MAX` with every hit listed.
+  REQ-HARN-001's note drops its `-008` citation; the same miscitation in
+  `docs/spec/harness-loop-control.md` is out of scope here and noted for the
+  specs re-derivation. Alternative considered: mint a requirement that
+  establishes `REDO_MAX` — rejected, the cap's semantics are not this cycle's
+  subject and a new id would re-open a settled per-chunk contract.
+- **Q-REQ-PO-AJ** (requirements review round 8 M3 — an `APPROVE` beside
+  Material items): **option (a), the M-side is consumer-checked.**
+  REQ-HARN-PIPELINEOBSERVABILITY-005 counts `material_items` over the
+  `**Material findings:**` section with the same normalisation as
+  `blocking_items`; `blocking_items = 0`, `material_items > 0` and the token
+  `APPROVE` render `REVIEW: MALFORMED (tier/verdict conflict: N material under
+  APPROVE)`, a missing Material label renders the same `missing section` pause
+  as a missing Critical label, `accept prose manually` consumes the verdict
+  the counts imply (`APPROVE_WITH_FIXES`, fix-then-proceed), fixture F7 and
+  the M-side clause of telemetry assertion (d) witness it, and
+  REQ-REV-PIPELINEOBSERVABILITY-001 (3) names the check. Why (a): the
+  operator's exit bar is a clean `APPROVE`, and an unenforced M-side would let
+  an `APPROVE` hide Material findings. Option (b) — a producer-only obligation
+  — rejected for that reason. **Version log:** 27.1 → 27.2 (round 8, minor):
+  the `REDO_MAX` scope and definition stated, the M-side count and pause,
+  the declared-convention module-set derivation and fixture, one marker
+  demoted to the footer form, three qualifiers — no id added or removed.
+- **Q-REQ-PO-AK** (specs review round 5 M3, routed back to requirements under
+  kickoff constraint 5 — the conflict conditions of
+  REQ-HARN-PIPELINEOBSERVABILITY-005 were not exhaustive over the three
+  disjoint predicates of REQ-REV-PIPELINEOBSERVABILITY-001 (3)): **the packet's
+  fifth pause, plus the sixth the case table exposed.** `blocking_items = 0`,
+  `material_items = 0` under `APPROVE_WITH_FIXES` renders `REVIEW: MALFORMED
+  (tier/verdict conflict: 0 material under APPROVE_WITH_FIXES)` — it had
+  routed fix-then-proceed with an empty repair packet. Writing the 4 × 3 case
+  table the packet asked for showed that five conditions are still not
+  exhaustive: `blocking_items = 0` under `REJECT` violates the `Reject`
+  predicate (`C ≥ 1`) and hit no pause either, so it renders `REVIEW:
+  MALFORMED (tier/verdict conflict: 0 blocking under REJECT)`; with it the
+  table's three `legal` cells are exactly the three predicates. Both pauses
+  carry the existing option set; `accept prose manually` consumes the verdict
+  the row implies (`APPROVE` at `M = 0`, `APPROVE_WITH_FIXES` at `M ≥ 1`).
+  Fixtures F8 / F9, witness greps `0 material under APPROVE_WITH_FIXES` and
+  `0 blocking under REJECT` over `return-contract.md` (today 0 and 0,
+  measured), assertion (d) of REQ-TELEM-PIPELINEOBSERVABILITY-003 extended by
+  the two clauses, REQ-REV-PIPELINEOBSERVABILITY-001 (3) given a one-clause
+  cross-reference, the corpus sweep re-run (`docs/spec/harness-return-contract.md`
+  carries the round-8 two-row table; reconciled by naming -005 its amender).
+  Alternative — a producer-only rule that a reviewer never emits those
+  tokens with those counts — rejected for the same reason as Q-REQ-PO-AJ's
+  option (b): the operator's gate reads the consumed verdict, so the check
+  belongs to the consumer. **Version log:** 27.2 → 27.3 (specs review round 5
+  M3 loop-back, minor): two conflict pauses, the case table, F8 / F9, two
+  witness greps and two assertion-(d) clauses — no id added or removed.
+- **Q-REQ-PO-AL** (specs closing review C2, routed back to requirements under
+  kickoff constraint 5 — the rule-table population pin): **derived comparand,
+  not a frozen number.** REQ-LINT-PACKAGING-007 stated the four populations as
+  a literal (`REQUIRED=40 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13`), and
+  `docs/spec/two-root-linter.md` §6 and the self-test's `pinned` dict carried
+  the same numbers — three places every row-adding cycle had to chase. The
+  requirement had already fallen behind: the orchestrator's manual pin landing
+  at this cycle's research gate (two routing `REQUIRED` rows and one
+  `FORBIDDEN` row) moved §6 and the dict to `42 / 14` but not the requirement,
+  which read `40 / 13` against `python3 plugins/sdd/tools/skill-lint.py
+  --print-population` printing `REQUIRED=42 … FORBIDDEN=14` on 2026-09-22; and
+  this cycle's fifteen `REQUIRED` rows (p1–p15) plus one `FORBIDDEN` row
+  (`literal-anchor`) would have failed the pin the moment they landed. The
+  requirement now names two live surfaces that must agree — the code tables
+  (read by the flag) and §6's numbers, stated under a dated marker as "current
+  at <date>, moved by any cycle that adds rows" — and the self-test asserts the
+  three-way equality; the acceptance is that the equality holds today
+  (`42 / 9 / 7 / 14`, measured with the exact command) and that a temp copy
+  changing any one of the three fails. The post-delta populations this cycle
+  lands (`57 / 15`) are stated in REQ-LINT-PIPELINEOBSERVABILITY-001's and
+  REQ-REV-PIPELINEOBSERVABILITY-001's sweep blocks, re-run with the pattern
+  widened to `REQUIRED=|FORBIDDEN=|print-population|population`; the hits in
+  REQ-PKG-PACKAGING-004 and the packaging ledger (`40 / 13`) are reconciled by
+  naming the mover and left as the packaging cycle's numbers as of its date
+  (another workstream's shared body; rewriting it stays a human PR change).
+  Alternatives rejected: (a) bump the literal to `57 / 15` in all three places
+  — the same chase next cycle, which is the finding; (b) drop the pin and make
+  `--print-population` informational only — loses the regression check on a
+  row dropped or duplicated that REQ-PKG-PACKAGING-004 reserves for this one
+  comparison. **Version log:** 27.3 → 27.4 (specs closing review C2 loop-back,
+  minor): one amendment note, two acceptance rewrites, two sweep blocks re-run
+  — no id added or removed. Per (c)/(e) the amendment is a row `(amended)` in
+  the per-ws traceability (37 rows = 37 ids carrying a block or marker on
+  2026-09-22) and, per (d), `integration/skill-lint.md` joins the derived
+  annotated-file set (ten files = ten annotated rows). **Version log:** 27.4
+  → 27.5 (specs closing review carried note, patch): one text correction
+  inside REQ-LINT-PACKAGING-007's corpus-sweep block — the
+  `docs/spec/skill-lint-v5.md` §Self-Test Extension hit is now described as
+  formerly "grows by exactly six" (harness-p6), now "grows by exactly
+  fourteen" under the spec's 2026-09-22 marker, with the grep count (2)
+  measured — no id added or removed, no acceptance changed, no other file
+  touched.
+- **Q-REQ-PO-AM** (Chunk 3 replan trigger, Q-IMPL-PIPELINEOBSERVABILITY-009,
+  routed back to requirements under kickoff constraint 5 — the sweep blocks
+  were self-matching greps; **superseded on the exclusion form by
+  Q-REQ-PO-AN** — the `--exclude=<own basename>` it chose excludes by
+  basename in every operand tree, so it stays here as history): **the stated
+  grep excludes the file that states it.** Cause: clause (e) demanded a stated, re-runnable grep over the four
+  trees but never required that grep to exclude its own file; every block
+  this cycle wrote therefore named its own requirement file among its
+  recursive operands with a pattern that, being the block's subject, matches
+  the `Command:` line that states it — the exact class the
+  `self-matching-grep` rule (REQ-GC-PIPELINEOBSERVABILITY-002) was demanded
+  to catch, and Chunk 3 landing that rule at its specified scope reported 40
+  such lines under `docs/requirements/**` (drift-sweep 7, telemetry 7,
+  harness-loop-control 4, harness-verification 4, review 4,
+  arbitrated-handoff 3, skill-lint 3, harness-boundaries 2, and one each in
+  agents, chunk-close, requirements-structure, packaging, pre-commit,
+  project-docs). Decision: (e) gains the sentence that the stated grep must
+  exclude the file that states it (`--exclude=<own file basename>`, or the
+  command fenced as a non-counting form); every offending `Command:` line
+  carries `--exclude=<own basename>` with its pattern and the four trees
+  unchanged; the acceptance drops "plus the requirement's own file" from the
+  `-l` re-run listing and gains the gc rule as decider, with the dropped
+  `--exclude=` as the reversion witness. Alternatives rejected: (a) fence
+  every `Command:` line — the blocks are counting greps by design, a fenced
+  command is not re-run by a reader; (b) exempt `Command:` lines in the
+  rule — the rule's specified scope includes `docs/requirements/**` and an
+  allowlist for the requirement that demanded the rule would be the
+  contradiction the rule exists to catch. **Version log:** 27.5 → 27.6
+  (Chunk 3 replan trigger loop-back, minor): one clause sentence added, one
+  acceptance sentence rewritten, forty `Command:` lines rewritten across
+  fourteen category files — no id added or removed; the (e) set equality
+  still holds (37 = 37 on 2026-09-22) and the gc `[self-matching-grep]`
+  count under `docs/requirements/**` reads 0 (40 before).
+- **Q-REQ-PO-AN** (implement-stage review C1/M1, routed to its requirements
+  origin under kickoff constraint 5 — amends Q-REQ-PO-AM on the exclusion
+  form): **the stated grep excludes the file that states it by path, never
+  by basename alone.** Cause: grep's `--exclude=<glob>` is matched against
+  the basename of every file in every operand tree, and seventeen
+  requirement-file basenames also exist under `docs/spec/` (`arbitrated-handoff`,
+  `harness-loop-control`, `review`, `telemetry`, `drift-sweep`, `pre-commit`,
+  `project-docs` among the swept files), so 27.6's rewrite silently dropped
+  the same-named spec — the file most of those blocks name as their section
+  of record — from 22 command lines while their listings still named it,
+  falsifying clause (e)'s `-l` acceptance on those sites. Decision: every
+  corpus-sweep command line enumerates its operands with
+  `find <four trees> -type f ! -path <own file path> -exec grep -nH<flags>
+  '<pattern>' {} +` — the exclusion is the file's path, the four trees and the
+  pattern are unchanged, and the same-named spec stays in the operand set;
+  all 42 command lines (40 `Command:` lines plus the two bullet-form re-runs
+  of `functional/review.md` and `integration/skill-lint.md` that share the
+  block shape) are rewritten uniformly, unique basenames included, so there is
+  one form to check; every listing is re-derived from its re-run and gains a
+  dated "re-run under the path-precise form" sentence naming the files the
+  earlier listing lacked (the colliding spec, and the skill and agent
+  sentences the implement stage has since landed, which turned several "no
+  hit (today 0)" baselines into hits); clause (e)'s acceptance gains the
+  collision witness. Alternatives rejected: (a) keep `--exclude=<basename>`
+  where the basename is unique across the four trees — two forms to check,
+  and a basename is unique only until a spec of that name is written; (b) the
+  piped `grep … | grep -v '^<own path>'` — the packet proposed it as
+  lint-clean under Q-REQ-PO-AB, but the rule's grammar cuts the first
+  invocation at the unquoted `|` and reads its operands, which still include
+  the own file, so `gc --report` flags it (Q-REQ-PO-AB exempts only a grep
+  with no operands of its own); (c) a path glob in `--exclude` — gc's
+  `expand(T)` would honour it but grep itself would not. **Version log:**
+  27.6 → 27.7 (implement-stage review loop-back, minor): one clause sentence
+  rewritten and two added, the acceptance's `-l` sentence rewritten with the
+  collision witness, 42 command lines rewritten across fourteen category
+  files with their listings re-derived — no id added or removed; the (e) set
+  equality still holds (37 = 37 on 2026-09-22), the gc `[self-matching-grep]`
+  count under `docs/requirements/**` reads 0, and the collision witness reads
+  26 of 26 matching same-named specs listed.
+  27.7 → 27.8 (verify-stage red round R1/R2 and review M1, origin fix): the
+  post-delta populations REQ-LINT-PACKAGING-007 (amended) states moved from
+  `56 / 15` to `57 / 15` and the delta from fourteen `REQUIRED` rows to
+  fifteen — row p15 (`skills/orchestrate/USAGE.md`) landed at the
+  implement-stage fix (Q-IMPL-PIPELINEOBSERVABILITY-011) and the requirement,
+  its two sibling requirements, `skill-lint-v5.md` §Self-Test Extension and
+  the delta map still stated the Chunk 1 arithmetic; the live three-way
+  equality held at 57 throughout, so no gate failed — the red round found it
+  by re-running the requirement's own `grep -c 'grows by exactly …'` command.
+  Twelve statements in this file's siblings rewritten, no id added or removed;
+  REQ-LINT-PACKAGING-007's body gains the `**Amended 2026-09-22**` marker
+  (clause (a), verify Minor 1).
 
 Resolved during requirements gathering for RS-MARKETPLACE-001 (marketplace
 release, workstream `marketplace`). That stage also ran **non-interactively**, so
@@ -1664,6 +2263,31 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003)_
   from the kickoff and measured again by the research; no later stage re-measures
   it.
 
+### pipeline-observability (2026-09-22)
+
+- **The `PreToolUse` deny-list hook** (gap 2c): OPEN on whether hook input
+  carries the subagent type; detection stays the ground truth. A spike task,
+  not a requirement.
+- **`ROUND_MAX`, the two-consecutive-AWF terminator and V2 rules 3-4**: moot
+  under the landed V3 routing (Q-REQ-PO-A).
+- **Back-filling** the 17 lost (`gate`/`commit`/`pr`) and the 16 never-written
+  implement/verifier records: declared lost / missing, never reconstructed.
+- **Making the same-cycle stale-chain finding block a gate**: reverses the
+  never-blocks rule (REQ-GC-HARNESSP2-006).
+- **An unquoted-pattern form of `self-matching-grep`**, and `docs/ws/**` /
+  `docs/research/**` as lint scope for the snapshot-comparand rules: dated
+  snapshots by contract; a folded `info` per research spike is declined by
+  default.
+- **The Q3 replay's round arithmetic** as acceptance criteria (Q-REQ-PO-M).
+- **Repairing the 69 `literal-anchor` findings in the 7 binding files**, and
+  any `dead-path-citation` findings beyond the three repaired spec lines: the
+  two rules land as a standing `warn` floor routed `record | ignore` at DONE;
+  the repair is a later cycle's task bounded to those files (Q-REQ-PO-R).
+- The six carried tool-debt items from `consumer-geometry`, the
+  `docs/spec/packaging.md` split, any new SDD phase, skill or agent, and any
+  change to the nine phase skills' own workflow semantics (kickoff §Out of
+  scope, unchanged).
+
 ## Open Questions
 
 - **[consumer-geometry, OWED TO SPECS — recorded at the requirements cap gate,
@@ -2007,6 +2631,29 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003 §Open Questions
   is a specs-stage decision; the requirement fixes only that the new ones carry
   it.
 
+### pipeline-observability (2026-09-22)
+
+- **Q2 enforcement** — whether `PreToolUse` hook input carries the subagent
+  type. One live dispatch with a logging hook decides it; the plan stage owns
+  the spike task (Q-REQ-PO-O).
+- **The 36/17 split** is derived from key sets, not executed; the `migrate`
+  extension is written against the frozen fixture before the live file is
+  touched, and the expected counts in REQ-TELEM-PIPELINEOBSERVABILITY-002 are
+  fixture-derived at run time, not pinned.
+- **Where the void's bound lives** (Q-REQ-PO-B, -Q, -AI): the per-gate
+  voided-re-dispatch count at the `REDO_MAX` value (the per-chunk cap's
+  value, counted per gate; the per-chunk cap untouched) is bound to one sentence in
+  `references/loop-control.md` §1b under a skill-lint `REQUIRED` row; the
+  specs stage may add a telemetry witness beside it but may not move it to a
+  fourth cap name.
+- **Duplicate traceability rows for amended requirements** — resolved at
+  requirements review iteration 3: the `(amended)` rows are kept and their
+  meaning is fixed by REQ-REQ-PIPELINEOBSERVABILITY-001 (c) (Q-REQ-PO-AA); the
+  regeneration step keeps both rows and reads only the owner's as the id's.
+- **`dead-path-citation`'s live count** is unmeasured; if the DONE `GC:` line
+  shows it burying the other two rules' folds, the severity or the extension
+  set is the first thing to revisit.
+
 ## Research References
 
 - [RS-001: SDD Artifact Structure](../research/RS-001-sdd-artifact-structure/findings.md)
@@ -2027,6 +2674,7 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003 §Open Questions
 - [RS-PACKAGING-002: The root-interface question (the `plugins/sdd/` move, option (B), the suite-gated population and its costing)](../research/RS-PACKAGING-002-root-interface/findings.md) — an **input** to RS-PACKAGING-003, cited rather than superseded
 - [RS-PACKAGING-003: The four open decisions, capped (suite-row retargeting, per-entry root bindings, the `FILES_SWEPT` replacement, the two-root fixture geometries)](../research/RS-PACKAGING-003-decisions/findings.md)
 - [RS-CONSUMERGEOMETRY-001: The disjoint suite root (the eight reducing checks in three classes, the REQ-PKG-MARKETPLACE-007 scoping, the per-geometry split, the gate that can observe it, and the unreachable bundled tools directory)](../research/RS-CONSUMERGEOMETRY-001-disjoint-suite-root/findings.md) — **supersedes RS-PACKAGING-003 D3 only**; D1, D2 and D4 are inputs
+- [RS-PIPELINEOBSERVABILITY-001: Pipeline Observability (the harness verifying itself — telemetry validation and migration, read-only leaves, the fix-loop routing and V3, post-manual review, the snapshot-comparand lint rules, tier/verdict parsing, and gaps 7-11)](../research/RS-PIPELINEOBSERVABILITY-001-harness-self-verification/findings.md) — supersedes RS-CONSUMERGEOMETRY-001 as the newest research reference; consumer-geometry's evidence is carried, not re-derived
 
 ## See Also
 

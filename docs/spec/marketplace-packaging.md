@@ -15,6 +15,7 @@ requires:
   - REQ-PKG-PACKAGING-010
   - REQ-PKG-CONSUMERGEOMETRY-001
   - REQ-PKG-CONSUMERGEOMETRY-005
+  - REQ-PKG-PIPELINEOBSERVABILITY-001
 ---
 
 # Marketplace and Plugin Packaging
@@ -117,6 +118,18 @@ own root resolution at the same moment the rename is being verified. `"./"`
 moves zero files and keeps both steps separable. [Superseded 2026-09-21 — see
 §Placement: the subdirectory argument is overtaken, the single-plugin one is not;
 the two roots and the linter's root resolution are `two-root-linter.md` §1–§2.]
+
+**The plugin version is bumped in the cycle that changes the plugin** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-PKG-PIPELINEOBSERVABILITY-001; Q-REQ-PO-L, -T; the record of why is §Pipeline-Observability Amendment).
+
+`plugins/sdd/.claude-plugin/plugin.json`'s `version` is **strictly greater**
+(semantic-version comparison, `major.minor.patch` integers) at this cycle's
+DONE than at the workstream's branch point (`git merge-base <branch> main`).
+That file is the **sole** plugin-version field: `.claude-plugin/marketplace.json`
+carries no `version` key for the plugin — its entry names a source path — and
+that absence is asserted, so there is exactly one field to move and no second
+copy to drift (Q-REQ-PO-T). A cycle that ships no change under `plugins/sdd/`
+owes no bump. This is the packaging-side precondition of kickoff decision 3
+(dogfooding from the installed plugin).
 
 ### The component list and its derivation rule
 
@@ -374,6 +387,20 @@ their two halves, and a uniform re-reading breaks them; each carries its own
 - [ ] The verification report records, as observations with their commands: the install command run, the namespaced skill names the session listed, and the name of the `references/*.md` file read from the installed copy (REQ-PKG-MARKETPLACE-010).
 - [ ] The skill linter exits 0 and its `--self-test` passes after the packaging change; the drift sweep's report raises no finding absent from the cycle's entry sweep, compared against that sweep's recorded output.
 
+**Pipeline-observability (2026-09-22, packaging)**
+
+- [ ] `git show $(git merge-base HEAD main):plugins/sdd/.claude-plugin/plugin.json`
+  and the working-tree file both parse as JSON, and the working tree's
+  `version` is strictly greater under integer `major.minor.patch` comparison
+  (REQ-PKG-PIPELINEOBSERVABILITY-001).
+- [ ] `grep -c '"version"' plugins/sdd/.claude-plugin/plugin.json` reads 1 and
+  the match carries the new value; `grep -c '"version"'
+  .claude-plugin/marketplace.json` reads 0 — a second plugin-version field
+  appearing there is itself a failure (REQ-PKG-PIPELINEOBSERVABILITY-001).
+- [ ] This cycle's `verification.md` records the installed cache's version
+  after `/plugin update` equal to the bumped value
+  (REQ-PKG-PIPELINEOBSERVABILITY-001).
+
 ## Implementation Questions
 
 ### Q-IMPL-MARKETPLACE-014: "Invocation" for the root-argument grep means a shell invocation prefix
@@ -607,6 +634,13 @@ the sweep inside `plugins/sdd/tools/`; the limitation survives only for a
 consumer tree carrying neither a sibling linter nor `<root>/tools/skill-lint.py`.]
 That is the honest, documented limitation this reversal restores; it is recorded as a Minor in the cycle's verification report
 with its reproduce command, and carried forward as a Next Step.
+
+### Q-IMPL-PIPELINEOBSERVABILITY-012: the changelog ships under `plugins/sdd/`, and is not a component
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §The manifest pair (the version-bump rule); `CLAUDE.md` §Repository Structure; `CONTRIBUTING.md` (the components-as-sets rule)
+**Date**: 2026-09-22 (pipeline-observability, implement-stage fix, review round 3 M2)
+**Decision**: `CHANGELOG.md` moves from the repository root to `plugins/sdd/CHANGELOG.md` (content unchanged except its opening paragraph, which now states that it ships with the plugin); the root path is left absent, since nothing in the corpus cited it. It is named in `CLAUDE.md` §Repository Structure. It is **not** added to `README.md` §Components or to `.claude-plugin/marketplace.json`: the components-as-sets discipline (`CONTRIBUTING.md`, `CLAUDE.md` §Repository Structure) compares the manifest's `skills` and `agents` lists against `README.md` §Components, and no tool implements the comparison — `skill-lint.py` and `gc.py` carry no README/manifest component check — so it is a documented convention over skills and agents only. A changelog is neither, and the marketplace manifest has no field for one; naming it there would be an invention.
+**Rationale**: the plugin install materialises `plugins/sdd/` and nothing above it, so a root changelog never reached a consumer — the file's one audience. Placing it under the source root is the minimal change that makes the `0.2.0` entry deliverable; the manifest's version bump (REQ-PKG-PIPELINEOBSERVABILITY-001) remains the mechanical signal and the changelog its prose.
 
 ## Placement (superseded 2026-09-21)
 
@@ -1042,3 +1076,17 @@ where it was.
   still resolve only in this repository makes the record claim a closure that did
   not happen — a reviewer check, not a tool one
   (REQ-PKG-CONSUMERGEOMETRY-005 acceptance 7, residue).
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-PKG-PIPELINEOBSERVABILITY-001)
+
+[Added 2026-09-22, workstream `pipeline-observability` — kickoff §Constraints
+1, decided at DISCUSS; Q-REQ-PO-L, -T. Observed: `0.1.0` was unchanged across
+the previous cycle's PR although the plugin's files changed, so `/plugin
+update` was a silent no-op and the installed cache stayed nine files behind the
+repository at KICKOFF. This amendment is **minimal by dispatch**: the
+packaging-spec split (this file into per-concern specs) is out of scope.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §The manifest pair carries the version-bump rule and the sole-field assertion (REQ-PKG-PIPELINEOBSERVABILITY-001); Q-IMPL-MARKETPLACE-015's opening value stays the record of where the sequence started. Left consistent and not reopened: the manifest shape (REQ-PKG-MARKETPLACE-001..-010), §Placement (superseded) and §Consumer-Geometry Amendment. This amendment is minimal by dispatch: the packaging-spec split is out of scope.
+
+**Why a bump per cycle**: `0.1.0` was unchanged across the previous cycle's PR although the plugin's files changed, so `/plugin update` was a silent no-op and the installed cache stayed nine files behind the repository at KICKOFF — the packaging-side precondition of dogfooding from the installed plugin (kickoff decision 3). **Why one field** (Q-REQ-PO-T): the marketplace manifest's entry names a source path and carries no version, and that absence is asserted so nothing can drift.

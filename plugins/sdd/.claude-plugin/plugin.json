@@ -1,6 +1,6 @@
 {
   "name": "sdd",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Spec-Driven Development for Claude Code: a cyclic research -> requirements -> specs -> plan -> implement -> verify pipeline with an orchestration driver, external review, and drift/telemetry tooling.",
   "author": {
     "name": "Pankaj Jangid",

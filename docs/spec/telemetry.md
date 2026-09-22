@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-19
+last_updated: 2026-09-22
 requires:
   - REQ-TELEM-HARNESSP2-001
   - REQ-TELEM-HARNESSP2-002
@@ -17,6 +17,7 @@ requires:
   - REQ-TELEM-HARNESSP5-001
   - REQ-TELEM-HARNESSP5-005
   - REQ-LINT-HARNESSP5-003
+  - REQ-TELEM-PIPELINEOBSERVABILITY-001
 ---
 
 # Per-Dispatch Telemetry
@@ -113,7 +114,7 @@ from a `[p4]` row lands on the reader for those two.
 | | `chunk` | int or null | `### Chunk N:` number for per-chunk dispatches |
 | | `iteration` | int or null | fix-loop iteration this dispatch belongs to |
 | | `redo` | int or null | per-chunk redo count at dispatch |
-| | `reason` | repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below | `harness-return-contract.md` §Repair Packet; members, folded from Q-IMPL-HARNESSP4-005 (2026-09-19): `REVIEW`, `VERIFIER_FAIL`, `PARTIAL_CONTINUE`, `MERGE_CONFLICT`, `THIRD_OPINION` (`arbitrated-handoff.md`) and `red_break` — the `RED_BREAK` packet of `adversarial-verify.md` as the record spells it and as the `const` row lists it, the one canonical spelling; uppercase `RED_BREAK` is **not** admitted (`--lint` `[enum]`) |
+| | `reason` | repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below | `harness-return-contract.md` §Repair Packet; members, folded from Q-IMPL-HARNESSP4-005 (2026-09-19): `REVIEW`, `VERIFIER_FAIL`, `PARTIAL_CONTINUE`, `MERGE_CONFLICT`, `THIRD_OPINION` (`arbitrated-handoff.md`), `POST_MANUAL` (the `post-manual` review of `harness-loop-control.md` §Fix-Loop Cap §Footprint — added 2026-09-22, upper case, outside the fix-only subset) and `red_break` — the `RED_BREAK` packet of `adversarial-verify.md` as the record spells it and as the `const` row lists it, the one canonical spelling; uppercase `RED_BREAK` is **not** admitted (`--lint` `[enum]`) |
 | `const` | `FIX_ONLY_REASONS` | subset of `dispatch.reason`: `red_break` `[p4]` — a **schema constant, not a record key**; no record carries it | §Implication-Derived `expected` clause (b); `--lint` asserts the subset relation |
 | | `budget` | budget object (below) | parsed from the dispatched `Budget:` line |
 | | `write_scope_n` | int | number of declared scope globs |
@@ -131,7 +132,7 @@ from a `[p4]` row lands on the reader for those two.
 | | `findings` | `{"C": int, "M": int, "m": int}` | counts of C/M/m lines |
 | | `malformed` | bool | `REVIEW: MALFORMED` or `RETURN: MALFORMED` raised |
 | | `contradiction_class` | null \| `b` \| `c` | `REVIEW: CONTRADICTION` class (`arbitrated-handoff.md`) |
-| `gate` | `decision` | `proceed` \| `fix` \| `loop-back-to-fix` \| `stop` \| `redo` \| `replan` \| `revert` \| `widen` \| `accept` \| `third-opinion` \| `re-dispatch` \| `override` \| `other` | the operator's choice, normalised to one enum (table below) |
+| `gate` | `decision` | `proceed` \| `fix` \| `loop-back-to-fix` \| `stop` \| `redo` \| `replan` \| `revert` \| `widen` \| `accept` \| `third-opinion` \| `re-dispatch` \| `override` \| `manual_intervention` \| `malformed` \| `other` | the operator's choice, normalised to one enum (table below); `manual_intervention` and `malformed` added 2026-09-22 (`telemetry-reader.md` §Schema Lint, assertions (c) and (d)) |
 | | `decision_by` | `operator` \| `policy` | always `operator` this cycle (`evaluation.md`) |
 | | `fix_iteration`, `fix_cap`, `cap_raised` | int | `iteration N of MAX (cap raised ×k)` |
 | | `redo_count` | int or null | `Redo: N of REDO_MAX` |
@@ -140,7 +141,7 @@ from a `[p4]` row lands on the reader for those two.
 | `git` | `head_before`, `head_after` | short sha (`^[0-9a-f]{7,12}$`) | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) |
 | `commit` | `token` | `COMPLETE` \| `INCOMPLETE` \| null `[p4]` | the `COMMIT:` closing line (`harness-commit-fidelity.md`); null for a dispatch whose gate commits nothing |
 | | `missing_n`, `extra_n` | int `[p4]` | the `observed, not landed` / `landed, not observed` counts of that line |
-| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (`telemetry-reader.md` §In-Place Migration); admitted by `--lint` on **every** `v` as an optional key (folded from Q-IMPL-HARNESSP4-006, 2026-09-19) |
+| — | `migration` | optional `{from: chunk-string \| flat-cg, at: date, lost?: {<kind>: int}}` `[p4]` | present only on records rewritten by `migrate` (`telemetry-reader.md` §In-Place Migration); admitted by `--lint` on **every** `v` as an optional key (folded from Q-IMPL-HARNESSP4-006, 2026-09-19); `flat-cg` and `lost` — admitted only beside `flat-cg`, the per-kind count of a workstream's dropped flat records on its first migrated record — added 2026-09-22 (REQ-TELEM-PIPELINEOBSERVABILITY-002) |
 
 **`const` rows** [Added 2026-09-18, harness-p4 specs review r1 — M3]: a row
 whose `Group` cell is the literal `const` declares a **schema constant** —
@@ -165,7 +166,9 @@ harness maps to exactly one enum value; an option not in this table is `other`
 | `stop` | `stop` |
 | `revert path` | `revert` |
 | `accept & widen scope` | `widen` |
-| `manual intervention` · `authorize extra iteration` (recorded with `cap_raised`) | `override` |
+| `manual intervention` (the exhausted gate's option; the `post-manual` review of `harness-loop-control.md` §Fix-Loop Cap follows it with `reason: POST_MANUAL` — 2026-09-22) | `manual_intervention` |
+| `authorize extra iteration` (recorded with `cap_raised`) | `override` |
+| whichever option was chosen at a `REVIEW: MALFORMED` or `RETURN: MALFORMED` pause (2026-09-22) | `malformed` |
 | `accept round N (proceed, note)` · `accept manually` · `accept (record)` | `accept` |
 | `third opinion` | `third-opinion` |
 | `re-dispatch` | `re-dispatch` |
@@ -367,6 +370,32 @@ every restatement of it — `skills/sdd-orchestrate/SKILL.md` §The gate and
 its only gate lines", a sentence this amendment makes false) — must carry the
 same four.
 
+**The append is `telemetry.py append`, and it validates before it writes** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-TELEM-PIPELINEOBSERVABILITY-001; REQ-TELEM-HARNESSP2-004 as amended; the record of why is §Pipeline-Observability Amendment).
+
+The "append one record" step of §Writer's sequence is performed by one
+subcommand, `python3 plugins/sdd/tools/telemetry.py append [--file F]`, which
+reads exactly one JSON value from stdin and, **before** writing, checks in
+order:
+
+| # | Check | On failure |
+|---|---|---|
+| 1 | the value parses as a JSON **object** | exit non-zero, nothing written |
+| 2 | `v` is in the admitted set, through the shared `v` helper (REQ-TELEM-HARNESSP5-004) | exit non-zero, nothing written |
+| 3 | `lint_records([record])` returns **zero** findings of the classes `enum`, `type`, `key-undeclared`, `key-missing` — the same domain table `--lint` and `summarize` read (`telemetry-reader.md` §Schema Lint) | exit non-zero, nothing written |
+
+`cross-field` and `mistyped-fix` findings are **warnings** at append time
+(printed to stderr, exit unaffected) because both need a sibling record the
+single-record call cannot see. Exit 0 follows one successful append-only write
+of exactly one line. The subcommand prints nothing that requires reading the
+file — no line number, no count — so the zero-reads rule of §Writer holds by
+construction and `<n>` stays the orchestrator's session counter.
+
+Why validate in the writer rather than tolerate at the reader: a record the
+summarizer would drop is a record the gate has claimed and nobody can read; the
+whole value of `rec <n>` is that it asserts a readable append. Why not run
+`--lint` over the file on each append: that would be a read of the file inside
+the loop, which §Writer forbids.
+
 ### Third Observation and Leaf-Write Revert (REQ-TELEM-HARNESSP2-005)
 
 `.sdd/` is gitignored, so a leaf write there is invisible to the porcelain
@@ -512,6 +541,21 @@ Contract:
 Known residual: no spec read establishes whether an operator actually notices an
 absent line — which is what REQ-TELEM-HARNESSP3-002 backstops.
 
+**Consequences for the gate line** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-TELEM-HARNESSP3-001 as amended; REQ-TELEM-HARNESSP2-004 as amended; the record of why is §Pipeline-Observability Amendment).
+
+- **`rec <n>` counts validated writes.** `<n>` is incremented only when
+  `append` exits 0 (REQ-TELEM-HARNESSP3-001 as amended). A non-zero exit — I/O
+  failure **or** validation failure — renders `TELEMETRY: WRITE FAILED` and does
+  not advance `<n>` (REQ-TELEM-HARNESSP2-004 as amended: validation failure is
+  the second cause of `WRITE FAILED`). The loop continues; telemetry is still
+  never load-bearing.
+- The `TELEMETRY:` family stays at **four** members. No dispatch template names
+  the subcommand: the orchestrator is its only caller, and a leaf that ran it
+  would still be an `OUT` write (§Third Observation).
+- `skills/orchestrate/references/telemetry.md` §3's writer sequence names
+  `append`'s exit code as the condition for `rec <n>`; its gate-line table is
+  unchanged in membership.
+
 ### `scope.widened` (REQ-TELEM-HARNESSP4-006)
 
 [Added 2026-09-18, harness-p4 — REQ-TELEM-HARNESSP4-006; `docs/ws/harness-p3/verification.md` §L6]
@@ -615,6 +659,43 @@ would otherwise drop every live p4 record from `summarize` at DONE
 - [ ] §Writer rule (i) states the per-chunk-only condition (`dispatch.chunk != null`) for copying `CHUNK_VERDICT:` onto the dispatched record and that a stage-level `fix` record keeps `chunk_verdict: null`; `references/telemetry.md` §3 and `skills/sdd-orchestrate/SKILL.md` §Telemetry agree; on the frozen p4 fixture `--lint` still lists the three records as `[cross-field]` findings by seq (`telemetry-reader.md` §Fixture-Based Test Contract); `python3 tools/sdd-skill-lint.py` exits 0 (REQ-TELEM-HARNESSP5-001)
 - [ ] §Writer states that the `commit` source records the gate's **closing** `COMMIT:` line (`amend` → `COMPLETE`, `accept (note)` → `INCOMPLETE`); `references/telemetry.md` §3 agrees; `summarize` on the frozen p4 fixture prints `COMMIT: INCOMPLETE (accepted): 0`; `test_schema_table_agrees` still passes (no key added; `commit.amended` deferred, Q-REQ-P5-E) (REQ-TELEM-HARNESSP5-005)
 - [ ] `wc -l docs/spec/telemetry*.md` shows no file over ~800 lines (the bound amended at the specs gate 2026-09-19, Q-REQ-P5-I — the split landed at 748 / 697 and is not cut further); the `| Group | Key | Type / domain |` table stays under §Record Schema of this file and `test_schema_table_agrees` passes; every moved section is listed in §Moved Sections; the Q-IMPL-HARNESSP4-004..009 fold-in status notes count six across `telemetry-reader.md`, `skill-lint-v5.md` and `harness-chunk-verifier.md` (REQ-QIMPL-HARNESSP5-001's grep, owned by `deviation-protocol.md`); `python3 tools/sdd-gc.py --report` raises no `qimpl-broken-ref` or broken-link finding on either file (REQ-LINT-HARNESSP5-003)
+
+**Pipeline-observability (2026-09-22, telemetry writer)**
+
+- [ ] `python3 plugins/sdd/tools/telemetry.py --help` names `append` — the word
+  occurs at least once in the output (it occurs 0 times before this delta)
+  (REQ-TELEM-PIPELINEOBSERVABILITY-001).
+- [ ] `python3 plugins/sdd/tools/telemetry.py --self-test` exits 0 and names
+  three `append` cases: a `v`-less object (`{"ts":"x","ws":"x"}`) exits
+  non-zero and the target file's line count is unchanged; a non-object (`[]`)
+  exits non-zero and writes nothing; the `skills/orchestrate/references/telemetry.md` §2 example
+  record exits 0, adds exactly one line, and `summarize --file <that file>`
+  counts 1 record. **Reversion witness**: in a temp copy of the tool with the
+  validation step removed, the first case exits 0 and the self-test prints its
+  failure (REQ-TELEM-PIPELINEOBSERVABILITY-001).
+- [ ] The gate-line table in `skills/orchestrate/references/telemetry.md` §3
+  lists exactly four `TELEMETRY:` members (`rec <n>`, `WRITE FAILED`, `OFF`,
+  `.gitignore updated`), and the writer sequence in the same section states
+  that `rec <n>` is rendered only on `append`'s exit 0 —
+  `grep -c '^| .TELEMETRY: ' plugins/sdd/skills/orchestrate/references/telemetry.md`
+  reads 4 and
+  `sed -n '/^## 3\./,/^## 4\./p' plugins/sdd/skills/orchestrate/references/telemetry.md | grep -c 'append'`
+  reads ≥ 1; `skills/orchestrate/SKILL.md` §The gate still names the same
+  four — `grep -c 'rec <n>' plugins/sdd/skills/orchestrate/SKILL.md` and
+  `grep -c '.gitignore updated' plugins/sdd/skills/orchestrate/SKILL.md` each
+  read ≥ 1 (REQ-TELEM-HARNESSP2-004, -HARNESSP3-001 as amended).
+- [ ] The orchestrator's gate path performs no read of the telemetry file: the
+  fenced writer sequence of `skills/orchestrate/references/telemetry.md` §3 and
+  `skills/orchestrate/SKILL.md` §The gate contain no `summarize`, `--lint`,
+  `tail`, `wc` or `cat` invocation over the telemetry path —
+  `sed -n '/^## 3\./,/^## 4\./p' plugins/sdd/skills/orchestrate/references/telemetry.md | grep -Ec '(summarize|--lint|tail|wc|cat).*telemetry\.jsonl'`
+  reads 0, and the same pipeline with §The gate of
+  `plugins/sdd/skills/orchestrate/SKILL.md` (its heading to the next heading of
+  the same level) as the `sed` range reads 0
+  (REQ-TELEM-PIPELINEOBSERVABILITY-001).
+- [ ] `grep -rn 'telemetry.py append' plugins/sdd/skills/orchestrate/references/dispatch-templates.md plugins/sdd/skills/orchestrate/references/fan-out.md`
+  returns nothing — no dispatch template mentions the subcommand
+  (REQ-TELEM-PIPELINEOBSERVABILITY-001).
 
 ## Edge Cases
 
@@ -762,3 +843,16 @@ unknown-`v` tolerance). The frozen p3 fixture stays `v: 1` and lints clean
 against the `v: 1` key set. Resolves review finding M1 (the bump was prose only
 and `summarize` at DONE would have skipped every live p4 record).
 **Date**: 2026-09-18 (specs stage, review round 1)
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-TELEM-PIPELINEOBSERVABILITY-001; REQ-TELEM-HARNESSP2-004, REQ-TELEM-HARNESSP3-001 amended)
+
+[Added 2026-09-22, workstream `pipeline-observability` —
+RS-PIPELINEOBSERVABILITY-001 §Q1, R1. Observed defect: the consumer-geometry
+cycle's gates rendered `TELEMETRY: rec 39`, the file gained 53 records, and
+`summarize` read 0 of them, because the writer never applied the schema the
+reader enforces.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §Writer carries the `append` subcommand and its validate-before-write table (REQ-TELEM-PIPELINEOBSERVABILITY-001, REQ-TELEM-HARNESSP2-004 as amended); §Positive Gate Line `TELEMETRY: rec <n>` carries what a counted append is (REQ-TELEM-HARNESSP3-001 as amended). Left consistent and not reopened: §Placement, §Record Schema, §Third Observation and Leaf-Write Revert, §Non-Interference Proof, §`scope.widened`, §`commit` Group, and `telemetry-reader.md` §Out-of-Loop Reader.
+
+**Why validate in the writer rather than tolerate at the reader**: a record the summarizer would drop is a record the gate has claimed and nobody can read; the whole value of `rec <n>` is that it asserts a readable append. Why not run `--lint` over the file on each append: that would be a read of the file inside the loop, which §Writer forbids. Why the family stays at four members: a validation failure is a write that did not happen, which `WRITE FAILED` already names.

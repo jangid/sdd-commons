@@ -755,7 +755,8 @@ budget exhaustion (`loop-control.md` §5, §6); telemetry normalises `amend` to
 | `ADVISORY` path | none required — hint shown | operator eyeballs the hunk; counts 0 toward `N` |
 | `HISTORY_REWRITE` | `stop` + manual recovery hint | never an automatic reset |
 | `GIT_STATE` (§3 git-state observation) | `restore` │ `accept (note)` │ `stop` | a stash is recoverable: `restore` is `git stash pop` for the stash case and `git checkout -- <path>` for a reverted path; `accept (note)` records the acceptance in ephemeral gate text only; `proceed` is withheld while the finding is unresolved |
-| verifier / review wrote anything | every path `OUT`; revert before any redo | `loop-control.md` §1b Verifier edge cases |
+| `GIT_STATE` or `OUT` on a **read-only leaf** (verifier, reviewer, red team) | the finding's options above, then `redo` │ `stop` | the leaf's verdict is **voided** whichever option resolved the finding: it is consumed as `CHUNK_VERDICT: FAIL (voided: GIT_STATE)` / `(voided: OUT)`, `VERDICT: REJECT (voided: …)` or `RED_VERDICT: BROKEN (voided: …)`, and `proceed` is withheld after both `restore` and `accept (note)`; `redo` is a fresh re-dispatch of the same leaf — never a chunk redo — counted per gate against the `REDO_MAX` value (`loop-control.md` §1b) |
+| verifier / review wrote anything | every path `OUT`; revert before any redo; the verdict is voided (row above) | `loop-control.md` §1b Verifier edge cases |
 | `COMMIT: INCOMPLETE` (post-decision, §7a) | `amend` │ `accept (note)` │ `stop` | `amend` stages only `observed, not landed` paths into the orchestrator's own commit, no write-scope re-run; no next dispatch until resolved |
 
 ---

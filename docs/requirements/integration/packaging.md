@@ -1471,3 +1471,50 @@ measurement surface.
 (see RS-CONSUMERGEOMETRY-001 §Measurement technique and §Reproduction, and Q3
 Option A cost (ii))
 [Priority: must]
+
+### REQ-PKG-PIPELINEOBSERVABILITY-001: the plugin version is bumped in the cycle that changes the plugin, so `/plugin update` is not a no-op
+`plugins/sdd/.claude-plugin/plugin.json`'s `version` must be **greater** (by
+semantic-version comparison) at this cycle's DONE than at the workstream's
+branch point (`git merge-base pipeline-observability main`). That file's
+`version` is the **sole** plugin-version field: `.claude-plugin/marketplace.json`
+carries no `version` key for the plugin (its plugin entry names a source path,
+not a version), and this requirement asserts that absence so there is exactly
+one field to move and no second copy to drift (Q-REQ-PO-T). Observed
+2026-09-22: `0.1.0` was unchanged across PR #6 although the plugin's files
+changed, so `/plugin update` was a silent no-op and the installed cache stayed
+nine files behind the repository at KICKOFF (kickoff constraint 1;
+RS-PIPELINEOBSERVABILITY-001 §Implications, cache divergence). The rule binds
+this cycle; it is the packaging-side precondition for kickoff decision 3
+(dogfooding from the installed plugin) and applies to any later cycle that
+edits `plugins/sdd/` (a cycle that ships no plugin change owes no bump). (see
+kickoff §Constraints 1; decided at DISCUSS.) Leaves REQ-PKG-MARKETPLACE-001..-010
+(manifest shape — the field's value changes, not its presence),
+REQ-PKG-PACKAGING-001..-010 and REQ-PKG-CONSUMERGEOMETRY-001..-006 consistent.
+**Acceptance**: `git show $(git merge-base HEAD main):plugins/sdd/.claude-plugin/plugin.json`
+and the working-tree file parse as JSON and the working tree's `version` is
+strictly greater under `major.minor.patch` integer comparison; a grep for
+`"version"` over `plugins/sdd/.claude-plugin/plugin.json` returns exactly one
+match carrying the new value, and the same grep over
+`.claude-plugin/marketplace.json` returns **zero** matches — a second
+plugin-version field appearing there is itself a failure; this cycle's `verification.md` records the
+installed cache's version after `/plugin update` equal to the bumped value.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the sole plugin-version field and its per-cycle bump — a
+listing grep over `docs/requirements docs/spec plugins/sdd/skills
+plugins/sdd/agents`; hits in this requirement's own text and in the index rows
+citing it are the statement itself and are excluded.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/packaging.md -exec grep -nHE 'plugin version|"version"' {} +`.
+`docs/spec/marketplace-packaging.md` manifest shape (`"version": "<semver>"`)
+and §The plugin version is bumped in the cycle that changes the plugin (the
+`grep -c '"version"'` checks) — reconciled, they carry this requirement; the
+same file's Q-IMPL decision "`.claude-plugin/plugin.json` carries `"version":
+"0.1.0"`" — reconciled as a dated decision record of the marketplace cycle: the
+value is the pre-bump one and the path the pre-packaging root (the packaging
+cycle moved the file), and it states no rule on when the value moves;
+`plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit;
+`docs/requirements/integration/packaging.md` — the hits are this requirement.
+Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+files the `-l` listing names: `docs/requirements/integration/project-docs.md`
+(quoting `docs/spec/marketplace-packaging.md`'s dated `"version": "0.1.0"`
+decision) — reconciled, a citation of the dated record.
+[Priority: must]

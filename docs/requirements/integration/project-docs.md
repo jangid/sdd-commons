@@ -1,9 +1,9 @@
 ---
 domain: DOCS
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 status: Approved
-research_refs: [RS-MARKETPLACE-001, RS-PACKAGING-002, RS-PACKAGING-003]
-workstream: marketplace, packaging
+research_refs: [RS-MARKETPLACE-001, RS-PACKAGING-002, RS-PACKAGING-003, RS-PIPELINEOBSERVABILITY-001]
+workstream: marketplace, packaging, pipeline-observability
 ---
 
 # Requirements: Project Documentation for Public Release
@@ -165,4 +165,66 @@ scores the second **live**; the same fixture scores it not-live under the
 `L`/`L-1` rule, so the fixture distinguishes the two rules; re-running the
 screen over `docs/ws/*/verification.md` reports its counts with the item-scoped
 rule and no count is asserted that was not measured by that run.
+[Priority: must]
+
+### REQ-DOCS-PIPELINEOBSERVABILITY-001: `CLAUDE.md` states the verdict-split routing, the counted quantity, the `GROWTH:` line and the real plugin manifest path
+`CLAUDE.md` is the project context every skill and every reviewer reads first,
+and on 2026-09-22 it lags the landed harness: §Gate vocabulary says the stage
+gate shows `iteration N of FIX_LOOP_MAX`, describes `loop-back-to-fix` as one
+route with no verdict split, and names no `GROWTH:` line; §Repository
+Structure lists the plugin manifest at the repository root, beside
+`marketplace.json`, where no `plugin.json` exists — the plugin manifest is
+`plugins/sdd/.claude-plugin/plugin.json`; only `.claude-plugin/marketplace.json`
+sits at the root. `CLAUDE.md` must be updated so that
+(1) §Gate vocabulary and §Cycle signals state the routing of
+REQ-HARN-PIPELINEOBSERVABILITY-001 — `REJECT` → fix → re-review, counted by
+`FIX_LOOP_MAX`; `APPROVE_WITH_FIXES` → fix → proceed **without re-review**
+unless the operator opts in; (2) the quantity the gate counts against
+`FIX_LOOP_MAX` is named as the run of **consecutive consumed `REJECT`s**
+(REQ-HARN-001 as amended), and the phrase `iteration N of FIX_LOOP_MAX` no
+longer appears; (3) the informational `GROWTH:` line of
+REQ-HARN-PIPELINEOBSERVABILITY-002 is named in the gate order, after
+`CONVERGENCE:` and before `TELEMETRY:`; and (4) §Repository Structure names
+the plugin manifest at its real path and names no root-level `plugin.json`.
+Every other section — the phase-detection table, cycle identity, the v4
+layout — is unchanged in substance, as REQ-DOCS-MARKETPLACE-005 and
+REQ-DOCS-PACKAGING-002 already require. (see
+RS-PIPELINEOBSERVABILITY-001 §Gate observation 2026-09-22; review round 1 of
+this stage, C2.) Leaves REQ-DOCS-MARKETPLACE-005 (both manifest paths named —
+now at their real locations) and REQ-DOCS-PACKAGING-002 (one marker) consistent.
+**Acceptance**: each of the following run-time greps over `CLAUDE.md` decides
+one clause — `grep -c 'without re-review' CLAUDE.md` ≥ 1; `grep -c 'consecutive
+consumed' CLAUDE.md` ≥ 1; `grep -Fc 'iteration N of FIX_LOOP_MAX' CLAUDE.md`
+= 0; `grep -c 'GROWTH:' CLAUDE.md` ≥ 1 and the line naming it also names
+`CONVERGENCE:` or `TELEMETRY:`; `grep -Fc 'plugins/sdd/.claude-plugin/plugin.json'
+CLAUDE.md` ≥ 1; `grep -Ec '(^|[^/])\.claude-plugin/plugin\.json' CLAUDE.md`
+= 0 (no root-level manifest path remains); and the two paths the file names
+exist — `test -f plugins/sdd/.claude-plugin/plugin.json && test -f
+.claude-plugin/marketplace.json && test ! -e .claude-plugin/plugin.json`; a
+reviewer-checkable diff shows no change outside §Repository Structure, §Gate
+vocabulary and §Cycle signals beyond these substitutions.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the retired `iteration N of FIX_LOOP_MAX` phrase and the
+root-level manifest path — a listing grep over `docs/requirements docs/spec
+plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and
+in the index rows citing it are the statement itself and are excluded.
+Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents -type f ! -path docs/requirements/integration/project-docs.md -exec grep -nHF 'iteration N of FIX_LOOP_MAX' {} +`.
+`docs/spec/project-docs.md` §Pipeline-Observability Amendment (the defect quote
+and the `grep -Fc … = 0` check) and `docs/spec/harness-loop-control.md` (naming
+the phrase as retired from `CLAUDE.md`) — reconciled, both name the phrase in
+order to retire it; `plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit
+(the skill texts say `iteration N of MAX`, the label REQ-HARN-001 as amended
+keeps); `CLAUDE.md` itself is outside the four trees and is this requirement's
+target, retired by the `grep -Fc` zero-count witness above; for the manifest-path clause, `grep -rnE '(^|[^/])\.claude-plugin/plugin\.json'
+docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents` hits
+`docs/requirements/integration/packaging.md`, `docs/spec/two-root-linter.md`
+and `docs/spec/project-docs.md` (the packaging cycle's own texts describing the
+move — "`.claude-plugin/plugin.json` moves with the suite" — and the `test !
+-e` witness this requirement shares) — reconciled;
+`docs/spec/marketplace-packaging.md` §Manifests and its dated `"version":
+"0.1.0"` decision (the root-level location as of the marketplace cycle) —
+reconciled as that cycle's record, superseded by the packaging cycle's move;
+whether that spec's section of record was re-dated is REQ-PKG-PACKAGING's
+concern, not this clause's, which binds `CLAUDE.md` alone; no `plugins/sdd/**`
+hit.
 [Priority: must]

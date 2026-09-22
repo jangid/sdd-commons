@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-21
+last_updated: 2026-09-22
 requires:
   - REQ-DOCS-MARKETPLACE-001
   - REQ-DOCS-MARKETPLACE-002
@@ -10,6 +10,7 @@ requires:
   - REQ-DOCS-PACKAGING-001
   - REQ-DOCS-PACKAGING-002
   - REQ-DOCS-PACKAGING-003
+  - REQ-DOCS-PIPELINEOBSERVABILITY-001
 ---
 
 # Project Documentation for Public Release
@@ -154,6 +155,15 @@ prose about the system, not about the rule, and must reach zero bare occurrences
 on its own. Where it must name a retired form (for example when describing the
 historical corpus) it quotes it in backticks, which the rule skips.
 
+**`CLAUDE.md` states the routing, the counted quantity, the `GROWTH:` line and the real manifest path** — **Amended 2026-09-22** `[Updated: 2026-09-22]` (workstream `pipeline-observability`, REQ-DOCS-PIPELINEOBSERVABILITY-001; Q-REQ-PO-U; the record of why is §Pipeline-Observability Amendment).
+
+| Clause | `CLAUDE.md` section | Binding |
+|---|---|---|
+| (1) | §Gate vocabulary, §Cycle signals | the verdict-split routing: `REJECT` → fix → re-review counted by `FIX_LOOP_MAX`; `APPROVE_WITH_FIXES` → fix → proceed **without re-review** unless the operator opts in (`harness-loop-control.md` §Fix-Loop Cap) |
+| (2) | §Gate vocabulary | the quantity counted against `FIX_LOOP_MAX` is the run of **consecutive consumed `REJECT`s**; the phrase `iteration N of FIX_LOOP_MAX` no longer appears |
+| (3) | §Gate vocabulary | the informational `GROWTH:` line is named in the gate order after `CONVERGENCE:` and before `TELEMETRY:` |
+| (4) | §Repository Structure | the plugin manifest is `plugins/sdd/.claude-plugin/plugin.json`; no root-level `plugin.json` is named |
+
 ## Acceptance Criteria
 
 Both sides of every comparison are derived at run time; no count and no
@@ -166,6 +176,26 @@ component name is pinned as a literal in a check.
 - [ ] A run-time grep of `CLAUDE.md` for the retired prefix returns zero matches outside the skip set of REQ-NAME-MARKETPLACE-009 (fenced blocks and backtick spans); `CLAUDE.md` names both manifest paths; `git diff` of `CLAUDE.md` across the cycle shows no change to the phase-detection table, the cycle-identity rules or the v4 layout section beyond name substitution, confirmed by a reviewer against that diff (REQ-DOCS-MARKETPLACE-005).
 - [ ] The field list in `CLAUDE.md` §Agents, parsed from the section, equals the five-field list of `harness-agents.md`; the section names `color` and names neither dropped field (REQ-DOCS-MARKETPLACE-005, REQ-AGENT-MARKETPLACE-003).
 - [ ] The drift sweep and the skill linter both exit 0 after these documents land.
+
+**Pipeline-observability (2026-09-22, project docs)**
+
+- [ ] `grep -c 'without re-review' CLAUDE.md` ≥ 1; `grep -c 'consecutive
+  consumed' CLAUDE.md` ≥ 1; `grep -Fc 'iteration N of FIX_LOOP_MAX' CLAUDE.md`
+  = 0 (REQ-DOCS-PIPELINEOBSERVABILITY-001).
+- [ ] `grep -c 'GROWTH:' CLAUDE.md` ≥ 1 and the line naming it also names
+  `CONVERGENCE:` or `TELEMETRY:` (REQ-DOCS-PIPELINEOBSERVABILITY-001).
+- [ ] `grep -Fc 'plugins/sdd/.claude-plugin/plugin.json' CLAUDE.md` ≥ 1;
+  `grep -Ec '(^|[^/])\.claude-plugin/plugin\.json' CLAUDE.md` = 0; `test -f
+  plugins/sdd/.claude-plugin/plugin.json && test -f .claude-plugin/marketplace.json
+  && test ! -e .claude-plugin/plugin.json` succeeds
+  (REQ-DOCS-PIPELINEOBSERVABILITY-001).
+- [ ] `git diff <cycle entry sha> HEAD -- CLAUDE.md` touches only
+  §Repository Structure and §Driver (`sdd:orchestrate`) — the section holding
+  the **Gate vocabulary** and **Cycle signals** paragraphs: for every other
+  `##`/`###` heading of `CLAUDE.md`, the body from that heading to the next
+  heading, extracted with `awk` from `git show <cycle entry sha>:CLAUDE.md`
+  and from the working tree, is byte-identical (`diff` exits 0)
+  (REQ-DOCS-PIPELINEOBSERVABILITY-001, REQ-DOCS-MARKETPLACE-005).
 
 ## Implementation Questions
 
@@ -238,3 +268,17 @@ of its own — scores the second **live**, and scores it not-live under the
 `L`/`L-1` rule, so the fixture distinguishes the two; re-running the screen
 over `docs/ws/*/verification.md` reports counts measured by that run and no
 other.
+
+
+## Pipeline-Observability Amendment (2026-09-22, REQ-DOCS-PIPELINEOBSERVABILITY-001)
+
+[Added 2026-09-22, workstream `pipeline-observability` — review round 1 of the
+requirements stage, C2; Q-REQ-PO-U. Observed: `CLAUDE.md` lags the landed
+harness — §Gate vocabulary says `iteration N of FIX_LOOP_MAX`, describes
+`loop-back-to-fix` as one route, names no `GROWTH:` line; §Repository
+Structure lists a `plugin.json` beside `marketplace.json` at the root, where
+none exists.]
+
+**Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §`CLAUDE.md` carries the four bindings (REQ-DOCS-PIPELINEOBSERVABILITY-001). Left consistent and not reopened: the LICENSE / README / CONTRIBUTING contracts, §Carried Documentation Repairs, and REQ-DOCS-MARKETPLACE-005 / REQ-DOCS-PACKAGING-002 — the phase-detection table, cycle identity and the v4 layout section are unchanged in substance, and both manifest paths are still named, now at their real locations.
+
+**Why `CLAUDE.md` is bound**: it is the text every session reads first, and it lagged the landed harness — `iteration N of FIX_LOOP_MAX`, `loop-back-to-fix` as one route, no `GROWTH:` line, a root-level `plugin.json` that does not exist (requirements review round 1 C2).

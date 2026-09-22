@@ -6,17 +6,19 @@ A curated collection of reusable tools, skills, and agents for AI-assisted workf
 
 ```
 .claude-plugin/marketplace.json   — the sdd-commons marketplace manifest
-.claude-plugin/plugin.json        — the sdd plugin manifest
+plugins/sdd/.claude-plugin/plugin.json — the sdd plugin manifest
 plugins/sdd/skills/   — Composable skill definitions (Claude Code SKILL.md format)
 plugins/sdd/agents/   — Agent configurations and prompt templates
 plugins/sdd/tools/    — Standalone utilities and helper scripts
+plugins/sdd/CHANGELOG.md — Consumer-facing changelog, shipped with the plugin
 docs/                 — Requirements, specs, research and per-workstream execution records
 ```
 
 The repository ships as the `sdd` plugin of the `sdd-commons` marketplace under
 `"source": "./plugins/sdd"`, so the `plugins/sdd/` subtree above **is** the
 plugin: nothing is staged or copied, and `docs/` stays outside it. `.claude-plugin/marketplace.json` lists the components the plugin
-installs; `.claude-plugin/plugin.json` carries the plugin's own metadata. A new
+installs; `plugins/sdd/.claude-plugin/plugin.json` carries the plugin's own
+metadata. A new
 skill or agent must be added to the marketplace manifest's component list and to
 `README.md` §Components — the two are compared as sets.
 
@@ -156,9 +158,19 @@ write-scope check `SCOPE: CLEAN | VIOLATION`, and the fresh read-only chunk
 verifier's `CHUNK_VERDICT: PASS | FAIL`, with `Redo: N of REDO_MAX`. After all
 chunks (and after every non-implement stage) the **stage gate**
 (`proceed │ loop-back-to-fix │ stop`) shows the review's own-line `VERDICT:`
-token and, when a loop is active, `iteration N of FIX_LOOP_MAX` or the derived
-replan re-entry count against `REPLAN_MAX`. All three caps default to 3
-(`FIX_LOOP_MAX`, `REPLAN_MAX`, `REDO_MAX`). After `proceed` the orchestrator's own
+token, and `loop-back-to-fix` routes by that verdict: after a `REJECT` the fix
+is re-dispatched and the stage is re-reviewed; after an `APPROVE_WITH_FIXES`
+the fix is applied and the stage proceeds without re-review unless the
+operator opts in to one at the gate. The quantity counted against
+`FIX_LOOP_MAX` is `reject_run`, the run of consecutive consumed `REJECT`s on
+the stage (a consumed `APPROVE` or `APPROVE_WITH_FIXES` resets it to 0); an
+active loop shows that run, or the derived replan re-entry count against
+`REPLAN_MAX`. All three caps default to 3 (`FIX_LOOP_MAX`, `REPLAN_MAX`,
+`REDO_MAX`). Every gate also prints, in order, the own-line `CONVERGENCE:`
+token, then — on a review round N ≥ 2 — the `GROWTH:` line after `CONVERGENCE:`
+and before `TELEMETRY:` (the deliverable's visible-line delta since the previous
+round), then `TELEMETRY:` last before the options — informational lines that
+never pause or withhold `proceed`. After `proceed` the orchestrator's own
 commit is checked against the leaf's observed writes and closes the same gate
 with `COMMIT: COMPLETE (N paths) | INCOMPLETE (…)` — `INCOMPLETE` pauses with
 `amend │ accept (note) │ stop` before any next dispatch (harness-p4;

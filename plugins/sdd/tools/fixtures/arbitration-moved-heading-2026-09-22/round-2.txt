@@ -1,0 +1,4 @@
+VERDICT: APPROVE_WITH_FIXES
+- M1: the new decision states no rationale — [docs/ws/fixture/kickoff.md:§Decisions] — affects —
+- M2: the renamed scope section names no constraint — [docs/ws/fixture/kickoff.md:§Scope and Constraints] — affects —
+- M3: the cross-reference still says "scope section" — [docs/ws/fixture/kickoff.md:§Cross-References] — affects —
