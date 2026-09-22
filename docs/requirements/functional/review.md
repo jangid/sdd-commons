@@ -190,7 +190,11 @@ well-formed report has exactly one legal verdict. Both sides of the
 REQ-HARN-PIPELINEOBSERVABILITY-005: a Critical item under a non-`REJECT`
 token and, since round 8 (Q-REQ-PO-AJ), a Material item under `APPROVE` each
 render a `REVIEW: MALFORMED` pause, so an `APPROVE` can never hide a Material
-finding; the M-side is not a producer-only obligation. The §Verdict definitions
+finding; the M-side is not a producer-only obligation; since the specs
+review's round 5 M3 (Q-REQ-PO-AK) the same requirement's case table covers
+every cell of this table — an empty report under `APPROVE_WITH_FIXES` and a
+Critical-free report under `REJECT` pause too — so the consumer check is
+exhaustive over these three predicates. The §Verdict definitions
 in both producers must read, verbatim in the quoted parts: **Approve** = "No
 findings above minor; nothing to apply before the next stage."; **Approve
 with fixes** = "No blocking finding; at least one Material finding — fix them,
@@ -290,6 +294,32 @@ with the reason) or retired (covered by a zero-count witness).
   they state the rule (1) quotes, and the revert of Q-REQ-PO-AD is what makes
   them consistent; `docs/requirements/index.md` Q-REQ-PO-AD — retired, the
   entry now reads as reverted by Q-REQ-PO-AF.
+- **Rule-table population** (re-run with the population terms, specs closing
+  review C2, Q-REQ-PO-AL, 2026-09-22) —
+  `grep -rnE 'REQUIRED=|FORBIDDEN=|print-population|population' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py`:
+  the `REQUIRED` rows this requirement binds on the linter (rows p1–p14 of
+  `docs/spec/skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability)
+  move the population REQ-LINT-PACKAGING-007 compares — `REQUIRED` 42 today
+  (measured with `python3 plugins/sdd/tools/skill-lint.py
+  --print-population`) → `56` after the delta, beside `FORBIDDEN` 14 → `15`
+  from REQ-LINT-PIPELINEOBSERVABILITY-001's row — and the requirement that
+  moves them is REQ-LINT-PACKAGING-007 as amended (its comparand is the
+  three-way equality between the flag's output, the code tables and
+  `docs/spec/two-root-linter.md` §6's dated numbers, no longer a literal).
+  `docs/spec/two-root-linter.md` §6 and its §Acceptance Criteria bullet
+  (`42 / 9 / 7 / 14`) — reconciled, the second live surface, moved to
+  `56 / 15` under a dated marker by the specs stage;
+  `plugins/sdd/tools/skill-lint.py` self-test `pinned` dict (`42 / 14`) —
+  reconciled, post-delta `56 / 15` under -007's equality;
+  `docs/requirements/integration/skill-lint.md` REQ-LINT-PACKAGING-007 — the
+  mover, amended; `docs/spec/skill-lint-v5.md` §Self-Test Extension ("grows by
+  exactly six") — reconciled, the harness-p5 delta's history, the new total is
+  §6's dated number; `docs/requirements/integration/packaging.md`
+  REQ-PKG-PACKAGING-004 and `docs/requirements/index.md` packaging ledger
+  (`40 / 13`) — reconciled by naming the mover, the packaging cycle's numbers
+  as of its date; every other `population` hit — a different subject
+  (bundled-tool and policed-area populations); `plugins/sdd/skills/**`,
+  `plugins/sdd/agents/**` — no hit.
 [Priority: must]
 `[Updated: 2026-09-22]` — requirements review round 5 M2, m2, m3: the
 label-line definition split into the Verdict form, the token form and the

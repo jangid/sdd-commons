@@ -891,7 +891,11 @@ next such record carries a `gate.fix_iteration` different from the
 whose §Footprint states the record shape); (d) a `review` record with
 `verdict.findings.C ≥ 1` and a token other than `REJECT`, or with
 `verdict.findings.C = 0`, `verdict.findings.M ≥ 1` and the token `APPROVE`
-(round 8 M3, Q-REQ-PO-AJ), whose `gate.decision`
+(round 8 M3, Q-REQ-PO-AJ), or with `verdict.findings.C = 0`,
+`verdict.findings.M = 0` and the token `APPROVE_WITH_FIXES`, or with
+`verdict.findings.C = 0` and the token `REJECT` (specs review round 5 M3,
+Q-REQ-PO-AK — the four conflict shapes are the non-`legal` cells of
+REQ-HARN-PIPELINEOBSERVABILITY-005's case table), whose `gate.decision`
 is not the malformed pause → finding (REQ-HARN-PIPELINEOBSERVABILITY-005). The
 domain-table members these need — `POST_MANUAL` in `dispatch.reason`,
 `manual_intervention` and `malformed` in `gate.decision` — are added to the

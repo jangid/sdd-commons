@@ -431,7 +431,8 @@ runs to the next label line of the grammar or the `VERDICT:` line, whichever
 comes first — and that clause is restated nowhere here: the label form, the
 gloss and the token line's free position are its (Q-REQ-PO-AF). This
 requirement states only the two count rules, the placeholder rule and the
-three pauses.
+six pauses, which are exhaustive over the predicate table of
+REQ-REV-PIPELINEOBSERVABILITY-001 (3) (Q-REQ-PO-AK).
 `blocking_items` := the number of list items in the `**Critical findings:**`
 section **after normalising the placeholder out** (Q-REQ-PO-AE): every item
 whose visible text — list marker, surrounding emphasis or backticks, trailing
@@ -449,14 +450,41 @@ findings)`, never a silent zero; the `**Material findings:**` label absent →
 `blocking_items > 0` and the token not `REJECT` →
 `REVIEW: MALFORMED (tier/verdict conflict: N blocking under <token>)`;
 `blocking_items = 0`, `material_items > 0` and the token `APPROVE` →
-`REVIEW: MALFORMED (tier/verdict conflict: N material under APPROVE)`. Every
+`REVIEW: MALFORMED (tier/verdict conflict: N material under APPROVE)`;
+`blocking_items = 0`, `material_items = 0` and the token `APPROVE_WITH_FIXES`
+→ `REVIEW: MALFORMED (tier/verdict conflict: 0 material under
+APPROVE_WITH_FIXES)` (specs review round 5 M3, Q-REQ-PO-AK — without it that
+combination routed fix-then-proceed with an empty repair packet);
+`blocking_items = 0` and the token `REJECT` →
+`REVIEW: MALFORMED (tier/verdict conflict: 0 blocking under REJECT)`
+(Q-REQ-PO-AK — the cell the case table below exposed while proving the
+packet's five conditions exhaustive; a `REJECT` with no Critical item is the
+same "token disagrees with prose" shape). The four conflict conditions are
+mutually exclusive over `(blocking_items, material_items, token)`, so their
+order after the two missing-section pauses is immaterial. Case table —
+rows are the count pairs, columns the token, each cell the pause's
+parenthesised text or `legal`; the three `legal` cells are exactly the three
+predicates of REQ-REV-PIPELINEOBSERVABILITY-001 (3), so the six conditions
+are exhaustive by inspection:
+
+| counts | `APPROVE` | `APPROVE_WITH_FIXES` | `REJECT` |
+|---|---|---|---|
+| C = 0, M = 0 | legal | `0 material under APPROVE_WITH_FIXES` | `0 blocking under REJECT` |
+| C = 0, M ≥ 1 | `N material under APPROVE` | legal | `0 blocking under REJECT` |
+| C ≥ 1, M = 0 | `N blocking under APPROVE` | `N blocking under APPROVE_WITH_FIXES` | legal |
+| C ≥ 1, M ≥ 1 | `N blocking under APPROVE` | `N blocking under APPROVE_WITH_FIXES` | legal |
+
+Every
 pause offers the existing `re-dispatch review │ accept prose manually │ stop`
 — no new token, no conversion. On `accept prose manually` the consumed verdict
 is the one the counts legally imply under REQ-REV-PIPELINEOBSERVABILITY-001
 (3): `REJECT` for a blocking conflict, counting toward `reject_run`;
 `APPROVE_WITH_FIXES` for a material conflict, routed as
 REQ-HARN-PIPELINEOBSERVABILITY-001's fix-then-proceed and resetting
-`reject_run` as any consumed `APPROVE_WITH_FIXES` does; on `re-dispatch
+`reject_run` as any consumed `APPROVE_WITH_FIXES` does; for the two
+Q-REQ-PO-AK conflicts the verdict the counts imply is read off the table's
+row — `APPROVE` when `material_items = 0`, `APPROVE_WITH_FIXES` when
+`material_items > 0` — and routed as that consumed verdict; on `re-dispatch
 review` the re-dispatched round is consumed instead and nothing counts. The rule reads
 label lines and list markers only, never prose, so REQ-HARN-013's
 never-parse-prose rule is kept; because the grammar binds
@@ -471,9 +499,12 @@ Critical/Material line), REQ-HARN-019 and REQ-AGENT-MARKETPLACE-002 consistent.
 **Acceptance**: `references/return-contract.md` §Tier-heading parsing states
 the count rule, the placeholder rule and both pause texts —
 `grep -c 'tier/verdict conflict'`, `grep -c 'missing section'`,
-`grep -c 'counts as zero'` and `grep -c 'material under APPROVE'` over
+`grep -c 'counts as zero'`, `grep -c 'material under APPROVE'`,
+`grep -c '0 material under APPROVE_WITH_FIXES'` and
+`grep -c '0 blocking under REJECT'` over
 `plugins/sdd/skills/orchestrate/references/return-contract.md` each read ≥ 1
-(today 0, 0, 0, 0) — pinned by a skill-lint `REQUIRED` row on
+(today 0, 0, 0, 0, 0, 0 — the last two measured 2026-09-22 with those exact
+commands, Q-REQ-PO-AK) — pinned by a skill-lint `REQUIRED` row on
 `tier/verdict conflict` whose removal in a temp copy makes the linter exit
 non-zero. Fixtures, each a **whole report** in the grammar (all label lines
 present, glosses as the template writes them): F1 — empty Critical section,
@@ -490,11 +521,20 @@ Critical section, two `M<n>:` items) → pause, `N = 2`, and the same with the
 Material section holding only `- None` → no pause (normalised out), and F7
 with the `**Material findings:**` label line deleted → `REVIEW: MALFORMED
 (missing section: Material findings)`, and F7 with `VERDICT:
-APPROVE_WITH_FIXES` → no pause (it is F1). The cross-field assertion (d) of
+APPROVE_WITH_FIXES` → no pause (it is F1); F8 — whole report, empty
+Critical section, empty Material section, `VERDICT: APPROVE_WITH_FIXES` →
+`REVIEW: MALFORMED (tier/verdict conflict: 0 material under
+APPROVE_WITH_FIXES)`, and the same with one `M1:` item → no pause; F9 — F8
+with `VERDICT: REJECT` → `REVIEW: MALFORMED (tier/verdict conflict: 0
+blocking under REJECT)`, and the same with one `C1:` item → no pause (it is
+F5's shape). The cross-field assertion (d) of
 REQ-TELEM-PIPELINEOBSERVABILITY-003 fails on a `review` record with
 `verdict.findings.C ≥ 1`, a non-`REJECT` token and a non-pause gate decision,
-and on one with `verdict.findings.C = 0`, `verdict.findings.M ≥ 1`, the token
-`APPROVE` and a non-pause gate decision.
+on one with `verdict.findings.C = 0`, `verdict.findings.M ≥ 1`, the token
+`APPROVE` and a non-pause gate decision, on one with `verdict.findings.C = 0`,
+`verdict.findings.M = 0`, the token `APPROVE_WITH_FIXES` and a non-pause gate
+decision, and on one with `verdict.findings.C = 0`, the token `REJECT` and a
+non-pause gate decision (Q-REQ-PO-AK).
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)**
 over the two binding statements this requirement makes; listing greps over
 `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`, hits in this requirement's own
@@ -529,6 +569,19 @@ text and in the index rows citing it excluded.
   (producer side: "never by a placeholder item") and `docs/spec/skill-lint-v5.md`
   row p14 (`counts as zero`) — reconciled, consistent; `plugins/sdd/**` — no
   hit (today 0).
+- **Exhaustiveness over the predicate table (Q-REQ-PO-AK, 2026-09-22)** —
+  `grep -rnwE 'material under|blocking under|tier/verdict' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  REQ-HARN-013's amendment note in this file — reconciled, it points here;
+  `docs/spec/harness-return-contract.md` §Tier-heading parsing (a two-row
+  conflict table rendering `N blocking under <token>` and `N material under
+  APPROVE`, the four-grep acceptance list and the F7 restatement) — carries
+  the round-8 shape and none of the Q-REQ-PO-AK cells; reconciled by naming
+  this requirement as its amender, which the specs re-derivation applies per
+  REQ-REQ-PIPELINEOBSERVABILITY-001 (b) (the two rows, the two greps, F8 and
+  F9); `docs/spec/skill-lint-v5.md` row p9 (`tier/verdict conflict`) —
+  consistent, the pin's text is shared by every conflict pause; the index
+  §Summary sentence and ledger rows citing it — excluded as citations;
+  `plugins/sdd/**` — no hit (today 0, the acceptance's baseline).
 [Priority: must]
 `[Updated: 2026-09-22]` — rewritten at requirements review iteration 3
 (C1–C3) over the grammar of REQ-REV-PIPELINEOBSERVABILITY-001; the section
@@ -544,7 +597,12 @@ REQ-REV-PIPELINEOBSERVABILITY-001 (1) rather than restated, so REQ-HARN-013's
 review round 8 M3 (Q-REQ-PO-AJ): `material_items` counted over the Material
 section with the same normalisation, a third pause for a Material item under
 `APPROVE`, the missing-Material-section pause, fixture F7 and the M-side
-clause of telemetry assertion (d).
+clause of telemetry assertion (d). Specs review round 5 M3, routed to its
+requirements origin (Q-REQ-PO-AK): the empty report under
+`APPROVE_WITH_FIXES` and the Critical-free report under `REJECT` are the
+fifth and sixth pauses, the case table proves the six exhaustive over
+REQ-REV-PIPELINEOBSERVABILITY-001 (3), fixtures F8 and F9, two witness greps
+and the two further clauses of assertion (d).
 
 ### REQ-HARN-PIPELINEOBSERVABILITY-006: the implement dispatch's test-run budget is derived, not fixed
 `references/dispatch-templates.md`'s implement template must state the

@@ -1,5 +1,5 @@
 ---
-version: "27.2"
+version: "27.4"
 status: Approved
 last_updated: 2026-09-22
 traceability: traceability.md
@@ -212,7 +212,7 @@ tools-skills-agents repository. Covers fifteen scopes:
 | non-functional | [evaluation.md](non-functional/evaluation.md) | EVAL | REQ-EVAL-HARNESSP2-001..004 | Approved | 2026-09-17 |
 | integration | [drift-sweep.md](integration/drift-sweep.md) | GC | REQ-GC-HARNESSP2-001..007, REQ-GC-HARNESSP3-001, REQ-GC-HARNESSP5-001, REQ-GC-HARNESSP6-001..004, REQ-GC-PIPELINEOBSERVABILITY-001..004 (HARNESSP2-002, HARNESSP2-003, HARNESSP6-003 amended 2026-09-22) | Approved | 2026-09-22 |
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
-| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008, REQ-LINT-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
+| integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008 (007 amended 2026-09-22), REQ-LINT-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | integration | [naming.md](integration/naming.md) | NAME | REQ-NAME-MARKETPLACE-001..010 | Approved | 2026-09-21 |
 | integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..010, REQ-PKG-CONSUMERGEOMETRY-001..006, REQ-PKG-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
 | integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006, REQ-PC-PACKAGING-001, REQ-PC-PIPELINEOBSERVABILITY-001 | Approved | 2026-09-22 |
@@ -854,6 +854,8 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Requirements review round 8 M3 — an `APPROVE` beside Material items raised no pause | option (a): `material_items` with the same normalisation, a third `tier/verdict conflict` pause, the missing-Material pause, fixture F7, assertion (d) extended | REQ-HARN-PIPELINEOBSERVABILITY-005, REQ-REV-PIPELINEOBSERVABILITY-001 (3), REQ-TELEM-PIPELINEOBSERVABILITY-003 (d); Q-REQ-PO-AJ |
 | Requirements review round 8 M4 — the declared-convention clause derived no module set | the set := script paths in commands the convention quotes (inline-code or fenced in `CLAUDE.md`, or a pre-commit hook `entry:`), one command over the two files, a covered/uncovered verifier fixture; the `grep -c convention` criterion withdrawn | REQ-CHKC-004 (amended) |
 | Requirements review round 8 m1 / m2 / m3 — an `Amended` marker on an own id; sweep comparands that exist only in the working tree; an unqualified `69` | the AGENT-001 note in the bare `[Updated:]` form (marker count 15); the traceability header names the uncommitted specs-stage comparands; "a reference value, never a pin" on the `69` | REQ-AGENT-PIPELINEOBSERVABILITY-001; `docs/ws/pipeline-observability/traceability.md` header; REQ-GC-PIPELINEOBSERVABILITY-001 |
+| Specs review round 5 M3, routed to its requirements origin (kickoff constraint 5) — the conflict conditions were not exhaustive over REQ-REV-PIPELINEOBSERVABILITY-001 (3): an empty report under `APPROVE_WITH_FIXES` raised no pause | fifth pause `0 material under APPROVE_WITH_FIXES`; the case table written out, which exposed a sixth cell (`0 blocking under REJECT`) also pausing; fixtures F8 and F9, two witness greps (today 0, 0), assertion (d) extended, the sweep re-run over `material under\|blocking under\|tier/verdict` | REQ-HARN-PIPELINEOBSERVABILITY-005, REQ-REV-PIPELINEOBSERVABILITY-001 (3), REQ-TELEM-PIPELINEOBSERVABILITY-003 (d); Q-REQ-PO-AK |
+| Specs closing review C2, routed to its requirements origin (kickoff constraint 5) — the rule-table population pin was a frozen literal that every row-adding cycle had to chase, and REQ-LINT-PACKAGING-007 had lagged the spec by one manual landing (`40 / 13` against a tree at `42 / 14`) | the comparand becomes derived: the self-test asserts `--print-population` == the code tables' row counts == `docs/spec/two-root-linter.md` §6's numbers, and §6 states them under a dated marker as current-at-date, moved by any cycle that adds rows; today `42 / 9 / 7 / 14` measured with the exact command; the cause and the one-landing lag recorded in the amendment note; the two sweep blocks re-run with the population terms, every hit reconciled by naming the post-delta populations (`REQUIRED` 56, `FORBIDDEN` 15) and the mover | REQ-LINT-PACKAGING-007 (amended); REQ-LINT-PIPELINEOBSERVABILITY-001 and REQ-REV-PIPELINEOBSERVABILITY-001 (second sweep blocks); Q-REQ-PO-AL |
 | Kickoff constraint 2 — every binding's reversion fails a gate, demonstrated | — | a stated reversion witness on every new acceptance above; prose-only consequences are marked in the research's §Mechanical pin and are not criteria |
 
 ## Domain Prefixes
@@ -1240,6 +1242,68 @@ was created (Q-REQ-PO-N).
   the `REDO_MAX` scope and definition stated, the M-side count and pause,
   the declared-convention module-set derivation and fixture, one marker
   demoted to the footer form, three qualifiers — no id added or removed.
+- **Q-REQ-PO-AK** (specs review round 5 M3, routed back to requirements under
+  kickoff constraint 5 — the conflict conditions of
+  REQ-HARN-PIPELINEOBSERVABILITY-005 were not exhaustive over the three
+  disjoint predicates of REQ-REV-PIPELINEOBSERVABILITY-001 (3)): **the packet's
+  fifth pause, plus the sixth the case table exposed.** `blocking_items = 0`,
+  `material_items = 0` under `APPROVE_WITH_FIXES` renders `REVIEW: MALFORMED
+  (tier/verdict conflict: 0 material under APPROVE_WITH_FIXES)` — it had
+  routed fix-then-proceed with an empty repair packet. Writing the 4 × 3 case
+  table the packet asked for showed that five conditions are still not
+  exhaustive: `blocking_items = 0` under `REJECT` violates the `Reject`
+  predicate (`C ≥ 1`) and hit no pause either, so it renders `REVIEW:
+  MALFORMED (tier/verdict conflict: 0 blocking under REJECT)`; with it the
+  table's three `legal` cells are exactly the three predicates. Both pauses
+  carry the existing option set; `accept prose manually` consumes the verdict
+  the row implies (`APPROVE` at `M = 0`, `APPROVE_WITH_FIXES` at `M ≥ 1`).
+  Fixtures F8 / F9, witness greps `0 material under APPROVE_WITH_FIXES` and
+  `0 blocking under REJECT` over `return-contract.md` (today 0 and 0,
+  measured), assertion (d) of REQ-TELEM-PIPELINEOBSERVABILITY-003 extended by
+  the two clauses, REQ-REV-PIPELINEOBSERVABILITY-001 (3) given a one-clause
+  cross-reference, the corpus sweep re-run (`docs/spec/harness-return-contract.md`
+  carries the round-8 two-row table; reconciled by naming -005 its amender).
+  Alternative — a producer-only rule that a reviewer never emits those
+  tokens with those counts — rejected for the same reason as Q-REQ-PO-AJ's
+  option (b): the operator's gate reads the consumed verdict, so the check
+  belongs to the consumer. **Version log:** 27.2 → 27.3 (specs review round 5
+  M3 loop-back, minor): two conflict pauses, the case table, F8 / F9, two
+  witness greps and two assertion-(d) clauses — no id added or removed.
+- **Q-REQ-PO-AL** (specs closing review C2, routed back to requirements under
+  kickoff constraint 5 — the rule-table population pin): **derived comparand,
+  not a frozen number.** REQ-LINT-PACKAGING-007 stated the four populations as
+  a literal (`REQUIRED=40 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13`), and
+  `docs/spec/two-root-linter.md` §6 and the self-test's `pinned` dict carried
+  the same numbers — three places every row-adding cycle had to chase. The
+  requirement had already fallen behind: the orchestrator's manual pin landing
+  at this cycle's research gate (two routing `REQUIRED` rows and one
+  `FORBIDDEN` row) moved §6 and the dict to `42 / 14` but not the requirement,
+  which read `40 / 13` against `python3 plugins/sdd/tools/skill-lint.py
+  --print-population` printing `REQUIRED=42 … FORBIDDEN=14` on 2026-09-22; and
+  this cycle's fourteen `REQUIRED` rows (p1–p14) plus one `FORBIDDEN` row
+  (`literal-anchor`) would have failed the pin the moment they landed. The
+  requirement now names two live surfaces that must agree — the code tables
+  (read by the flag) and §6's numbers, stated under a dated marker as "current
+  at <date>, moved by any cycle that adds rows" — and the self-test asserts the
+  three-way equality; the acceptance is that the equality holds today
+  (`42 / 9 / 7 / 14`, measured with the exact command) and that a temp copy
+  changing any one of the three fails. The post-delta populations this cycle
+  lands (`56 / 15`) are stated in REQ-LINT-PIPELINEOBSERVABILITY-001's and
+  REQ-REV-PIPELINEOBSERVABILITY-001's sweep blocks, re-run with the pattern
+  widened to `REQUIRED=|FORBIDDEN=|print-population|population`; the hits in
+  REQ-PKG-PACKAGING-004 and the packaging ledger (`40 / 13`) are reconciled by
+  naming the mover and left as the packaging cycle's numbers as of its date
+  (another workstream's shared body; rewriting it stays a human PR change).
+  Alternatives rejected: (a) bump the literal to `56 / 15` in all three places
+  — the same chase next cycle, which is the finding; (b) drop the pin and make
+  `--print-population` informational only — loses the regression check on a
+  row dropped or duplicated that REQ-PKG-PACKAGING-004 reserves for this one
+  comparison. **Version log:** 27.3 → 27.4 (specs closing review C2 loop-back,
+  minor): one amendment note, two acceptance rewrites, two sweep blocks re-run
+  — no id added or removed. Per (c)/(e) the amendment is a row `(amended)` in
+  the per-ws traceability (37 rows = 37 ids carrying a block or marker on
+  2026-09-22) and, per (d), `integration/skill-lint.md` joins the derived
+  annotated-file set (ten files = ten annotated rows).
 
 Resolved during requirements gathering for RS-MARKETPLACE-001 (marketplace
 release, workstream `marketplace`). That stage also ran **non-interactively**, so
