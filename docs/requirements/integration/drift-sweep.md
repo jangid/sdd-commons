@@ -646,4 +646,3 @@ reconciled, citations only; `plugins/sdd/skills/**` and `plugins/sdd/agents/**`
 `[Updated: 2026-09-22]` — the token grammar (with the Q-REQ-PO-W whitespace
 clause folded in as its first clause) and one fixture per form stated at
 requirements review iteration 3; the earlier amendment note is subsumed.
-
