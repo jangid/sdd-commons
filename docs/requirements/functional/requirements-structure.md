@@ -172,7 +172,15 @@ its own text**, every existing sentence on the same subject in
 `docs/requirements/**`, `docs/spec/**`, `plugins/sdd/skills/**` and
 `plugins/sdd/agents/**`, found by a **stated, re-runnable grep**, and marks
 each hit as **reconciled** (consistent as-is, with the reason) or **retired**
-(added to a zero-count witness). Where a hit is in `plugins/**` or
+(added to a zero-count witness). The stated grep **must exclude the file that
+states it** — `--exclude=<own file basename>` on the command, or the command
+fenced as a non-counting form — so that a sweep block is never a
+self-matching grep: a pattern that names its subject matches the line that
+states it, and a command whose operands recursively include its own file
+would count that line as a hit of the corpus rather than of the block
+(Q-REQ-PO-AM; the `[self-matching-grep]` rule of
+REQ-GC-PIPELINEOBSERVABILITY-002 caught exactly this class in forty
+blocks this clause had produced). Where a hit is in `plugins/**` or
 `docs/spec/**` that the delta does not amend, the reconciliation names the
 requirement that will amend it or states why it is consistent. Why: the
 pipeline-observability requirements ran six review rounds because each round
@@ -217,8 +225,15 @@ the exemption marker is the literal line prefix `> no binding statement`
 followed by the reason, and it is legal only where the requirement or note
 states no must / never / only / exactly, grammar, parser or token rule of its
 own (Q-REQ-PO-AH). Each block's stated command, re-run with `-l` in place of
-`-n`, lists exactly the files the block names (plus the requirement's own
-file and the index). Two temp-copy witnesses: (1) delete one sweep block
+`-n`, lists exactly the files the block names (plus the index, when the
+index restates the subject); the block's own file is absent from that
+listing because the command excludes it. No sweep block is a
+`[self-matching-grep]` finding:
+`python3 plugins/sdd/tools/gc.py --report --root . --workstream <id> 2>&1 | grep 'self-matching-grep' | grep -c 'docs/requirements/'`
+reads 0 (0 on 2026-09-22 after Q-REQ-PO-AM; 40 before it, the reference
+value the finding measured), and the gc rule is the decider — a block whose
+`Command:` line drops its `--exclude=` reappears in that listing, which is
+the reversion witness. Two temp-copy witnesses: (1) delete one sweep block
 from any body — the second listing loses that id and `diff` prints it, so
 the obligation is decided by the equality, not by which blocks happen to
 exist; (2) add one sentence matching a block's pattern to any swept file —
@@ -226,7 +241,7 @@ the block's re-run lists a file the block does not name, the listed
 reconciliation is then false and the block must be re-derived.
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `(amended)` marker's meaning —
 a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
-Command: `grep -rnE '\(amended\)|does not own it' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE '\(amended\)|does not own it' --exclude=requirements-structure.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `docs/requirements/traceability.md` (the fifteen aggregate rows) — reconciled,
 regenerated from `docs/ws/pipeline-observability/traceability.md` whose header
 restates (c) by citation; `docs/requirements/index.md` Files table
@@ -247,4 +262,9 @@ its acceptance and applied to every binding statement of this delta.
 Requirements review round 7 M1/M2 (Q-REQ-PO-AH): (e)'s obligation is decided
 by the derived set equality above, and the sweep block or the
 `> no binding statement` marker now sits on all 36 ids the workstream mints
-or amends.
+or amends. Chunk 3 replan trigger routed to its requirements origin (kickoff
+constraint 5; Q-REQ-PO-AM): clause (e) now requires the stated grep to
+exclude the file that states it, every corpus-sweep `Command:` line in
+`docs/requirements/**` carries `--exclude=<own basename>`, and the acceptance
+gains the gc `[self-matching-grep]` count under `docs/requirements/**` as its
+decider (0).

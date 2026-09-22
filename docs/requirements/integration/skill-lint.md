@@ -612,7 +612,7 @@ comparand is the three-way equality, and the numbers live in
 `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents
 plugins/sdd/tools/skill-lint.py`; hits in this requirement's own text and in
 the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'REQUIRED=|FORBIDDEN=|print-population|population' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py`.
+Command: `grep -rnE 'REQUIRED=|FORBIDDEN=|print-population|population' --exclude=skill-lint.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py`.
 `docs/spec/two-root-linter.md` §6 (the criterion sentence at `42 / 9 / 7 /
 14`), its §Acceptance Criteria bullet naming "the four §6 populations by name
 and value" and Q-IMPL-PACKAGING-001 (quoting §6) — reconciled, §6 is the
@@ -717,7 +717,7 @@ REQ-LINT-PACKAGING-007's three-way equality holds.
 set — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rn 'literal-anchor' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rn 'literal-anchor' --exclude=skill-lint.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `docs/spec/skill-lint-v5.md` §`literal-anchor` as a `FORBIDDEN` drift phrase —
 reconciled, carries this requirement; `docs/spec/drift-sweep.md` rows 16–19,
 §`literal-anchor` and §Routing at DONE, and
@@ -730,7 +730,7 @@ the swept trees; its row is the acceptance above);
 — reconciled, the two rules share the pattern and differ in tree.
 Re-run with the population terms (specs closing review C2, Q-REQ-PO-AL,
 2026-09-22) —
-`grep -rnE 'REQUIRED=|FORBIDDEN=|print-population|population' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py`:
+`grep -rnE 'REQUIRED=|FORBIDDEN=|print-population|population' --exclude=skill-lint.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py`:
 the post-delta populations this cycle lands are `REQUIRED=56` (42 today,
 measured with `python3 plugins/sdd/tools/skill-lint.py --print-population`,
 plus the fourteen rows p1–p14 of `docs/spec/skill-lint-v5.md` §`REQUIRED`

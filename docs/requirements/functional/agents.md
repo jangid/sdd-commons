@@ -198,7 +198,7 @@ and still declares `Bash`.
 listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'git stash|git state|read-only commands' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'git stash|git state|read-only commands' --exclude=agents.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `plugins/sdd/agents/*.md` — no hit (today 0 of 3 bodies; the acceptance above
 is the witness that adds the sentence);
 `plugins/sdd/skills/orchestrate/references/write-scope.md` §3 git-state

@@ -136,7 +136,7 @@ carries the producer/consumer `REQUIRED` pair (REQ-LINT-005).
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rnE 'proceed without re-review|proceed or fix offered|fix, then proceed' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnE 'proceed without re-review|proceed or fix offered|fix, then proceed' --exclude=harness-verification.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > the listing is REQ-HARN-PIPELINEOBSERVABILITY-001's, re-run 2026-09-22:
 > `plugins/sdd/skills/orchestrate/references/return-contract.md` §6 branching
 > table and `references/loop-control.md` §5a — reconciled, they state this
@@ -540,7 +540,7 @@ over the two binding statements this requirement makes; listing greps over
 `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`, hits in this requirement's own
 text and in the index rows citing it excluded.
 - **Count rule and its two pauses** —
-  `grep -rnE 'tier/verdict conflict|missing section: (Critical|Material)|token disagrees with prose|blocking_items|material_items|material under APPROVE' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `grep -rnE 'tier/verdict conflict|missing section: (Critical|Material)|token disagrees with prose|blocking_items|material_items|material under APPROVE' --exclude=harness-verification.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
   `docs/spec/harness-return-contract.md` §Tier-heading parsing (the
   `blocking_items` definition, the `blocking_items > 0 and token != REJECT`
   predicate and the `tier/verdict conflict` rendering) — reconciled,
@@ -559,7 +559,7 @@ text and in the index rows citing it excluded.
   as its amender, which the specs re-derivation applies per
   REQ-REQ-PIPELINEOBSERVABILITY-001 (b).
 - **Placeholder rule** —
-  `grep -rnE 'counts as zero|normalis(ed|ing) out|- None' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `grep -rnE 'counts as zero|normalis(ed|ing) out|- None' --exclude=harness-verification.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
   `docs/spec/harness-return-contract.md` §Tier-heading parsing's placeholder
   step ("a lone placeholder counts as zero … two or more items count as
   written") — states Q-REQ-PO-Y's lone-only rule, which Q-REQ-PO-AE replaced
@@ -570,7 +570,7 @@ text and in the index rows citing it excluded.
   row p14 (`counts as zero`) — reconciled, consistent; `plugins/sdd/**` — no
   hit (today 0).
 - **Exhaustiveness over the predicate table (Q-REQ-PO-AK, 2026-09-22)** —
-  `grep -rnwE 'material under|blocking under|tier/verdict' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `grep -rnwE 'material under|blocking under|tier/verdict' --exclude=harness-verification.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
   REQ-HARN-013's amendment note in this file — reconciled, it points here;
   `docs/spec/harness-return-contract.md` §Tier-heading parsing (a two-row
   conflict table rendering `N blocking under <token>` and `N material under

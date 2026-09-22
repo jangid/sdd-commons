@@ -92,7 +92,7 @@ as findings.
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rnE 'imports from the implementation|declared convention|test convention' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnE 'imports from the implementation|declared convention|test convention' --exclude=chunk-close.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > `plugins/sdd/skills/implement/SKILL.md` Check 3 and
 > `plugins/sdd/agents/chunk-verifier.md` — no hit (today 0; the acceptance
 > above adds the clause, pinned by rows p11/p12);

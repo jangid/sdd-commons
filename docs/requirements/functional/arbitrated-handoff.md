@@ -79,7 +79,7 @@ finding at §A renders no contradiction.
 > a listing grep over `docs/requirements docs/spec plugins/sdd/skills
 > plugins/sdd/agents`; hits in this requirement's own text and in the index
 > rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' --exclude=arbitrated-handoff.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > the listing is REQ-ARB-PIPELINEOBSERVABILITY-001's:
 > `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a (two-term
 > `W_N`) and its "may over-fire … accepted" sentence, and
@@ -247,7 +247,7 @@ fixture with the findings in a file the loop never touched still pauses as class
 > union) — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
 > plugins/sdd/agents`; hits in this requirement's own text and in the index
 > rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' --exclude=arbitrated-handoff.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > the listing is REQ-ARB-PIPELINEOBSERVABILITY-001's: the two-term `W_N` of
 > `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a and §`W_N` —
 > the old side, amended by REQ-ARB-PIPELINEOBSERVABILITY-001;
@@ -452,7 +452,7 @@ term; A1–A3's outputs are unchanged.
 ground) — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' --exclude=arbitrated-handoff.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a schema block
 (`W_N = sections(fix[N].written) UNION sections(regen[N].written)`, two terms)
 — the old side; reconciled by naming this requirement as its amender (the

@@ -521,7 +521,7 @@ lists the three extra plumbing reads and the reverse-delta subtraction, §5 the
 > over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`;
 > hits in this requirement's own text and in the index rows citing it are the
 > statement itself and are excluded.
-> Command: `grep -rnwE 'voided' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnwE 'voided' --exclude=harness-boundaries.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > the listing is REQ-HARN-PIPELINEOBSERVABILITY-004's: `plugins/sdd/skills/**`,
 > `plugins/sdd/agents/**` — no hit (today 0; the §1b and §8 sentences are that
 > requirement's acceptance); `docs/spec/harness-write-scope.md`
@@ -590,7 +590,7 @@ withheld.
 over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits
 in this requirement's own text and in the index rows citing it are the
 statement itself and are excluded.
-Command: `grep -rnwE 'voided|REDO_MAX' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnwE 'voided|REDO_MAX' --exclude=harness-boundaries.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 (word-bounded, so `avoided` in `plugins/sdd/skills/implement/SKILL.md` and
 `docs/spec/skill-updates.md` is not a hit; widened from `voided` alone at
 requirements review round 8 M1 — Q-REQ-PO-AI — because the bound reuses

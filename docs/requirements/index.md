@@ -1,5 +1,5 @@
 ---
-version: "27.5"
+version: "27.6"
 status: Approved
 last_updated: 2026-09-22
 traceability: traceability.md
@@ -856,6 +856,7 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Requirements review round 8 m1 / m2 / m3 — an `Amended` marker on an own id; sweep comparands that exist only in the working tree; an unqualified `69` | the AGENT-001 note in the bare `[Updated:]` form (marker count 15); the traceability header names the uncommitted specs-stage comparands; "a reference value, never a pin" on the `69` | REQ-AGENT-PIPELINEOBSERVABILITY-001; `docs/ws/pipeline-observability/traceability.md` header; REQ-GC-PIPELINEOBSERVABILITY-001 |
 | Specs review round 5 M3, routed to its requirements origin (kickoff constraint 5) — the conflict conditions were not exhaustive over REQ-REV-PIPELINEOBSERVABILITY-001 (3): an empty report under `APPROVE_WITH_FIXES` raised no pause | fifth pause `0 material under APPROVE_WITH_FIXES`; the case table written out, which exposed a sixth cell (`0 blocking under REJECT`) also pausing; fixtures F8 and F9, two witness greps (today 0, 0), assertion (d) extended, the sweep re-run over `material under\|blocking under\|tier/verdict` | REQ-HARN-PIPELINEOBSERVABILITY-005, REQ-REV-PIPELINEOBSERVABILITY-001 (3), REQ-TELEM-PIPELINEOBSERVABILITY-003 (d); Q-REQ-PO-AK |
 | Specs closing review C2, routed to its requirements origin (kickoff constraint 5) — the rule-table population pin was a frozen literal that every row-adding cycle had to chase, and REQ-LINT-PACKAGING-007 had lagged the spec by one manual landing (`40 / 13` against a tree at `42 / 14`) | the comparand becomes derived: the self-test asserts `--print-population` == the code tables' row counts == `docs/spec/two-root-linter.md` §6's numbers, and §6 states them under a dated marker as current-at-date, moved by any cycle that adds rows; today `42 / 9 / 7 / 14` measured with the exact command; the cause and the one-landing lag recorded in the amendment note; the two sweep blocks re-run with the population terms, every hit reconciled by naming the post-delta populations (`REQUIRED` 56, `FORBIDDEN` 15) and the mover | REQ-LINT-PACKAGING-007 (amended); REQ-LINT-PIPELINEOBSERVABILITY-001 and REQ-REV-PIPELINEOBSERVABILITY-001 (second sweep blocks); Q-REQ-PO-AL |
+| Chunk 3 replan trigger (Q-IMPL-PIPELINEOBSERVABILITY-009), routed to its requirements origin (kickoff constraint 5) — clause (e) never required a sweep command to exclude the file that states it, so all 40 corpus-sweep `Command:` lines under `docs/requirements/**` were `[self-matching-grep]` findings by construction | (e) requires `--exclude=<own basename>` (or a fenced non-counting form); every offending `Command:` line rewritten, pattern and the four trees unchanged; the acceptance gains the gc count as decider (0 today, 40 before); the (e) set equality re-run (37 = 37) | REQ-REQ-PIPELINEOBSERVABILITY-001 (e); Q-REQ-PO-AM |
 | Kickoff constraint 2 — every binding's reversion fails a gate, demonstrated | — | a stated reversion witness on every new acceptance above; prose-only consequences are marked in the research's §Mechanical pin and are not criteria |
 
 ## Domain Prefixes
@@ -1311,6 +1312,37 @@ was created (Q-REQ-PO-N).
   fourteen" under the spec's 2026-09-22 marker, with the grep count (2)
   measured — no id added or removed, no acceptance changed, no other file
   touched.
+- **Q-REQ-PO-AM** (Chunk 3 replan trigger, Q-IMPL-PIPELINEOBSERVABILITY-009,
+  routed back to requirements under kickoff constraint 5 — the sweep blocks
+  were self-matching greps): **the stated grep excludes the file that states
+  it.** Cause: clause (e) demanded a stated, re-runnable grep over the four
+  trees but never required that grep to exclude its own file; every block
+  this cycle wrote therefore named its own requirement file among its
+  recursive operands with a pattern that, being the block's subject, matches
+  the `Command:` line that states it — the exact class the
+  `self-matching-grep` rule (REQ-GC-PIPELINEOBSERVABILITY-002) was demanded
+  to catch, and Chunk 3 landing that rule at its specified scope reported 40
+  such lines under `docs/requirements/**` (drift-sweep 7, telemetry 7,
+  harness-loop-control 4, harness-verification 4, review 4,
+  arbitrated-handoff 3, skill-lint 3, harness-boundaries 2, and one each in
+  agents, chunk-close, requirements-structure, packaging, pre-commit,
+  project-docs). Decision: (e) gains the sentence that the stated grep must
+  exclude the file that states it (`--exclude=<own file basename>`, or the
+  command fenced as a non-counting form); every offending `Command:` line
+  carries `--exclude=<own basename>` with its pattern and the four trees
+  unchanged; the acceptance drops "plus the requirement's own file" from the
+  `-l` re-run listing and gains the gc rule as decider, with the dropped
+  `--exclude=` as the reversion witness. Alternatives rejected: (a) fence
+  every `Command:` line — the blocks are counting greps by design, a fenced
+  command is not re-run by a reader; (b) exempt `Command:` lines in the
+  rule — the rule's specified scope includes `docs/requirements/**` and an
+  allowlist for the requirement that demanded the rule would be the
+  contradiction the rule exists to catch. **Version log:** 27.5 → 27.6
+  (Chunk 3 replan trigger loop-back, minor): one clause sentence added, one
+  acceptance sentence rewritten, forty `Command:` lines rewritten across
+  fourteen category files — no id added or removed; the (e) set equality
+  still holds (37 = 37 on 2026-09-22) and the gc `[self-matching-grep]`
+  count under `docs/requirements/**` reads 0 (40 before).
 
 Resolved during requirements gathering for RS-MARKETPLACE-001 (marketplace
 release, workstream `marketplace`). That stage also ran **non-interactively**, so

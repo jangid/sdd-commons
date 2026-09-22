@@ -246,7 +246,7 @@ requirement's own text and in the index rows that cite it are the statement
 itself and are not listed. Every other hit is reconciled (consistent as-is,
 with the reason) or retired (covered by a zero-count witness).
 - **Label list** —
-  `grep -rnE '^\*\*(Verdict|Strengths|Critical findings|Material findings|Minor findings|Recommendation|Blocking|Substantive):\*\*|^#+ +(Blocking|Critical findings|Substantive)|blocking, then substantive' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `grep -rnE '^\*\*(Verdict|Strengths|Critical findings|Material findings|Minor findings|Recommendation|Blocking|Substantive):\*\*|^#+ +(Blocking|Critical findings|Substantive)|blocking, then substantive' --exclude=review.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
   `plugins/sdd/skills/review/SKILL.md` §Step 5 template (six labels) —
   reconciled, it is the list this grammar transcribes; `docs/spec/review.md`
   §Report template (the same six) — reconciled, same list;
@@ -262,7 +262,7 @@ with the reason) or retired (covered by a zero-count witness).
   milestone ids, and the prefix rule applies only to list items under a tier
   label line.
 - **Verdict predicates** —
-  `grep -rnE 'No findings above minor|at least one Material finding|Any blocking \(Critical\) finding|No blocking findings\. Proceed|Critical findings exist but are bounded|Material and minor findings only|[Nn]o blocking finding;' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `grep -rnE 'No findings above minor|at least one Material finding|Any blocking \(Critical\) finding|No blocking findings\. Proceed|Critical findings exist but are bounded|Material and minor findings only|[Nn]o blocking finding;' --exclude=review.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
   `plugins/sdd/skills/review/SKILL.md` §Verdict definitions (the old `Approve`
   and `Approve with fixes` lines) — retired, witness (v), replaced under (iii);
   `plugins/sdd/agents/reviewer.md` §What your token means ("no blocking
@@ -283,7 +283,7 @@ with the reason) or retired (covered by a zero-count witness).
   for a live sentence finds it in this requirement, the two producers and the
   specs only.
 - **Token line** —
-  `grep -rnE 'anywhere in its report|last occurrence wins|position is not part of the contract' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
+  `grep -rnE 'anywhere in its report|last occurrence wins|position is not part of the contract' --exclude=review.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`:
   `plugins/sdd/skills/orchestrate/references/return-contract.md` §6,
   `plugins/sdd/skills/orchestrate/SKILL.md` §The gate,
   `plugins/sdd/skills/review/SKILL.md` §`VERDICT:` token paragraph,
@@ -296,7 +296,7 @@ with the reason) or retired (covered by a zero-count witness).
   entry now reads as reverted by Q-REQ-PO-AF.
 - **Rule-table population** (re-run with the population terms, specs closing
   review C2, Q-REQ-PO-AL, 2026-09-22) —
-  `grep -rnE 'REQUIRED=|FORBIDDEN=|print-population|population' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py`:
+  `grep -rnE 'REQUIRED=|FORBIDDEN=|print-population|population' --exclude=review.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py`:
   the `REQUIRED` rows this requirement binds on the linter (rows p1–p14 of
   `docs/spec/skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability)
   move the population REQ-LINT-PACKAGING-007 compares — `REQUIRED` 42 today

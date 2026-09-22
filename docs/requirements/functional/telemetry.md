@@ -141,7 +141,7 @@ and the same `proceed | loop-back-to-fix | stop` options as before; no
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rn 'WRITE FAILED' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rn 'WRITE FAILED' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > `plugins/sdd/skills/orchestrate/references/telemetry.md` §3 table ("the
 > previous append raised an error") and its walkthrough rows, `USAGE.md`'s
 > table, `orchestrate/SKILL.md` and `references/loop-control.md` §5 item 7 —
@@ -318,7 +318,7 @@ nothing.
 > listing grep over `docs/requirements docs/spec plugins/sdd/skills
 > plugins/sdd/agents`; hits in this requirement's own text and in the index
 > rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'rec <n>|successful append' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnE 'rec <n>|successful append' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > the listing is REQ-TELEM-PIPELINEOBSERVABILITY-001's:
 > `references/telemetry.md` §3, `references/loop-control.md` §5 item 7,
 > `orchestrate/SKILL.md` and `USAGE.md` ("`<n>` counts successful appends this
@@ -524,7 +524,7 @@ live records (expected: no typed-field finding).
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rnE 'flat-cg|migration\.from' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnE 'flat-cg|migration\.from' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > the listing is REQ-TELEM-PIPELINEOBSERVABILITY-002's: no `plugins/sdd/**`
 > hit; `docs/spec/telemetry-reader.md` §Second migration shape — `flat-cg` —
 > reconciled, carries it; the same file's `--lint` case (c) (one-member enum) —
@@ -743,7 +743,7 @@ are unchanged.
 > `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
 > this requirement's own text and in the index rows citing it are the statement
 > itself and are excluded.
-> Command: `grep -rnE 'flat-cg|migration\.from' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnE 'flat-cg|migration\.from' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > the listing is REQ-TELEM-PIPELINEOBSERVABILITY-002's:
 > `docs/spec/telemetry-reader.md`'s `--lint` case (c) ("`migration.from`
 > outside the `chunk-string` enum") — the old one-member enum; reconciled by
@@ -795,7 +795,7 @@ read of the telemetry file returns nothing.
 over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits
 in this requirement's own text and in the index rows citing it are the
 statement itself and are excluded.
-Command: `grep -rnE 'rec <n>|successful append' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'rec <n>|successful append' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `plugins/sdd/skills/orchestrate/references/telemetry.md` §3 gate-line table and
 family note ("`<n>` counts successful appends this session"),
 `references/loop-control.md` §5 item 7, `orchestrate/SKILL.md` §The gate and
@@ -859,7 +859,7 @@ count, no longer 0).
 listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'flat-cg|migration\.from' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'flat-cg|migration\.from' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit (the migration shapes
 are stated in `docs/spec/telemetry-reader.md` and the tool, never in a skill
 text); `docs/spec/telemetry-reader.md` §Second migration shape — `flat-cg`, its
@@ -916,7 +916,7 @@ this requirement; `schema_diff` reports no divergence; `grep -c 'POST_MANUAL'`,
 members they need — a listing grep over `docs/requirements docs/spec
 plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and
 in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'POST_MANUAL|manual_intervention|cross-field' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'POST_MANUAL|manual_intervention|cross-field' --exclude=telemetry.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `plugins/sdd/skills/orchestrate/references/telemetry.md` — hits only on the
 existing cross-field rules (`[mistyped-fix]`, the `chunk_verdict` rule, the
 `expected` derivation); reconciled, unchanged rules; the same file's

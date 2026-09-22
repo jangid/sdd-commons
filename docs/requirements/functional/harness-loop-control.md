@@ -116,7 +116,7 @@ fourth gate with the compiled log and no automatic fourth dispatch; the
 > of MAX` label — a listing grep over `docs/requirements docs/spec
 > plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text
 > and in the index rows citing it are the statement itself and are excluded.
-> Command: `grep -rnE 'consecutive|reject_run|iteration N of' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> Command: `grep -rnE 'consecutive|reject_run|iteration N of' --exclude=harness-loop-control.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 > `plugins/sdd/skills/orchestrate/references/loop-control.md` (§1 marker
 > literals, §1b, the §2b contradiction line, §5 counters),
 > `references/return-contract.md` ("one review round is one fix iteration"),
@@ -379,7 +379,7 @@ proceed and §2a states that an `APPROVE_WITH_FIXES` at or after the cap is not
 an exhaustion; this cycle's `verification.md` names the gates that ran under
 this rule (kickoff decision 3).
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `APPROVE_WITH_FIXES` routing — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'proceed without re-review|proceed or fix offered|fix, then proceed' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'proceed without re-review|proceed or fix offered|fix, then proceed' --exclude=harness-loop-control.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `plugins/sdd/skills/orchestrate/references/return-contract.md` §6 branching
 table (`APPROVE_WITH_FIXES` row: fix, then proceed without re-review, re-review
 on explicit opt-in) and `plugins/sdd/skills/orchestrate/references/loop-control.md`
@@ -421,7 +421,7 @@ may run none), this cycle's `verification.md` quotes the rendered `GROWTH:`
 line from that gate; when no stage ran a round N ≥ 2, `verification.md` states
 so and the temp-copy and self-test checks alone decide the criterion.
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `GROWTH:` line — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'GROWTH:' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'GROWTH:' --exclude=harness-loop-control.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `plugins/sdd/skills/orchestrate/references/loop-control.md` §5 item 6d and
 `plugins/sdd/skills/orchestrate/SKILL.md` §The gate (the row naming
 `CONVERGENCE:` then `GROWTH:`) — reconciled, they render the line this
@@ -483,7 +483,7 @@ two-record fixture — a `reason: REVIEW` record at `iteration: 1` with no
 loop-back followed by a `reason: POST_MANUAL` record — emits one
 `[reason-review]` warning, for the first record only.
 **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `post-manual` footprint — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
-Command: `grep -rnE 'post-manual|POST_MANUAL' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'post-manual|POST_MANUAL' --exclude=harness-loop-control.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `docs/spec/harness-loop-control.md` §2b and `docs/spec/skill-lint-v5.md` row
 p5 — reconciled, consistent; `docs/spec/telemetry-reader.md` (reader check (c)
 and its amendment, which spell the reason `post-manual` in lower case where

@@ -1503,7 +1503,7 @@ installed cache's version after `/plugin update` equal to the bumped value.
 listing grep over `docs/requirements docs/spec plugins/sdd/skills
 plugins/sdd/agents`; hits in this requirement's own text and in the index rows
 citing it are the statement itself and are excluded.
-Command: `grep -rnE 'plugin version|"version"' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+Command: `grep -rnE 'plugin version|"version"' --exclude=packaging.md docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
 `docs/spec/marketplace-packaging.md` manifest shape (`"version": "<semver>"`)
 and §The plugin version is bumped in the cycle that changes the plugin (the
 `grep -c '"version"'` checks) — reconciled, they carry this requirement; the
