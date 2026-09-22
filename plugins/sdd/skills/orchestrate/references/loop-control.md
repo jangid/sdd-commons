@@ -289,10 +289,13 @@ At most **one** third opinion per contradiction; `iteration N of MAX` is
 unchanged throughout. The third round's record is a `review` telemetry record
 with `dispatch.reason: THIRD_OPINION`.
 
-When the stage's review returns `VERDICT: REJECT` (or `APPROVE_WITH_FIXES` and
-the operator would fix again) after iteration `MAX`, do **not** dispatch another
-fix. Render the gate with the **compiled findings log** and offer only
-`stop | manual intervention | authorize extra iteration`:
+When the stage's review returns `VERDICT: REJECT` after iteration `MAX`, do
+**not** dispatch another fix. Render the gate with the **compiled findings
+log** and offer only `stop | manual intervention | authorize extra iteration`.
+An `APPROVE_WITH_FIXES` after iteration `MAX` is not an exhaustion: it offers
+`proceed` (its Critical/Material lines carried verbatim into the next
+dispatch's `{deliverable_contract}`, `return-contract.md` §3) `| manual
+intervention | stop`, and never a fourth fix dispatch:
 
 ```
 Fix loop exhausted — stage: specs, 3 of 3 iterations
@@ -561,6 +564,15 @@ only) `COMMIT:` at 2b → `CHUNK_VERDICT:` → `RED_VERDICT:` (with its derived
    options are suppressed, and one `replan` closes both. The tick state exists
    on the leaf's return, so it renders before the options
    (`docs/spec/harness-loop-control.md` §Plan Completion Ownership; §6 below);
+6d. **stage gate, review round N ≥ 2 only**: the own-line informational
+   `GROWTH: <deliverable> +A/−D lines (N₁ → N₂) since round N−1` line — the
+   visible-line delta of the stage deliverable between the tree the previous
+   review read and the tree this review read, derived by the orchestrator from
+   its two snapshots (`write-scope.md` §3), one line per deliverable path. It
+   renders after 6c and before 7; it is informational only — no option set,
+   never pauses, never withholds `proceed`. Its purpose is to make the
+   fix-grows-artifact-grows-findings generator visible at the gate where the
+   operator decides whether to re-review (item 5a, approve-with-fixes routing);
 6c. **every gate**: the own-line `CONVERGENCE:` token — one line per cluster
    whose **second** member arrived at this gate, naming the cluster's key in
    whichever of the three key shapes formed it (the shared id; the file alone,
@@ -641,10 +653,18 @@ that has a picker, the picker call belongs in the **same turn** as the block it
 closes. The plain-text fallback is for sessions with no picker, not for a turn
 that has already rendered the options as text.
 
-**Approve-with-fixes shortcut.** For `APPROVE_WITH_FIXES` (`review`: "fix
-the named findings, then proceed without re-review") `loop-back-to-fix` offers
-re-dispatch then re-review (the default) or skipping the re-review; a *Reject*
-never skips it.
+**Approve-with-fixes routing.** For `APPROVE_WITH_FIXES` (`review`: "fix
+the named findings, then proceed without re-review") `loop-back-to-fix` means
+re-dispatch **then proceed without re-review** — the default and the only
+automatic path; a re-review after the fix is an explicit operator opt-in at
+this gate, never the default. A *Reject* always re-reviews. Rationale, recorded
+2026-09-22 from 21 rounds over two cycles: eight `APPROVE_WITH_FIXES` rounds with
+zero blocking findings were each fixed and re-reviewed, every re-review of the
+grown artifact by a fresh reviewer raised new Material ground, and four of five
+stages exhausted `FIX_LOOP_MAX` on a verdict that should have closed them
+(`docs/research/RS-PIPELINEOBSERVABILITY-001-harness-self-verification/findings.md`
+§Gate observation 2026-09-22). Under this routing rounds per stage are bounded
+by `FIX_LOOP_MAX` `REJECT`s plus one.
 
 ### 5b. Convergence signal — L2, item 6c — from §The gate
 

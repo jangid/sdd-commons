@@ -251,7 +251,7 @@ for an explicit decision; never auto-advance. Choices per token and per
 | Decision | Action |
 |----------|--------|
 | **proceed** | Advance to the next stage. |
-| **loop-back-to-fix** | Re-dispatch the pipeline subagent with a repair packet (findings + paths by construction — `references/return-contract.md` §3; never a re-litigation of the reviewer's reasoning), then re-run the review for this stage. |
+| **loop-back-to-fix** | Re-dispatch the pipeline subagent with a repair packet (Critical/Material findings + paths by construction — `references/return-contract.md` §3; never minor findings, never a re-litigation of the reviewer's reasoning). **After a `REJECT`** re-run the review for this stage. **After an `APPROVE_WITH_FIXES`** the fix is applied and the stage proceeds **without re-review** — the review skill's own definition of that verdict — unless the operator opts in to a re-review at this gate; the next stage's review reads the fixed artifact as its upstream (`references/loop-control.md` §5a). |
 | **stop** | Halt the loop; leave artifacts as-is. |
 
 **Post-gate aggregate regeneration (marker `4` — REQ-WS-HARNESSP3-001).**
@@ -283,7 +283,7 @@ ephemeral (REQ-ORCH-013):
 | 5 | the loop counters | stage gate |
 | 6 | the `REVIEW: CONTRADICTION` pause block when it fires, after the counters | stage gate |
 | 6b | implement only: the plan completion parse `PLAN: INCOMPLETE (N of M ticked)`, pausing with `replan │ stop` **only** and suppressing (6)'s options — signal 6's block still renders, only its options are suppressed | stage gate |
-| 6c, 7 | the informational own-line `CONVERGENCE:` token — one line per cluster whose second member arrived here, naming its key (shared id, sectionless file, or file and section), the layers and the layer count; no option set, never pauses, never withholds `proceed` — then the `TELEMETRY:` line, last, before the options | every gate |
+| 6c, 6d, 7 | the informational own-line `CONVERGENCE:` token, then — on a review round N ≥ 2 — the informational own-line `GROWTH:` line, the deliverable's visible-line delta since the previous round (`references/loop-control.md` §5 item 6d); neither pauses or withholds `proceed` — one line per cluster whose second member arrived here, naming its key (shared id, sectionless file, or file and section), the layers and the layer count; no option set, never pauses, never withholds `proceed` — then the `TELEMETRY:` line, last, before the options | every gate |
 | 8 | **post-decision**: the own-line `COMMIT: COMPLETE \| INCOMPLETE` closing line right after the orchestrator's own commit (or the fan-out merge; pre-decision at 2b for a fan-out per-leaf gate), pausing on `INCOMPLETE` with `amend \| accept (note) \| stop` before any next dispatch ([`references/write-scope.md`](references/write-scope.md) §7a) | after the decision |
 | 8b | implement `proceed` only, after (8): the orchestrator — the sole writer of the plan's `status:` under orchestration — flips `docs/ws/<id>/plan.md` to `status: complete` in its own bookkeeping commit, editing `status:` only and leaving `research_id:` untouched | after the decision |
 

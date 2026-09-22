@@ -263,7 +263,7 @@ value list in `SKILL.md` §The gate):
 | Token | Gate offers | Packet |
 |---|---|---|
 | `APPROVE` | proceed (default) │ stop | none |
-| `APPROVE_WITH_FIXES` | proceed │ loop-back-to-fix (re-review optional per the existing shortcut) │ stop | findings carried into the packet |
+| `APPROVE_WITH_FIXES` | proceed │ loop-back-to-fix (fix, then proceed **without re-review** — re-review only on explicit operator opt-in, `loop-control.md` §5a) │ stop | findings carried into the packet |
 | `REJECT` with actionable findings | loop-back-to-fix (subject to the fix-loop cap) │ stop | findings carried into the packet |
 | `REJECT` with no actionable findings | pause: re-dispatch │ override │ stop (REQ-ORCH-018) | none |
 | missing / unrecognized / disagrees with prose | `REVIEW: MALFORMED` pause: re-dispatch review │ accept prose manually │ stop | none |
