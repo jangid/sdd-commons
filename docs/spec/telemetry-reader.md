@@ -352,7 +352,14 @@ member, so the warning does not fire on a post-manual record and is neither
 re-worded nor given an exception clause. **Frozen fixtures unchanged**: the two
 frozen harness fixtures hold none of the four shapes, so `--lint` over each
 reports the same finding count as before — asserted by the existing
-sorted-lines comparison.
+sorted-lines comparison. [Corrected 2026-09-22 at implement,
+Q-IMPL-PIPELINEOBSERVABILITY-006: measured, both fixtures **do** hold shapes
+(b) and (d) — p3 `seq` 14, 17; p4 `seq` 2, 4, 7, 10, 14, 17, 20, 23, 26, 34 —
+because their cycles ran under the pre-Chunk-1 grammar (`APPROVE_WITH_FIXES`
+carrying blocking items; `fix_iteration` counting every loop-back). They are
+historical facts on record, like the p3 `seq` 20 `kind: gate`: the self-test
+compares each fixture's pre-delta finding set with the (a)–(d) lines excluded
+against the pre-delta pin, and pins the (a)–(d) lines themselves by `seq`.]
 
 ### Lint Guard (REQ-TELEM-HARNESSP2-007, REQ-LINT-HARNESSP2-002)
 
@@ -861,6 +868,34 @@ record key is added and no side channel from the orchestrator is used
 **Rationale**: the row scans raw text incl. fences and negative mentions; rewording is cheaper and spec-conformant.
 **Date**: 2026-09-18 (Chunk 6)
 
+
+### Q-IMPL-PIPELINEOBSERVABILITY-003: the tool's spec-side paths resolve from the repository root, not the plugin root
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Schema Lint — `--lint` From One Domain Table (`test_schema_table_agrees` parses the `### Record Schema` section of `docs/spec/telemetry.md`); §`--plan` Floor for Implement-Stage Expectations (reads `docs/ws/harness-p3/plan.md`)
+**Decision**: `plugins/sdd/tools/telemetry.py` derives `_ROOT` (two levels above the plugin root `plugins/sdd`) and resolves `SPEC_DOC` and `P3_PLAN` from it; `REF_DOC` and the fixtures stay plugin-relative. At the Chunk 2 entry `--self-test` was red on the tree with exactly one failure — `schema rendering missing: …/plugins/sdd/docs/spec/telemetry.md` — because the packaging move left `docs/` outside the plugin (CLAUDE.md §Repository Structure) while the tool still resolved it one level up.
+**Rationale**: the spec names the two renderings by repository path; the tool must find them where the layout puts them. No spec contract changes; the chunk's exit criterion (`--self-test` exits 0) is unreachable without it.
+**Date**: 2026-09-22 (implement stage, Chunk 2)
+
+### Q-IMPL-PIPELINEOBSERVABILITY-004: `flat-cg` — reading a flat record's kind, the unmapped kinds, and the no-null defaults
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §In-Place Migration, "Second migration shape — `flat-cg`" — the key mapping table, "Lost, not reconstructed", "Every other `v: 2` key … takes its schema null / zero"
+**Decision**: (1) A flat record's kind is its `kind` key, else `dispatch` when that is a string (the packaging writer's spelling — on the consumer-geometry records `dispatch` is an int ordinal, which is **not** mapped to `dispatch.seq`), else `event` (`gate`). (2) Exactly the four spec-named kinds are mappable; every other kind — the spec's `gate`, `commit`, `pr` and the packaging writer's `pipeline_fix`, `pipeline_addendum`, `red_team`, `implement`, `per_chunk` — is dropped and counted in `migration.lost` under its own name, so `lost` may carry more keys than the three the spec names and migrated + lost always equals the flat record count; renaming `pipeline_fix` to `fix` would be a kind rewrite the spec does not authorise. (3) Keys whose domain admits no null take one fixed default: `cycle.marker` `"4"`, `gate.decision` `other` (no decision was recorded), `gate.decision_by` `operator`, `return.status` the flat `status` when it is a member, `COMPLETE` when absent (the flat writer recorded a dispatch that returned), `MALFORMED` when present but outside the enum (`FAILED`); `git.head_before` the flat `sha`, or the placeholder `0000000` when the record has none, and `git.head_after` the same value (the snapshot pair with nothing landed); `dispatch.seq` `0`. (4) Beyond the table, the flat keys `status`, `verdict` (review → `review_verdict`, red → `red_verdict`), `chunk_verdict`, `scope` (`CLEAN`/`VIOLATION` → `scope.token`) and `files_written`/`paths_written` (→ `return.files_written_n`) are copied when in domain, and `findings.critical`/`findings.material` are read as `C`/`M` beside `blocking`/`substantive`; anything else is the schema null/zero. Nothing is back-filled and no gate decision is invented.
+**Rationale**: the spec's rule was written from the consumer-geometry records ("without separate examination" of packaging); the packaging writer used other key names and kinds, and the mapping must be total over the frozen fixture without inventing facts. `seq: 0` on every migrated record means `summarize` reads each as its own session — a rendering cost accepted over a fabricated ordinal.
+**Date**: 2026-09-22 (implement stage, Chunk 2)
+
+### Q-IMPL-PIPELINEOBSERVABILITY-005: the migrated consumer-geometry per-chunk block names only chunk 0
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §In-Place Migration, "Lost, not reconstructed" ("dispatches that left no record — consumer-geometry chunks 1–8 … — are missing, not lost"); Acceptance Criteria (2026-09-22) "`summarize --file <tmp> --workstream consumer-geometry` renders per-chunk blocks for chunks 1–8 stamped `partial`"
+**Decision**: on the frozen flat fixture, chunks 1–8 of consumer-geometry exist only on `kind: gate` records, which the same section drops as lost; the only mappable records with a chunk are the chunk 0 `pipeline` and `verifier`. The per-chunk block therefore renders the chunks the **mappable** records name — chunk 0 — each stamped `partial`; the self-test derives that set from the fixture at run time and asserts the block equals it, never a pinned `1–8`. The acceptance sentence quoted above cannot hold under the section's own lost rule and is read as "every chunk a migrated record names is stamped `partial`".
+**Rationale**: back-filling chunk records from gate records is the invention the section forbids; the criterion and the rule cannot both be true, and the rule is the contract.
+**Date**: 2026-09-22 (implement stage, Chunk 2)
+
+### Q-IMPL-PIPELINEOBSERVABILITY-006: the frozen fixtures hold shapes (b) and (d)
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Schema Lint, "Frozen fixtures unchanged"; Acceptance Criteria (2026-09-22) "each report the finding count recorded for them before this delta"
+**Decision**: measured after the four assertions landed, `--lint` raises (b) and (d) on p3 `seq` 14, 17 and on p4 `seq` 2, 4, 7, 10, 14, 17, 20, 23, 26, 34 (p3 66 → 70 findings, p4 62 → 77) — their reviews rendered `APPROVE_WITH_FIXES` with blocking items and their `fix_iteration` counted every loop-back, the grammar Chunk 1 of this cycle replaced. The fixtures are not touched. `test_frozen_finding_sets_unchanged` compares each fixture's finding set **with the (a)–(d) lines excluded** against the pre-delta pin and pins the (a)–(d) lines by `(seq, rule)`, so a removed assertion is red on real data as well as on the synthetic pairs. The pin is the sorted-lines sha256 with each `[enum]` message's rendered `not in […]` member list stripped (`finding_set_sha`): the three new members re-render that list on the six out-of-domain `gate.decision` / `dispatch.reason` values the fixtures hold (p3 and p4 `seq` 15–20) without changing which findings exist, so the identity `seq: [class] field: value` is the invariant — 66 findings on p3 and 62 on p4, as before (p3 `73e6f8a4…`, p4 `c4588cbf…`, both measured on the pre-delta tool).
+**Rationale**: the assertions are witnesses of gate rules; that they fire on the cycles that ran before the rules is the evidence the rules were needed, not a defect of the assertions. Rewriting a fixture or exempting `v: 1` records would silence exactly the signal.
+**Date**: 2026-09-22 (implement stage, Chunk 2)
 
 ## Pipeline-Observability Amendment (2026-09-22, REQ-TELEM-PIPELINEOBSERVABILITY-002, -003; REQ-TELEM-HARNESSP4-005, REQ-TELEM-HARNESSP5-008 amended)
 

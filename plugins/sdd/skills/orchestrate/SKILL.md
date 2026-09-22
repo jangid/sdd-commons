@@ -303,10 +303,10 @@ fixture and token parsing:
 [`references/return-contract.md`](references/return-contract.md) §6a.
 
 **`TELEMETRY:` lines** — the four-member family `rec <n>` │ `WRITE FAILED` │
-`OFF` │ `.gitignore updated` (`rec <n>` the positive member, `<n>` = successful
-appends this session) — render at most once each, after the `iteration`/cap
-line (or the `REVIEW: CONTRADICTION` token line when that pause fired) and
-before the options: [`references/telemetry.md`](references/telemetry.md) §3.
+`OFF` │ `.gitignore updated` (`rec <n>` the positive member: `<n>` = successful
+appends this session, advanced only when `telemetry.py append` exits 0 after
+validating the record; a non-zero exit, I/O or validation, renders `WRITE FAILED`)
+— render at most once each, after the `iteration`/cap line (or the `REVIEW: CONTRADICTION` token line when that pause fired) and before the options: [`references/telemetry.md`](references/telemetry.md) §3.
 
 **Fix-loop cap (REQ-HARN-001).** `FIX_LOOP_MAX` (default **3**) is per stage,
 session-only, incremented once per fix re-dispatch, which carries the literal

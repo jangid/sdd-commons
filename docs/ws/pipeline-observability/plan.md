@@ -337,7 +337,7 @@ Chunk 1's §2b names). **OP-1 (fixture cut) precedes this chunk's dispatch.**
 **Estimated**: ~12 hours.
 **Tasks**:
 
-1. [implement] `plugins/sdd/tools/telemetry.py append [--file F]` — reads
+1. [x] [implement] `plugins/sdd/tools/telemetry.py append [--file F]` — reads
    exactly one JSON value from stdin; checks in order: JSON object; `v` in the
    admitted set through the shared `v` helper; `lint_records([record])`
    returns zero findings of the classes `enum`, `type`, `key-undeclared`,
@@ -345,7 +345,7 @@ Chunk 1's §2b names). **OP-1 (fixture cut) precedes this chunk's dispatch.**
    `cross-field` and `mistyped-fix` are stderr warnings only; exit 0 follows
    one append-only write of exactly one line; prints nothing that reads the
    file. `--help` names `append`. — traces to `telemetry.md` §Writer.
-2. [implement] `plugins/sdd/skills/orchestrate/references/telemetry.md` §3
+2. [x] [implement] `plugins/sdd/skills/orchestrate/references/telemetry.md` §3
    and `plugins/sdd/skills/orchestrate/SKILL.md` §The gate — the writer
    sequence performs the append through `telemetry.py append` and renders
    `rec <n>` only on its exit 0; the gate-line table still lists exactly four
@@ -353,7 +353,7 @@ Chunk 1's §2b names). **OP-1 (fixture cut) precedes this chunk's dispatch.**
    the telemetry path in either section; no dispatch template
    (`dispatch-templates.md`, `fan-out.md`) mentions the subcommand. — traces
    to `telemetry.md` §Positive Gate Line `TELEMETRY: rec <n>`.
-3. [implement] `plugins/sdd/tools/telemetry.py` domain table and
+3. [x] [implement] `plugins/sdd/tools/telemetry.py` domain table and
    `plugins/sdd/skills/orchestrate/references/telemetry.md` §2 — the
    `dispatch.reason` member `POST_MANUAL` (upper case, beside `REVIEW`,
    outside the fix-only subset; `post-manual` never appears in the tool), the
@@ -365,7 +365,7 @@ Chunk 1's §2b names). **OP-1 (fixture cut) precedes this chunk's dispatch.**
    1` with no loop-back and not for the `POST_MANUAL` record that follows it.
    — traces to `telemetry-reader.md` §Schema Lint; `harness-loop-control.md`
    §Fix-Loop Cap.
-4. [implement] `plugins/sdd/tools/telemetry.py --lint` cross-field assertions
+4. [x] [implement] `plugins/sdd/tools/telemetry.py --lint` cross-field assertions
    (a)–(d): (a) a `verifier`/`review`/`red` record with `scope.token =
    VIOLATION` (`GIT_STATE`/`OUT`) whose positive verdict token was consumed
    at its gate; (b) at a document stage `gate.fix_iteration` incrementing
@@ -379,7 +379,7 @@ Chunk 1's §2b names). **OP-1 (fixture cut) precedes this chunk's dispatch.**
    APPROVE_WITH_FIXES`, `C = 0 / REJECT`. Duration checks skip records
    carrying the `migration` marker. — traces to `telemetry-reader.md`
    §Schema Lint.
-5. [implement] `plugins/sdd/tools/telemetry.py migrate` — the second shape
+5. [x] [implement] `plugins/sdd/tools/telemetry.py migrate` — the second shape
    `flat-cg` over every `v`-less record: the key mapping (`ts` to the three
    timestamps, `sha` to `git.head_before`, `budget`/`consumed`,
    `findings.{blocking,substantive,minor}` to `verdict.findings.{C,M,m}`,
@@ -390,7 +390,7 @@ Chunk 1's §2b names). **OP-1 (fixture cut) precedes this chunk's dispatch.**
    as `--file` or `--out` (exit 2, no write); the `ws: packaging` records
    covered by the same rule. — traces to `telemetry-reader.md` §In-Place
    Migration of the 8 p3 Records.
-6. [implement] `plugins/sdd/tools/telemetry.py --self-test` cases — three
+6. [x] [implement] `plugins/sdd/tools/telemetry.py --self-test` cases — three
    `append` cases (`v`-less object exits non-zero with the line count
    unchanged; `[]` exits non-zero writing nothing; the §2 example record exits
    0, adds one line, `summarize --file` counts 1); the `flat-cg` case over the
@@ -406,7 +406,7 @@ Chunk 1's §2b names). **OP-1 (fixture cut) precedes this chunk's dispatch.**
    frozen-fixture finding counts unchanged (sorted-lines comparison). —
    traces to `telemetry-reader.md` §Schema Lint; `telemetry-reader.md`
    §In-Place Migration of the 8 p3 Records; `telemetry.md` §Writer.
-7. [verify] Reversion witnesses run: in temp copies of the tool, remove the
+7. [x] [verify] Reversion witnesses run: in temp copies of the tool, remove the
    append validation step (the `v`-less case exits 0 and the self-test prints
    its failure), remove the enum check (case (c) fails), remove each of
    assertions (a)–(d) in turn (its case fails); on the tree `--self-test`

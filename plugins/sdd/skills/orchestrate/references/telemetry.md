@@ -69,7 +69,7 @@ written with `v: 2`; a `v: 1` record is validated against the unmarked rows only
 | | `chunk` | int or null — the **integer N parsed** from the `### Chunk N:` header, **never** the header string (`"Chunk 3"`, `"### Chunk 3: …"`) and never a quoted digit; `null` for every non-chunk dispatch | `### Chunk N:` number for per-chunk dispatches |
 | | `iteration` | int or null | fix-loop iteration this dispatch belongs to |
 | | `redo` | int or null | per-chunk redo count at dispatch |
-| | `reason` | repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below | `harness-return-contract.md` §Repair Packet (plus `RED_BREAK`, `adversarial-verify.md`) |
+| | `reason` | repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below | `harness-return-contract.md` §Repair Packet (plus `RED_BREAK`, `adversarial-verify.md`; and `POST_MANUAL` — the `post-manual` review of `loop-control.md` §2b, upper case, outside the fix-only subset, added 2026-09-22) |
 | `const` | `FIX_ONLY_REASONS` | subset of `dispatch.reason`: `red_break` `[p4]` — a **schema constant, not a record key**; no record carries it (`--lint` reports one that does as `key-undeclared`) | §7 implied-fix clause (b); `--lint` asserts the subset relation |
 | | `budget` | budget object (below) | parsed from the dispatched `Budget:` line |
 | | `write_scope_n` | int | number of declared scope globs |
@@ -87,7 +87,7 @@ written with `v: 2`; a `v: 1` record is validated against the unmarked rows only
 | | `findings` | `{"C": int, "M": int, "m": int}` | counts of C/M/m lines |
 | | `malformed` | bool | `REVIEW: MALFORMED` or `RETURN: MALFORMED` raised |
 | | `contradiction_class` | null \| `b` \| `c` | `REVIEW: CONTRADICTION` class (`arbitrated-handoff.md`) |
-| `gate` | `decision` | `proceed` \| `fix` \| `loop-back-to-fix` \| `stop` \| `redo` \| `replan` \| `revert` \| `widen` \| `accept` \| `third-opinion` \| `re-dispatch` \| `override` \| `other` | the operator's choice, normalised to one enum (table below) |
+| `gate` | `decision` | `proceed` \| `fix` \| `loop-back-to-fix` \| `stop` \| `redo` \| `replan` \| `revert` \| `widen` \| `accept` \| `third-opinion` \| `re-dispatch` \| `override` \| `manual_intervention` \| `malformed` \| `other` | the operator's choice, normalised to one enum (table below); `manual_intervention` and `malformed` added 2026-09-22 (`docs/spec/telemetry-reader.md` §Schema Lint, assertions (c) and (d)) |
 | | `decision_by` | `operator` \| `policy` | always `operator` this cycle (`evaluation.md`) |
 | | `fix_iteration`, `fix_cap`, `cap_raised` | int | `iteration N of MAX (cap raised ×k)` |
 | | `redo_count` | int or null | `Redo: N of REDO_MAX` |
@@ -96,7 +96,7 @@ written with `v: 2`; a `v: 1` record is validated against the unmarked rows only
 | `git` | `head_before`, `head_after` | short sha (`^[0-9a-f]{7,12}$`) | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) — never the `HEAD` literal, never a 40-character sha |
 | `commit` | `token` | `COMPLETE` \| `INCOMPLETE` \| null `[p4]` | the gate's own `COMMIT:` closing line (`write-scope.md` §7a, `harness-commit-fidelity.md`), copied after it renders; null for a dispatch whose gate commits nothing (review, verifier, red) (REQ-TELEM-HARNESSP4-007) |
 | | `missing_n`, `extra_n` | int `[p4]` | that line's `observed, not landed` / `landed, not observed` counts — counts only, never paths |
-| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (`docs/spec/telemetry-reader.md` §In-Place Migration); the writer never sets it |
+| — | `migration` | optional `{from: chunk-string \| flat-cg, at: date, lost?: {<kind>: int}}` `[p4]` | present only on records rewritten by `migrate` (`docs/spec/telemetry-reader.md` §In-Place Migration); the writer never sets it. `flat-cg` marks a `v`-less flat record mapped to `v: 2` (2026-09-22); `lost` — admitted only beside `flat-cg` — carries, on the first migrated record of a workstream, the count per kind of that workstream's flat records that had no `v: 2` counterpart and were dropped |
 
 **Writer sources of the `[p4]` fields — no read of the telemetry file.**
 `scope.widened` is computed from session state the orchestrator already holds
@@ -141,11 +141,13 @@ harness maps to exactly one enum value; an option not in this table is `other`
 | `stop` | `stop` |
 | `revert path` | `revert` |
 | `accept & widen scope` | `widen` |
-| `manual intervention` · `authorize extra iteration` (recorded with `cap_raised`) | `override` |
+| `manual intervention` (the exhausted gate's option; the `post-manual` review of §3 / `loop-control.md` §2b follows it with `reason: POST_MANUAL`) | `manual_intervention` |
+| `authorize extra iteration` (recorded with `cap_raised`) | `override` |
 | `accept round N (proceed, note)` · `accept manually` · `accept (record)` | `accept` |
 | `third opinion` | `third-opinion` |
 | `re-dispatch` | `re-dispatch` |
 | `route to replan` | `replan` |
+| whichever option was chosen at a `REVIEW: MALFORMED` or `RETURN: MALFORMED` pause | `malformed` |
 | anything else | `other` |
 
 **Budget object** (REQ-TELEM-HARNESSP2-002): `{"tool_calls": int|null,
@@ -235,12 +237,19 @@ ts_dispatch := date -u          # before snapshot(before) and dispatch
 ts_return   := date -u          # on return, before snapshot(after)
 … scope check (incl. the third observation, §4) → verifier / red / review → gate …
 ts_gate     := date -u          # when the operator's decision is taken
-append one record                # AFTER the gate decision, so gate.decision is filled
-                                # on success: telemetry.rec += 1, asserted as
-                                # `TELEMETRY: rec <n>` on the NEXT gate
+append one record                # AFTER the gate decision, so gate.decision is filled:
+  python3 plugins/sdd/tools/telemetry.py append   # the record on stdin, one JSON object;
+                                # validated against the domain table BEFORE the write
+                                # (object → v admitted → zero enum/type/key findings)
+  exit 0     → telemetry.rec += 1, asserted as `TELEMETRY: rec <n>` on the NEXT gate
+  exit != 0  → `TELEMETRY: WRITE FAILED` on the next gate; telemetry.rec unchanged
+             # (an I/O failure OR a validation failure — nothing was written either way)
 ```
 
-Timestamps are whole seconds (`date -u +%Y-%m-%dT%H:%M:%SZ`).
+Timestamps are whole seconds (`date -u +%Y-%m-%dT%H:%M:%SZ`). `append` is the
+only write and it prints nothing that reads the file (no line number, no
+count); no leaf and no dispatch template calls it — the orchestrator is its
+only caller (`docs/spec/telemetry.md` §Writer, REQ-TELEM-PIPELINEOBSERVABILITY-001).
 
 Rules:
 
@@ -296,7 +305,9 @@ Rules:
 - **Append-only.** The orchestrator never rewrites or truncates the file, with
   the **single exception** of the leaf-write revert in §4.
 - **Never load-bearing.** On any write error (unwritable directory, disk full)
-  the orchestrator renders `TELEMETRY: WRITE FAILED` as one line of the next
+  **or validation failure** (`append` exits non-zero because the record did not
+  pass the domain table — the second cause of `WRITE FAILED`, 2026-09-22) the
+  orchestrator renders `TELEMETRY: WRITE FAILED` as one line of the next
   gate's text and continues with the unchanged `proceed │ loop-back-to-fix │
   stop` options. No retry, no pause.
 - **Default on; KICKOFF opt-out, changeable mid-cycle.** Telemetry is on for
@@ -343,7 +354,7 @@ append happened.
   sequence would have a later gate assert an append count that never occurred.
 - It is a new **session-scoped counter named `telemetry.rec`**, maintained beside
   `dispatch.seq` in the orchestrator's existing session state: initialised to 0 at
-  KICKOFF, incremented **only** after an append returns successfully, and never
+  KICKOFF, incremented **only** after `append` exits 0 (a validated write), and never
   decremented (a leaf-write revert, §4, removes lines the orchestrator never
   counted). It restarts at 0 in a new session. **No new artifact.**
 - Position: the writer appends *after* the gate decision, so the **next** gate is

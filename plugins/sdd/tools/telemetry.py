@@ -16,9 +16,19 @@ never a phase-detection or staleness input.
 Usage:
   tools/telemetry.py summarize [--file .sdd/telemetry.jsonl] [--workstream ID] [--since ISO] [--plan docs/ws/<id>/plan.md]
   tools/telemetry.py --lint [--file .sdd/telemetry.jsonl]   # every field against the domain table; exit 1 on a finding
-  tools/telemetry.py migrate --file PATH [--out PATH]        # OPERATOR-RUN, between sessions: "Chunk N" chunk strings → int N
+  tools/telemetry.py migrate --file PATH [--out PATH]        # OPERATOR-RUN, between sessions: "Chunk N" chunk strings → int N; v-less flat records → v: 2 (flat-cg)
+  tools/telemetry.py append [--file PATH] < record.json      # ORCHESTRATOR-ONLY: validate one record against the domain table, then append one line
   tools/telemetry.py --self-test      # synthetic fixtures in a temp dir + the frozen p3 fixture (read-only)
   tools/telemetry.py --help
+
+``append`` (REQ-TELEM-PIPELINEOBSERVABILITY-001, ``docs/spec/telemetry.md`` §Writer)
+is the writer's "append one record" step: it reads exactly one JSON value from
+stdin, refuses anything that is not an object, a ``v`` outside the admitted set,
+or a record with an ``enum`` / ``type`` / ``key-undeclared`` / ``key-missing``
+finding (nothing written, exit non-zero), warns on stderr for ``cross-field`` and
+``mistyped-fix``, and on exit 0 has written exactly one line. It prints nothing
+that reads the file, so the gate's ``TELEMETRY: rec <n>`` stays the orchestrator's
+session counter, advanced only on exit 0.
 
 ``--lint`` reports ``seq <n>: [<class>] <group.key>: <message>`` per violation
 (classes enum / type / key-undeclared / key-missing / cross-field /
@@ -81,15 +91,20 @@ STAGES = ["research", "requirements", "specs", "plan", "implement", "verify", "r
 KINDS = ["pipeline", "fix", "fanout_leaf", "verifier", "review", "red"]
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_REPO = os.path.dirname(_HERE)
+_REPO = os.path.dirname(_HERE)                    # the plugin root: plugins/sdd
+# The repository root: `docs/` stays outside the plugin (CLAUDE.md §Repository
+# Structure), so the two spec-side paths below resolve two levels above the
+# plugin root — Q-IMPL-PIPELINEOBSERVABILITY-003 (the self-test was red at the
+# Chunk 2 entry because they were resolved under `plugins/sdd/docs/`).
+_ROOT = os.path.dirname(os.path.dirname(_REPO))
 # The two human-readable renderings of the domain table that `--lint`
 # (telemetry-reader.md §Schema Lint) checks itself against: the spec's
 # §Record Schema table stayed in telemetry.md across the split, so SPEC_DOC
 # is unchanged (telemetry.md §Moved Sections).
-SPEC_DOC = os.path.join(_REPO, "docs", "spec", "telemetry.md")
+SPEC_DOC = os.path.join(_ROOT, "docs", "spec", "telemetry.md")
 REF_DOC = os.path.join(_REPO, "skills", "orchestrate", "references", "telemetry.md")
 # The p3 plan the `--plan` floor is exercised against (telemetry-reader.md §Fixture-Based Test Contract).
-P3_PLAN = os.path.join(_REPO, "docs", "ws", "harness-p3", "plan.md")
+P3_PLAN = os.path.join(_ROOT, "docs", "ws", "harness-p3", "plan.md")
 
 # Frozen live-run evidence (tools/fixtures/README.md): every reader-side test reads
 # it read-only and asserts this sha256 before and after (telemetry-reader.md
@@ -101,9 +116,34 @@ P4_FIXTURE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixt
                                "telemetry-harness-p4-2026-09-19.jsonl")
 P4_FIXTURE_SHA256 = "ff5cf2864abc74c2c05449b86e5117f5c4ed8851b6b5f96617859b8b061ef370"
 # The p3 fixture's `--lint` finding SET, order-insensitive: sha256 over the sorted
-# finding lines (the summary line excluded).  REQ-TELEM-HARNESSP5-006's sort may
-# reorder the rendering, so the set — never the sequence — is the invariant.
-FIXTURE_LINT_SORTED_SHA256 = "b1b8c072db2d826380d1120f4fbbf39c651de8bfde486d0251d94f4d0301243c"
+# finding lines (the summary line excluded) with each `[enum]` message's rendered
+# member list stripped (`finding_set_sha`).  REQ-TELEM-HARNESSP5-006's sort may
+# reorder the rendering, so the set — never the sequence — is the invariant; and a
+# member added to the schema (2026-09-22: `POST_MANUAL`, `manual_intervention`,
+# `malformed`) re-renders the `not in […]` list of an out-of-domain value without
+# changing which findings exist, so the identity `seq: [class] field: value` — never
+# the list — is what the pin holds (Q-IMPL-PIPELINEOBSERVABILITY-006).  Measured
+# 2026-09-22 on the pre-delta tool: 66 findings, 3 warnings.
+FIXTURE_LINT_SORTED_SHA256 = "73e6f8a44b9f334ca6aec0225c44dff7b71a5a179fe9d4ccfbcd98276af15987"
+# The p4 fixture's pre-delta `--lint` finding SET under the same normalisation,
+# measured 2026-09-22 before the four cross-field assertions (a)–(d) landed:
+# 62 findings, 4 warnings. The (a)–(d) lines the fixtures DO raise are pinned
+# separately by `(seq, rule)` (`P3_/P4_FIXTURE_GATE_RULE_FINDINGS`).
+P4_FIXTURE_LINT_SORTED_SHA256 = "c4588cbf93c6450c4e9de7b8647d8e3d3cd69b8dab6117e4c2bd098b643076ae"
+_MEMBER_LIST_TAIL_RE = re.compile(r"( not in \[.*)$")
+
+
+def finding_set_sha(lines: list[str]) -> str:
+    """sha256 over the sorted finding lines with each rendered member list stripped
+    — the order- and member-list-insensitive identity of a `--lint` finding set."""
+    return hashlib.sha256("\n".join(sorted(_MEMBER_LIST_TAIL_RE.sub("", ln) for ln in lines)).encode()).hexdigest()
+# The frozen flat-record fixture (OP-1 of the pipeline-observability plan): every
+# `v`-less line of the live file on 2026-09-22, read-only input of the `flat-cg`
+# migration case; its sha256 is recorded in fixtures/README.md and asserted
+# before and after (telemetry-reader.md §In-Place Migration, "Frozen fixture").
+FLAT_FIXTURE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures",
+                                 "telemetry-flat-2026-09-22.jsonl")
+FLAT_FIXTURE_SHA256 = "de57b9608ba3a78fbcdbc2525b8e91870481fe2bc3ecfbfa10eef4a4f7afd358"
 
 # ---------------------------------------------------------------------------
 # Domain table (telemetry.md §Record Schema — the code table is the schema's
@@ -128,7 +168,11 @@ FIXTURE_LINT_SORTED_SHA256 = "b1b8c072db2d826380d1120f4fbbf39c651de8bfde486d0251
 # Repair-packet `reason` enum (harness-return-contract.md §Repair Packet, plus
 # `red_break` — the RED_BREAK packet as the telemetry record spells it, the `const`
 # row's member — and `THIRD_OPINION`, arbitrated-handoff.md). Q-IMPL-HARNESSP4-005.
-REASON_MEMBERS = {"REVIEW", "VERIFIER_FAIL", "PARTIAL_CONTINUE", "MERGE_CONFLICT", "red_break", "THIRD_OPINION"}
+# `POST_MANUAL` is the reason of the review dispatched after a manual intervention
+# (harness-loop-control.md §Fix-Loop Cap §Footprint; loop-control.md §2b) — upper
+# case, beside `REVIEW`, outside the fix-only subset (REQ-TELEM-PIPELINEOBSERVABILITY-003).
+REASON_MEMBERS = {"REVIEW", "VERIFIER_FAIL", "PARTIAL_CONTINUE", "MERGE_CONFLICT", "red_break", "THIRD_OPINION",
+                  "POST_MANUAL"}
 REPLAN_TRIGGER_MEMBERS = {"stuck", "spike", "verification", "operator"}
 
 
@@ -179,7 +223,11 @@ DOMAIN_TABLE: list[dict] = [
     _row("verdict", "findings", '`{"C": int, "M": int, "m": int}`', "findings"),
     _row("verdict", "malformed", "bool", "bool"),
     _row("verdict", "contradiction_class", "null | `b` | `c`", "enum_or_null"),
-    _row("gate", "decision", "`proceed` | `fix` | `loop-back-to-fix` | `stop` | `redo` | `replan` | `revert` | `widen` | `accept` | `third-opinion` | `re-dispatch` | `override` | `other`", "enum"),
+    # `manual_intervention` (the exhausted gate's option, followed by a `POST_MANUAL`
+    # review — cross-field assertion (c)) and `malformed` (whichever option the
+    # operator chose at a `REVIEW: MALFORMED` / `RETURN: MALFORMED` pause — the
+    # decision assertion (d) exempts) were added 2026-09-22 (REQ-TELEM-PIPELINEOBSERVABILITY-003).
+    _row("gate", "decision", "`proceed` | `fix` | `loop-back-to-fix` | `stop` | `redo` | `replan` | `revert` | `widen` | `accept` | `third-opinion` | `re-dispatch` | `override` | `manual_intervention` | `malformed` | `other`", "enum"),
     _row("gate", "decision_by", "`operator` | `policy`", "enum"),
     _row("gate", "fix_iteration", "int", "int"),
     _row("gate", "fix_cap", "int", "int"),
@@ -193,7 +241,9 @@ DOMAIN_TABLE: list[dict] = [
     _row("commit", "token", "`COMPLETE` | `INCOMPLETE` | null `[p4]`", "enum_or_null", p4=True),
     _row("commit", "missing_n", "int `[p4]`", "int", p4=True),
     _row("commit", "extra_n", "int `[p4]`", "int", p4=True),
-    _row(None, "migration", "optional `{from: chunk-string, at: date}` `[p4]`", "migration", p4=True),
+    # `from` is a two-member enum (`chunk-string`, `flat-cg`); `lost` is admitted
+    # only beside `flat-cg` (telemetry-reader.md §In-Place Migration, "Lost, not reconstructed").
+    _row(None, "migration", "optional `{from: chunk-string | flat-cg, at: date, lost?: {<kind>: int}}` `[p4]`", "migration", p4=True),
 ]
 
 # Keys a record may omit: the `migration` marker is present only on migrated records.
@@ -206,9 +256,18 @@ _BACKTICK_RE = re.compile(r"`([^`]+)`")
 _P4_MARK = "`[p4]`"
 
 # `migrate` (telemetry-reader.md §In-Place Migration, REQ-TELEM-HARNESSP4-005): the
-# marker's only `from` member, the header-string shape it rewrites, and the
+# marker's first `from` member, the header-string shape it rewrites, and the
 # read-only fixture directory the guard refuses to read from or write to.
 MIGRATION_FROM = "chunk-string"
+# The second shape (REQ-TELEM-PIPELINEOBSERVABILITY-002): every `v`-less record of
+# the live file is a flat consumer-geometry / packaging record; the four kinds
+# with a `v: 2` counterpart are migrated, every other kind is dropped and counted
+# in `migration.lost` on the first migrated record of its workstream.
+MIGRATION_FROM_FLAT = "flat-cg"
+MIGRATION_FROM_MEMBERS = frozenset({MIGRATION_FROM, MIGRATION_FROM_FLAT})
+FLAT_MAPPABLE_KINDS = ("pipeline", "review", "verifier", "red")
+FLAT_LOST_KINDS = ("gate", "commit", "pr")   # the kinds the spec names; any other unmapped kind is counted under its own name
+FLAT_SHA_PLACEHOLDER = "0000000"             # a flat record without `sha` (Q-IMPL-PIPELINEOBSERVABILITY-004)
 _CHUNK_STRING_RE = re.compile(r"^Chunk (\d+)$")
 FIXTURES_DIR = os.path.join(_HERE, "fixtures")
 
@@ -550,6 +609,11 @@ def stage_rows(records: list[dict]) -> list[dict]:
                 redo_by_chunk[label] = max(redo_by_chunk[label], rc)
         wall_dispatch, wall_gate = [], []
         for r in recs:
+            if isinstance(r.get("migration"), dict):
+                # A migrated record's three timestamps may be one value (the flat
+                # writer took one): its 0 is not a measurement, so duration checks
+                # skip it (telemetry-reader.md §In-Place Migration, `ts` row).
+                continue
             td, tr, tg = _ts(r.get("ts_dispatch")), _ts(r.get("ts_return")), _ts(r.get("ts_gate"))
             if td and tr:
                 wall_dispatch.append((tr - td).total_seconds())
@@ -992,9 +1056,19 @@ def _check_value(check: str, value, members: frozenset) -> str | None:
         ok = isinstance(value, dict) and set(value) == {"C", "M", "m"} and all(_is_int(x) for x in value.values())
         return None if ok else f'{value!r} is not {{"C": int, "M": int, "m": int}}'
     if check == "migration":
-        ok = isinstance(value, dict) and set(value) == {"from", "at"} and isinstance(value["from"], str) \
+        # Shape: `{from, at}` plus an optional `lost` — admitted ONLY beside
+        # `from: flat-cg` as `{<kind>: int}` (a `lost` beside `chunk-string` is this
+        # [type] finding); `from` outside its enum is `[enum] migration.from`, raised
+        # by lint_records, not here.
+        ok = isinstance(value, dict) and {"from", "at"} <= set(value) <= {"from", "at", "lost"} \
+            and isinstance(value["from"], str) \
             and isinstance(value["at"], str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", value["at"])
-        return None if ok else f"{value!r} is not the declared {{from: chunk-string, at: date}} shape"
+        if ok and "lost" in value:
+            lost = value["lost"]
+            ok = value["from"] == MIGRATION_FROM_FLAT and isinstance(lost, dict) \
+                and all(isinstance(k, str) and _is_int(n) for k, n in lost.items())
+        return None if ok else (f"{value!r} is not the declared {{from: chunk-string | flat-cg, at: date, "
+                                "lost?: {<kind>: int}} shape (lost is admitted only beside flat-cg)")
     return None
 
 
@@ -1061,13 +1135,13 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
             if msg:
                 cls = "enum" if row["check"] in ("enum", "enum_or_null", "list_enum") else "type"
                 add(seq, cls, _fname(g, k), msg)
-        # `migration.from` is a ONE-MEMBER enum (`chunk-string`), and the shape check
-        # above admits any string: a malformed marker is `[type] migration`, a `from`
-        # outside the member set is `[enum] migration.from` (telemetry-reader.md
-        # §Schema Lint, fixed key set row; REQ-TELEM-HARNESSP5-008 case (c)).
+        # `migration.from` is a TWO-MEMBER enum (`chunk-string`, `flat-cg`), and the
+        # shape check above admits any string: a malformed marker is `[type] migration`,
+        # a `from` outside the member set is `[enum] migration.from` (telemetry-reader.md
+        # §Schema Lint, fixed key set row; REQ-TELEM-HARNESSP5-008 case (c) as amended).
         mig = rec.get("migration")
-        if isinstance(mig, dict) and isinstance(mig.get("from"), str) and mig["from"] != MIGRATION_FROM:
-            add(seq, "enum", "migration.from", f"{mig['from']!r} not in {[MIGRATION_FROM]}")
+        if isinstance(mig, dict) and isinstance(mig.get("from"), str) and mig["from"] not in MIGRATION_FROM_MEMBERS:
+            add(seq, "enum", "migration.from", f"{mig['from']!r} not in {sorted(MIGRATION_FROM_MEMBERS)}")
         valid.append(rec)
 
     # cross-field (session-scoped)
@@ -1103,11 +1177,99 @@ def lint_records(records: list, seqs: list | None = None) -> list[dict]:
                     "proceed at implement with head_before == head_after and no landed commit group (nothing landed)")
             if kind in NON_COMMITTING_KINDS and _get(r, "commit", "token") is not None:
                 add(seq, "cross-field", "commit.token", f"non-null on a {kind} record, whose gate commits nothing")
+        for f in gate_rule_findings(sess):
+            add(f["seq"], "cross-field", f["field"], f["message"])
     for s in reason_review_warnings(valid):
         stage = next((_get(r, "dispatch", "stage") for r in valid if _get(r, "dispatch", "seq") == s), "?")
         add(s, "reason-review", "dispatch.reason",
             f"REVIEW at iteration ≥ 1 with no preceding loop-back-to-fix at {stage}", warn=True)
     return sort_findings(findings)
+
+
+# The positive verdict token of each read-only kind — the token assertion (a)
+# reads (harness-write-scope.md §Git-State Observation: a verdict rendered beside
+# `SCOPE: VIOLATION` is void and must not be consumed by a `proceed`).
+POSITIVE_VERDICT_FIELD = {"verifier": "chunk_verdict", "review": "review_verdict", "red": "red_verdict"}
+POSITIVE_VERDICT_TOKENS = frozenset({"PASS", "APPROVE", "APPROVE_WITH_FIXES", "HELD"})
+
+
+def gate_rule_findings(sess: list[dict]) -> list[dict]:
+    """The four cross-field assertions (a)–(d) of telemetry-reader.md §Schema Lint
+    over one session, in ``seq`` order — each the mechanical witness of a gate
+    rule bound in another spec (REQ-TELEM-PIPELINEOBSERVABILITY-003):
+
+    (a) voided verdict consumed — a ``verifier``/``review``/``red`` record with
+        ``scope.token = VIOLATION``, a positive verdict token and ``gate.decision =
+        proceed`` (harness-write-scope.md §Git-State Observation);
+    (b) ``fix_iteration`` counts a non-``REJECT`` — a ``review`` record whose
+        ``gate.fix_iteration`` exceeds the run of consecutive ``REJECT`` tokens over
+        the immediately preceding same-stage ``review`` records of the session
+        (harness-loop-control.md §Fix-Loop Cap, ``reject_run``);
+    (c) un-reviewed manual intervention — a ``gate.decision = manual_intervention``
+        record whose next same-stage record is not a ``review`` with
+        ``dispatch.reason = POST_MANUAL``, or whose ``gate.fix_iteration`` differs
+        from the intervention record's (§Fix-Loop Cap §Footprint);
+    (d) tier items under the wrong token — a ``review`` record in one of the four
+        non-``legal`` cells of harness-return-contract.md §VERDICT Token's case
+        table (``C ≥ 1`` under a non-``REJECT`` token; ``C = 0, M ≥ 1`` under
+        ``APPROVE``; ``C = 0, M = 0`` under ``APPROVE_WITH_FIXES``; ``C = 0`` under
+        ``REJECT``) whose ``gate.decision`` is not the ``malformed`` pause.
+
+    Returns ``[{seq, field, message}]``; the caller classes them ``cross-field``.
+    """
+    out: list[dict] = []
+    ordered = sorted(sess, key=lambda r: _int0(_get(r, "dispatch", "seq")))
+    prior_reviews: dict[str, list] = defaultdict(list)   # stage → review verdict tokens, in order
+    for i, r in enumerate(ordered):
+        d = r.get("dispatch") or {}
+        seq = d.get("seq") if _is_int(d.get("seq")) else "?"
+        kind, stage = d.get("kind"), str(d.get("stage"))
+        decision = _get(r, "gate", "decision")
+        # (a)
+        if kind in POSITIVE_VERDICT_FIELD and _get(r, "scope", "token") == "VIOLATION" and decision == "proceed":
+            tok = _get(r, "verdict", POSITIVE_VERDICT_FIELD[kind])
+            if tok in POSITIVE_VERDICT_TOKENS:
+                out.append({"seq": seq, "field": "gate.decision",
+                            "message": f"(a) voided verdict consumed: {kind} {tok} rendered beside SCOPE: VIOLATION and the gate proceeded"})
+        if kind == "review":
+            tok = _get(r, "verdict", "review_verdict")
+            # (b): the run of consecutive REJECTs ending the preceding same-stage reviews
+            run = 0
+            for prev in reversed(prior_reviews[stage]):
+                if prev != "REJECT":
+                    break
+                run += 1
+            fi = _get(r, "gate", "fix_iteration")
+            if _is_int(fi) and fi > run:
+                out.append({"seq": seq, "field": "gate.fix_iteration",
+                            "message": f"(b) {fi} exceeds the run of consecutive REJECTs ({run}) over the preceding {stage} reviews — an increment across a non-REJECT"})
+            prior_reviews[stage].append(tok)
+            # (d): the four non-legal cells of the 4×3 case table
+            C, M = _get(r, "verdict", "findings", "C"), _get(r, "verdict", "findings", "M")
+            if tok is not None and decision != "malformed" and _is_int(C) and _is_int(M):
+                cell = None
+                if C >= 1 and tok != "REJECT":
+                    cell = f"C = {C} under {tok}"
+                elif C == 0 and M >= 1 and tok == "APPROVE":
+                    cell = f"M = {M} under APPROVE"
+                elif C == 0 and M == 0 and tok == "APPROVE_WITH_FIXES":
+                    cell = "0 material under APPROVE_WITH_FIXES"
+                elif C == 0 and tok == "REJECT":
+                    cell = "0 blocking under REJECT"
+                if cell:
+                    out.append({"seq": seq, "field": "verdict.review_verdict",
+                                "message": f"(d) tier items under the wrong token: {cell}, gate decision {decision!r} is not the malformed pause"})
+        # (c)
+        if decision == "manual_intervention":
+            nxt = next((n for n in ordered[i + 1:] if str(_get(n, "dispatch", "stage")) == stage), None)
+            fi = _get(r, "gate", "fix_iteration")
+            if nxt is None or _get(nxt, "dispatch", "kind") != "review" or _get(nxt, "dispatch", "reason") != "POST_MANUAL":
+                out.append({"seq": seq, "field": "gate.decision",
+                            "message": f"(c) manual_intervention at {stage} not followed by a POST_MANUAL review record"})
+            elif _get(nxt, "gate", "fix_iteration") != fi:
+                out.append({"seq": seq, "field": "gate.decision",
+                            "message": f"(c) the POST_MANUAL review's fix_iteration {_get(nxt, 'gate', 'fix_iteration')!r} differs from the manual_intervention record's {fi!r}"})
+    return out
 
 
 def sort_findings(findings: list[dict]) -> list[dict]:
@@ -1207,6 +1369,132 @@ def migrate_line(line: str, at: str) -> tuple[str, bool]:
     return json.dumps(rec, ensure_ascii=False, separators=seps) + line[len(body):], True
 
 
+def flat_kind(rec: dict) -> str | None:
+    """The kind of a ``v``-less flat record: its ``kind`` key, else ``dispatch`` when
+    that is the kind string (the packaging writer's spelling — ``dispatch`` is an
+    int ordinal on the consumer-geometry records), else ``event`` (``gate``)
+    (Q-IMPL-PIPELINEOBSERVABILITY-004)."""
+    for key in ("kind", "dispatch", "event"):
+        val = rec.get(key)
+        if isinstance(val, str) and val:
+            return val
+    return None
+
+
+def _flat_chunk(value):
+    """``dispatch.chunk`` of a flat record: an int stays, a ``"Chunk N"`` header string
+    is rewritten as in the first shape, anything else is null."""
+    if _is_int(value):
+        return value
+    if isinstance(value, str) and _CHUNK_STRING_RE.fullmatch(value.strip()):
+        return int(_CHUNK_STRING_RE.fullmatch(value.strip()).group(1))
+    return None
+
+
+def flat_to_v2(rec: dict, at: str) -> dict:
+    """Map one mappable flat record to a complete ``v: 2`` record — the key mapping of
+    telemetry-reader.md §In-Place Migration ("Second migration shape — `flat-cg`"):
+    ``ts`` to all three timestamps, ``sha`` to the git heads, ``budget``/``consumed``,
+    ``findings.{blocking,substantive,minor}`` to ``{C,M,m}``, ``fix_iteration``, and
+    ``kind``/``ws``/``stage``/``chunk``; every other key takes its schema null / zero.
+    Where the schema admits no null (``cycle.marker``, ``gate.decision``,
+    ``gate.decision_by``, ``return.status``, the shas) the defaults are those of
+    Q-IMPL-PIPELINEOBSERVABILITY-004. Nothing is back-filled and no gate decision is invented."""
+    kind = flat_kind(rec)
+    ts = rec.get("ts")
+    # budget object: the flat writer recorded counts only
+    fb = rec.get("budget")
+    if isinstance(fb, dict) and any(k in fb for k in ("tool_calls", "test_runs")):
+        budget = {"tool_calls": fb.get("tool_calls") if _is_int(fb.get("tool_calls")) else None,
+                  "test_runs": fb.get("test_runs") if _is_int(fb.get("test_runs")) else None,
+                  "prototypes": False, "read_only": False}
+    else:
+        budget = {"unparsed": True}
+    fc = rec.get("consumed", rec.get("budget_consumed"))
+    consumed: dict = {"self_reported": True}
+    if isinstance(fc, dict):
+        consumed = {"tool_calls": fc.get("tool_calls") if _is_int(fc.get("tool_calls")) else None,
+                    "test_runs": fc.get("test_runs") if _is_int(fc.get("test_runs")) else None,
+                    "self_reported": True}
+    ff = rec.get("findings") if isinstance(rec.get("findings"), dict) else {}
+
+    def count(*names) -> int:
+        for n in names:
+            if _is_int(ff.get(n)):
+                return ff[n]
+        return 0
+    findings = {"C": count("blocking", "critical"), "M": count("substantive", "material"), "m": count("minor")}
+    status = rec.get("status")
+    if status is None:
+        status = "COMPLETE"          # the flat writer recorded a dispatch that returned
+    elif status not in enum_members("return", "status"):
+        status = "MALFORMED"         # e.g. `FAILED` — no parseable return
+    sha = rec.get("sha") if isinstance(rec.get("sha"), str) and SHA_RE.fullmatch(rec["sha"]) else FLAT_SHA_PLACEHOLDER
+    scope_tok = rec.get("scope") if rec.get("scope") in ("CLEAN", "VIOLATION") else None
+    rv = rec.get("verdict") if kind == "review" and rec.get("verdict") in enum_members("verdict", "review_verdict") else None
+    red = rec.get("red_verdict") if kind == "red" and rec.get("red_verdict") in enum_members("verdict", "red_verdict") else None
+    cv = rec.get("chunk_verdict") if rec.get("chunk_verdict") in enum_members("verdict", "chunk_verdict") else None
+    fw = next((rec[k] for k in ("files_written", "paths_written") if _is_int(rec.get(k))), 0)
+    fi = rec.get("fix_iteration") if _is_int(rec.get("fix_iteration")) else 0
+    return {
+        "v": 2, "ts_dispatch": ts, "ts_return": ts, "ts_gate": ts,
+        "cycle": {"workstream": str(rec.get("ws") or "?"), "research_id": None, "kickoff_date": None, "marker": "4"},
+        "dispatch": {"seq": 0, "kind": kind, "stage": rec.get("stage"), "chunk": _flat_chunk(rec.get("chunk")),
+                     "iteration": rec.get("iteration") if _is_int(rec.get("iteration")) else None,
+                     "redo": None, "reason": None, "budget": budget, "write_scope_n": 0},
+        "return": {"status": status, "budget_consumed": consumed, "files_written_n": fw, "commits_n": 0,
+                   "tasks_completed_n": 0, "failures_n": 0, "ledger_n": 0, "open_questions_n": 0,
+                   "blocked_writes_n": 0, "warnings": []},
+        "scope": {"token": scope_tok, "in": 0, "advisory": 0, "out": 0, "history_rewrite": False, "widened": 0},
+        "verdict": {"chunk_verdict": cv, "review_verdict": rv, "red_verdict": red, "findings": findings,
+                    "malformed": False, "contradiction_class": None},
+        "gate": {"decision": "other", "decision_by": "operator", "fix_iteration": fi, "fix_cap": 0, "cap_raised": 0,
+                 "redo_count": None, "replan_count": 0, "replan_cap": 0},
+        "replan_trigger": None, "git": {"head_before": sha, "head_after": sha},
+        "commit": {"token": None, "missing_n": 0, "extra_n": 0},
+        "migration": {"from": MIGRATION_FROM_FLAT, "at": at},
+    }
+
+
+def migrate_flat(lines: list[str], at: str) -> tuple[list[str], int, dict]:
+    """The ``flat-cg`` pass over already chunk-string-migrated lines: every ``v``-less
+    JSON object is a flat record — a mappable kind is rewritten by :func:`flat_to_v2`,
+    every other kind is dropped and counted per workstream, and the counts are
+    stamped as ``migration.lost`` on the first migrated record of that workstream.
+    Returns ``(new_lines, n_migrated, lost_by_ws)``; a workstream whose every
+    record was lost has no record to carry its count, which the caller reports."""
+    entries: list[tuple[str, dict | None]] = []   # (original line, migrated record or None)
+    lost: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    first_migrated: dict[str, dict] = {}
+    n_migrated = 0
+    for line in lines:
+        body = line.rstrip("\r\n")
+        try:
+            rec = json.loads(body) if body.strip() else None
+        except ValueError:
+            rec = None
+        if not isinstance(rec, dict) or "v" in rec:
+            entries.append((line, None))     # a typed record, a torn line, or blank: untouched
+            continue
+        ws = str(rec.get("ws") or "?")
+        kind = flat_kind(rec)
+        if kind not in FLAT_MAPPABLE_KINDS:
+            lost[ws][str(kind)] += 1         # gate / commit / pr, or any other unmapped kind
+            continue                         # dropped from the output
+        new = flat_to_v2(rec, at)
+        n_migrated += 1
+        first_migrated.setdefault(ws, new)   # the record that will carry the workstream's `lost`
+        entries.append((line, new))
+    # stamp the counts on the shared record objects before serialising
+    for ws, counts in lost.items():
+        if ws in first_migrated:
+            first_migrated[ws]["migration"]["lost"] = dict(sorted(counts.items()))
+    out_lines = [line if new is None
+                 else json.dumps(new, ensure_ascii=False, separators=(",", ":")) + line[len(line.rstrip("\r\n")):]
+                 for line, new in entries]
+    return out_lines, n_migrated, {ws: dict(c) for ws, c in lost.items()}
+
+
 def migrate(path: str, out: str | None = None, at: str | None = None) -> tuple[int, str]:
     """Run the migration: ``(exit code, message)``.
 
@@ -1214,6 +1502,10 @@ def migrate(path: str, out: str | None = None, at: str | None = None) -> tuple[i
     - ``out`` given → write there, input untouched;
     - in place → sibling temp file, line-count check, ``os.replace`` over the original
       (a failed check leaves the original intact and exits 1); nothing to rewrite → no write.
+
+    Two shapes run in order: ``chunk-string`` (per line) and then ``flat-cg`` over
+    every remaining ``v``-less record (telemetry-reader.md §In-Place Migration); the
+    line-count check allows exactly the lost records the second shape dropped.
     """
     for p in (path, out):
         if p and under_fixtures(p):
@@ -1229,7 +1521,14 @@ def migrate(path: str, out: str | None = None, at: str | None = None) -> tuple[i
         new, changed = migrate_line(line, at)
         new_lines.append(new)
         n_changed += changed
+    new_lines, n_flat, lost = migrate_flat(new_lines, at)
+    n_lost = sum(sum(c.values()) for c in lost.values())
+    n_changed += n_flat
     summary = f"migrated {n_changed} record(s) of {len(lines)} line(s)"
+    if n_flat or n_lost:
+        per_ws = "; ".join(f"{ws}: {sum(c.values())} lost ({', '.join(f'{k} {n}' for k, n in sorted(c.items()))})"
+                           for ws, c in sorted(lost.items()))
+        summary += f" — flat-cg: {n_flat} migrated, {n_lost} lost, not reconstructed" + (f" [{per_ws}]" if per_ws else "")
     if out:
         with open(out, "w", encoding="utf-8") as fh:
             fh.writelines(new_lines)
@@ -1243,15 +1542,64 @@ def migrate(path: str, out: str | None = None, at: str | None = None) -> tuple[i
             fh.writelines(new_lines)
         with open(tmp_path, encoding="utf-8") as fh:
             written = fh.read().splitlines(keepends=True)
-        if len(written) != len(lines):
+        if len(written) != len(lines) - n_lost:
             os.unlink(tmp_path)
-            return 1, f"error: line count changed ({len(lines)} → {len(written)}); {path} left intact"
+            return 1, f"error: line count changed ({len(lines)} → {len(written)}, {n_lost} lost expected); {path} left intact"
         os.replace(tmp_path, path)
     except OSError as exc:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
         return 1, f"error: in-place rewrite failed ({exc}); {path} left intact"
     return 0, f"{summary} — {path} rewritten in place (marker at: {at})"
+
+
+# ---------------------------------------------------------------------------
+# append (telemetry.md §Writer, "The append is `telemetry.py append`, and it
+# validates before it writes" — REQ-TELEM-PIPELINEOBSERVABILITY-001). The
+# orchestrator is the only caller; no dispatch template names it.
+# ---------------------------------------------------------------------------
+
+# Finding classes that refuse the write; `cross-field` and `mistyped-fix` (and the
+# `reason-review` warning) need a sibling record the single-record call cannot see,
+# so they are stderr warnings only.
+APPEND_FATAL_CLASSES = frozenset({"enum", "type", "key-undeclared", "key-missing"})
+
+
+def append(path: str, text: str) -> tuple[int, list[str]]:
+    """Validate one JSON value and append it as one line: ``(exit code, stderr lines)``.
+
+    Checks, in order (telemetry.md §Writer table): (1) the text is exactly one JSON
+    **object**; (2) ``v`` is admitted through the shared helper :func:`v_admitted`;
+    (3) ``lint_records([record])`` returns zero findings of the fatal classes.  Any
+    failure exits non-zero with nothing written.  Exit 0 follows one append-only
+    write of exactly one line.  Nothing here reads the file — no line number, no
+    count — so the writer's zero-reads rule holds by construction and ``<n>`` stays
+    the orchestrator's session counter.
+    """
+    try:
+        value = json.loads(text)
+    except ValueError as exc:
+        return 1, [f"append: stdin is not exactly one JSON value ({exc.msg} at char {exc.pos}); nothing written"]
+    if not isinstance(value, dict):
+        return 1, ["append: the JSON value is not an object; nothing written"]
+    if not v_admitted(value.get("v")):
+        return 1, [f"append: v {value.get('v')!r} is not an int in {V_ADMITTED_TEXT}; nothing written"]
+    findings = lint_records([value])
+    fatal = [f for f in findings if f["class"] in APPEND_FATAL_CLASSES]
+    lines = [f"append: WARN [{f['class']}] {f['field']} {f['message']}"
+             for f in findings if f["class"] not in APPEND_FATAL_CLASSES]
+    if fatal:
+        lines += [f"append: [{f['class']}] {f['field']}: {f['message']}" for f in fatal]
+        lines.append(f"append: {len(fatal)} finding(s) against the domain table; nothing written")
+        return 1, lines
+    directory = os.path.dirname(os.path.abspath(path))
+    try:
+        os.makedirs(directory, exist_ok=True)
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n")
+    except OSError as exc:
+        return 1, lines + [f"append: write failed ({exc.strerror or exc}); nothing written"]
+    return 0, lines
 
 
 # ---------------------------------------------------------------------------
@@ -1373,13 +1721,16 @@ def test_advisory_cases(check) -> None:
     check("dispatch.reason" not in _lint_classes([canonical]).get("enum", []),
           f"advisory (b): the canonical red_break spelling was flagged: {_lint_classes([canonical])}")
 
-    # (c) migration.from is a one-member enum; the shape check admits any string.
-    other = {**_record(dispatch={"chunk": 3}), "migration": {"from": "other", "at": "2026-09-19"}}
+    # (c) migration.from is a two-member enum {chunk-string, flat-cg}; the shape check
+    #     admits any string. Re-pointed 2026-09-22 at `flat-xx` — outside BOTH members
+    #     (REQ-TELEM-HARNESSP5-008 as amended).
+    other = {**_record(dispatch={"chunk": 3}), "migration": {"from": "flat-xx", "at": "2026-09-19"}}
     check(_lint_classes([other]).get("enum") == ["migration.from"],
-          f"advisory (c): migration.from outside the enum is not an [enum] finding: {_lint_classes([other])}")
-    declared = {**_record(dispatch={"chunk": 3}), "migration": {"from": MIGRATION_FROM, "at": "2026-09-19"}}
-    check("migration.from" not in _lint_classes([declared]).get("enum", []),
-          f"advisory (c): the declared chunk-string value was flagged: {_lint_classes([declared])}")
+          f"advisory (c): migration.from flat-xx outside the enum is not an [enum] finding: {_lint_classes([other])}")
+    for member in (MIGRATION_FROM, MIGRATION_FROM_FLAT):
+        declared = {**_record(dispatch={"chunk": 3}), "migration": {"from": member, "at": "2026-09-19"}}
+        check("migration.from" not in _lint_classes([declared]).get("enum", []),
+              f"advisory (c): the declared {member} value was flagged: {_lint_classes([declared])}")
 
 
 def test_p4_fixture_frozen(check) -> None:
@@ -1476,6 +1827,259 @@ def test_commit_group_records_closing_line(check) -> None:
           "summarize does not count the accepted INCOMPLETE gate")
     check("COMMIT: INCOMPLETE (accepted): 0" in summarize([amended], 0),
           "an amended (COMPLETE) gate must not be counted as accepted")
+
+
+def _run_tool(argv: list[str], stdin: str | None = None) -> subprocess.CompletedProcess:
+    """Run THIS file as a subprocess (so a temp copy under mutation tests itself)."""
+    return subprocess.run([sys.executable, os.path.abspath(__file__)] + argv, input=stdin,
+                          capture_output=True, text=True)
+
+
+def _ref_example_record() -> dict:
+    """The `references/telemetry.md` §2 example record: the first fenced ```json block
+    after the `## 2.` heading, parsed."""
+    text = open(REF_DOC, encoding="utf-8").read()
+    start = text.index("\n## 2.")
+    fence = text.index("```json", start) + len("```json")
+    return json.loads(text[fence:text.index("```", fence)])
+
+
+def _line_count(path: str) -> int:
+    if not os.path.exists(path):
+        return 0
+    with open(path, encoding="utf-8") as fh:
+        return sum(1 for _ in fh)
+
+
+def test_append_cases(check, tmp: str) -> None:
+    """The three `append` cases of telemetry.md §Writer (REQ-TELEM-PIPELINEOBSERVABILITY-001):
+    a `v`-less object exits non-zero with the line count unchanged; `[]` exits
+    non-zero writing nothing; the §2 example record exits 0, adds exactly one line
+    and `summarize --file` counts 1 record. Only temp files are ever appended to.
+    """
+    path = os.path.join(tmp, ".sdd", "append.jsonl")
+    # (1) the §2 example record → exit 0, one line, summarize counts 1
+    ok = _run_tool(["append", "--file", path], json.dumps(_ref_example_record()))
+    check(ok.returncode == 0 and ok.stdout == "", f"append example: rc {ok.returncode}, stdout {ok.stdout!r}, stderr {ok.stderr!r}")
+    check(_line_count(path) == 1, f"append example: {_line_count(path)} line(s), expected 1")
+    summ = _run_tool(["summarize", "--file", path])
+    check(summ.returncode == 0 and "records: 1" in summ.stdout, f"summarize after append does not count 1: {summ.stdout[:200]!r}")
+    # (2) a v-less object → non-zero, line count unchanged
+    before = _line_count(path)
+    vless = _run_tool(["append", "--file", path], '{"ts":"x","ws":"x"}')
+    check(vless.returncode != 0, "append v-less object: exit 0 — the validation step is missing")
+    check(_line_count(path) == before, f"append v-less object wrote a line ({before} → {_line_count(path)})")
+    # (3) a non-object → non-zero, nothing written (a fresh path stays absent)
+    fresh = os.path.join(tmp, "append-fresh.jsonl")
+    arr = _run_tool(["append", "--file", fresh], "[]")
+    check(arr.returncode != 0 and not os.path.exists(fresh), f"append []: rc {arr.returncode}, file exists {os.path.exists(fresh)}")
+    # a record with an enum finding is refused; a cross-field-only finding is a warning and written
+    bad = _record2(dispatch={"kind": "gate"})
+    ref = _run_tool(["append", "--file", fresh], json.dumps(bad))
+    check(ref.returncode != 0 and "[enum] dispatch.kind" in ref.stderr and not os.path.exists(fresh),
+          f"append enum finding not refused: rc {ref.returncode}, {ref.stderr!r}")
+    warn_only = _record2(dispatch={"kind": "review"}, commit={"token": "COMPLETE", "missing_n": 0, "extra_n": 0})
+    wr = _run_tool(["append", "--file", fresh], json.dumps(warn_only))
+    check(wr.returncode == 0 and "WARN [cross-field]" in wr.stderr and _line_count(fresh) == 1,
+          f"append cross-field warning: rc {wr.returncode}, {wr.stderr!r}, lines {_line_count(fresh)}")
+    # --help names append
+    helptext = _run_tool(["--help"]).stdout
+    check("append" in helptext, "--help does not name append")
+
+
+def test_flat_cg_migration(check, tmp: str) -> None:
+    """The `flat-cg` case over the frozen flat fixture (REQ-TELEM-PIPELINEOBSERVABILITY-002):
+    every count is derived from the fixture at run time — migrated = records of the
+    four mappable kinds; lost per workstream = its `gate` + `commit` + `pr` records
+    (and every other unmapped kind under its own name, so migrated + lost = total);
+    the fixture's sha256 equals the README value before and after.
+    """
+    check(os.path.exists(FLAT_FIXTURE_PATH), f"frozen flat fixture missing: {FLAT_FIXTURE_PATH}")
+    if not os.path.exists(FLAT_FIXTURE_PATH):
+        return
+    readme = open(os.path.join(FIXTURES_DIR, "README.md"), encoding="utf-8").read()
+    check(FLAT_FIXTURE_SHA256 in readme, "the flat fixture sha256 is not recorded in fixtures/README.md")
+    check(_sha256(FLAT_FIXTURE_PATH) == FLAT_FIXTURE_SHA256, "flat fixture sha256 before")
+    # derive the expected numbers from the fixture itself
+    by_ws_kind: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    chunk_set: set[int] = set()
+    total = 0
+    for rec in load_raw(FLAT_FIXTURE_PATH):
+        if not isinstance(rec, dict):
+            continue
+        total += 1
+        k = str(flat_kind(rec))
+        by_ws_kind[str(rec.get("ws"))][k] += 1
+        if k in FLAT_MAPPABLE_KINDS and rec.get("ws") == "consumer-geometry" and _is_int(_flat_chunk(rec.get("chunk"))):
+            chunk_set.add(_flat_chunk(rec.get("chunk")))   # the chunks consumer-geometry's mappable records name
+    exp_migrated = sum(n for c in by_ws_kind.values() for k, n in c.items() if k in FLAT_MAPPABLE_KINDS)
+    copy = os.path.join(tmp, "flat-copy.jsonl")
+    shutil.copyfile(FLAT_FIXTURE_PATH, copy)
+    out = os.path.join(tmp, "flat-migrated.jsonl")
+    res = _run_tool(["migrate", "--file", copy, "--out", out])
+    check(res.returncode == 0 and "flat-cg" in res.stdout, f"flat-cg migrate: rc {res.returncode}: {res.stdout!r} {res.stderr!r}")
+    check(_sha256(copy) == FLAT_FIXTURE_SHA256, "migrate --out left the flat copy untouched")
+    lint_res = _run_tool(["--lint", "--file", out])
+    typed = [ln for ln in lint_res.stdout.splitlines() if re.search(r"\[(enum|type|key-undeclared|key-missing)\]", ln)]
+    check(typed == [], f"flat-cg output has typed findings: {typed[:5]}")
+    migrated, skipped = load(out)
+    check(skipped == 0 and len(migrated) == exp_migrated,
+          f"flat-cg migrated {len(migrated)} (skipped {skipped}), fixture has {exp_migrated} records of the mappable kinds")
+    check(all(_get(r, "migration", "from") == MIGRATION_FROM_FLAT and r.get("v") == 2 for r in migrated),
+          "every migrated record carries migration.from flat-cg at v: 2")
+    lost_total = 0
+    for ws, counts in by_ws_kind.items():
+        exp_lost = {k: n for k, n in counts.items() if k not in FLAT_MAPPABLE_KINDS}
+        carriers = [r for r in migrated if _get(r, "cycle", "workstream") == ws and "lost" in (r.get("migration") or {})]
+        if not exp_lost:
+            check(carriers == [], f"{ws}: lost stamped with nothing lost")
+            continue
+        check(len(carriers) == 1, f"{ws}: {len(carriers)} records carry migration.lost, expected exactly one")
+        if carriers:
+            check(carriers[0] is next(r for r in migrated if _get(r, "cycle", "workstream") == ws),
+                  f"{ws}: migration.lost is not on the first migrated record")
+            got = carriers[0]["migration"]["lost"]
+            named = {k: got.get(k, 0) for k in FLAT_LOST_KINDS}
+            check(named == {k: counts.get(k, 0) for k in FLAT_LOST_KINDS},
+                  f"{ws}: lost gate/commit/pr {named} != fixture {dict((k, counts.get(k, 0)) for k in FLAT_LOST_KINDS)}")
+            check(got == exp_lost, f"{ws}: lost {got} != every unmapped kind {exp_lost}")
+            lost_total += sum(got.values())
+    check(lost_total + len(migrated) == total, f"lost {lost_total} + migrated {len(migrated)} != fixture records {total}")
+    # summarize --workstream consumer-geometry: the per-chunk block carries exactly the
+    # chunks the mappable records name, each stamped partial (the chunks that live only
+    # on lost gate records are missing, not lost — Q-IMPL-PIPELINEOBSERVABILITY-005).
+    summ = _run_tool(["summarize", "--file", out, "--workstream", "consumer-geometry"])
+    cg = [r for r in migrated if _get(r, "cycle", "workstream") == "consumer-geometry"]
+    cg_chunks = {c for c in (_get(r, "dispatch", "chunk") for r in cg) if _is_int(c)}
+    rows = chunk_rows(cg)
+    check(summ.returncode == 0 and f"records: {len(cg)}" in summ.stdout, f"summarize --workstream consumer-geometry: {summ.stdout[:120]!r}")
+    check({r["chunk"] for r in rows} == cg_chunks == chunk_set,
+          f"per-chunk block chunks {[r['chunk'] for r in rows]} != migrated chunks {sorted(cg_chunks)} != fixture chunks {sorted(chunk_set)}")
+    check(rows and all(r["note"] == partial_stamp(r["chunk"]) and partial_stamp(r["chunk"]) in summ.stdout for r in rows),
+          "every migrated chunk is stamped partial in the per-chunk block")
+    # idempotent: a second run over the output changes nothing and loses nothing
+    out2 = os.path.join(tmp, "flat-migrated-2.jsonl")
+    res2 = _run_tool(["migrate", "--file", out, "--out", out2])
+    check(res2.returncode == 0 and _sha256(out2) == _sha256(out), "second flat-cg run is a no-op")
+    # the fixture itself is refused as --file and as --out
+    ref = _run_tool(["migrate", "--file", FLAT_FIXTURE_PATH])
+    check(ref.returncode == 2, f"flat fixture as --file: rc {ref.returncode}")
+    check(_sha256(FLAT_FIXTURE_PATH) == FLAT_FIXTURE_SHA256, "flat fixture sha256 after")
+
+
+def test_migration_lost_shape(check) -> None:
+    """`lost` is admitted only beside `from: flat-cg`: beside `chunk-string` it is
+    `[type] migration`; a `flat-cg` marker with `lost` lints clean (REQ-TELEM-PIPELINEOBSERVABILITY-002)."""
+    flat = {**_record2(), "migration": {"from": MIGRATION_FROM_FLAT, "at": "2026-09-22", "lost": {"gate": 14, "commit": 2, "pr": 1}}}
+    check(_lint_classes([flat]) == {}, f"flat-cg marker with lost is not clean: {_lint_classes([flat])}")
+    cs = {**_record(dispatch={"chunk": 3}), "migration": {"from": MIGRATION_FROM, "at": "2026-09-22", "lost": {"gate": 1}}}
+    check(_lint_classes([cs]).get("type") == ["migration"], f"lost beside chunk-string is not [type] migration: {_lint_classes([cs])}")
+    bad_lost = {**_record2(), "migration": {"from": MIGRATION_FROM_FLAT, "at": "2026-09-22", "lost": {"gate": "14"}}}
+    check(_lint_classes([bad_lost]).get("type") == ["migration"], "a non-int lost count is [type] migration")
+
+
+def test_post_manual_reason_review(check) -> None:
+    """`[reason-review]` fires for a `REVIEW` record at `iteration: 1` with no
+    loop-back and not for the `POST_MANUAL` record that follows it; the three
+    domain-table members are present (REQ-TELEM-PIPELINEOBSERVABILITY-003)."""
+    check("POST_MANUAL" in enum_members("dispatch", "reason") and "POST_MANUAL" not in FIX_ONLY_REASONS,
+          "POST_MANUAL is not a dispatch.reason member outside the fix-only subset")
+    check({"manual_intervention", "malformed"} <= enum_members("gate", "decision"),
+          "gate.decision lacks manual_intervention / malformed")
+    first = _record2(dispatch={"seq": 1, "kind": "pipeline", "stage": "specs", "iteration": 1, "reason": "REVIEW"},
+                     ts_dispatch="2026-09-22T10:01:00Z")
+    second = _record2(dispatch={"seq": 2, "kind": "review", "stage": "specs", "iteration": 1, "reason": "POST_MANUAL"},
+                      verdict={"review_verdict": "APPROVE"}, ts_dispatch="2026-09-22T10:02:00Z")
+    warns = [f for f in lint_records([first, second]) if f["class"] == "reason-review"]
+    check([f["seq"] for f in warns] == [1], f"[reason-review] seqs {[f['seq'] for f in warns]}, expected [1] — never the POST_MANUAL record")
+    check(_lint_classes([second]).get("enum") is None, f"a POST_MANUAL record raised an enum finding: {_lint_classes([second])}")
+
+
+def test_cross_field_gate_rules(check) -> None:
+    """The four cross-field assertions (a)–(d), each a finding pair and a control
+    pair; (d) over all four non-`legal` cells (REQ-TELEM-PIPELINEOBSERVABILITY-003)."""
+    def rec(seq, kind, stage, decision="proceed", scope="CLEAN", cv=None, rv=None, red=None, C=0, M=0, fi=0, reason=None, iteration=None):
+        return _record2(dispatch={"seq": seq, "kind": kind, "stage": stage, "reason": reason, "iteration": iteration,
+                                  "chunk": 1 if kind == "verifier" else None},
+                        scope={"token": scope}, verdict={"chunk_verdict": cv, "review_verdict": rv, "red_verdict": red,
+                                                         "findings": {"C": C, "M": M, "m": 0}},
+                        gate={"decision": decision, "fix_iteration": fi},
+                        ts_dispatch=f"2026-09-22T10:{seq:02d}:00Z", ts_gate=f"2026-09-22T10:{seq:02d}:30Z")
+
+    def cf(recs, field):
+        return [f["message"] for f in lint_records(recs) if f["class"] == "cross-field" and f["field"] == field and f["message"][:3] in ("(a)", "(b)", "(c)", "(d)")]
+
+    # (a) voided verdict consumed: VIOLATION + positive token + proceed → finding; CLEAN, or `stop`, → none
+    for kind, tokf, tok in (("verifier", "cv", "PASS"), ("review", "rv", "APPROVE_WITH_FIXES"), ("red", "red", "HELD")):
+        pair = [rec(1, "pipeline", "implement" if kind == "verifier" else "verify"),
+                rec(2, kind, "implement" if kind == "verifier" else "verify", scope="VIOLATION", **{tokf: tok})]
+        check(len(cf(pair, "gate.decision")) == 1 and cf(pair, "gate.decision")[0].startswith("(a)"), f"(a) {kind} {tok} under VIOLATION + proceed not flagged: {cf(pair, 'gate.decision')}")
+        ctrl = [pair[0], rec(2, kind, pair[1]["dispatch"]["stage"], scope="VIOLATION", decision="stop", **{tokf: tok})]
+        ctrl2 = [pair[0], rec(2, kind, pair[1]["dispatch"]["stage"], scope="CLEAN", **{tokf: tok})]
+        check(cf(ctrl, "gate.decision") == [] and cf(ctrl2, "gate.decision") == [], f"(a) control pair flagged for {kind}")
+    # (b) fix_iteration incrementing across an APPROVE_WITH_FIXES at a document stage → finding;
+    #     incrementing across a REJECT → none
+    awf = [rec(1, "review", "requirements", rv="APPROVE_WITH_FIXES", M=2, decision="loop-back-to-fix"),
+           rec(2, "review", "requirements", rv="APPROVE_WITH_FIXES", M=1, fi=1)]
+    check(cf(awf, "gate.fix_iteration") and cf(awf, "gate.fix_iteration")[0].startswith("(b)"), f"(b) not flagged: {cf(awf, 'gate.fix_iteration')}")
+    rej = [rec(1, "review", "requirements", rv="REJECT", C=1, decision="loop-back-to-fix"),
+           rec(2, "review", "requirements", rv="REJECT", C=1, fi=1, decision="loop-back-to-fix"),
+           rec(3, "review", "requirements", rv="APPROVE_WITH_FIXES", M=1, fi=2)]
+    check(cf(rej, "gate.fix_iteration") == [], f"(b) control (consecutive REJECTs) flagged: {cf(rej, 'gate.fix_iteration')}")
+    # (c) manual_intervention followed by a POST_MANUAL review with the SAME fix_iteration → none;
+    #     followed by a non-review record, by nothing, or by a review with a different fix_iteration → finding
+    mi = rec(1, "review", "specs", rv="REJECT", C=1, decision="manual_intervention", fi=3)
+    good = [mi, rec(2, "review", "specs", rv="APPROVE_WITH_FIXES", M=1, reason="POST_MANUAL", iteration=3, fi=3)]
+    check(cf(good, "gate.decision") == [], f"(c) control pair flagged: {cf(good, 'gate.decision')}")
+    diff_fi = [mi, rec(2, "review", "specs", rv="APPROVE_WITH_FIXES", M=1, reason="POST_MANUAL", iteration=3, fi=4)]
+    no_review = [mi, rec(2, "pipeline", "specs", fi=3)]
+    check(cf(diff_fi, "gate.decision") and "fix_iteration" in cf(diff_fi, "gate.decision")[0], f"(c) differing fix_iteration not flagged: {cf(diff_fi, 'gate.decision')}")
+    check(cf(no_review, "gate.decision") and cf([mi], "gate.decision"), "(c) missing POST_MANUAL review not flagged")
+    # (d) the four non-legal cells at a non-pause decision → finding; the three legal cells → none;
+    #     any cell at the `malformed` pause → none
+    cells = [("C ≥ 1 under APPROVE", dict(rv="APPROVE", C=1)), ("C ≥ 1 under APPROVE_WITH_FIXES", dict(rv="APPROVE_WITH_FIXES", C=2, M=1)),
+             ("C = 0 / M ≥ 1 / APPROVE", dict(rv="APPROVE", M=1)), ("C = 0 / M = 0 / APPROVE_WITH_FIXES", dict(rv="APPROVE_WITH_FIXES")),
+             ("C = 0 / REJECT", dict(rv="REJECT", M=3))]
+    for label, kw in cells:
+        pair = [rec(1, "pipeline", "plan"), rec(2, "review", "plan", **kw)]
+        check(len(cf(pair, "verdict.review_verdict")) == 1, f"(d) {label} not flagged: {cf(pair, 'verdict.review_verdict')}")
+        paused = [rec(1, "pipeline", "plan"), rec(2, "review", "plan", decision="malformed", **kw)]
+        check(cf(paused, "verdict.review_verdict") == [], f"(d) {label} flagged at the malformed pause")
+    for label, kw in (("legal APPROVE", dict(rv="APPROVE")), ("legal AWF", dict(rv="APPROVE_WITH_FIXES", M=2)), ("legal REJECT", dict(rv="REJECT", C=1, M=1))):
+        pair = [rec(1, "pipeline", "plan"), rec(2, "review", "plan", **kw)]
+        check(cf(pair, "verdict.review_verdict") == [], f"(d) control {label} flagged: {cf(pair, 'verdict.review_verdict')}")
+
+
+_GATE_RULE_TAG_RE = re.compile(r": \(([abcd])\) ")
+# The (a)–(d) findings the two frozen fixtures raise, measured 2026-09-22
+# (Q-IMPL-PIPELINEOBSERVABILITY-006): both cycles ran under the pre-Chunk-1
+# grammar — `APPROVE_WITH_FIXES` carrying blocking items (d) and `fix_iteration`
+# counting every loop-back (b) — so the shapes are historical facts on record,
+# like the p3 `seq` 20 `kind: gate`; nothing here rewrites a fixture.
+P3_FIXTURE_GATE_RULE_FINDINGS = [(14, "b"), (14, "d"), (17, "b"), (17, "d")]
+P4_FIXTURE_GATE_RULE_FINDINGS = [(2, "d"), (4, "b"), (7, "d"), (10, "d"), (14, "b"), (14, "d"), (17, "b"), (17, "d"),
+                                 (20, "d"), (23, "b"), (23, "d"), (26, "b"), (26, "d"), (34, "b"), (34, "d")]
+
+
+def test_frozen_finding_sets_unchanged(check) -> None:
+    """The p3 and p4 frozen fixtures' pre-delta `--lint` finding sets (sorted-lines
+    sha256, the (a)–(d) lines excluded) are unchanged by the schema members and the
+    four assertions, and the (a)–(d) lines each fixture raises are exactly the
+    measured, pinned `(seq, rule)` list (REQ-TELEM-PIPELINEOBSERVABILITY-003;
+    Q-IMPL-PIPELINEOBSERVABILITY-006)."""
+    for path, sha, want, rules in ((FIXTURE_PATH, FIXTURE_SHA256, FIXTURE_LINT_SORTED_SHA256, P3_FIXTURE_GATE_RULE_FINDINGS),
+                                   (P4_FIXTURE_PATH, P4_FIXTURE_SHA256, P4_FIXTURE_LINT_SORTED_SHA256, P4_FIXTURE_GATE_RULE_FINDINGS)):
+        if not os.path.exists(path):
+            continue
+        check(_sha256(path) == sha, f"{os.path.basename(path)} sha256 before lint")
+        _rc, lines = lint(path)
+        gate_rule = [ln for ln in lines[:-1] if _GATE_RULE_TAG_RE.search(ln)]
+        rest = [ln for ln in lines[:-1] if not _GATE_RULE_TAG_RE.search(ln)]
+        got = finding_set_sha(rest)
+        check(got == want, f"{os.path.basename(path)} pre-delta finding set changed: {got} != {want} ({lines[-1]})")
+        seen = sorted((int(re.match(r"seq (\d+):", ln).group(1)), _GATE_RULE_TAG_RE.search(ln).group(1)) for ln in gate_rule)
+        check(seen == sorted(rules), f"{os.path.basename(path)} (a)–(d) findings {seen} != pinned {sorted(rules)}")
+        check(_sha256(path) == sha, f"{os.path.basename(path)} sha256 after lint")
 
 
 def self_test() -> int:
@@ -1727,7 +2331,9 @@ def self_test() -> int:
         if os.path.exists(FIXTURE_PATH):
             check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 before sorted-lint")
             _rc3, _lines3 = lint(FIXTURE_PATH)
-            sorted_sha = hashlib.sha256("\n".join(sorted(_lines3[:-1])).encode()).hexdigest()
+            # the (a)–(d) lines are pinned by test_frozen_finding_sets_unchanged; this
+            # pin is the pre-delta set (Q-IMPL-PIPELINEOBSERVABILITY-006)
+            sorted_sha = finding_set_sha([ln for ln in _lines3[:-1] if not _GATE_RULE_TAG_RE.search(ln)])
             check(sorted_sha == FIXTURE_LINT_SORTED_SHA256,
                   f"p3 fixture finding set changed: {sorted_sha} != {FIXTURE_LINT_SORTED_SHA256}")
             check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after sorted-lint")
@@ -2014,6 +2620,20 @@ def self_test() -> int:
             check(pf == {"chunks": 8, "verifier_on": True, "recorded": 8, "shortfall": 0}, f"p3 plan floor on the fixture: {pf}")
             check(_sha256(FIXTURE_PATH) == FIXTURE_SHA256, "fixture sha256 after --plan")
 
+        # ------------------------------------------------------------------
+        # pipeline-observability (2026-09-22): the validated `append`, the `flat-cg`
+        # migration over the frozen flat fixture, the `lost` marker shape, the
+        # POST_MANUAL / manual_intervention / malformed members and the four
+        # cross-field assertions (a)–(d) — telemetry.md §Writer,
+        # telemetry-reader.md §Schema Lint, §In-Place Migration.
+        # ------------------------------------------------------------------
+        test_append_cases(check, tmp)
+        test_flat_cg_migration(check, tmp)
+        test_migration_lost_shape(check)
+        test_post_manual_reason_review(check)
+        test_cross_field_gate_rules(check)
+        test_frozen_finding_sets_unchanged(check)
+
     if failures:
         print("SELF-TEST FAIL:\n- " + "\n- ".join(failures))
         return 1
@@ -2030,8 +2650,17 @@ def self_test() -> int:
           "and frozen p4 fixture clean (67 records, 0 missing pipeline, no equal-heads), "
           "test_p4_fixture_frozen (67 lines, README sha256, p3 unchanged against main), "
           "test_advisory_cases ((a) commit.token on verifier/red, (b) reason RED_BREAK, "
-          "(c) migration.from outside chunk-string), test_stage_level_fix_has_null_chunk_verdict, "
-          "test_commit_group_records_closing_line")
+          "(c) migration.from flat-xx outside {chunk-string, flat-cg}), test_stage_level_fix_has_null_chunk_verdict, "
+          "test_commit_group_records_closing_line; pipeline-observability: test_append_cases (v-less object "
+          "refused with the line count unchanged, [] refused writing nothing, the §2 example record appended "
+          "and counted 1 by summarize, --help names append), test_flat_cg_migration (frozen flat fixture: "
+          "migrated = mappable kinds, lost = gate + commit + pr per workstream on the first migrated record, "
+          "zero typed findings, per-chunk block stamped partial, fixture refused and sha256 unchanged), "
+          "test_migration_lost_shape (lost beside chunk-string is [type] migration), "
+          "test_post_manual_reason_review ([reason-review] on the REVIEW record only, never POST_MANUAL), "
+          "test_cross_field_gate_rules ((a) voided verdict consumed, (b) fix_iteration across a non-REJECT, "
+          "(c) un-reviewed manual_intervention, (d) the four non-legal cells — each a finding pair and a control pair), "
+          "test_frozen_finding_sets_unchanged (p3 and p4 sorted-lines sha256)")
     return 0
 
 
@@ -2072,6 +2701,19 @@ def main(argv: list[str] | None = None) -> int:
     )
     mp.add_argument("--file", required=True, help="telemetry file to migrate (never the frozen fixture)")
     mp.add_argument("--out", default=None, help="write the migrated file here and leave --file untouched")
+    apnd = sub.add_parser(
+        "append",
+        help="ORCHESTRATOR-ONLY: read one JSON record from stdin, validate it against the domain table, "
+             "append it as one line; exit non-zero with nothing written on any finding",
+        description=(
+            "Read exactly one JSON value from stdin and, BEFORE writing, check in order: it is a JSON object; "
+            "`v` is in the admitted set; `--lint`'s enum / type / key-undeclared / key-missing checks pass "
+            "(cross-field and mistyped-fix are stderr warnings only). Exit 0 follows one append-only write of "
+            "exactly one line; nothing is printed that reads the file (the gate's `TELEMETRY: rec <n>` is the "
+            "orchestrator's session counter, advanced only on exit 0 — telemetry.md §Writer). No leaf and no "
+            "dispatch template calls this."),
+    )
+    apnd.add_argument("--file", default=DEFAULT_FILE, help=f"telemetry file to append to (default: {DEFAULT_FILE})")
     args = ap.parse_args(argv)
 
     if args.self_test:
@@ -2083,6 +2725,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "migrate":
         rc, msg = migrate(args.file, args.out)
         print(msg, file=sys.stderr if rc else sys.stdout)
+        return rc
+    if args.command == "append":
+        rc, lines = append(args.file, sys.stdin.read())
+        for line in lines:
+            print(line, file=sys.stderr)
         return rc
     if args.command != "summarize":
         ap.print_help()

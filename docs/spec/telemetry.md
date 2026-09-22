@@ -114,7 +114,7 @@ from a `[p4]` row lands on the reader for those two.
 | | `chunk` | int or null | `### Chunk N:` number for per-chunk dispatches |
 | | `iteration` | int or null | fix-loop iteration this dispatch belongs to |
 | | `redo` | int or null | per-chunk redo count at dispatch |
-| | `reason` | repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below | `harness-return-contract.md` §Repair Packet; members, folded from Q-IMPL-HARNESSP4-005 (2026-09-19): `REVIEW`, `VERIFIER_FAIL`, `PARTIAL_CONTINUE`, `MERGE_CONFLICT`, `THIRD_OPINION` (`arbitrated-handoff.md`) and `red_break` — the `RED_BREAK` packet of `adversarial-verify.md` as the record spells it and as the `const` row lists it, the one canonical spelling; uppercase `RED_BREAK` is **not** admitted (`--lint` `[enum]`) |
+| | `reason` | repair-packet `reason` enum or null; its fix-only subset is the `const` row `FIX_ONLY_REASONS` below | `harness-return-contract.md` §Repair Packet; members, folded from Q-IMPL-HARNESSP4-005 (2026-09-19): `REVIEW`, `VERIFIER_FAIL`, `PARTIAL_CONTINUE`, `MERGE_CONFLICT`, `THIRD_OPINION` (`arbitrated-handoff.md`), `POST_MANUAL` (the `post-manual` review of `harness-loop-control.md` §Fix-Loop Cap §Footprint — added 2026-09-22, upper case, outside the fix-only subset) and `red_break` — the `RED_BREAK` packet of `adversarial-verify.md` as the record spells it and as the `const` row lists it, the one canonical spelling; uppercase `RED_BREAK` is **not** admitted (`--lint` `[enum]`) |
 | `const` | `FIX_ONLY_REASONS` | subset of `dispatch.reason`: `red_break` `[p4]` — a **schema constant, not a record key**; no record carries it | §Implication-Derived `expected` clause (b); `--lint` asserts the subset relation |
 | | `budget` | budget object (below) | parsed from the dispatched `Budget:` line |
 | | `write_scope_n` | int | number of declared scope globs |
@@ -132,7 +132,7 @@ from a `[p4]` row lands on the reader for those two.
 | | `findings` | `{"C": int, "M": int, "m": int}` | counts of C/M/m lines |
 | | `malformed` | bool | `REVIEW: MALFORMED` or `RETURN: MALFORMED` raised |
 | | `contradiction_class` | null \| `b` \| `c` | `REVIEW: CONTRADICTION` class (`arbitrated-handoff.md`) |
-| `gate` | `decision` | `proceed` \| `fix` \| `loop-back-to-fix` \| `stop` \| `redo` \| `replan` \| `revert` \| `widen` \| `accept` \| `third-opinion` \| `re-dispatch` \| `override` \| `other` | the operator's choice, normalised to one enum (table below) |
+| `gate` | `decision` | `proceed` \| `fix` \| `loop-back-to-fix` \| `stop` \| `redo` \| `replan` \| `revert` \| `widen` \| `accept` \| `third-opinion` \| `re-dispatch` \| `override` \| `manual_intervention` \| `malformed` \| `other` | the operator's choice, normalised to one enum (table below); `manual_intervention` and `malformed` added 2026-09-22 (`telemetry-reader.md` §Schema Lint, assertions (c) and (d)) |
 | | `decision_by` | `operator` \| `policy` | always `operator` this cycle (`evaluation.md`) |
 | | `fix_iteration`, `fix_cap`, `cap_raised` | int | `iteration N of MAX (cap raised ×k)` |
 | | `redo_count` | int or null | `Redo: N of REDO_MAX` |
@@ -141,7 +141,7 @@ from a `[p4]` row lands on the reader for those two.
 | `git` | `head_before`, `head_after` | short sha (`^[0-9a-f]{7,12}$`) | the snapshot pair's `HEAD_before` / `HEAD_after` (`dispatch-snapshot-base.md`) |
 | `commit` | `token` | `COMPLETE` \| `INCOMPLETE` \| null `[p4]` | the `COMMIT:` closing line (`harness-commit-fidelity.md`); null for a dispatch whose gate commits nothing |
 | | `missing_n`, `extra_n` | int `[p4]` | the `observed, not landed` / `landed, not observed` counts of that line |
-| — | `migration` | optional `{from: chunk-string, at: date}` `[p4]` | present only on records rewritten by `migrate` (`telemetry-reader.md` §In-Place Migration); admitted by `--lint` on **every** `v` as an optional key (folded from Q-IMPL-HARNESSP4-006, 2026-09-19) |
+| — | `migration` | optional `{from: chunk-string \| flat-cg, at: date, lost?: {<kind>: int}}` `[p4]` | present only on records rewritten by `migrate` (`telemetry-reader.md` §In-Place Migration); admitted by `--lint` on **every** `v` as an optional key (folded from Q-IMPL-HARNESSP4-006, 2026-09-19); `flat-cg` and `lost` — admitted only beside `flat-cg`, the per-kind count of a workstream's dropped flat records on its first migrated record — added 2026-09-22 (REQ-TELEM-PIPELINEOBSERVABILITY-002) |
 
 **`const` rows** [Added 2026-09-18, harness-p4 specs review r1 — M3]: a row
 whose `Group` cell is the literal `const` declares a **schema constant** —
@@ -166,7 +166,9 @@ harness maps to exactly one enum value; an option not in this table is `other`
 | `stop` | `stop` |
 | `revert path` | `revert` |
 | `accept & widen scope` | `widen` |
-| `manual intervention` · `authorize extra iteration` (recorded with `cap_raised`) | `override` |
+| `manual intervention` (the exhausted gate's option; the `post-manual` review of `harness-loop-control.md` §Fix-Loop Cap follows it with `reason: POST_MANUAL` — 2026-09-22) | `manual_intervention` |
+| `authorize extra iteration` (recorded with `cap_raised`) | `override` |
+| whichever option was chosen at a `REVIEW: MALFORMED` or `RETURN: MALFORMED` pause (2026-09-22) | `malformed` |
 | `accept round N (proceed, note)` · `accept manually` · `accept (record)` | `accept` |
 | `third opinion` | `third-opinion` |
 | `re-dispatch` | `re-dispatch` |
