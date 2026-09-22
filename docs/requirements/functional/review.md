@@ -313,7 +313,7 @@ with the reason) or retired (covered by a zero-count witness).
   `docs/spec/skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability)
   move the population REQ-LINT-PACKAGING-007 compares — `REQUIRED` 42 today
   (measured with `python3 plugins/sdd/tools/skill-lint.py
-  --print-population`) → `56` after the delta, beside `FORBIDDEN` 14 → `15`
+  --print-population`) → `57` after the delta (`56` at Chunk 1, `57` once row p15 landed — index 27.8), beside `FORBIDDEN` 14 → `15`
   from REQ-LINT-PIPELINEOBSERVABILITY-001's row — and the requirement that
   moves them is REQ-LINT-PACKAGING-007 as amended (its comparand is the
   three-way equality between the flag's output, the code tables and

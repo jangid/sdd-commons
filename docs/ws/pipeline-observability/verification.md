@@ -1,5 +1,5 @@
 ---
-status: pending-red
+status: pass
 research_id: RS-PIPELINEOBSERVABILITY-001
 last_updated: 2026-09-22
 plan_ref: docs/ws/pipeline-observability/plan.md
@@ -16,16 +16,18 @@ delta-map criteria hold (`37 rows, 0 mismatches`; `16 specs, 0 failures`; added-
 anchor grep 0; both sha scans 0); the twelve verify-stage inputs V1–V12 were executed
 in order with the evidence below; the three gate-rendering walkthroughs are transcribed
 under `## Gate-rendering walkthroughs`. **Zero Critical issues.** Thirteen Minor issues,
-two of them failed acceptance criteria of `requirements-artifacts.md` §Amendment
-Landing ((a) one amended body lacks its `**Amended` marker; (e) the sweep-block
+one of them a failed acceptance criterion of `requirements-artifacts.md` §Amendment
+Landing ((e) the sweep-block
 re-runs list files the blocks do not name — the aggregate traceability in 29 blocks,
 and `USAGE.md` / `reviewer.md` in 5 blocks, both written after the blocks by the
-implement-stage fix `e891ea2`). Two V-items are partial for lack of the orchestrator's
+implement-stage fix `e891ea2`; clause (a) also failed at blue — one amended body lacked
+its `**Amended` marker — and was fixed at its origin by the manual intervention `4c49570`,
+so it holds 16 of 16 on the tree). Two V-items are partial for lack of the orchestrator's
 own rendered text (V4: `GROWTH:` lines were handed over for the specs stage only; V5:
 the chunk verifier's Check 3 text was not among this stage's inputs). The red team is
 enabled for this stage, so `status: pending-red` is written and every would-be-`pass`
 `Verified` cell reads `pending-red`; the one `fail` row is
-REQ-REQ-PIPELINEOBSERVABILITY-001 (criteria (a) and (e) do not hold on the tree).
+REQ-REQ-PIPELINEOBSERVABILITY-001 (criterion (e) does not hold on the tree; (a) held after `4c49570`).
 
 **Severity rule used throughout** — a verify-stage decision of this report, stated by no
 upstream artifact (plan, kickoff, `docs/spec/**`, `skills/verify/SKILL.md`) and put to the
@@ -35,20 +37,26 @@ non-zero on the tree, or a dogfooding claim of the kickoff fails for a gate.
 *Minor* = a corpus-documentation criterion fails, or a standing `warn` floor moves,
 with no binding and no gate rendering wrong. A `fail` cell in the traceability matrix
 is the per-requirement reading of that rule: REQ-REQ-PIPELINEOBSERVABILITY-001's row
-reads `fail` because two of its clauses do not hold on the tree, and that row does not
+reads `fail` because one of its clauses, (e), does not hold on the tree, and that row does not
 make the report's own result `fail`, because the failed clauses bind corpus prose, not
 a shipped binding or a gate — the phase-detection reading `status: fail → needs replan`
 is reserved for the report-level result (review M4).
 
+**Red round 2 `HELD` and the closing review `APPROVE` (2026-09-22, at `42c0ad0`):** the
+orchestrator flipped `pending-red → pass` here and in the workstream's `Verified` column
+(36 cells; the one `fail` cell stays `fail`).
+
 ## Quality Gates
 
-All run from the repository root on the working tree at `33738c8` (clean at entry).
+All run from the repository root on the working tree at `33738c8` (clean at entry) and
+re-run at `42c0ad0` after the manual intervention `4c49570`: every gate still exits 0
+(closing review, red round 2), gc reading `67 warning(s), 33 info` there.
 
 | Gate | Status | Notes |
 |------|--------|-------|
 | `python3 plugins/sdd/tools/skill-lint.py .` | pass | exit 0 — `GEOMETRY: nested swept-roots=2 suite-rows-root=…/plugins/sdd`, `OK: 25 file(s) clean` |
 | `python3 plugins/sdd/tools/skill-lint.py --self-test` | pass | exit 0 — `SELF-TEST OK: all rule classes fire; fix/warn/size/backtick/allow_files/retired-prefix fixtures pass` |
-| `python3 plugins/sdd/tools/gc.py --report --root . --workstream pipeline-observability` | pass | exit 0 — `OK: 10 sweep(s) clean, 68 warning(s), 36 info` (the pre-write reading; `33 info` after this report was written — §Regressions); 0 `FAIL` lines; warnings by rule: `dead-path-citation` 59, `literal-anchor` 7, `qimpl-broken-ref` 2; info: `qimpl-unreferenced` 34, `stale-chain` 2 |
+| `python3 plugins/sdd/tools/gc.py --report --root . --workstream pipeline-observability` | pass | exit 0 — `OK: 10 sweep(s) clean, 68 warning(s), 36 info` (the pre-write reading; `33 info` after this report was written — §Regressions; `67 warning(s), 33 info` at `42c0ad0` after the manual intervention, one dead-path citation fewer); 0 `FAIL` lines; warnings by rule: `dead-path-citation` 59, `literal-anchor` 7, `qimpl-broken-ref` 2; info: `qimpl-unreferenced` 34, `stale-chain` 2 |
 | `python3 plugins/sdd/tools/gc.py --self-test` | pass | exit 0 — `SELF-TEST OK: … snapshot comparands: literal-anchor (fence filter only, spans read, sha-pinned exempt, folded count), self-matching-grep (one fixture line per grammar form), dead-path-citation (one span per token form), qimpl-malformed (bare reference with no bare definition), traced-stale-chain (traced pair warn, untraced info under --workstream), aggregate-last-updated` |
 | `python3 plugins/sdd/tools/telemetry.py --self-test` | pass | exit 0 — the OK line names `test_append_cases`, `test_flat_cg_migration`, `test_migration_lost_shape`, `test_post_manual_reason_review`, `test_cross_field_gate_rules ((a)–(d) each a finding pair and a control pair)`, `test_frozen_finding_sets_unchanged (p3 and p4 sorted-lines sha256)` |
 | `python3 plugins/sdd/tools/telemetry.py --lint` (live file, read-only) | informational | exit 1 — `lint: 123 finding(s), 4 warning(s) — .sdd/telemetry.jsonl`; by class: `[cross-field]` 69, `[type]` 35, `[enum]` 7, `[mistyped-fix]` 6, `[key-undeclared]` 6, `[reason-review]` 4; **0 assertion (a), 0 assertion (c)** findings; (b) fires 27× and (d) 40× on historical records (see §Issues Found → Minor 5) |
@@ -72,7 +80,7 @@ Build / install: the plugin is a file tree, no build step. Install evidence is V
 | **V7** walkthrough `reject_run` | pass | Transcribed under §Gate-rendering walkthroughs → W1. |
 | **V8** walkthrough chunk-0 void + per-chunk manual intervention | pass | Transcribed → W2; `scope-check-selftest.py` exit 0 (45/45). |
 | **V9** walkthrough tier fixtures F1–F9 | pass | Transcribed → W3; every non-`legal` cell of the 4×3 case table exercised. |
-| **V10** amendment-landing corpus checks | **fail (Minor)** | (d) `(amended)`-row file set vs index Files-table annotations: 10 = 10, `diff` prints nothing. (a) `[Updated:` / `**Amended` per amended body: 15 of 16 hold; **REQ-LINT-PACKAGING-007** (`docs/requirements/integration/skill-lint.md`) holds `[Updated: 2026-09-22]` and **0** `**Amended`. (b) Spec-cell amendment-section grep = 0 over 37 rows; every `(amended)`-row Spec file holds `Updated: 2026-09-22` ≥ 1 (11 files, counts 2–6). (e) Requirement-column id set (37) equals the sweep-block/`no binding statement` id set (37), `diff` prints nothing; **re-running every block's command with `-l` (35 blocks)**: 6 blocks list exactly the files they name; **29 list `docs/requirements/traceability.md`** (the regenerated aggregate, whose Test cells quote the patterns) which no block names; **5 list a file written after the blocks**: `plugins/sdd/skills/orchestrate/USAGE.md` (REQ-HARN-PIPELINEOBSERVABILITY-002, -003, REQ-HARN-HARNESSP6-001) and `plugins/sdd/agents/reviewer.md` (REQ-HARN-PIPELINEOBSERVABILITY-001, REQ-HARN-013) — the operator guide and reviewer body of the implement-stage fix `e891ea2`. This is the class the criterion exists to catch ("adding one sentence matching a block's pattern to any swept file makes that block's re-run list a file it does not name"). Minor 1 and 2. |
+| **V10** amendment-landing corpus checks | **fail (Minor)** | (d) `(amended)`-row file set vs index Files-table annotations: 10 = 10, `diff` prints nothing. (a) `[Updated:` / `**Amended` per amended body: 15 of 16 held at blue — **REQ-LINT-PACKAGING-007** (`docs/requirements/integration/skill-lint.md`) held `[Updated: 2026-09-22]` and **0** `**Amended` — and 16 of 16 hold after the manual intervention `4c49570` (Minor 1). (b) Spec-cell amendment-section grep = 0 over 37 rows; every `(amended)`-row Spec file holds `Updated: 2026-09-22` ≥ 1 (11 files, counts 2–6). (e) Requirement-column id set (37) equals the sweep-block/`no binding statement` id set (37), `diff` prints nothing; **re-running every block's command with `-l` (35 blocks)**: 6 blocks list exactly the files they name; **29 list `docs/requirements/traceability.md`** (the regenerated aggregate, whose Test cells quote the patterns) which no block names; **5 list a file written after the blocks**: `plugins/sdd/skills/orchestrate/USAGE.md` (REQ-HARN-PIPELINEOBSERVABILITY-002, -003, REQ-HARN-HARNESSP6-001) and `plugins/sdd/agents/reviewer.md` (REQ-HARN-PIPELINEOBSERVABILITY-001, REQ-HARN-013) — the operator guide and reviewer body of the implement-stage fix `e891ea2`. This is the class the criterion exists to catch ("adding one sentence matching a block's pattern to any swept file makes that block's re-run list a file it does not name"). Minor 1 and 2. |
 | **V11** whole-cycle gates, anchor and sha scans, hook runs, regression base | pass | Gates: the table above. Added-line anchor grep over the branch diff of `docs/spec` (20 files, +2497/−50): **0**. Per-section sha scan, amendment sections: **0**; marked paragraphs: **0**. Hook runs (Q-PLAN-PO-F): tree — `pre-commit run end-of-file-fixer --files .claude/settings.json` → `fix end of files…(no files to check)Skipped`, exit 0; scratch copy under `$TMPDIR` with the `\.claude/` alternative deleted from the config (`grep -c 'claude/'` = 0 there) → `fix end of files…Passed`, exit 0 — the file was processed. Both runs succeeded **inside** the sandbox once the scratch copy sat under `$TMPDIR`; the chunk's `PermissionError` came from a scratch path the sandbox denied, not from the hook. Regression base `fb4635f`: §Regressions. |
 | **V12** the sixteen-spec set under delta-map criterion 2 | pass | Derived set 16 files (`arbitrated-handoff, chunk-close-review, drift-sweep, harness-agents, harness-loop-control, harness-return-contract, harness-write-scope, marketplace-packaging, pre-commit, project-docs, requirements-artifacts, review, skill-lint-v5, telemetry-reader, telemetry, two-root-linter`); the fenced loop prints `16 specs, 0 failures`. Dated observations: `grep -l '^## Pipeline-Observability Amendment' docs/spec/*.md \| wc -l` = 16; the `find … ! -path docs/spec/pipeline-observability.md … 'Updated: 2026-09-22'` count = 16. Run after Chunks 1, 3 and 4 edited members, so the §Conventions bump rule is observed. |
 
@@ -191,7 +199,7 @@ Build / install: the plugin is a file tree, no build step. Install evidence is V
 | Criterion | Status | Evidence |
 |---|---|---|
 | (c)/(d) file-set equality | pass | 10 = 10, `diff` empty |
-| (a) every amended body holds `[Updated:` and `**Amended` | **fail** | REQ-LINT-PACKAGING-007: `[Updated:` 1, `**Amended` 0 (Minor 1) |
+| (a) every amended body holds `[Updated:` and `**Amended` | pass (fail at blue) | REQ-LINT-PACKAGING-007: `[Updated:` 1, `**Amended` 0 at blue; 1 / 1 after `4c49570` (Minor 1) |
 | (b) Spec-cell grep 0; markers in Spec files; no contract only in an amendment section | pass | 0 over 37 rows; 11 files ≥ 1; the last clause was decided by the specs closing review (APPROVE) |
 | (e) id-set equality; each block's `-l` re-run lists exactly the named files | pass / **fail** | sets equal (37 = 37); re-runs: 6 of 35 exact, 29 add the aggregate, 5 add `USAGE.md`/`reviewer.md` (Minor 2) |
 
@@ -391,7 +399,7 @@ has a non-empty Spec cell (criterion 1 parse), a non-empty Test cell and a non-e
 Implementation cell (REQ-REQ-PIPELINEOBSERVABILITY-001's Implementation cell records the
 requirements-stage landing, index 27.x). No coverage gap. `Verified` written by this
 stage: **36 × `pending-red`** (blue passed; red pending) and **1 × `fail`**
-(REQ-REQ-PIPELINEOBSERVABILITY-001 — criteria (a) and (e) above). The shared aggregate
+(REQ-REQ-PIPELINEOBSERVABILITY-001 — criterion (e) above; (a) holds since `4c49570`). The shared aggregate
 `docs/requirements/traceability.md` is **not** regenerated here: the dispatched write scope
 omits it, which is the orchestrator's post-gate bookkeeping signal (REQ-WS-HARNESSP3-001);
 the `[traceability-aggregate]` warning that may appear before that regeneration is the
@@ -469,12 +477,13 @@ a zero above is not an absence of latent work. Live findings: Minor 6 and Minor 
 
 ### Minor (can ship, fix later)
 
-1. **REQ-LINT-PACKAGING-007's amended body lacks the `**Amended` marker**
+1. **REQ-LINT-PACKAGING-007's amended body lacked the `**Amended` marker** (fixed)
    (`docs/requirements/integration/skill-lint.md`: `[Updated: 2026-09-22]` 1,
    `**Amended` 0) — `requirements-artifacts.md` §Amendment Landing (a) fails for one of
    sixteen bodies. Origin: the requirements stage (27.4 joined the row from the specs
-   closing review). Not fixed here (write scope; kickoff constraint 5 places the fix at
-   the origin).
+   closing review). Fixed at the origin by the manual intervention `4c49570` (index
+   27.8): the body now opens with the `**Amended 2026-09-22**` blockquote and (a) holds
+   16 of 16; the row's `fail` cell rests on clause (e) alone.
 2. **Sweep-block re-runs (clause (e)) list files the blocks do not name.** 29 of 35
    blocks list `docs/requirements/traceability.md` — the orchestrator-regenerated
    aggregate whose Test cells quote every pattern — which no block names and the clause
@@ -493,7 +502,7 @@ a zero above is not an absence of latent work. Live findings: Minor 6 and Minor 
    (69 anchors on 2026-09-22: `marketplace-packaging.md` 20, `two-root-linter.md` 11,
    `skill-lint-v5.md` 2, `requirements/index.md` 6, `integration/packaging.md` 21,
    `integration/skill-lint.md` 1, `requirements/traceability.md` 8) and
-   `dead-path-citation` 59 files (the aggregate and `integration/skill-lint.md` carry
+   `dead-path-citation` 58 files (59 before `4c49570`; the aggregate and `integration/skill-lint.md` carry
    the bulk; pre-rename citations in history prose). A specs-layer question stands:
    whether dated/history blocks should be exempt from the two rules.
 5. **Telemetry assertions on the orchestrator's own records.** The live `--lint` shows
@@ -529,11 +538,6 @@ a zero above is not an absence of latent work. Live findings: Minor 6 and Minor 
     so the spec's "unchanged" claim was false and the self-test compares pre-delta sets
     with (a)–(d) excluded (Q-IMPL-PIPELINEOBSERVABILITY-006).
 
-**Carry-or-close.** No previous `docs/ws/pipeline-observability/verification.md` existed
-(the workstream's first cycle), so there is no Minor to carry or close under
-REQ-SKILL-HARNESSP3-001; Minor 9 is noted from the superseded workstream's report as
-context only.
-
 11. **The population `56 → 57` drift was stated stale in five corpus surfaces** (red round
     1, R1 and R2; review M1): `docs/requirements/integration/skill-lint.md` (REQ-LINT-
     PACKAGING-007 as amended, nine statements), `docs/requirements/index.md`,
@@ -559,6 +563,11 @@ context only.
     from the verifier's own Check 3 sentence. Next cycle the verify dispatch carries the
     verifier returns for one real chunk (see §Next Steps).
 
+**Carry-or-close.** No previous `docs/ws/pipeline-observability/verification.md` existed
+(the workstream's first cycle), so there is no Minor to carry or close under
+REQ-SKILL-HARNESSP3-001; Minor 9 is noted from the superseded workstream's report as
+context only.
+
 ## Recommendation
 
 - [x] Ship as-is (blue: zero Critical; red verdict pending — the orchestrator dispatches
@@ -572,13 +581,12 @@ dispatch, not fixed in place by a later stage.
 
 ## Next Steps
 
-- Requirements-origin corrections: add the `**Amended` note to REQ-LINT-PACKAGING-007's
-  body (Minor 1); decide clause (e)'s treatment of the regenerated aggregate and re-run
+- Requirements-origin corrections: decide clause (e)'s treatment of the regenerated aggregate and re-run
   the five drifted sweep blocks against `USAGE.md` / `reviewer.md` (Minor 2); restate
   index §Out of Scope `:2273` as a settled exclusion or close it with a dated marker
   (Minor 6).
 - gc qimpl-broken-ref: `docs/spec/skill-lint-v5.md:902` — rename Q-IMPL-PIPELINEOBSERVABILITY-011's spec reference to an existing heading; `docs/spec/marketplace-packaging.md:638` — the same for Q-IMPL-PIPELINEOBSERVABILITY-012 (Minor 3).
-- gc literal-anchor: 7 files / 69 anchors and gc dead-path-citation: 59 files — the standing `warn` floor for the DONE `record | ignore` decision (Minor 4; index §Out of Scope binds the repair to those files); the specs-layer question whether dated/history blocks are exempt from both rules is open.
+- gc literal-anchor: 7 files / 69 anchors and gc dead-path-citation: 58 files — the standing `warn` floor for the DONE `record | ignore` decision (Minor 4; index §Out of Scope binds the repair to those files); the specs-layer question whether dated/history blocks are exempt from both rules is open.
 - gc stale-chain: `docs/spec/skill-namespace-rename.md` — `INFO … [stale-chain] spec older than requirements it requires: docs/requirements/integration/skill-lint.md (2026-09-22) is newer than skill-namespace-rename.md (2026-09-21) (ids: REQ-LINT-PACKAGING-008)` — untraced shared-spec class, stays `info`, routed `record | ignore` at DONE (Chunk 4 task 6 (iii)); the sibling `harness-chunk-verifier.md` line is the same class by design.
 - Hook-enforcement spike (Chunk 4 task 1, performed by the orchestrator from documentation, **unmeasured**): `PreToolUse` stdin carries `agent_id` and `agent_type` inside a subagent; an agent's frontmatter may declare hooks that run only while it is active; `SubagentStart`/`SubagentStop` carry `agent_type`. A positive answer makes enforcement of read-only leaves feasible; no contract changed this cycle; a live measurement is the precondition before any binding, no requirement exists for it and none is created here.
 - Telemetry schema question (Minor 5): how a voided review round and a routed origin fix are counted so that assertion (b) and `[reason-review]` do not fire on the orchestrator's own compliant records.
