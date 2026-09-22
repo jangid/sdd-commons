@@ -136,6 +136,24 @@ and the same `proceed | loop-back-to-fix | stop` options as before; no
 > writer and the one-file-per-repository rule are unchanged. Touches
 > REQ-TELEM-HARNESSP3-001 (amended beside it) and leaves REQ-TELEM-HARNESSP2-005
 > and -009 consistent.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over the second cause of `WRITE FAILED` — a listing grep over
+> `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
+> this requirement's own text and in the index rows citing it are the statement
+> itself and are excluded.
+> Command: `grep -rn 'WRITE FAILED' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> `plugins/sdd/skills/orchestrate/references/telemetry.md` §3 table ("the
+> previous append raised an error") and its walkthrough rows, `USAGE.md`'s
+> table, `orchestrate/SKILL.md` and `references/loop-control.md` §5 item 7 —
+> reconciled as-is: a non-zero `append` exit is an error the orchestrator sees,
+> and the second cause is named by REQ-TELEM-PIPELINEOBSERVABILITY-001, whose
+> acceptance amends `references/telemetry.md` §3's writer sequence;
+> `docs/spec/telemetry.md` §Pipeline-Observability Amendment ("I/O failure or
+> validation failure") — reconciled, carries the clause; the same spec's quoted
+> `CLAUDE.md` §Driver three-member sentence — reconciled, the p3 history of the
+> four-member family; `docs/spec/harness-loop-control.md` §5 and
+> `docs/requirements/integration/skill-updates.md` — reconciled, the line as a
+> gate signal.
 
 ### REQ-TELEM-HARNESSP2-005: Leaf writes to `.sdd/` surface as `OUT`
 Any write to `.sdd/**` by a dispatched subagent must be a boundary finding
@@ -295,6 +313,20 @@ nothing.
 > consumer-geometry gate rendered `rec 39` while `summarize` read zero of that
 > cycle's 53 records (RS-PIPELINEOBSERVABILITY-001 §Q1). The `TELEMETRY:` family
 > stays at four members.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over "successful append" meaning validated and written — a
+> listing grep over `docs/requirements docs/spec plugins/sdd/skills
+> plugins/sdd/agents`; hits in this requirement's own text and in the index
+> rows citing it are the statement itself and are excluded.
+> Command: `grep -rnE 'rec <n>|successful append' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> the listing is REQ-TELEM-PIPELINEOBSERVABILITY-001's:
+> `references/telemetry.md` §3, `references/loop-control.md` §5 item 7,
+> `orchestrate/SKILL.md` and `USAGE.md` ("`<n>` counts successful appends this
+> session") — reconciled as-is, the word stays and this note narrows its
+> meaning; `references/telemetry.md` §3's writer sequence, which does not yet
+> name `append`'s exit code — amended by REQ-TELEM-PIPELINEOBSERVABILITY-001;
+> `docs/spec/telemetry.md` §Positive Gate Line and §Pipeline-Observability
+> Amendment — reconciled, carry it.
 
 ### REQ-TELEM-HARNESSP3-002: `summarize` reports records-vs-expected per session as a post-cycle backstop
 `tools/sdd-telemetry.py summarize` may report a records-vs-expected count per
@@ -487,6 +519,16 @@ live records (expected: no typed-field finding).
 > rule, the operator-between-sessions rule and the fixture-never-touched rule
 > are unchanged and apply to the new shape as written; the p3 fixture's sha
 > assertion is unaffected.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over the second migration shape — a listing grep over
+> `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
+> this requirement's own text and in the index rows citing it are the statement
+> itself and are excluded.
+> Command: `grep -rnE 'flat-cg|migration\.from' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> the listing is REQ-TELEM-PIPELINEOBSERVABILITY-002's: no `plugins/sdd/**`
+> hit; `docs/spec/telemetry-reader.md` §Second migration shape — `flat-cg` —
+> reconciled, carries it; the same file's `--lint` case (c) (one-member enum) —
+> amended by REQ-TELEM-HARNESSP5-008 as amended beside this note.
 
 ### REQ-TELEM-HARNESSP4-006: `scope.widened` records an operator widening of the write scope
 The record schema must gain `scope.widened` (int — the count of globs the
@@ -696,6 +738,19 @@ are unchanged.
 > (REQ-TELEM-PIPELINEOBSERVABILITY-002) and any other string is still an
 > `[enum]` finding; the case is re-pointed at a value outside the two-member
 > set. Cases (a) and (b) are unchanged.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over the two-member `migration.from` enum — a listing grep over
+> `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
+> this requirement's own text and in the index rows citing it are the statement
+> itself and are excluded.
+> Command: `grep -rnE 'flat-cg|migration\.from' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> the listing is REQ-TELEM-PIPELINEOBSERVABILITY-002's:
+> `docs/spec/telemetry-reader.md`'s `--lint` case (c) ("`migration.from`
+> outside the `chunk-string` enum") — the old one-member enum; reconciled by
+> naming this note as its amender (the specs re-derivation re-points the case
+> at a value outside `{chunk-string, flat-cg}`, acceptance in that spec's
+> amendment section); the same file's `lost`-admission rule — reconciled,
+> consistent; no `plugins/sdd/**` hit.
 
 ### REQ-TELEM-PIPELINEOBSERVABILITY-001: `telemetry.py append` validates a record before writing it; `rec <n>` counts validated writes only
 `plugins/sdd/tools/telemetry.py` must gain an `append [--file F]` subcommand
@@ -735,6 +790,28 @@ validation removed the first case exits 0 and the self-test prints its failure
 lists exactly four members and its writer sequence names `append`'s exit code
 as the condition for `rec <n>`; a grep of the orchestrator's gate path for a
 read of the telemetry file returns nothing.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over `rec <n>` counting validated writes only — a listing grep
+over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits
+in this requirement's own text and in the index rows citing it are the
+statement itself and are excluded.
+Command: `grep -rnE 'rec <n>|successful append' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`plugins/sdd/skills/orchestrate/references/telemetry.md` §3 gate-line table and
+family note ("`<n>` counts successful appends this session"),
+`references/loop-control.md` §5 item 7, `orchestrate/SKILL.md` §The gate and
+`USAGE.md`'s gate-line table — reconciled as-is for the word: "successful"
+stays, and REQ-TELEM-HARNESSP3-001 as amended narrows it to "validated and
+written"; the writer sequence of `references/telemetry.md` §3 does not yet name
+`append`'s exit code — reconciled by naming this requirement as its amender
+(the acceptance above); `references/write-scope.md` (`rec <n>` as the pattern
+`COMMIT:` follows) — reconciled, an analogy; `docs/spec/telemetry.md` §Positive
+Gate Line and §Pipeline-Observability Amendment ("`rec <n>` counts validated
+writes") and `docs/spec/harness-commit-fidelity.md` — reconciled, they carry or
+cite this requirement; `docs/spec/harness-loop-control.md` §5 table —
+reconciled, the family stays at four members;
+`docs/requirements/functional/telemetry.md` REQ-TELEM-HARNESSP2-004 and
+-HARNESSP3-001 (amended beside) and `harness-boundaries.md` (one citation) —
+reconciled, the notes point here.
 [Priority: must]
 
 ### REQ-TELEM-PIPELINEOBSERVABILITY-002: the `v`-less flat records are migrated where their key sets map, and declared lost where they do not
@@ -777,6 +854,23 @@ reports `[enum]`; the fixture's sha is unchanged at DONE; this cycle's
 `verification.md` records the live `summarize --workstream consumer-geometry`
 record count after the operator's migration (expected: equal to the migrated
 count, no longer 0).
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the `flat-cg` migration shape and the lost-record rule — a
+listing grep over `docs/requirements docs/spec plugins/sdd/skills
+plugins/sdd/agents`; hits in this requirement's own text and in the index rows
+citing it are the statement itself and are excluded.
+Command: `grep -rnE 'flat-cg|migration\.from' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit (the migration shapes
+are stated in `docs/spec/telemetry-reader.md` and the tool, never in a skill
+text); `docs/spec/telemetry-reader.md` §Second migration shape — `flat-cg`, its
+`lost` admission rule and acceptance — reconciled, carries this requirement;
+the same file's `--lint` case (c) ("`migration.from` outside the `chunk-string`
+enum") — the one-member enum, the old side; reconciled by naming
+REQ-TELEM-HARNESSP5-008 as amended (the enum becomes `{chunk-string, flat-cg}`)
+and the specs re-derivation of that case as its amender;
+`docs/spec/pipeline-observability.md` (the `v: 2` key-set note) — reconciled;
+`docs/requirements/functional/telemetry.md` REQ-TELEM-HARNESSP4-005 and
+-HARNESSP5-008 (amended) — reconciled, they point here.
 [Priority: must]
 
 ### REQ-TELEM-PIPELINEOBSERVABILITY-003: four cross-field `--lint` assertions witness the gate rules this cycle introduces
@@ -791,13 +885,17 @@ REQ-HARN-PIPELINEOBSERVABILITY-004); (b) a `review` record whose
 immediately preceding same-stage `review` records of its cycle — an increment
 across an `APPROVE_WITH_FIXES` — → finding (REQ-HARN-001 as amended); (c) a
 `gate.decision` of `manual_intervention` on a record whose next same-stage
-record is not a `review` record labelled `post-manual` → finding
-(REQ-HARN-PIPELINEOBSERVABILITY-003); (d) a `review` record with
-`verdict.findings.C ≥ 1` and a token other than `REJECT` whose `gate.decision`
+record is not a `review` record with `dispatch.reason = POST_MANUAL`, or whose
+next such record carries a `gate.fix_iteration` different from the
+`manual_intervention` record's → finding (REQ-HARN-PIPELINEOBSERVABILITY-003,
+whose §Footprint states the record shape); (d) a `review` record with
+`verdict.findings.C ≥ 1` and a token other than `REJECT`, or with
+`verdict.findings.C = 0`, `verdict.findings.M ≥ 1` and the token `APPROVE`
+(round 8 M3, Q-REQ-PO-AJ), whose `gate.decision`
 is not the malformed pause → finding (REQ-HARN-PIPELINEOBSERVABILITY-005). The
-domain-table members these need (the `post-manual` review label, the
-`manual_intervention` and malformed-pause decisions) are added to the domain
-table so `schema_diff` keeps the example, the table and the tool in agreement
+domain-table members these need — `POST_MANUAL` in `dispatch.reason`,
+`manual_intervention` and `malformed` in `gate.decision` — are added to the
+domain table so `schema_diff` keeps the example, the table and the tool in agreement
 (REQ-TELEM-HARNESSP4-004). (see RS-PIPELINEOBSERVABILITY-001 §Mechanical pin
 R4, R6, R8, R10.) Leaves REQ-TELEM-HARNESSP5-006 (`seq`-ordered findings) and
 -HARNESSP5-007 (frozen fixtures' outputs unchanged) consistent.
@@ -805,5 +903,33 @@ R4, R6, R8, R10.) Leaves REQ-TELEM-HARNESSP5-006 (`seq`-ordered findings) and
 built from a record pair that renders the finding and a control pair that does
 not; each case fails when its assertion is removed in a temp copy; `--lint`
 over the two frozen harness fixtures reports the same finding count as before
-this requirement; `schema_diff` reports no divergence.
+this requirement; `schema_diff` reports no divergence; `grep -c 'POST_MANUAL'`,
+`grep -c 'manual_intervention'` and `grep -c 'malformed'` over
+`plugins/sdd/tools/telemetry.py` each read ≥ 1 (today 0, 0, ≥ 1 — the
+`verdict.malformed` field, not the decision member).
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the four cross-field assertions and the three domain-table
+members they need — a listing grep over `docs/requirements docs/spec
+plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and
+in the index rows citing it are the statement itself and are excluded.
+Command: `grep -rnE 'POST_MANUAL|manual_intervention|cross-field' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`plugins/sdd/skills/orchestrate/references/telemetry.md` — hits only on the
+existing cross-field rules (`[mistyped-fix]`, the `chunk_verdict` rule, the
+`expected` derivation); reconciled, unchanged rules; the same file's
+`dispatch.reason` and `gate.decision` schema rows do not yet list
+`POST_MANUAL`, `manual_intervention` or `malformed` — reconciled by naming
+REQ-HARN-PIPELINEOBSERVABILITY-003 (§Footprint: the `POST_MANUAL` reason and
+the `manual_intervention` decision) and REQ-HARN-PIPELINEOBSERVABILITY-005 (the
+`malformed` decision) as the requirements that add the members; the domain
+table itself (`plugins/sdd/tools/telemetry.py`) is outside the swept trees;
+`docs/spec/telemetry-reader.md` §Four cross-field assertions, §Schema Lint and
+its Q-IMPL entries, `docs/spec/telemetry.md` (warnings at append time),
+`docs/spec/harness-loop-control.md` and `docs/spec/harness-return-contract.md`
+(citing (b), (c), (d)) — reconciled, they carry or cite;
+`docs/requirements/functional/harness-loop-control.md`, `harness-boundaries.md`
+and `harness-verification.md` — reconciled, each names its assertion as the
+witness.
 [Priority: must]
+`[Updated: 2026-09-22]` — assertion (c) and the member list restated over the
+`post-manual` footprint of REQ-HARN-PIPELINEOBSERVABILITY-003 at requirements
+review iteration 3.

@@ -605,7 +605,11 @@ name from only one tuple makes it fail naming the scope drift.
 ### REQ-LINT-PIPELINEOBSERVABILITY-001: the `literal-anchor` pattern is a skill-lint drift phrase over the shipped skill text
 `plugins/sdd/tools/skill-lint.py` must carry the `literal-anchor` pattern
 (`[\w./-]+\.md:\d+` on a visible, non-fenced line) as a `FORBIDDEN` drift
-phrase over the **swept markdown set** — every `*.md` the linter sweeps under
+phrase — **source-line discipline, stated explicitly as
+REQ-GC-PIPELINEOBSERVABILITY-001 states it**: every line outside a fenced
+block is read **whole**; inline-code (backticked) and quoted spans are **not**
+blanked, so an anchor written as `` `<file>.md:<line>` `` on a visible line is a
+finding — over the **swept markdown set** — every `*.md` the linter sweeps under
 `plugins/sdd/**` (files: the swept markdown set, not `plugins/sdd/tools/*.py`
 nor `plugins/sdd/tools/fixtures/**`, which the zero-cost measurement did not
 cover; Q-REQ-PO-S), so the
@@ -623,9 +627,30 @@ read-only measurement over that set.
 **Acceptance**: `python3 plugins/sdd/tools/skill-lint.py` exits 0 on this
 tree; in a temp copy with a `.md` path followed by a colon and a line number
 (the anchor form) placed on a visible line of one `SKILL.md` the linter exits
-non-zero with the phrase finding naming that file, and with the same text
-inside a fenced block it exits 0; the same anchor form placed in a `.py` file
+non-zero with the phrase finding naming that file, with the same anchor
+placed **inside backticks** on a visible line it likewise exits non-zero
+naming that file (the span discipline is what this case decides), and with
+the same text inside a fenced block it exits 0; the same anchor form placed in a `.py` file
 under `plugins/sdd/tools/` in the temp copy raises no finding from this row;
 the `--self-test` pinned `FORBIDDEN` count equals the row count after the
 addition.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the `literal-anchor` drift phrase over the swept markdown
+set — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
+plugins/sdd/agents`; hits in this requirement's own text and in the index rows
+citing it are the statement itself and are excluded.
+Command: `grep -rn 'literal-anchor' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`docs/spec/skill-lint-v5.md` §`literal-anchor` as a `FORBIDDEN` drift phrase —
+reconciled, carries this requirement; `docs/spec/drift-sweep.md` rows 16–19,
+§`literal-anchor` and §Routing at DONE, and
+`docs/spec/pipeline-observability.md` (Q-SPEC-PO-E, the measured counts) —
+reconciled, gc's rule over the docs corpus (REQ-GC-PIPELINEOBSERVABILITY-001),
+whose own sweep covers the docs-side sentences; `plugins/sdd/skills/**`,
+`plugins/sdd/agents/**` — no hit (`plugins/sdd/tools/skill-lint.py` is outside
+the swept trees; its row is the acceptance above);
+`docs/requirements/integration/drift-sweep.md` REQ-GC-PIPELINEOBSERVABILITY-001
+— reconciled, the two rules share the pattern and differ in tree.
 [Priority: must]
+`[Updated: 2026-09-22]` — requirements review round 5 M3: the backticked-span
+discipline is stated (spans read, not blanked) and the temp-copy check gains
+the backticked-anchor case.

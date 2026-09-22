@@ -73,6 +73,22 @@ finding at §A renders no contradiction.
 > Observed: both class-(b) pauses of the consumer-geometry research stage fired
 > on a cross-reference to a section the fix had just moved. The set-operation
 > character of the rule and the `(file-level)` degradation are unchanged.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over this note's binding clause (both sides of a moved or
+> renamed heading, and a heading absent at round N's sha, are written ground) —
+> a listing grep over `docs/requirements docs/spec plugins/sdd/skills
+> plugins/sdd/agents`; hits in this requirement's own text and in the index
+> rows citing it are the statement itself and are excluded.
+> Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> the listing is REQ-ARB-PIPELINEOBSERVABILITY-001's:
+> `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a (two-term
+> `W_N`) and its "may over-fire … accepted" sentence, and
+> `docs/spec/arbitrated-handoff.md` §Known Limitations' "accept the over-fire"
+> — the old side, amended by REQ-ARB-PIPELINEOBSERVABILITY-001 and retired with
+> the zero-count witnesses stated in its sweep;
+> `docs/spec/arbitrated-handoff.md` §Retained Per-Round State and §Fix-induced
+> ground is written ground — reconciled, they carry the rule; every other hit
+> is the unchanged regeneration term.
 
 ### REQ-ARB-HARNESSP2-003: Class (c) — verdict regression without new ground
 The orchestrator must flag a contradiction of class **(c)** when round N's
@@ -226,6 +242,19 @@ fixture with the findings in a file the loop never touched still pauses as class
 > existed at `sha_N` with identical bytes stays out of `W_N`
 > (REQ-ARB-HARNESSP5-001 is not reopened). The regenerated-not-patched rule and
 > its acceptance are otherwise unchanged.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over this note's binding clause (the third term of the `W_N`
+> union) — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
+> plugins/sdd/agents`; hits in this requirement's own text and in the index
+> rows citing it are the statement itself and are excluded.
+> Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> the listing is REQ-ARB-PIPELINEOBSERVABILITY-001's: the two-term `W_N` of
+> `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a and §`W_N` —
+> the old side, amended by REQ-ARB-PIPELINEOBSERVABILITY-001;
+> `docs/spec/arbitrated-handoff.md` §Retained Per-Round State (three terms,
+> dated) and §Fix-induced ground is written ground — reconciled, they carry the
+> term; §`W_N` Includes Regeneration Writes and
+> `docs/spec/adversarial-verify.md` — reconciled, the second term is unchanged.
 
 ### REQ-ARB-HARNESSP4-001: REQ-ARB-HARNESSP3-001 is exercised live in this cycle and its non-pause is recorded
 This cycle must exercise the unioned `W_N` of REQ-ARB-HARNESSP3-001 on a live
@@ -418,4 +447,33 @@ heading-existence clause removed A4 flips to class (b) and the self-test exits
 non-zero; `references/loop-control.md` §2a's `W_N` definition and
 `docs/spec/arbitrated-handoff.md` §Retained Per-Round State carry the third
 term; A1–A3's outputs are unchanged.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the third term of `W_N` (fix-induced ground is written
+ground) — a listing grep over `docs/requirements docs/spec plugins/sdd/skills
+plugins/sdd/agents`; hits in this requirement's own text and in the index rows
+citing it are the statement itself and are excluded.
+Command: `grep -rnE 'W_N|fix-induced|did not exist (in|at)' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`plugins/sdd/skills/orchestrate/references/loop-control.md` §2a schema block
+(`W_N = sections(fix[N].written) UNION sections(regen[N].written)`, two terms)
+— the old side; reconciled by naming this requirement as its amender (the
+acceptance above names §2a); the same file's known-limitation sentence "the old
+`§Name` is not in `W_N`, so (b) may over-fire … (accepted; renames are rare
+inside a fix)" and `docs/spec/arbitrated-handoff.md` §Known Limitations'
+"Review line references a section heading that was renamed by the fix … accept
+the over-fire" — the accepted over-fire this requirement removes; **retired**: the specs re-derivation under REQ-REQ-PIPELINEOBSERVABILITY-001
+(b) rewrites the spec sentence and the implement stage the skill sentence, and
+`grep -c 'renames are rare' docs/spec/arbitrated-handoff.md` and `grep -c
+'renames are rare' plugins/sdd/skills/orchestrate/references/loop-control.md`
+each read 0 at the specs and implement gates respectively (today 1 and 1); the
+file-level over-fire both files also describe ("may over-fire when the fix
+touched the same file elsewhere") is a different, retained degradation —
+reconciled;
+`docs/spec/arbitrated-handoff.md` §Retained Per-Round State (three-term union,
+dated) and §Fix-induced ground is written ground — reconciled, they carry this
+requirement; the same spec's §`W_N` Includes Regeneration Writes, its Q-IMPL
+entries and `docs/spec/adversarial-verify.md` — reconciled, the regeneration
+term is unchanged; `docs/spec/pipeline-observability.md` — reconciled, lists;
+`docs/requirements/functional/arbitrated-handoff.md` REQ-ARB-HARNESSP2-002 and
+-HARNESSP3-001 (amended beside this requirement) — reconciled, their notes
+state the third term by pointing here.
 [Priority: must]

@@ -1498,4 +1498,19 @@ match carrying the new value, and the same grep over
 `.claude-plugin/marketplace.json` returns **zero** matches — a second
 plugin-version field appearing there is itself a failure; this cycle's `verification.md` records the
 installed cache's version after `/plugin update` equal to the bumped value.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the sole plugin-version field and its per-cycle bump — a
+listing grep over `docs/requirements docs/spec plugins/sdd/skills
+plugins/sdd/agents`; hits in this requirement's own text and in the index rows
+citing it are the statement itself and are excluded.
+Command: `grep -rnE 'plugin version|"version"' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`docs/spec/marketplace-packaging.md` manifest shape (`"version": "<semver>"`)
+and §The plugin version is bumped in the cycle that changes the plugin (the
+`grep -c '"version"'` checks) — reconciled, they carry this requirement; the
+same file's Q-IMPL decision "`.claude-plugin/plugin.json` carries `"version":
+"0.1.0"`" — reconciled as a dated decision record of the marketplace cycle: the
+value is the pre-bump one and the path the pre-packaging root (the packaging
+cycle moved the file), and it states no rule on when the value moves;
+`plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit;
+`docs/requirements/integration/packaging.md` — the hits are this requirement.
 [Priority: must]

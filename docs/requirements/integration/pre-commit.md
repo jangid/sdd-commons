@@ -196,4 +196,18 @@ the hook skipped with no files to check — it never opens the file — and exit
 match fails and (2) reports the file processed; (3) the comment on the
 alternative states the reason; (4) `pre-commit run --all-files` exits 0 on this
 branch.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the `\.claude/` exclusion — a listing grep over
+`docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in
+this requirement's own text and in the index rows citing it are the statement
+itself and are excluded.
+Command: `grep -rnE '\\.claude/|exclude (regex|pattern|value)' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`docs/spec/pre-commit.md` §Pipeline-Observability Amendment (the alternative,
+its comment, the scratch-copy check) — reconciled, carries this requirement;
+`plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit (the hook
+configuration is repository-side, not plugin text);
+`docs/requirements/integration/pre-commit.md` — the hit is this requirement;
+REQ-PC-MARKETPLACE-005's "named in an explicit `exclude` pattern … with the
+reason stated in a comment" (bold in the source, so outside this grep; found by
+reading) — reconciled, it is the form this requirement instantiates.
 [Priority: must]

@@ -203,4 +203,28 @@ exist — `test -f plugins/sdd/.claude-plugin/plugin.json && test -f
 .claude-plugin/marketplace.json && test ! -e .claude-plugin/plugin.json`; a
 reviewer-checkable diff shows no change outside §Repository Structure, §Gate
 vocabulary and §Cycle signals beyond these substitutions.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+2026-09-22)** over the retired `iteration N of FIX_LOOP_MAX` phrase and the
+root-level manifest path — a listing grep over `docs/requirements docs/spec
+plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and
+in the index rows citing it are the statement itself and are excluded.
+Command: `grep -rnF 'iteration N of FIX_LOOP_MAX' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`docs/spec/project-docs.md` §Pipeline-Observability Amendment (the defect quote
+and the `grep -Fc … = 0` check) and `docs/spec/harness-loop-control.md` (naming
+the phrase as retired from `CLAUDE.md`) — reconciled, both name the phrase in
+order to retire it; `plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no hit
+(the skill texts say `iteration N of MAX`, the label REQ-HARN-001 as amended
+keeps); `CLAUDE.md` itself is outside the four trees and is this requirement's
+target, retired by the `grep -Fc` zero-count witness above; for the manifest-path clause, `grep -rnE '(^|[^/])\.claude-plugin/plugin\.json'
+docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents` hits
+`docs/requirements/integration/packaging.md`, `docs/spec/two-root-linter.md`
+and `docs/spec/project-docs.md` (the packaging cycle's own texts describing the
+move — "`.claude-plugin/plugin.json` moves with the suite" — and the `test !
+-e` witness this requirement shares) — reconciled;
+`docs/spec/marketplace-packaging.md` §Manifests and its dated `"version":
+"0.1.0"` decision (the root-level location as of the marketplace cycle) —
+reconciled as that cycle's record, superseded by the packaging cycle's move;
+whether that spec's section of record was re-dated is REQ-PKG-PACKAGING's
+concern, not this clause's, which binds `CLAUDE.md` alone; no `plugins/sdd/**`
+hit.
 [Priority: must]

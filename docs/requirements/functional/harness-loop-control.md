@@ -105,9 +105,43 @@ fourth gate with the compiled log and no automatic fourth dispatch; the
 > consecutive-`REJECT` rule and is pinned by a skill-lint `REQUIRED` row on the
 > word `consecutive` in that section; the cross-field assertion (b) of
 > REQ-TELEM-PIPELINEOBSERVABILITY-003 fails on a `fix_iteration` that
-> increments across an `APPROVE_WITH_FIXES`. Leaves REQ-HARN-002/-008
-> (`REPLAN_MAX`, `REDO_MAX`), REQ-HARN-011 (the field), REQ-ORCH-018 and
+> increments across an `APPROVE_WITH_FIXES`. Leaves REQ-HARN-002
+> (`REPLAN_MAX`) and the per-chunk redo cap (`REDO_MAX` — defined only in
+> `docs/spec/harness-loop-control.md` §Redo Cap per Chunk; no requirement
+> establishes it, and REQ-HARN-008 is the circuit-break checkpoint, not the
+> cap — round 8 M2, Q-REQ-PO-AI), REQ-HARN-011 (the field), REQ-ORCH-018 and
 > REQ-ORCH-034 consistent.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG,
+> 2026-09-22)** over the counted quantity (`reject_run`) and the `iteration N
+> of MAX` label — a listing grep over `docs/requirements docs/spec
+> plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text
+> and in the index rows citing it are the statement itself and are excluded.
+> Command: `grep -rnE 'consecutive|reject_run|iteration N of' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+> `plugins/sdd/skills/orchestrate/references/loop-control.md` (§1 marker
+> literals, §1b, the §2b contradiction line, §5 counters),
+> `references/return-contract.md` ("one review round is one fix iteration"),
+> `orchestrate/SKILL.md`, `USAGE.md` ("`iteration N of 3` — the fix-loop
+> counter") and `references/telemetry.md`'s `fix_iteration` row — reconciled
+> as-is for the label: `iteration N of MAX` is kept and now reports
+> `reject_run`, and a round is still an iteration, only the cap's comparand
+> changes; `references/loop-control.md` §2 does not yet state the
+> consecutive-`REJECT` rule (`grep -c 'consecutive consumed'` reads 0 today) —
+> reconciled by naming this note's own acceptance (row p4) as its amender;
+> `docs/spec/harness-loop-control.md` §The counted quantity is `reject_run`,
+> its routing table and its "capped per stage at a default of 3, each prompt
+> states `iteration N of MAX`" acceptance — reconciled, carries the rule and
+> stays true under the narrowed count; `docs/spec/telemetry-reader.md` (b),
+> `docs/spec/skill-lint-v5.md` row p4, `docs/spec/project-docs.md`,
+> `harness-return-contract.md`, `arbitrated-handoff.md` and `orchestration.md`
+> (`iteration N of MAX`, default 3) — reconciled, label or citation;
+> `docs/spec/cycle-identity.md` and `skill-lint-v5.md` ("consecutive" lines),
+> `references/write-scope.md` ("twenty consecutive commits") — off-subject; the
+> remaining `docs/requirements/**` hits name `iteration N of MAX` as a gate
+> label or use "consecutive" off-subject — reconciled, the label is unchanged.
+> Noted for the specs re-derivation (REQ-REQ-PIPELINEOBSERVABILITY-001 (b);
+> round 8 M2): `docs/spec/harness-loop-control.md` §Pipeline-Observability
+> Amendment's consistency line repeats the `REQ-HARN-002/-008 (REPLAN_MAX,
+> REDO_MAX)` miscitation this note has dropped — out of this stage's scope.
 
 ### REQ-HARN-002: Replan re-entry cap, derived from plan-history
 The orchestrator must cap replan re-entries per cycle at a configurable maximum
@@ -344,6 +378,23 @@ with re-review on opt-in only; `references/loop-control.md` §5a's default is
 proceed and §2a states that an `APPROVE_WITH_FIXES` at or after the cap is not
 an exhaustion; this cycle's `verification.md` names the gates that ran under
 this rule (kickoff decision 3).
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `APPROVE_WITH_FIXES` routing — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
+Command: `grep -rnE 'proceed without re-review|proceed or fix offered|fix, then proceed' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`plugins/sdd/skills/orchestrate/references/return-contract.md` §6 branching
+table (`APPROVE_WITH_FIXES` row: fix, then proceed without re-review, re-review
+on explicit opt-in) and `plugins/sdd/skills/orchestrate/references/loop-control.md`
+§5a — reconciled, they state this routing; `plugins/sdd/skills/review/SKILL.md`
+§Verdict definitions (old `Approve with fixes` line: "… Fix them, then proceed
+without re-review") — the routing half is consistent, the predicate half is
+retired under REQ-REV-PIPELINEOBSERVABILITY-001 (v); `docs/spec/harness-return-contract.md`
+branching table and §`APPROVE_WITH_FIXES` branch, `docs/spec/harness-loop-control.md`
+routing table, `docs/spec/review.md` §Verdict definitions and amendment,
+`docs/spec/pipeline-observability.md` — reconciled, consistent;
+`docs/requirements/functional/harness-verification.md` REQ-HARN-013 (the
+original body's "proceed or fix offered" and the amendment note that reads
+this routing "in place of" it) — reconciled, the note supersedes the body
+sentence and points here; `plugins/sdd/tools/skill-lint.py` carries the
+`REQUIRED` pin but lies outside the four swept trees.
 [Priority: must]
 
 ### REQ-HARN-PIPELINEOBSERVABILITY-002: an informational `GROWTH:` line renders the deliverable's size delta at review round N ≥ 2
@@ -369,6 +420,18 @@ round 2 arises only after a `REJECT` or an operator opt-in, so a correct cycle
 may run none), this cycle's `verification.md` quotes the rendered `GROWTH:`
 line from that gate; when no stage ran a round N ≥ 2, `verification.md` states
 so and the temp-copy and self-test checks alone decide the criterion.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `GROWTH:` line — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
+Command: `grep -rnE 'GROWTH:' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`plugins/sdd/skills/orchestrate/references/loop-control.md` §5 item 6d and
+`plugins/sdd/skills/orchestrate/SKILL.md` §The gate (the row naming
+`CONVERGENCE:` then `GROWTH:`) — reconciled, they render the line this
+requirement defines; `docs/spec/harness-loop-control.md`,
+`docs/spec/project-docs.md` (the `CLAUDE.md` side, REQ-DOCS-PIPELINEOBSERVABILITY-001),
+`docs/spec/skill-lint-v5.md` (the `GROWTH: ` `REQUIRED` row) and
+`docs/spec/pipeline-observability.md` — reconciled, consistent;
+`docs/requirements/integration/project-docs.md` REQ-DOCS-PIPELINEOBSERVABILITY-001
+— reconciled, it binds `CLAUDE.md`'s mention and defines no second shape;
+`CLAUDE.md` itself lies outside the swept trees.
 [Priority: must]
 
 ### REQ-HARN-PIPELINEOBSERVABILITY-003: a manual intervention is followed by a `post-manual` review before `proceed`
@@ -385,6 +448,23 @@ interventions in the consumer-geometry cycle each went straight to the next
 stage's dispatch with no review between, and the three orchestrator errors
 attributable in telemetry were caught one stage and 3–4 rounds downstream.
 This rule applies from the first gate of this cycle (kickoff constraint 3).
+**Footprint (Q-REQ-PO-AC)** — the `post-manual` review is an ordinary `review`
+dispatch and leaves exactly this trace: `dispatch.kind = review`,
+`dispatch.reason = POST_MANUAL` (a new member of the repair-packet `reason`
+enum, **not** in the fix-only subset), `dispatch.stage` = the stage whose gate
+the intervention happened at, `dispatch.iteration` = that stage's current
+`reject_run`. Its gate record carries `gate.fix_iteration` **equal to** the
+preceding same-stage gate record's value — the review counts nothing — and its
+`gate.decision` routes per REQ-HARN-PIPELINEOBSERVABILITY-001 like any review.
+The existing `[reason-review]` lint warning fires on `reason = REVIEW` at
+`iteration ≥ 1` with no loop-back; `POST_MANUAL` is a distinct member, so the
+warning does not fire on it and needs no exception clause. At a **per-chunk
+gate** (implement stage), a manual intervention or an operator edit of the
+chunk's deliverable dispatches the `post-manual` review with that chunk's
+implement-stage inputs (its plan tasks and the specs they trace to,
+`dispatch.chunk = N`) and withholds that chunk's `proceed` until the verdict is
+consumed; the chunk's `gate.redo_count` (`Redo: N of REDO_MAX`) is untouched,
+and the chunk verifier is not re-run by it — it is a review, not a verifier.
 (see RS-PIPELINEOBSERVABILITY-001 §Q4, R8, §Mechanical pin R8.) Touches
 REQ-HARN-001 (amended); leaves REQ-HARN-019 (routing orchestrator-only),
 REQ-REV-003 (review inputs — an ordinary review dispatch) and
@@ -396,5 +476,27 @@ removal in a temp copy makes the linter exit non-zero; the cross-field
 assertion (c) of REQ-TELEM-PIPELINEOBSERVABILITY-003 fails on a
 `manual_intervention` gate record not followed by a `post-manual` review
 record; this cycle's `verification.md` lists every manual intervention with
-the review round that followed it, and none without.
+the review round that followed it, and none without;
+`grep -c 'POST_MANUAL' plugins/sdd/tools/telemetry.py` reads ≥ 1 (today 0)
+and `schema_diff` reports no divergence with the member added; `--lint` over a
+two-record fixture — a `reason: REVIEW` record at `iteration: 1` with no
+loop-back followed by a `reason: POST_MANUAL` record — emits one
+`[reason-review]` warning, for the first record only.
+**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, 2026-09-22)** over the `post-manual` footprint — a listing grep over `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`; hits in this requirement's own text and in the index rows citing it are the statement itself and are excluded.
+Command: `grep -rnE 'post-manual|POST_MANUAL' docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents`.
+`docs/spec/harness-loop-control.md` §2b and `docs/spec/skill-lint-v5.md` row
+p5 — reconciled, consistent; `docs/spec/telemetry-reader.md` (reader check (c)
+and its amendment, which spell the reason `post-manual` in lower case where
+Q-REQ-PO-AC and REQ-TELEM-PIPELINEOBSERVABILITY-003 (amended) name the enum
+member `POST_MANUAL`) — reconciled by naming the requirement that amends it:
+REQ-TELEM-PIPELINEOBSERVABILITY-003, whose section of record the specs
+re-derivation rewrites with the upper-case member per
+REQ-REQ-PIPELINEOBSERVABILITY-001 (b); `docs/requirements/functional/telemetry.md`
+REQ-TELEM-PIPELINEOBSERVABILITY-003 — reconciled, it owns the record shape;
+`docs/spec/pipeline-observability.md` — reconciled, consistent;
+`plugins/sdd/**` — no hit (today 0: the shipped loop-control carries the
+review only after landing).
 [Priority: must]
+`[Updated: 2026-09-22]` — footprint paragraph and its witnesses added at
+requirements review iteration 3 (the dispatch had no record shape and no
+per-chunk behaviour).
