@@ -196,8 +196,8 @@ informational line with no pinned comparand.
 
 **`--print-population`** also prints one line per rule table with its row
 count, derived from the table at run time rather than written into the flag.
-Its population criterion is stated here and nowhere else: `REQUIRED=40
-VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13` — the one place in the corpus where
+Its population criterion is stated here and nowhere else: `REQUIRED=42
+VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14` — the one place in the corpus where
 a row population is compared against a number, sound because rule-table rows
 are static in-code data.
 
@@ -628,7 +628,7 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
   checked-in negative case produces a `fail` finding naming the duplicated path
   (REQ-LINT-PACKAGING-005). `--print-population` exits 0 and its run-time-derived
   output **includes**, as a required subset, the four §6 populations by name and
-  value — `REQUIRED=40`, `VERSION_GATED=9`, `V4_CONTRACT=7`, `FORBIDDEN=13` —
+  value — `REQUIRED=42`, `VERSION_GATED=9`, `V4_CONTRACT=7`, `FORBIDDEN=14` —
   each asserted present and unchanged, a missing line or a changed value
   failing; further table lines (today `TEMPLATE_PAIRS`) neither satisfy nor
   break it, per Q-IMPL-PACKAGING-001. The plan orders the flag task before the
@@ -648,8 +648,8 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
 
 ### Q-IMPL-PACKAGING-001: `--print-population` prints a fifth table line
 **Tier**: 2 (spec ambiguity)
-**Spec reference**: §6 Counts: asserted, or only printed — "`REQUIRED=40
-VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=13`"
+**Spec reference**: §6 Counts: asserted, or only printed — "`REQUIRED=42
+VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14`"
 **Decision**: the flag prints **one line per rule table**, derived from the
 live tables at run time, which is **five** lines today — the four §6 names it
 enumerates plus `TEMPLATE_PAIRS=4`. §6's enumeration is read as the **required

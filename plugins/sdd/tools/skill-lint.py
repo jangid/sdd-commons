@@ -57,6 +57,9 @@ from pathlib import Path
 # (file-granular allowlist, consulted before the line loop; the scan itself
 # stays raw-line and fence-inclusive) — rows without it behave as before.
 FORBIDDEN = [
+    {"pattern": r"then re-run the review for this stage", "files": None, "allow": [],
+     "reason": "unconditional re-review after every loop-back-to-fix is the generator that exhausted the cap on eight zero-blocking APPROVE_WITH_FIXES rounds (RS-PIPELINEOBSERVABILITY-001 §Gate observation 2026-09-22)",
+     "fix": "split the row by verdict: REJECT → fix then re-review; APPROVE_WITH_FIXES → fix then proceed without re-review"},
     {
         "pattern": r"docs/spikes",
         "files": None,
@@ -120,6 +123,14 @@ FORBIDDEN = [
 # them. `min` is the minimum occurrence count in that file. Rows may carry
 # `"severity": "warn"` (default `fail`).
 REQUIRED = [
+    # -- pipeline-observability, manual gate fix 2026-09-22 (RS-PIPELINEOBSERVABILITY-001
+    #    §Gate observation): the APPROVE_WITH_FIXES routing and the GROWTH: line.
+    {"file": "skills/orchestrate/SKILL.md", "pattern": r"proceeds \*\*without re-review\*\*", "min": 1,
+     "reason": "APPROVE_WITH_FIXES routes fix → proceed, never fix → re-review by default (RS-PIPELINEOBSERVABILITY-001 §Gate observation 2026-09-22)",
+     "fix": "restore `the stage proceeds **without re-review**` in the loop-back-to-fix row of §The gate"},
+    {"file": "skills/orchestrate/references/loop-control.md", "pattern": r"GROWTH: ", "min": 1,
+     "reason": "the informational GROWTH: gate line (item 6d) makes the fix-grows-artifact generator visible",
+     "fix": "restore item 6d (`GROWTH: <deliverable> +A/−D lines`) in §5"},
     {"file": "skills/orchestrate/SKILL.md", "pattern": r"research_id", "min": 3,
      "reason": "kickoff research_id contract (audit F10) spans table/KICKOFF/picker",
      "fix": "keep `research_id` in the entry table, KICKOFF and the picker stub"},
@@ -1571,7 +1582,9 @@ def self_test() -> int:
             # are all present, and the table counts rows, not files, so the rows
             # that share a target file are distinct rows
             # (skill-lint-v5.md §Self-Test Extension, REQ-LINT-HARNESSP6-003).
-            check(len(REQUIRED) == 40, f"expected exactly 40 REQUIRED rows, found {len(REQUIRED)}")
+            # pipeline-observability's manual gate fix (2026-09-22) adds two rows:
+            # the APPROVE_WITH_FIXES routing sentence and the GROWTH: gate line → 42.
+            check(len(REQUIRED) == 42, f"expected exactly 42 REQUIRED rows, found {len(REQUIRED)}")
             # d2 negative: a SKILL.md carrying only `RED_VERDICT: HELD` must NOT
             # satisfy the review-verdict consumer row (the `(?<!RED_)` lookbehind).
             d2 = next((r for r in REQUIRED
@@ -2730,8 +2743,12 @@ def self_test() -> int:
             # duplicated in any of the four now fails the self-test rather than
             # a one-off evaluation nobody re-runs
             # (added post-plan from the implement-stage review).
-            pinned = {"REQUIRED": 40, "VERSION_GATED": 9, "V4_CONTRACT": 7,
-                      "FORBIDDEN": 13}
+            # pipeline-observability manual gate fix (2026-09-22): +2 REQUIRED
+            # (APPROVE_WITH_FIXES routing sentence, GROWTH: line), +1 FORBIDDEN
+            # (unconditional "then re-run the review for this stage") → 42 / 14;
+            # `docs/spec/two-root-linter.md` §6 carries the same numbers.
+            pinned = {"REQUIRED": 42, "VERSION_GATED": 9, "V4_CONTRACT": 7,
+                      "FORBIDDEN": 14}
             for label, want in pinned.items():
                 check(f"{label}={want}" in lines,
                       f"§6 pins {label}={want}; --print-population printed "
