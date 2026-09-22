@@ -441,14 +441,14 @@ a fan-out leaf, whatever Chunk 2's state.
 **Estimated**: ~10 hours.
 **Tasks**:
 
-1. [implement] `plugins/sdd/tools/gc.py` — the **source-line discipline** for
+1. [x] [implement] `plugins/sdd/tools/gc.py` — the **source-line discipline** for
    the anchor rules: the fence filter only (fenced lines dropped, inline
    spans read); rule `literal-anchor` (row 16): a `.md` line-number anchor
    on an unfenced line of `docs/spec/**/*.md` and `docs/requirements/**/*.md`,
    `warn` folded per file with a count, sha-pinned anchors (`git show
    <sha>:<file>` form) exempt; `--help` lists it in the gc class at `warn`;
    not in the `FIXABLE` list. — traces to `drift-sweep.md` §Sweep Table.
-2. [implement] `plugins/sdd/tools/gc.py` — rule `self-matching-grep` (row
+2. [x] [implement] `plugins/sdd/tools/gc.py` — rule `self-matching-grep` (row
    17), decided at read time by the command-line grammar: a counting `grep`
    whose quoted pattern (`'…'` or `-e '…'`) compiled as a regular expression
    matches its own line and whose file-operand set `expand(T)` contains the
@@ -459,7 +459,32 @@ a fan-out leaf, whatever Chunk 2's state.
    criterion or adding `--exclude=<own file>`, each of the three lines that
    also cites a path dead since the packaging move repaired for that too. —
    traces to `drift-sweep.md` §Sweep Table.
-3. [implement] `plugins/sdd/tools/gc.py` — rule `dead-path-citation` (row
+   > **Blocked 2026-09-22 (implement, Chunk 3 dispatch 1) — replan trigger
+   > "the `self-matching-grep` repair touches more than the observed live
+   > instances".** The rule landed at the spec's scope (`docs/spec/**` and
+   > `docs/requirements/**`) with its fixture and self-test case; the five
+   > `docs/spec` instances (the four observed plus `pipeline-observability.md`'s
+   > specs-stage line) are repaired in this change, each fenced or
+   > `--exclude`d and its dead paths corrected. The same run reports **40**
+   > further instances in **14** `docs/requirements/**` files — every one a
+   > requirements-stage `Command:` sweep block whose `-r docs/requirements`
+   > operand holds its own file; the research measured `docs/spec` only.
+   > `docs/requirements/**` is in no implement write scope (Q-PLAN-PO-E), so
+   > `--report` and the pre-commit sweep fail on exactly those lines. Decision
+   > needed: a requirements-stage repair (fence each `Command:` line or add
+   > `--exclude=<own file>`), or narrow row 17's scope via `sdd:specs`
+   > (`drift-sweep.md` Q-IMPL-PIPELINEOBSERVABILITY-009). Task 8 waits on it.
+   >
+   > **Resolved 2026-09-22 (implement, Chunk 3 redo 1 of 3).** The operator
+   > routed the requirements-stage repair: clause (e) of the `Command:` sweep
+   > block now requires `--exclude=<own basename>` and the 40 lines in the 14
+   > `docs/requirements/**` files carry it (Q-REQ-PO-AM, index 27.6). Row 17's
+   > scope is unchanged (`docs/spec/**` and `docs/requirements/**`). On this
+   > tree `--report` exits `OK` with 0 `[self-matching-grep]` findings; a
+   > detached worktree of the parent commit (`9a1235e`) reports the 45
+   > pre-repair instances (5 `docs/spec`, 40 `docs/requirements`) and exits
+   > `FAIL`. Q-IMPL-PIPELINEOBSERVABILITY-009 records the same resolution.
+3. [x] [implement] `plugins/sdd/tools/gc.py` — rule `dead-path-citation` (row
    18): the whitespace-free token grammar (one inline-code span; no
    whitespace; at least one `/`; none of `<`, `>`, `*`, `{`, `…`; after
    stripping one trailing `:digits` anchor its last component ends in one of
@@ -467,7 +492,7 @@ a fan-out leaf, whatever Chunk 2's state.
    root nor under `plugins/sdd/`; `warn` folded per file; sha-pinned
    exemption; `--help` lists it at `warn`. — traces to `drift-sweep.md`
    §Sweep Table.
-4. [implement] `plugins/sdd/tools/gc.py` — rule `qimpl-malformed` (row 19):
+4. [x] [implement] `plugins/sdd/tools/gc.py` — rule `qimpl-malformed` (row 19):
    under marker `4`, a bare `Q-IMPL-NNN` reference (no workstream segment)
    with no bare definition is `[qimpl-malformed]` at `fail`, never
    `[qimpl-undefined]`; a bare reference with a bare definition is clean; a
@@ -475,14 +500,14 @@ a fan-out leaf, whatever Chunk 2's state.
    membership by the definition set, not by shape (the do-not-quote
    convention is not reopened); `--help` lists it at `fail`. — traces to
    `drift-sweep.md` §Q-IMPL Counting Rule.
-5. [implement] `plugins/sdd/tools/gc.py` — the traced stale-chain exception:
+5. [x] [implement] `plugins/sdd/tools/gc.py` — the traced stale-chain exception:
    with `--workstream <id>`, a shared-spec stale-chain pair that a task of
    that workstream's plan traces is `warn`; an untraced pair stays `info`;
    the §Routing at DONE `needs a decision` row names the traced sub-kind
    beside `literal-anchor` and `dead-path-citation` (the report's routing
    text mirrors the spec's row). — traces to `drift-sweep.md` §Shared-Spec
    Staleness.
-6. [implement] `plugins/sdd/tools/gc.py --self-test` cases — `literal-anchor`
+6. [x] [implement] `plugins/sdd/tools/gc.py --self-test` cases — `literal-anchor`
    (one file, three anchors: backticked on an unfenced line = 1 finding,
    fenced = none, sha-pinned = none; exactly one folded warn with count 1;
    fails with count 0 when the span-blanking half is applied);
@@ -500,7 +525,7 @@ a fan-out leaf, whatever Chunk 2's state.
    `--workstream`). — traces to `drift-sweep.md` §Sweep Table;
    `drift-sweep.md` §Q-IMPL Counting Rule; `drift-sweep.md` §Shared-Spec
    Staleness.
-7. [implement] `plugins/sdd/tools/gc.py` aggregate regeneration — the code
+7. [x] [implement] `plugins/sdd/tools/gc.py` aggregate regeneration — the code
    path that writes the aggregate's frontmatter `last_updated` takes the
    maximum `last_updated` of the per-workstream files it regenerates from
    (the live aggregate read `2026-09-19` after the specs-gate regeneration
@@ -510,7 +535,7 @@ a fan-out leaf, whatever Chunk 2's state.
    standalone run only; the orchestrator regenerates it at the stage close,
    as at every earlier stage of this cycle). — traces to
    `ws-traceability.md` §Aggregation Contract.
-8. [verify] Reversion witnesses run: each of the five self-test cases fails
+8. [x] [verify] Reversion witnesses run: each of the five self-test cases fails
    when its rule or clause is removed in a temp copy (the anchor case with
    the rule removed, and again with span-blanking applied); `--report` on the
    tree exits `OK` with 0 `self-matching-grep` and 0 `qimpl-malformed`

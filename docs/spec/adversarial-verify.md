@@ -1,6 +1,6 @@
 ---
 status: Approved
-last_updated: 2026-09-18
+last_updated: 2026-09-22
 requires:
   - REQ-REDB-HARNESSP2-001
   - REQ-REDB-HARNESSP2-002
@@ -526,7 +526,12 @@ plan.)
 - [ ] §`status: pending-red` and `skills/sdd-verify/SKILL.md` Step 3b / Step 6 instruct the `pending-red` cell write; `docs/spec/ws-traceability.md` lists the three legal cell values (REQ-REDB-HARNESSP3-003)
 - [ ] A walkthrough where red returns `BROKEN` leaves every would-be-`pass` row reading `pending-red` in both the per-ws file and the regenerated aggregate; the DONE flip turns exactly those cells to `pass` while `fail` rows are untouched (REQ-REDB-HARNESSP3-003)
 - [ ] `python3 tools/sdd-gc.py --report` raises no new finding **on a `pending-red` cell**; a `[traceability-aggregate]` warning between the per-ws write and the orchestrator's regeneration is the designed handshake and is expected, not a finding (REQ-REDB-HARNESSP3-003, wording per REQ-REDB-HARNESSP4-001)
-- [ ] `grep -rn 'pending-red' docs/spec/adversarial-verify.md docs/spec/ws-traceability.md skills/sdd-verify/SKILL.md` shows the qualified wording and the named handshake warning in each place the criterion is stated; this cycle's `verification.md` gc item, run after a per-ws write and before regeneration, records the aggregate warning as expected and passes on the qualified criterion (REQ-REDB-HARNESSP4-001)
+- [ ] The command below shows the qualified wording and the named handshake warning in each place the criterion is stated; this cycle's `verification.md` gc item, run after a per-ws write and before regeneration, records the aggregate warning as expected and passes on the qualified criterion (REQ-REDB-HARNESSP4-001):
+
+  ```
+  grep -rn 'pending-red' docs/spec/adversarial-verify.md docs/spec/ws-traceability.md plugins/sdd/skills/verify/SKILL.md
+  ```
+
 - [ ] `## Post-cycle Fixes` is named here with its one-line-per-fix format and orchestrator ownership; `skills/sdd-plan/SKILL.md`'s template lists it as an optional orchestrator-owned non-task section and a plan rewrite preserves it (REQ-REDB-HARNESSP3-004)
 - [ ] A `RED_BREAK` fix dispatched with no open chunk yields `SCOPE: CLEAN` and one new line under that section (REQ-REDB-HARNESSP3-004)
 

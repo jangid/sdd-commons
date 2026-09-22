@@ -27,6 +27,13 @@ Three sweep classes (rule ids in brackets):
               13  index <-> directory             [index-research] fail, [index-requirements] fail,
                                                   [spec-approval] fail scoped / warn unscoped
               14  plan-history naming             [plan-history-name] fail
+              16  live line-number citation       [literal-anchor] warn, folded per file
+              17  self-matching counting grep     [self-matching-grep] fail
+              18  dead backtick-cited path        [dead-path-citation] warn, folded per file
+              19  bare Q-IMPL ref, no bare def    [qimpl-malformed] fail (marker 4)
+             Rows 16-18 read source lines through the FENCE filter only (inline
+             spans are read, not blanked) over docs/spec/** and
+             docs/requirements/**; none of the four is fixable.
   excluded   sweep 15 — new drift of skill text from spec wording and semantic
              orphaning are NOT mechanical: review / dogfooding territory.
 
@@ -116,11 +123,13 @@ import importlib.util
 import io
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
 from collections import Counter
+from fnmatch import fnmatch
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -140,8 +149,22 @@ GC_RULES = [
     "qimpl-unreferenced", "qimpl-broken-ref", "trace-empty",
     "traceability-aggregate", "traceability-rowdrop", "index-research", "index-requirements",
     "spec-approval", "plan-history-name",
+    # Rows 16-19 (drift-sweep.md §Sweep Table, 2026-09-22): the snapshot-comparand
+    # class.  None of the four joins FIXABLE.
+    "literal-anchor", "self-matching-grep", "dead-path-citation", "qimpl-malformed",
 ]
 ALL_RULES = DELEGATED_RULES + GC_RULES
+
+# Rows 16-18: the anchor form, the cited-path token grammar and the sha-pinned
+# exemption (a 7-to-40 hex-digit token within the 40 characters before the hit
+# is a frozen citation by construction).
+ANCHOR_RE = re.compile(r"[\w./-]+\.md:\d+")
+SHA_RE = re.compile(r"(?<![0-9A-Za-z])[0-9a-f]{7,40}(?![0-9A-Za-z])")
+CITE_EXTS = (".md", ".py", ".yaml", ".yml", ".json", ".jsonl", ".toml", ".el")
+CITE_FORBIDDEN = ("<", ">", "*", "{", "…")
+# Row 17: `grep` as a shell word (not part of a path or a longer token).
+GREP_WORD_RE = re.compile(r"(?<![\w./-])grep(?=\s)")
+BARE_QIMPL_RE = re.compile(r"Q-IMPL-\d+")
 
 # Placeholder ids that document the id FORMAT and never count as references.
 PLACEHOLDER_IDS = {"Q-IMPL-NNN", "Q-IMPL-1", "Q-IMPL-ISSUE57-001"}
@@ -176,6 +199,22 @@ AGG_FIX = "run plugins/sdd/tools/gc.py --fix traceability-aggregate (regenerates
 ROWDROP_FIX = ("write a literal pipe inside a cell as \\| or &#124; (never a raw |), or restore the "
                "missing cell — the row is excluded from the regenerated aggregate until it parses")
 KICKOFF_FIX = "add `date: YYYY-MM-DD` and `research_id: RS-…` to the kickoff frontmatter (orchestrate KICKOFF)"
+# Rows 16-19 (snapshot comparands).  The two warn floors mirror §Routing at
+# DONE's `needs a decision` row; the two fail classes are caught by the
+# pre-commit sweep and are never gate-routed.
+ANCHOR_CITE_FIX = ("a live line-number citation is a snapshot comparand — cite the file and section "
+                   "heading instead, or pin it to a sha (`git show <sha>:<file>` form); standing warn "
+                   "floor, never fixable (route: record | ignore at DONE)")
+SELF_GREP_FIX = ("the quoted pattern matches its own line and the file is among grep's operands, so the "
+                 "count inflates by one — fence the criterion or add --exclude=<own file>")
+DEAD_PATH_FIX = ("the cited path resolves neither at the corpus root nor under plugins/sdd/ — correct "
+                 "the path, or pin the citation to a sha; standing warn floor, never fixable "
+                 "(route: record | ignore at DONE)")
+MALFORMED_FIX = ("a bare Q-IMPL-NNN id must name a bare `### Q-IMPL-NNN` definition under docs/spec/ "
+                 "(marker 4) — use the workstream-prefixed id, or correct the counter")
+TRACED_STALE_FIX = ("this workstream's own plan traces the spec: review it against those requirements "
+                    "and bump last_updated via specs — dates are never auto-fixed "
+                    "(route: record | ignore at DONE — the traced shared-spec sub-kind)")
 
 # Canonical aggregate table header (ws-traceability.md, Workstream = 3rd column).
 AGG_HEADER = ("| Requirement | Spec | Workstream | Test | Implementation | Verified |",
@@ -229,6 +268,131 @@ def visible_lines(text: str) -> list[tuple[int, str]]:
         kept.append("" if in_fence else line)
     joined = SPAN_RE.sub(lambda m: "``" + "\n" * m.group(0).count("\n"), "\n".join(kept))
     return [(no, line) for no, line in enumerate(joined.split("\n"), 1) if line]
+
+
+def source_lines(text: str) -> list[tuple[int, str]]:
+    """(line_no, line) pairs outside fenced code, read WHOLE — the fence half of
+    visible_lines() only.  The span-blanking half is deliberately NOT applied:
+    rows 16-18 (drift-sweep.md §Sweep Table, source-line discipline) match a
+    line-number citation, a counting criterion or a cited path, each almost
+    always written as inline code, so a span-blanked source has nothing to
+    match (measured 2026-09-22: fence-only 69 anchors in 7 files, fence plus
+    span blanking 0 in 0)."""
+    out: list[tuple[int, str]] = []
+    in_fence = False
+    for no, line in enumerate(text.splitlines(), 1):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if not in_fence and line:
+            out.append((no, line))
+    return out
+
+
+def sha_pinned(line: str, start: int) -> bool:
+    """The sha-pinned exemption of rows 16 and 18: a 7-40 hex-digit token within
+    the 40 characters before position `start` freezes the citation."""
+    return SHA_RE.search(line[max(0, start - 40):start]) is not None
+
+
+def is_citation(token: str) -> bool:
+    """Row 18's token grammar: the whole text of one inline-code span is a
+    citation iff it holds no whitespace (a span holding whitespace is a command
+    or a phrase — the backticked-command exclusion), at least one `/`, none of
+    `<`, `>`, `*`, `{`, `…`, and — after stripping one trailing `:digits`
+    anchor — its last component ends in one of the listed extensions."""
+    if not token or any(ch.isspace() for ch in token) or "/" not in token:
+        return False
+    if any(ch in token for ch in CITE_FORBIDDEN):
+        return False
+    stripped = re.sub(r":\d+$", "", token)
+    return stripped.rsplit("/", 1)[-1].endswith(CITE_EXTS)
+
+
+def cut_unquoted(s: str) -> str:
+    """Text up to the first unquoted `|`, `;`, `&&`, `||` or `)` — the end of
+    one shell invocation."""
+    q: str | None = None
+    i = 0
+    while i < len(s):
+        ch = s[i]
+        if q:
+            if ch == q:
+                q = None
+            elif ch == "\\" and q == '"':
+                i += 1
+        elif ch in "'\"":
+            q = ch
+        elif ch == "\\":
+            i += 1
+        elif ch in "|;)" or s[i:i + 2] == "&&":
+            return s[:i]
+        i += 1
+    return s
+
+
+def grep_candidates(line: str) -> list[str]:
+    """Row 17's candidate texts: each inline-code span of a source line, and
+    the line's remainder outside spans."""
+    spans = [m.group(0)[1:-1] for m in INLINE_CODE_RE.finditer(line)]
+    return spans + [INLINE_CODE_RE.sub(" ", line)]
+
+
+def parse_grep(inv: str) -> tuple[str, list[str], bool, list[str], list[str]] | None:
+    """Split one `grep …` invocation by POSIX shell rules into
+    (P, T, recursive, includes, excludes) — drift-sweep.md §Sweep Table,
+    `self-matching-grep` command-line grammar.  Options are words beginning
+    with `-`; `-e`, `-f`, `--include`, `--exclude` take the next word and the
+    `--include=G` / `--exclude=G` forms carry it inline.  P is the argument of
+    the first `-e`, else the first non-option word after `grep`; T is every
+    non-option word after P.  None when the text cannot be split (unbalanced
+    quotes) or holds no pattern."""
+    try:
+        words = shlex.split(inv)
+    except ValueError:
+        return None
+    if not words or words[0] != "grep":
+        return None
+    takes_arg = ("-e", "-f", "--include", "--exclude", "--regexp")
+    recursive = False
+    includes: list[str] = []
+    excludes: list[str] = []
+    p_index: int | None = None
+    pattern: str | None = None
+    operands: list[tuple[int, str]] = []          # (index, word) for non-option words
+    i = 1
+    while i < len(words):
+        w = words[i]
+        if w.startswith("-") and len(w) > 1:
+            if w in takes_arg:
+                arg = words[i + 1] if i + 1 < len(words) else None
+                if arg is not None:
+                    if w in ("-e", "--regexp") and pattern is None:
+                        pattern, p_index = arg, i + 1
+                    elif w == "--include":
+                        includes.append(arg)
+                    elif w == "--exclude":
+                        excludes.append(arg)
+                i += 2
+                continue
+            if w.startswith("--include="):
+                includes.append(w[len("--include="):])
+            elif w.startswith("--exclude="):
+                excludes.append(w[len("--exclude="):])
+            elif w in ("--recursive", "--dereference-recursive") or (
+                    not w.startswith("--") and any(c in "rR" for c in w[1:])):
+                recursive = True
+            i += 1
+            continue
+        operands.append((i, w))
+        i += 1
+    if pattern is None:
+        if not operands:
+            return None
+        p_index, pattern = operands[0]
+    assert p_index is not None
+    targets = [w for idx, w in operands if idx > p_index]
+    return pattern, targets, recursive, includes, excludes
 
 
 def frontmatter(text: str) -> dict[str, object]:
@@ -636,6 +800,115 @@ class Gc:
                 self.flag(f, no, "xlink-dead", f"anchor `#{anchor}` not found in `{path}`",
                           ANCHOR_FIX, "warn")
 
+    # -- sweeps 16-18: snapshot comparands (drift-sweep.md §Sweep Table, 2026-09-22)
+
+    def comparand_files(self) -> list[Path]:
+        """Rows 16-18 scope: docs/spec/**/*.md and docs/requirements/**/*.md.
+        docs/research/** and docs/ws/** are out of scope by decision — dated
+        snapshots by contract, where the line number IS the evidence."""
+        out: list[Path] = []
+        for sub in ("spec", "requirements"):
+            d = self.docs / sub
+            if d.is_dir():
+                out.extend(sorted(d.rglob("*.md")))
+        return out
+
+    def path_dead(self, token: str) -> bool:
+        """Row 18: dead iff the anchor-stripped token resolves to no file at the
+        corpus root nor under plugins/sdd/."""
+        rel = re.sub(r":\d+$", "", token)
+        return not any((base / rel).is_file() for base in (self.root, self.root / "plugins" / "sdd"))
+
+    def resolve_operand(self, word: str) -> list[Path]:
+        """One grep file operand -> the paths it names: shell globs expanded,
+        relative to the corpus root, then under plugins/sdd/ for a word that
+        resolves nowhere bare."""
+        for base in (self.root, self.root / "plugins" / "sdd"):
+            if any(ch in word for ch in "*?[") and not word.startswith("/"):
+                hits = list(base.glob(word))
+            else:
+                p = base / word
+                hits = [p] if p.exists() else []
+            if hits:
+                return hits
+        return []
+
+    def expand_targets(self, targets: list[str], recursive: bool,
+                       includes: list[str], excludes: list[str]) -> set[Path]:
+        """expand(T) of the command-line grammar: directories walked only under
+        -r / -R; --include keeps, --exclude removes, by basename glob."""
+        files: set[Path] = set()
+        for w in targets:
+            for hit in self.resolve_operand(w):
+                if hit.is_dir():
+                    if recursive:
+                        files.update(p for p in hit.rglob("*") if p.is_file())
+                elif hit.is_file():
+                    files.add(hit)
+        if includes:
+            files = {p for p in files if any(fnmatch(p.name, g) for g in includes)}
+        if excludes:
+            files = {p for p in files if not any(fnmatch(p.name, g) or fnmatch(str(p), g) for g in excludes)}
+        return {p.resolve() for p in files}
+
+    def self_matching(self, f: Path, line: str) -> bool:
+        """Row 17, decided at read time: some candidate of `line` holds a grep
+        invocation whose QUOTED pattern P, compiled as a regular expression,
+        matches the line itself while `f` is among expand(T).  The unquoted
+        form is skipped; a piped form has T = ∅ and never matches."""
+        here = f.resolve()
+        for cand in grep_candidates(line):
+            for m in GREP_WORD_RE.finditer(cand):
+                parsed = parse_grep(cut_unquoted(cand[m.start():]))
+                if parsed is None:
+                    continue
+                pattern, targets, recursive, includes, excludes = parsed
+                if f"'{pattern}'" not in cand and f'"{pattern}"' not in cand:
+                    continue                         # the unquoted form is out of scope
+                if not targets:
+                    continue                         # piped form: no operands of its own
+                try:
+                    rx = re.compile(pattern)
+                except re.error:
+                    continue
+                if rx.search(line) and here in self.expand_targets(targets, recursive, includes, excludes):
+                    return True
+        return False
+
+    def sweep_comparand(self) -> None:
+        """Rows 16-18 over source lines (fence filter only, spans read):
+        [literal-anchor] warn folded per file, [self-matching-grep] fail per
+        line, [dead-path-citation] warn folded per file."""
+        self.sweeps_run.append("comparand")
+        for f in self.comparand_files():
+            text = read_text(f) or ""
+            anchors: list[int] = []
+            dead: list[tuple[int, str]] = []
+            for no, line in source_lines(text):
+                anchors.extend(no for m in ANCHOR_RE.finditer(line) if not sha_pinned(line, m.start()))
+                for m in INLINE_CODE_RE.finditer(line):
+                    token = m.group(0)[1:-1]
+                    if is_citation(token) and not sha_pinned(line, m.start()) and self.path_dead(token):
+                        dead.append((no, token))
+                if "grep" in line and self.self_matching(f, line):
+                    self.flag(f, no, "self-matching-grep",
+                              "counting grep whose quoted pattern matches its own line "
+                              "(the file is among its operands)", SELF_GREP_FIX)
+            if anchors:
+                self.flag(f, None, "literal-anchor",
+                          f"{len(anchors)} live line-number anchor(s) on unfenced lines "
+                          f"(lines {self._fold_lines(anchors)})", ANCHOR_CITE_FIX, "warn")
+            if dead:
+                self.flag(f, None, "dead-path-citation",
+                          f"{len(dead)} cited path(s) the tree does not hold: "
+                          + ", ".join(f"`{t}` (line {no})" for no, t in dead[:5])
+                          + (", …" if len(dead) > 5 else ""), DEAD_PATH_FIX, "warn")
+
+    @staticmethod
+    def _fold_lines(nos: list[int]) -> str:
+        shown = ", ".join(str(n) for n in nos[:8])
+        return shown + (", …" if len(nos) > 8 else "")
+
     # -- sweeps 8-10: Q-IMPL orphans (§Q-IMPL Counting Rule) -----------------
 
     def is_countable(self, qid: str) -> bool:
@@ -689,6 +962,13 @@ class Gc:
                 defs.setdefault(m.group(1), (f, no, "\n".join(body)))
         # references: id -> first (file, line)
         refs: dict[str, tuple[Path, int]] = {}
+        # Row 19 (marker 4, drift-sweep.md §Q-IMPL Counting Rule as amended
+        # 2026-09-22): a bare id is well-formed only when a BARE definition with
+        # that counter exists — membership is decided by the definition set,
+        # never by the id's shape.  A bare reference matching no bare definition
+        # is [qimpl-malformed] (fail) and never reaches (i).
+        bare_defs = {q for q in defs if BARE_QIMPL_RE.fullmatch(q)}
+        malformed: dict[str, tuple[Path, int]] = {}
         for f in self.reference_files():
             text = read_text(f)
             if text is None:
@@ -697,15 +977,24 @@ class Gc:
                 if QIMPL_DEF_RE.match(line):
                     continue  # heading lines never count as references
                 for qid in QIMPL_RE.findall(line):
-                    if self.is_countable(qid):
-                        refs.setdefault(qid, (f, no))
+                    if not self.is_countable(qid):
+                        continue
+                    if self.marker == "4" and BARE_QIMPL_RE.fullmatch(qid) and qid not in bare_defs:
+                        malformed.setdefault(qid, (f, no))
+                        continue
+                    refs.setdefault(qid, (f, no))
         both = sorted(set(defs) & set(refs))
         defined_only = sorted(set(defs) - set(refs))
         referenced_only = sorted(set(refs) - set(defs))
         self.qimpl_defs = set(defs)     # ids the fence-symmetric scan accepted
         self.qimpl_counts = {"definitions": len(defs), "both": len(both),
                              "defined_only": len(defined_only),
-                             "referenced_only": len(referenced_only)}
+                             "referenced_only": len(referenced_only),
+                             "malformed": len(malformed)}
+        for qid, (f, no) in sorted(malformed.items()):                    # row 19
+            self.flag(f, no, "qimpl-malformed",
+                      f"{qid} is a bare id with no bare `### {qid}` definition "
+                      f"(marker 4: a workstream-prefixed id was meant)", MALFORMED_FIX)
         for qid in referenced_only:                                       # (i)
             f, no = refs[qid]
             self.flag(f, no, "qimpl-undefined", f"{qid} is referenced but defined in no spec",
@@ -878,21 +1167,28 @@ class Gc:
         # category file) and one `info` finding per pair is emitted after the
         # walk — a spec traced by several workstreams still yields one finding.
         spec_stale: dict[tuple[Path, Path], tuple[str, str, set[str]]] = {}
+        # Every plan is walked for the shared-spec sub-kind (a corpus-wide
+        # comparison); `--workstream <id>` scopes only the PLAN-LEVEL sub-kinds
+        # and marks the specs that workstream's plan traces
+        # (`Q-IMPL-PIPELINEOBSERVABILITY-007`).
         plans = self.plan_paths()
-        if self.workstream:
-            plans = {ws: p for ws, p in plans.items() if ws == self.workstream}
+        scoped = set(plans) if not self.workstream else {self.workstream}
+        traced_by_active: set[Path] = set()
         for ws, plan in sorted(plans.items()):
+            in_scope = ws in scoped
             p_text = read_text(plan) or ""
             p_date = artifact_date(p_text)
             # Both plan-level sub-kinds are skipped together for a closed
             # workstream; the shared-spec sub-kind below is unaffected.
-            closed = self.ws_closed(ws)
+            plan_level = in_scope and not self.ws_closed(ws)
             spec_by_name = {f.name: f for f in self.spec_files()}
             reqs: set[str] = set()
             for name in sorted(self.traced_specs(plan)):
                 spec = spec_by_name.get(name)
                 if spec is None:
                     continue  # a missing spec is sweep 6's finding, not staleness
+                if self.workstream and ws == self.workstream:
+                    traced_by_active.add(spec)
                 s_text = read_text(spec) or ""
                 s_date = artifact_date(s_text)
                 s_reqs = self._ids(frontmatter(s_text).get("requires"), REQ_ID_RE)
@@ -905,26 +1201,33 @@ class Gc:
                     if self._is_stale(s_date, c_date):
                         assert s_date and c_date  # narrowed by _is_stale
                         spec_stale.setdefault((spec, cf), (s_date, c_date, set()))[2].add(rid)
-                if not closed:
+                if plan_level:
                     self._stale(plan, p_date, spec, s_date, "plan older than a traced spec")
-            if not closed:
+            if plan_level:
                 for cf in sorted({cat_of[r] for r in reqs if r in cat_of}):
                     self._stale(plan, p_date, cf, artifact_date(read_text(cf) or ""),
                                 "plan older than a traced requirement category file")
             ver = plan.parent / "verification.md"
-            if ver.is_file():
+            if in_scope and ver.is_file():
                 v_text = read_text(ver) or ""
                 status = str(frontmatter(v_text).get("status", ""))
                 note = " (status: pending-red — verification exists, not passed)" if status == "pending-red" else ""
                 self._stale(ver, artifact_date(v_text), plan, p_date, "verification older than the plan" + note)
-        # One `info` finding per (spec, category file) pair, naming every id that
-        # triggered it — the fold drops no comparison, only the fan-out.
+        # One finding per (spec, category file) pair, naming every id that
+        # triggered it — the fold drops no comparison, only the fan-out.  `info`,
+        # except that with `--workstream <id>` a pair whose spec that plan traces
+        # is the cycle's OWN stale chain and is `warn` (drift-sweep.md
+        # §Shared-Spec Staleness, amended 2026-09-22 — routed record | ignore).
         for (spec, cf), (s_date, c_date, ids) in sorted(spec_stale.items()):
             id_list = ", ".join(sorted(ids))
+            traced = spec in traced_by_active
             self.flag(spec, None, "stale-chain",
                       f"spec older than requirements it requires: {cf.relative_to(self.root)} "
                       f"({c_date}) is newer than {spec.name} ({s_date}) "
-                      f"(ids: {id_list})", SPEC_STALE_FIX, "info")
+                      f"(ids: {id_list})"
+                      + (f" — traced by docs/ws/{self.workstream}/plan.md" if traced else ""),
+                      TRACED_STALE_FIX if traced else SPEC_STALE_FIX,
+                      "warn" if traced else "info")
 
     # -- sweep 11: empty traceability cells (verify Step 3b policy) --------
 
@@ -983,10 +1286,36 @@ class Gc:
         preamble = "\n".join(lines[:hdr]) + "\n" if hdr is not None else AGG_PREAMBLE
         rows = [render_row(c) for c in self.legacy_rows()]
         per_ws: list[list[str]] = []
+        newest: str | None = None
         for f in self.trace_files():
             per_ws.extend(c for _, c in trace_rows(read_text(f) or ""))
+            d = artifact_date(read_text(f) or "")
+            if d and (newest is None or d > newest):
+                newest = d
+        # The aggregate's own `last_updated` is DERIVED — the newest per-ws
+        # `last_updated` it regenerates from (ws-traceability.md §Aggregation
+        # Contract; `Q-IMPL-PIPELINEOBSERVABILITY-008`).  The prose of the
+        # preamble is still kept verbatim; no owned artifact's date is touched.
+        if newest:
+            preamble = self._stamp_preamble(preamble, newest)
         rows += [render_row(c) for c in sorted(per_ws, key=lambda c: c[0])]   # stable
         return agg, preamble + "\n".join(AGG_HEADER) + "\n" + "".join(r + "\n" for r in rows)
+
+    @staticmethod
+    def _stamp_preamble(preamble: str, date: str) -> str:
+        """Set (or add) `last_updated: <date>` inside the preamble's frontmatter;
+        a preamble without frontmatter is returned unchanged."""
+        if not preamble.startswith("---"):
+            return preamble
+        end = preamble.find("\n---", 3)
+        if end < 0:
+            return preamble
+        fm, rest = preamble[:end], preamble[end:]
+        if re.search(r"^last_updated:.*$", fm, flags=re.M):
+            fm = re.sub(r"^last_updated:.*$", f"last_updated: {date}", fm, count=1, flags=re.M)
+        else:
+            fm = f"---\nlast_updated: {date}" + fm[3:]
+        return fm + rest
 
     def sweep_aggregate(self) -> None:
         if self.marker != "4":
@@ -1128,6 +1457,9 @@ class Gc:
         self.sweep_lint()
         self.sweep_xlink()
         self.sweep_qimpl()
+        # Rows 16-18 run in the fast (pre-commit) profile too: `self-matching-grep`
+        # is `fail` and is caught by the commit gate (REQ-PC-MARKETPLACE-002).
+        self.sweep_comparand()
         if not self.fast:
             self.sweep_stale()
             self.sweep_trace_empty()
@@ -1387,7 +1719,9 @@ last_updated: 2026-01-03
         warn["traceability-aggregate"] += 1
     # -- skills: one skill, > 400 lines so the linter's size warning passes through
     padding = "\n".join(f"filler line {i}." for i in range(1, 405))
-    mutation = "" if clean else f"\nMutation: resolved per {qid(None, 999)} (undefined).\n"
+    # Workstream-prefixed so it is (i) referenced-but-undefined, never row 19's
+    # bare-malformed class (marker 4).
+    mutation = "" if clean else f"\nMutation: resolved per {qid('ALPHA', 999)} (undefined).\n"
     if not clean:
         fail["qimpl-undefined"] += 1
     _w(root, "skills/x/SKILL.md", f"""---
@@ -1536,7 +1870,7 @@ def self_test() -> int:
         plain.mkdir()
         D, B = exp["D"], exp["B"]
         efail, ewarn, einfo = exp["fail"], exp["warn"], exp["info"]  # type: ignore[assignment]
-        n_sweeps = 9            # lint, xlink, qimpl, stale, trace, aggregate, index, plan-history, kickoff
+        n_sweeps = 10           # lint, xlink, qimpl, comparand, stale, trace, aggregate, index, plan-history, kickoff
 
         # -- 1. dirty fixture: exit 1, every fail rule exactly once, symbolic counts
         code, out = _run(["--report", "--root", str(dirty)])
@@ -1633,6 +1967,12 @@ def self_test() -> int:
                        "delegated", "excluded", "counting rule", "review", *ALL_RULES, *FIXABLE):
             check(needle in out, f"--help lacks {needle!r}")
         check(len(FIXABLE) == 4, f"FIXABLE has {len(FIXABLE)} rules, want 4")
+        # Rows 16-19 at their severities in the gc class; none of the four fixable.
+        for rule, sev in (("literal-anchor", "warn"), ("dead-path-citation", "warn"),
+                          ("self-matching-grep", "fail"), ("qimpl-malformed", "fail")):
+            check(re.search(rf"\[{rule}\]\s+{sev}\b", out) is not None,
+                  f"--help does not list [{rule}] at {sev}")
+            check(rule not in FIXABLE, f"{rule} joined FIXABLE")
 
         # -- 7. flag() refuses an empty fix
         try:
@@ -1914,6 +2254,163 @@ def self_test() -> int:
                  "accepting the suite root and discarding it makes the two shim "
                  f"runs identical: {geo_given!r}")
 
+        # -- 14.-16. the snapshot-comparand rows 16-18 (drift-sweep.md §Sweep
+        #    Table, 2026-09-22) on one clean fixture plus three spec files, one
+        #    per rule.  Every expected count is the fixture's own construction.
+        cmp_root = tmp / "comparand"
+        build_fixture(cmp_root, clean=True)
+        fm_ok = "---\nstatus: Approved\nlast_updated: 2026-01-02\n---\n\n"
+        sha = "0123abc"                                   # 7 hex digits: sha-pinned
+        # literal-anchor (REQ-GC-PIPELINEOBSERVABILITY-001): three anchors, one
+        # finding — backticked on an unfenced line counts, fenced does not,
+        # sha-pinned does not.  The backticked one is the whole case: under the
+        # span-blanking half it would vanish and the count would read 0.
+        _w(cmp_root, "docs/spec/anchors.md", fm_ok + "# Anchors\n\n"
+           "Cited live at `docs/spec/a.md:12` in binding text.\n\n"
+           "```\nfenced docs/spec/a.md:13 never counts\n```\n\n"
+           f"Frozen at commit {sha}: docs/spec/a.md:14 is sha-pinned.\n")
+        # self-matching-grep (REQ-GC-PIPELINEOBSERVABILITY-002): one line per
+        # form of the command-line grammar; exactly the quoted self-hit and the
+        # `-e` form fail.
+        own = "docs/spec/greps.md"
+        _w(cmp_root, own, fm_ok + "# Greps\n\n"
+           f"- `grep -c 'pending-red' {own}` reads 1 (quoted self-hit: fail)\n"
+           f"```\n`grep -c 'pending-red' {own}` fenced: none\n```\n"
+           f"- `grep -c 'pending-red' docs/spec/a.md` reads 0 (target set excludes this file: none)\n"
+           f"- `grep -c -e 'pending-red' {own}` reads 1 (-e form: fail)\n"
+           f"- `grep -c pending-red {own}` reads 1 (unquoted: skipped)\n"
+           f"- `sed -n '1,9p' {own} | grep -c 'pending-red'` reads 1 (piped: T is empty)\n"
+           f"- `grep -rc 'pending-red' docs/spec --exclude=greps.md` reads 0 (recursive with --exclude: none)\n")
+        # dead-path-citation (REQ-GC-PIPELINEOBSERVABILITY-004): one span per
+        # form of the token grammar; two dead citations fold to one warn.
+        _w(cmp_root, "plugins/sdd/tools/present.py", "# present under plugins/sdd/\n")
+        _w(cmp_root, "docs/spec/paths.md", fm_ok + "# Paths\n\n"
+           "- `docs/gone/x.md` cited alone and absent (warn)\n"
+           "- `tools/present.py` present under plugins/sdd/ (none)\n"
+           "- `docs/ws/<id>/plan.md` placeholder (none — clause 3)\n"
+           f"- pinned at {sha} `docs/gone/y.md` (none — exemption)\n"
+           "- `grep -c foo docs/spec/a.md` live command (none — clause 1)\n"
+           "- `grep -c foo docs/gone/z.md` dead command (none — clause 1)\n"
+           "- `docs/gone/x.py:7` with a trailing anchor (warn — stripped first)\n"
+           "```\n`docs/gone/w.md` fenced (none)\n```\n")
+        code, cmp_out = _run(["--report", "--root", str(cmp_root)])
+        cf_, cw_, _, cprob = _parse(cmp_out)
+        check(not cprob, "comparand shape problems: " + "; ".join(cprob))
+        anchor_lines = [ln for ln in cmp_out.splitlines() if "[literal-anchor]" in ln]
+        check(len(anchor_lines) == 1 and "docs/spec/anchors.md" in anchor_lines[0]
+              and anchor_lines[0].startswith("WARN "),
+              f"literal-anchor: want one folded warn naming anchors.md, got {anchor_lines}")
+        m_cnt = re.search(r"\] (\d+) live line-number anchor", anchor_lines[0]) if anchor_lines else None
+        check(m_cnt is not None and m_cnt.group(1) == "1",
+              f"literal-anchor: folded count is not 1 — the span-blanking half must not apply: {anchor_lines}")
+        grep_lines = [ln for ln in cmp_out.splitlines() if "[self-matching-grep]" in ln]
+        check(cf_["self-matching-grep"] == 2 and len(grep_lines) == 2
+              and all(f"{own}:" in ln and not ln.startswith(("WARN ", "INFO ")) for ln in grep_lines),
+              f"self-matching-grep: want exactly the quoted self-hit and the -e form as fails, got {grep_lines}")
+        grep_nos = sorted(int(re.search(r":(\d+): ", ln).group(1)) for ln in grep_lines)  # type: ignore[union-attr]
+        greps_text = read_text(cmp_root / own) or ""
+        want_nos = sorted(no for no, ln in enumerate(greps_text.splitlines(), 1)
+                          if "(quoted self-hit: fail)" in ln or "(-e form: fail)" in ln)
+        check(grep_nos == want_nos, f"self-matching-grep fired on lines {grep_nos}, want {want_nos}")
+        dead_lines = [ln for ln in cmp_out.splitlines() if "[dead-path-citation]" in ln]
+        check(len(dead_lines) == 1 and "docs/spec/paths.md" in dead_lines[0] and dead_lines[0].startswith("WARN "),
+              f"dead-path-citation: want one folded warn naming paths.md, got {dead_lines}")
+        m_dead = re.search(r"\] (\d+) cited path", dead_lines[0]) if dead_lines else None
+        check(m_dead is not None and m_dead.group(1) == "2" and "docs/gone/x.py:7" in dead_lines[0]
+              and "present.py" not in dead_lines[0] and "y.md" not in dead_lines[0] and "z.md" not in dead_lines[0]
+              and "w.md" not in dead_lines[0] and "<id>" not in dead_lines[0],
+              f"dead-path-citation: folded count / forms wrong: {dead_lines}")
+        check(code == 1, f"comparand fixture exit {code}, want 1 (two self-matching-grep fails)")
+        # the anchor and the dead path never fail a run on their own
+        (cmp_root / own).unlink()
+        code, cmp_out = _run(["--report", "--root", str(cmp_root)])
+        cf_, cw_, _, _ = _parse(cmp_out)
+        check(code == 0 and cw_["literal-anchor"] == 1 and cw_["dead-path-citation"] == 1
+              and cf_["self-matching-grep"] == 0,
+              f"warn floors changed the exit status: {code} {dict(cf_)} {dict(cw_)}")
+        # the fast (pre-commit) profile carries rows 16-18
+        (cmp_root / own).write_text(greps_text, encoding="utf-8")
+        code, cmp_out = _run(["--fast", "--root", str(cmp_root)])
+        cf_, cw_, _, _ = _parse(cmp_out)
+        check(code == 1 and cf_["self-matching-grep"] == 2 and cw_["literal-anchor"] == 1,
+              f"--fast dropped the comparand rows: {code} {dict(cf_)} {dict(cw_)}")
+
+        # -- 17. qimpl-malformed (REQ-GC-PIPELINEOBSERVABILITY-003, marker 4):
+        #    a bare reference to a bare definition is clean; a bare reference
+        #    matching no bare definition is [qimpl-malformed] and never
+        #    [qimpl-undefined]; a prefixed undefined reference stays (i).
+        mal_root = tmp / "malformed"
+        build_fixture(mal_root, clean=True)
+        bare_ok, bare_bad, pref_bad = qid(None, 8), qid(None, 42), qid("ALPHA", 42)
+        mal_plan = "docs/ws/alpha/plan.md"
+        _w(mal_root, mal_plan, (read_text(mal_root / mal_plan) or "")
+           + f"\nResolved by {bare_ok} (bare, defined), {bare_bad} (bare, no bare definition) "
+           f"and {pref_bad} (prefixed, undefined).\n")
+        code, mal_out = _run(["--report", "--root", str(mal_root)])
+        mf, _, _, _ = _parse(mal_out)
+        mal_lines = [ln for ln in mal_out.splitlines() if "[qimpl-malformed]" in ln]
+        undef_lines = [ln for ln in mal_out.splitlines() if "[qimpl-undefined]" in ln]
+        check(code == 1 and mf["qimpl-malformed"] == 1 and len(mal_lines) == 1
+              and bare_bad in mal_lines[0] and f"{mal_plan}:" in mal_lines[0],
+              f"qimpl-malformed: want exactly one for {bare_bad}, got {mal_lines}")
+        check(mf["qimpl-undefined"] == 1 and len(undef_lines) == 1 and pref_bad in undef_lines[0]
+              and not any(bare_bad in ln for ln in undef_lines),
+              f"qimpl-undefined: want exactly one for {pref_bad} and none for {bare_bad}, got {undef_lines}")
+        check(bare_ok not in mal_out, f"a bare reference to a bare definition surfaced: {mal_out}")
+        gm = Gc(mal_root, lint_suite_rules=False)
+        gm.sweep_qimpl()
+        check(gm.qimpl_counts.get("malformed") == 1 and gm.qimpl_counts["referenced_only"] == 1,
+              f"counting-rule internals after the malformed reference: {gm.qimpl_counts}")
+
+        # -- 18. traced-stale-chain (REQ-GC-HARNESSP6-003 as amended): with
+        #    --workstream alpha, the folded pair on a.md (traced by alpha's plan)
+        #    is warn and the pair on b.md (traced only by beta) stays info;
+        #    unscoped, both are info.
+        tr_root = tmp / "traced"
+        build_fixture(tr_root, clean=True)
+        for cat in ("one", "two"):
+            cpath = tr_root / f"docs/requirements/functional/{cat}.md"
+            _w(tr_root, f"docs/requirements/functional/{cat}.md",
+               (read_text(cpath) or "").replace("last_updated: 2026-01-01", "last_updated: 2026-01-05"))
+        # plan-level findings would also fire on the open plans; close both so
+        # the shared-spec sub-kind is the only stale-chain line.
+        for ws in ("alpha", "beta"):
+            _w(tr_root, f"docs/ws/{ws}/verification.md",
+               "---\nlast_updated: 2026-01-03\nstatus: pass\n---\n# V\n\n## Next Steps\n")
+
+        def spec_stale_sev(argv: list[str]) -> dict[str, str]:
+            _, text = _run(["--report", "--root", str(tr_root), *argv])
+            sev: dict[str, str] = {}
+            for ln in text.splitlines():
+                m = re.match(r"^(WARN |INFO )?(docs/spec/\w+\.md): \[stale-chain\] ", ln)
+                if m:
+                    sev[m.group(2)] = (m.group(1) or "FAIL ").strip()
+            return sev
+
+        scoped_sev = spec_stale_sev(["--workstream", "alpha"])
+        check(scoped_sev.get("docs/spec/a.md") == "WARN" and scoped_sev.get("docs/spec/b.md") == "INFO",
+              f"traced-stale-chain under --workstream alpha: want a.md WARN, b.md INFO, got {scoped_sev}")
+        unscoped_sev = spec_stale_sev([])
+        check(unscoped_sev.get("docs/spec/a.md") == "INFO" and unscoped_sev.get("docs/spec/b.md") == "INFO",
+              f"traced-stale-chain unscoped: want both INFO, got {unscoped_sev}")
+
+        # -- 19. aggregate-last-updated (ws-traceability.md §Aggregation
+        #    Contract): the regenerated aggregate's frontmatter date is the
+        #    newest per-ws `last_updated`, and the rewrite stays idempotent.
+        ag_root = tmp / "aggdate"
+        build_fixture(ag_root, clean=True)
+        atr = ag_root / "docs/ws/alpha/traceability.md"
+        _w(ag_root, "docs/ws/alpha/traceability.md",
+           (read_text(atr) or "").replace("last_updated: 2026-01-03", "last_updated: 2026-01-09"))
+        agg_path = ag_root / "docs/requirements/traceability.md"
+        code, ag_out = _run(["--fix", "traceability-aggregate", "--root", str(ag_root)])
+        check(code == 0 and "docs/requirements/traceability.md" in ag_out,
+              f"--fix traceability-aggregate did not rewrite the dated aggregate: {code} {ag_out!r}")
+        check(artifact_date(read_text(agg_path) or "") == "2026-01-09",
+              f"aggregate last_updated is {artifact_date(read_text(agg_path) or '')}, want the newest per-ws 2026-01-09")
+        code, ag_out = _run(["--fix", "traceability-aggregate", "--root", str(ag_root)])
+        check(code == 0 and "no changes" in ag_out, f"dated regeneration not idempotent: {ag_out!r}")
+
     finally:
         _LINT_SUITE_RULES = True
         shutil.rmtree(tmp, ignore_errors=True)
@@ -1929,7 +2426,12 @@ def self_test() -> int:
           "round-trips through --fix traceability-aggregate, a five-cell row raises one "
           "[traceability-rowdrop] fail at <file>:<line>, --fix traceability-rowdrop exits 2; "
           "Q-IMPL definitions are fence-symmetric: a fenced heading defines nothing, an unfenced "
-          "one still does, an undefined unfenced reference still fails")
+          "one still does, an undefined unfenced reference still fails; snapshot comparands: "
+          "literal-anchor (fence filter only, spans read, sha-pinned exempt, folded count), "
+          "self-matching-grep (one fixture line per grammar form), dead-path-citation (one span "
+          "per token form), qimpl-malformed (bare reference with no bare definition), "
+          "traced-stale-chain (traced pair warn, untraced info under --workstream), "
+          "aggregate-last-updated (the newest per-ws date)")
     return 0
 
 
@@ -1958,6 +2460,8 @@ sweep classes and rule ids
              info finding per (spec, category file) pair naming every triggering id,
              and is not routed at DONE; a closed workstream's plan-level findings are
              skipped; pending-red reads as "verification exists, not passed";
+             with --workstream <id> a shared-spec pair traced by that plan is warn
+             (routed record | ignore at DONE), an untraced pair stays info;
              never fixable
       [qimpl-undefined] fail    Q-IMPL referenced but defined in no spec
       [qimpl-unreferenced] info Q-IMPL defined but never referenced (not a defect)
@@ -1971,6 +2475,21 @@ sweep classes and rule ids
       [index-requirements] fail requirements/index.md Files table <-> category files
       [spec-approval]           fail with --workstream (specs traced by that plan), warn unscoped
       [plan-history-name] fail  {YYYY-MM-DD}-{reason}.md; -replan- only from replan
+      [literal-anchor] warn     a live <file>.md:<line> citation on an unfenced line of
+             docs/spec/** or docs/requirements/** (snapshot comparand, anchor form);
+             folded per file with a count; sha-pinned anchors exempt; inline spans are
+             READ (the fence filter only); standing warn floor, never fixable
+      [self-matching-grep] fail a grep whose QUOTED pattern, as a regular expression,
+             matches its own line while the file is among grep's own operands
+             (snapshot comparand, self-inflating form); the unquoted form is skipped
+             and a piped form has no operands; caught by the pre-commit sweep —
+             fence the criterion or add --exclude=<own file>
+      [dead-path-citation] warn a whitespace-free backticked path (at least one /, a
+             listed extension, one trailing :line anchor stripped) that resolves
+             neither at the corpus root nor under plugins/sdd/; folded per file;
+             sha-pinned exempt; standing warn floor, never fixable
+      [qimpl-malformed] fail    marker 4: a bare Q-IMPL-NNN reference with no bare
+             `### Q-IMPL-NNN` definition (membership by the definition set, not shape)
   excluded (review / dogfooding territory, not mechanical):
       new drift of skill text from spec wording; semantic orphaning
 
@@ -1993,7 +2512,8 @@ Reference commands (raw counts, refined by the exclusions above):
     | grep -vE ':[0-9]+:### Q-IMPL-' | grep -oE 'Q-IMPL-[A-Z0-9]+(-[0-9]+)?' | sort -u
 
 --fix whitelist (exactly these; each prints changed paths, is a no-op when
-re-run, never touches last_updated, never writes under another workstream):
+re-run, never touches an owned artifact's last_updated — the derived aggregate's
+own date is the newest per-ws last_updated — never writes under another workstream):
   %s
 exit codes: 0 no fail finding; 1 fail finding(s); 2 usage / repository error
 """ % ", ".join(FIXABLE)
