@@ -157,3 +157,12 @@ sh plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/check3.sh \
 sh plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/check3.sh \
    plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/chunk-scope-check.md   # exit 2
 ```
+
+## telemetry-flat-2026-09-22.jsonl — frozen flat-record fixture (OP-1, pipeline-observability)
+
+Every `v`-less line of the live `.sdd/telemetry.jsonl` on 2026-09-22, cut once
+by the orchestrator before Chunk 2 of the `pipeline-observability` plan and never
+modified afterwards. Chunk 2's `flat-cg` migration self-test reads it. Counts are
+derived at run time by the case, never pinned here.
+
+sha256: `de57b9608ba3a78fbcdbc2525b8e91870481fe2bc3ecfbfa10eef4a4f7afd358`
