@@ -851,6 +851,7 @@ severity or counting rule changes" forbids.
 **Impact**: `pre-commit`'s fast sweep fails on the current tree by design of the rule; Chunk 3 tasks 2 and 8 stay open until the decision (checkpoint under the plan's Chunk 3 task 2).
 **Date**: 2026-09-22 (implement stage, Chunk 3 task 2)
 **Resolution (2026-09-22, implement stage, Chunk 3 redo 1)**: Routed as a requirements-stage repair, not a scope change — `sdd:requirements` amended clause (e) of the `Command:` sweep block to require `--exclude=<own basename>` and rewrote the 40 lines in the 14 `docs/requirements/**` files (Q-REQ-PO-AM, index 27.6). Row 17 keeps its scope ("same" as row 16) and its `fail` severity; `gc.py` is unchanged by the resolution. Witnessed: `--report` on the tree exits `OK` with 0 `[self-matching-grep]` findings, and a detached worktree of the parent commit `9a1235e` reports the 45 pre-repair instances (5 `docs/spec`, 40 `docs/requirements`) under the same rule. Chunk 3 tasks 2 and 8 are closed; the tier-3 escalation is discharged.
+**Superseded on the exclusion form (2026-09-22, Q-REQ-PO-AN, index 27.7)**: `--exclude=<own basename>` excluded same-named `docs/spec/` files too (grep matches basenames; seventeen requirement-file basenames also exist under `docs/spec/`); every sweep command now excludes its own file by path (`find … ! -path <own file> -exec grep …`), with the listings re-derived. The witnesses above are unchanged.
 
 ## Consumer-Geometry Amendment (2026-09-21, REQ-PKG-CONSUMERGEOMETRY-003, -004, -005)
 

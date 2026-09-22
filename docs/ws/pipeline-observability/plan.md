@@ -477,7 +477,10 @@ a fan-out leaf, whatever Chunk 2's state.
    >
    > **Resolved 2026-09-22 (implement, Chunk 3 redo 1 of 3).** The operator
    > routed the requirements-stage repair: clause (e) of the `Command:` sweep
-   > block now requires `--exclude=<own basename>` and the 40 lines in the 14
+   > block now requires the sweep command to exclude its own file — by
+   > basename at 27.6 (Q-REQ-PO-AM), superseded at 27.7 (Q-REQ-PO-AN) by
+   > exclusion by path, since seventeen basenames also exist under
+   > `docs/spec/` — and the 40 lines in the 14
    > `docs/requirements/**` files carry it (Q-REQ-PO-AM, index 27.6). Row 17's
    > scope is unchanged (`docs/spec/**` and `docs/requirements/**`). On this
    > tree `--report` exits `OK` with 0 `[self-matching-grep]` findings; a
@@ -591,7 +594,8 @@ the implement row unchanged (Q-PLAN-PO-E).
    frontmatter may declare hooks that run only while it is active; a positive
    answer, no contract changed this cycle, a next-cycle requirement candidate;
    the finding is carried into the verify dispatch for `verification.md`
-   §Next Steps. A live measurement stays the precondition before binding.
+   §Next Steps as an **unmeasured, documentation-derived** answer. A live
+   measurement stays the precondition before binding.
 2. [x] [implement] `plugins/sdd/tools/scope-check-selftest.py` — scenario A4 in
    the offline arbitration fixture: a round-N+1 finding under a heading
    absent at `sha_N` classifies as an ordinary finding in `W_N`; a control

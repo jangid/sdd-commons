@@ -466,7 +466,7 @@ accept prose manually │ stop` — no new token, no silent conversion:
 The four conflict conditions are mutually exclusive over `(blocking_items,
 material_items, token)`, so their order after the two missing-section pauses
 is immaterial. Case table — rows the count pairs, columns the token, each cell
-the pause's parenthesised text or `legal`; the three `legal` cells are exactly
+the pause's parenthesised text or `legal`; four `legal` cells realise the three verdict predicates (`REJECT` spans both `C ≥ 1` rows); they are exactly
 the three verdict predicates of `review.md` §Report Format, so the six
 conditions are exhaustive by inspection:
 
