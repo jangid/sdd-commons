@@ -194,10 +194,12 @@ VERDICT: APPROVE | APPROVE_WITH_FIXES | REJECT
 **Recommendation:** [specific next action with file/REQ references]
 ```
 
-**Verdict definitions:**
-- **Approve**: No blocking findings. Proceed to next phase.
-- **Approve with fixes**: Critical findings exist but are bounded. Fix them, then proceed without re-review.
-- **Reject**: Significant rework needed. Return to current or earlier phase. Consider replan.
+**Report grammar** (REQ-REV-PIPELINEOBSERVABILITY-001): the template above is the one grammar every consumer parses. Six bold label lines in the producer's order — `Verdict`, `Strengths`, `Critical findings`, `Material findings`, `Minor findings`, `Recommendation` — each at column 0, optionally followed on the same line by one bracketed gloss and by nothing else; a section's extent runs from its label line to the line before the next label line or the `VERDICT:` line. The three tier sections are mandatory even when empty, and **an empty tier section carries no list item** — its label line is followed directly by the next label line, never by a placeholder. Each finding is exactly one list item whose text begins with the tier prefix and a 1-based counter — `C<n>: ` under Critical, `M<n>: ` under Material, `m<n>: ` under Minor — with continuation lines (`Suggested fix:`, citations) indented. Critical / Material / Minor is the one tier vocabulary; "blocking" is a synonym for Critical used only in verdict prose, and no tier is ever a markdown heading.
+
+**Verdict definitions** — three disjoint predicates over the tier counts (`C` := Critical items, `M` := Material items), so every well-formed report has exactly one legal verdict:
+- **Approve** (`C = 0` and `M = 0`): No findings above minor; nothing to apply before the next stage.
+- **Approve with fixes** (`C = 0` and `M ≥ 1`): No blocking finding; at least one Material finding — fix them, then proceed without re-review.
+- **Reject** (`C ≥ 1`): Any blocking (Critical) finding. Significant rework needed. Return to current or earlier phase. Consider replan.
 
 **`VERDICT:` token** (REQ-HARN-013): emit the token line **on a line of its own**, exactly one of `VERDICT: APPROVE`, `VERDICT: APPROVE_WITH_FIXES`, `VERDICT: REJECT`. Conventionally it sits beside the `**Verdict:**` line, but its position is not part of the contract — a consumer (e.g. `orchestrate`) matches `^VERDICT:` at line start, so nothing else may precede it on that line. The prose verdict and the token map 1:1 and **must agree**: `Approve` ↔ `APPROVE`, `Approve with fixes` ↔ `APPROVE_WITH_FIXES`, `Reject` ↔ `REJECT`. A report whose token and prose disagree (or that omits the token) is treated as malformed by the consumer and re-dispatched rather than acted on. The rest of the report shape (Strengths / Critical–Material–minor / Recommendation) and §Scope Boundaries are unchanged; the token only encodes the verdict already stated.
 

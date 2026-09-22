@@ -27,12 +27,12 @@ Cell Values. Rows created by the requirements stage on 2026-09-22.
 
 | Requirement | Spec | Workstream | Test | Implementation | Verified |
 |-------------|------|------------|------|----------------|----------|
-| REQ-AGENT-MARKETPLACE-002 (amended) | harness-agents.md §The frontmatter contract | pipeline-observability | | | |
-| REQ-AGENT-PIPELINEOBSERVABILITY-001 | harness-agents.md §The frontmatter contract | pipeline-observability | | | |
-| REQ-ARB-HARNESSP2-002 (amended) | arbitrated-handoff.md §Contradiction Classes | pipeline-observability | | | |
-| REQ-ARB-HARNESSP3-001 (amended) | arbitrated-handoff.md §`W_N` Includes Regeneration Writes | pipeline-observability | | | |
-| REQ-ARB-PIPELINEOBSERVABILITY-001 | arbitrated-handoff.md §Contradiction Classes | pipeline-observability | | | |
-| REQ-CHKC-004 (amended) | chunk-close-review.md §Checklist | pipeline-observability | | | |
+| REQ-AGENT-MARKETPLACE-002 (amended) | harness-agents.md §The frontmatter contract | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (rows p1–p3 mutation loop); the ordered-alternation grep per body reads 3 | `plugins/sdd/agents/reviewer.md`, `chunk-verifier.md`, `red-team.md` — git-state sentence in each read-only paragraph | |
+| REQ-AGENT-PIPELINEOBSERVABILITY-001 | harness-agents.md §The frontmatter contract | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (rows p1–p3, p13 on `agents/reviewer.md`); `grep -lE 'git stash'` over `plugins/sdd/agents/*.md` reads 3 | `plugins/sdd/agents/reviewer.md` §The report you write, §What your token means; the three bodies' git-state sentence | |
+| REQ-ARB-HARNESSP2-002 (amended) | arbitrated-handoff.md §Contradiction Classes | pipeline-observability | `grep -c 'new\[N\]'` over `loop-control.md` ≥ 1 (Chunk 1 task 11); scenario A4 lands in Chunk 4 task 2 | `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a — `new[N]` third term of `W_N` | |
+| REQ-ARB-HARNESSP3-001 (amended) | arbitrated-handoff.md §`W_N` Includes Regeneration Writes | pipeline-observability | `grep -c 'new\[N\]'` over `loop-control.md` ≥ 1; scenario A4 in Chunk 4 task 2 | `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a — `W_N` union gains `new[N]` | |
+| REQ-ARB-PIPELINEOBSERVABILITY-001 | arbitrated-handoff.md §Contradiction Classes | pipeline-observability | `grep -c 'new\[N\]'` over `loop-control.md` ≥ 1; scenario A4 in Chunk 4 task 2 | `plugins/sdd/skills/orchestrate/references/loop-control.md` §2a — `new[N]` definition and decision procedure | |
+| REQ-CHKC-004 (amended) | chunk-close-review.md §Checklist | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (rows p11, p12); `plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/check3.sh` — `chunk-gc.md` exit 0, `chunk-scope-check.md` exit 2 | `plugins/sdd/skills/implement/SKILL.md` Check 3; `plugins/sdd/agents/chunk-verifier.md` Check 3 bullet; the two-sided fixture | |
 | REQ-DOCS-PIPELINEOBSERVABILITY-001 | project-docs.md §`CLAUDE.md` | pipeline-observability | | | |
 | REQ-GC-HARNESSP2-002 (amended) | drift-sweep.md §Sweep Table | pipeline-observability | | | |
 | REQ-GC-HARNESSP2-003 (amended) | drift-sweep.md §Q-IMPL Counting Rule | pipeline-observability | | | |
@@ -41,22 +41,22 @@ Cell Values. Rows created by the requirements stage on 2026-09-22.
 | REQ-GC-PIPELINEOBSERVABILITY-002 | drift-sweep.md §Sweep Table | pipeline-observability | | | |
 | REQ-GC-PIPELINEOBSERVABILITY-003 | drift-sweep.md §Q-IMPL Counting Rule | pipeline-observability | | | |
 | REQ-GC-PIPELINEOBSERVABILITY-004 | drift-sweep.md §Sweep Table | pipeline-observability | | | |
-| REQ-HARN-001 (amended) | harness-loop-control.md §Fix-Loop Cap | pipeline-observability | | | |
-| REQ-HARN-013 (amended) | harness-return-contract.md §VERDICT Token | pipeline-observability | | | |
-| REQ-HARN-HARNESSP6-001 (amended) | harness-write-scope.md §Git-State Observation | pipeline-observability | | | |
-| REQ-HARN-PIPELINEOBSERVABILITY-001 | harness-loop-control.md §Fix-Loop Cap | pipeline-observability | | | |
-| REQ-HARN-PIPELINEOBSERVABILITY-002 | harness-loop-control.md §Gate Signal Order | pipeline-observability | | | |
-| REQ-HARN-PIPELINEOBSERVABILITY-003 | harness-loop-control.md §Fix-Loop Cap | pipeline-observability | | | |
-| REQ-HARN-PIPELINEOBSERVABILITY-004 | harness-write-scope.md §Git-State Observation | pipeline-observability | | | |
-| REQ-HARN-PIPELINEOBSERVABILITY-005 | harness-return-contract.md §VERDICT Token | pipeline-observability | | | |
-| REQ-HARN-PIPELINEOBSERVABILITY-006 | harness-loop-control.md §Budget Slot | pipeline-observability | | | |
-| REQ-LINT-PACKAGING-007 (amended) | two-root-linter.md §6. Counts: asserted, or only printed | pipeline-observability | | | |
-| REQ-LINT-PIPELINEOBSERVABILITY-001 | skill-lint-v5.md §`FORBIDDEN` Row — `literal-anchor` | pipeline-observability | | | |
+| REQ-HARN-001 (amended) | harness-loop-control.md §Fix-Loop Cap | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (row p4) | `plugins/sdd/skills/orchestrate/references/loop-control.md` §2 — `reject_run`, consecutive consumed `REJECT`s | |
+| REQ-HARN-013 (amended) | harness-return-contract.md §VERDICT Token | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (rows p9, p14) | `plugins/sdd/skills/orchestrate/references/return-contract.md` §6b Tier-heading parsing | |
+| REQ-HARN-HARNESSP6-001 (amended) | harness-write-scope.md §Git-State Observation | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (rows p6, p7, p8) | `plugins/sdd/skills/orchestrate/references/loop-control.md` §1b; `write-scope.md` §8 voided-verdict row | |
+| REQ-HARN-PIPELINEOBSERVABILITY-001 | harness-loop-control.md §Fix-Loop Cap | pipeline-observability | `REQUIRED` row `proceeds **without re-review**` and `FORBIDDEN` `then re-run the review for this stage` — each red in a temp copy (Chunk 1 task 12) | `plugins/sdd/skills/orchestrate/SKILL.md` §The gate; `references/loop-control.md` §5a, §2 (landed at the research gate, confirmed) | |
+| REQ-HARN-PIPELINEOBSERVABILITY-002 | harness-loop-control.md §Gate Signal Order | pipeline-observability | `REQUIRED` row `GROWTH: ` — red in a temp copy with item 6d deleted (Chunk 1 task 12) | `plugins/sdd/skills/orchestrate/references/loop-control.md` §5 item 6d; `SKILL.md` §The gate (landed at the research gate, confirmed) | |
+| REQ-HARN-PIPELINEOBSERVABILITY-003 | harness-loop-control.md §Fix-Loop Cap | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (row p5) | `plugins/sdd/skills/orchestrate/references/loop-control.md` §2b — `post-manual` review | |
+| REQ-HARN-PIPELINEOBSERVABILITY-004 | harness-write-scope.md §Git-State Observation | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (rows p6, p7, p8); p6 red with the bound line kept | `plugins/sdd/skills/orchestrate/references/loop-control.md` §1b void sentence and bound; `write-scope.md` §8; `dispatch-templates.md` missing-token rule | |
+| REQ-HARN-PIPELINEOBSERVABILITY-005 | harness-return-contract.md §VERDICT Token | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (rows p9, p14) | `plugins/sdd/skills/orchestrate/references/return-contract.md` §6b — both counts, placeholder rule, six pauses, case table | |
+| REQ-HARN-PIPELINEOBSERVABILITY-006 | harness-loop-control.md §Budget Slot | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (row p10) | `plugins/sdd/skills/orchestrate/references/dispatch-templates.md` §Slot contract (pipeline) `{budget}`; `return-contract.md` §Budget grammar; `SKILL.md` §Per-chunk implement dispatch | |
+| REQ-LINT-PACKAGING-007 (amended) | two-root-linter.md §6. Counts: asserted, or only printed | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (`print_population_shape` — three-way equality read from §6; the three single-side mutations red in temp copies, Chunk 1 task 11) | `plugins/sdd/tools/skill-lint.py` `spec_population()`, `print_population_shape`; `docs/spec/two-root-linter.md` §6 (`56 / 9 / 7 / 15`) | |
+| REQ-LINT-PIPELINEOBSERVABILITY-001 | skill-lint-v5.md §`FORBIDDEN` Row — `literal-anchor` | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (`literal_anchor_visible_only` four cases; the p1–p14 mutation loop) | `plugins/sdd/tools/skill-lint.py` — `FORBIDDEN` row `literal-anchor` with `visible_only`; `REQUIRED` rows p1–p14; `required_targets()` | |
 | REQ-PC-PIPELINEOBSERVABILITY-001 | pre-commit.md §Design | pipeline-observability | | | |
 | REQ-PKG-PIPELINEOBSERVABILITY-001 | marketplace-packaging.md §The manifest pair | pipeline-observability | | | |
 | REQ-REQ-PIPELINEOBSERVABILITY-001 | requirements-artifacts.md §Amendment Landing | pipeline-observability | | | |
-| REQ-REV-002 (amended) | review.md §Report Format | pipeline-observability | | | |
-| REQ-REV-PIPELINEOBSERVABILITY-001 | review.md §Report Format | pipeline-observability | | | |
+| REQ-REV-002 (amended) | review.md §Report Format | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (row p13, both producers); the six-label, prefix, predicate and retired-wording greps of `review.md` §Report Format read 6 / 3 / 1 / 0 per producer | `plugins/sdd/skills/review/SKILL.md` §Step 5 (grammar, verdict predicates); `plugins/sdd/agents/reviewer.md` §The report you write | |
+| REQ-REV-PIPELINEOBSERVABILITY-001 | review.md §Report Format | pipeline-observability | `plugins/sdd/tools/skill-lint.py --self-test` (row p13, both producers); the same greps | `plugins/sdd/skills/review/SKILL.md` §Step 5; `plugins/sdd/agents/reviewer.md` §The report you write, §What your token means | |
 | REQ-TELEM-HARNESSP2-004 (amended) | telemetry.md §Writer | pipeline-observability | | | |
 | REQ-TELEM-HARNESSP3-001 (amended) | telemetry.md §Positive Gate Line `TELEMETRY: rec <n>` | pipeline-observability | | | |
 | REQ-TELEM-HARNESSP4-005 (amended) | telemetry-reader.md §In-Place Migration of the 8 p3 Records | pipeline-observability | | | |

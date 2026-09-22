@@ -194,7 +194,7 @@ fallback: [`references/write-scope.md`](references/write-scope.md) §3.
 ### Per-chunk implement dispatch and per-chunk gate
 
 In **sequential mode** the implement stage is dispatched **per chunk, in plan
-order** — one PIPELINE dispatch per `### Chunk N:` header — and every chunk
+order** — one PIPELINE dispatch per `### Chunk N:` header, its `Budget:` test-run term derived as `2 × mutations + gates` ([`references/dispatch-templates.md`](references/dispatch-templates.md) §Slot contract (pipeline)) — and every chunk
 closes at a lightweight **per-chunk gate** before the next is dispatched. After
 each return the read-only **chunk verifier**, a second independent executor of
 the chunk-close layer, returns `CHUNK_VERDICT: PASS | FAIL`; `implement`

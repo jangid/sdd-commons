@@ -127,3 +127,33 @@ here are never modified.
 python3 tools/sdd-scope-check-selftest.py --self-test -v
 shasum -a 256 tools/fixtures/arbitration-harness-p4-regen-2026-09-19/*
 ```
+
+---
+
+## `check3-declared-convention-2026-09-22/`
+
+**Provenance — authored, not captured.** The two-sided fixture
+`chunk-close-review.md` §Checklist's dated acceptance bullet requires
+(REQ-CHKC-004 as amended, workstream `pipeline-observability`, Chunk 1 task 7):
+two plan-chunk fragments of the same shape whose only difference is the
+module they name, and the derivation command's expected output beside them.
+
+| File | What |
+|---|---|
+| `chunk-gc.md` | a chunk whose module is `plugins/sdd/tools/gc.py` — **in** the derived set (a commit-gate `entry:`), with no test file importing from it → Check 3 reports **no** advisory |
+| `chunk-scope-check.md` | the same chunk with `plugins/sdd/tools/scope-check-selftest.py` — named by `CLAUDE.md` in prose only, **outside** the set → Check 3 still reports **one** advisory |
+| `derived-set.txt` | the derivation command's output on this tree on 2026-09-22: `gc.py`, `skill-lint.py`, `telemetry.py` — a reference value, never a pin |
+| `check3.sh` | runs the derivation, diffs it against `derived-set.txt`, and decides Check 3 for the chunk's `**Module**:` line (exit 0 pass, 2 advisory) |
+
+**Why it is here.** The identical coverage advisory fired on 9 of 9
+consumer-geometry chunks against modules whose self-tests `CLAUDE.md` names
+and whose commit gate runs; the clause that stops it must be shown to
+discriminate — a fixture on which the advisory is absent for the covered
+module and present for the uncovered one — rather than to silence Check 3.
+
+```bash
+sh plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/check3.sh \
+   plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/chunk-gc.md            # exit 0
+sh plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/check3.sh \
+   plugins/sdd/tools/fixtures/check3-declared-convention-2026-09-22/chunk-scope-check.md   # exit 2
+```

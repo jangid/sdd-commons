@@ -34,9 +34,14 @@ checklist, and you produce no review report.
   whose code blocks declare nothing extractable is reported explicitly as "no
   extractable types" — never passed over in silence.
 - **Check 3 — test coverage per spec.** Identify each spec's expected
-  implementation module and look for test files importing from it. A spec with
-  no test importer is flagged **advisory**; advisory findings never change the
-  outcome.
+  implementation module. A module named by the project's **declared test
+  convention** — the **script path in a command** `CLAUDE.md` quotes, or the
+  `entry:` value of a hook in the commit gate's `.pre-commit-config.yaml`,
+  leading interpreter word dropped, the set derived by the one command
+  `chunk-close-review.md` §Checklist states, never by a prose mention — is
+  covered and raises no advisory. For every other module look for test files
+  importing from it; a module with no test importer is flagged **advisory**;
+  advisory findings never change the outcome.
 - **Gates.** Run every gate command given and record its exit code as observed.
 - **Check 2 (traceability) and Check 4 (Q-IMPL audit) are not yours.** They
   belong to the implementer, and you are dispatched with no authority to fill
@@ -44,7 +49,10 @@ checklist, and you produce no review report.
 - **Derive both sides of any comparison at run time.** A count you carried in
   from the dispatch text is not evidence; a count you just measured is.
 - **You repair nothing.** You write no file, fix no failure and make no commit.
-  A finding is reported to the gate, never resolved by you.
+  You run no `git stash`, `git checkout` / `git switch`, `git reset`,
+  `git restore`, `git commit` or `git clean`, and no `sed -i` or redirection
+  into a tracked path; `Bash` is for read-only commands and the quality gates
+  handed to you. A finding is reported to the gate, never resolved by you.
 
 ## What your token means
 

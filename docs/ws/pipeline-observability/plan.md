@@ -165,7 +165,7 @@ rules.
 the split point).
 **Tasks**:
 
-1. [implement] `plugins/sdd/skills/orchestrate/references/return-contract.md`
+1. [x] [implement] `plugins/sdd/skills/orchestrate/references/return-contract.md`
    — add §Tier-heading parsing: the two counts `blocking_items` and
    `material_items` read from the `**Critical findings:**` /
    `**Material findings:**` label lines of the grammar (label form, gloss,
@@ -180,7 +180,7 @@ the split point).
    verdict the case-table row implies; §6's `APPROVE_WITH_FIXES` row stays
    fix-then-proceed. Reversion witnesses: rows p9 and p14 (task 9). — traces
    to `harness-return-contract.md` §VERDICT Token.
-2. [implement] `plugins/sdd/skills/orchestrate/references/loop-control.md` —
+2. [x] [implement] `plugins/sdd/skills/orchestrate/references/loop-control.md` —
    §2: `reject_run` counts **consecutive consumed** `REJECT` verdicts on one
    stage and `FIX_LOOP_MAX` compares against it; an `APPROVE_WITH_FIXES` at or
    after the cap is not an exhaustion (the §2a sentence already landed is
@@ -199,21 +199,21 @@ the split point).
    p4, p5, p6, p8 (task 9); the `new[N]` grep of Chunk 4 task 2. — traces to
    `harness-loop-control.md` §Fix-Loop Cap; `harness-write-scope.md`
    §Git-State Observation; `arbitrated-handoff.md` §Contradiction Classes.
-3. [implement] `plugins/sdd/skills/orchestrate/references/write-scope.md` §8
+3. [x] [implement] `plugins/sdd/skills/orchestrate/references/write-scope.md` §8
    — the consumer half of the void rule: a `GIT_STATE` or `OUT` finding on a
    read-only leaf's snapshot marks the leaf's verdict **voided**; the chunk
    gate renders `CHUNK_VERDICT: FAIL (voided: GIT_STATE)`, offers `redo`, and
    withholds `proceed` after both `restore` and `accept (note)`. Reversion
    witness: row p7. — traces to `harness-write-scope.md` §Git-State
    Observation.
-4. [implement] `plugins/sdd/skills/orchestrate/references/dispatch-templates.md`
+4. [x] [implement] `plugins/sdd/skills/orchestrate/references/dispatch-templates.md`
    and `plugins/sdd/skills/orchestrate/SKILL.md` — the implement template's
    budget line derives `test_runs = 2 × mutations + gates` in one sentence
    holding `mutations + gates`; the worked example dispatches a chunk naming
    2 mutations and 2 gates with `≤ 6 test runs`; the SKILL.md implement
    dispatch step cites the derivation. Reversion witness: row p10. — traces
    to `harness-loop-control.md` §Budget Slot.
-5. [implement] `plugins/sdd/skills/review/SKILL.md` and
+5. [x] [implement] `plugins/sdd/skills/review/SKILL.md` and
    `plugins/sdd/agents/reviewer.md` — the report grammar in both producers:
    the six bold label lines in the producer's order (`Verdict`, `Strengths`,
    `Critical findings`, `Material findings`, `Minor findings`,
@@ -231,14 +231,14 @@ the split point).
    Reversion witness: row p13 (both files) and the d1/d2 producer-consumer
    pair. — traces to `review.md` §Report Format; `harness-agents.md` §The
    frontmatter contract.
-6. [implement] `plugins/sdd/agents/reviewer.md`, `chunk-verifier.md`,
+6. [x] [implement] `plugins/sdd/agents/reviewer.md`, `chunk-verifier.md`,
    `red-team.md` — the git-state sentence in each body: the leaf runs no `git
    stash`, `checkout`, `switch`, `reset`, `restore`, `commit`, `clean` and no
    `sed -i` or other in-place edit; `Bash` is for read-only commands and the
    quality gates. `tools` frontmatter unchanged (declares `Bash`, excludes
    `Write`, `Edit`, `NotebookEdit`). Reversion witnesses: rows p1–p3. —
    traces to `harness-agents.md` §The frontmatter contract.
-7. [implement] `plugins/sdd/skills/implement/SKILL.md` (chunk-close Check 3)
+7. [x] [implement] `plugins/sdd/skills/implement/SKILL.md` (chunk-close Check 3)
    and `plugins/sdd/agents/chunk-verifier.md` — the declared test convention:
    Check 3's module set is derived from the `script path in a command`
    `CLAUDE.md` quotes or the commit gate's `entry:` values, by the one
@@ -253,7 +253,7 @@ the split point).
    reports one; task 11 runs both sides. Reversion
    witnesses: rows p11, p12; the fixture pair. — traces to
    `chunk-close-review.md` §Checklist.
-8. [implement] `plugins/sdd/tools/skill-lint.py` — the `FORBIDDEN` row
+8. [x] [implement] `plugins/sdd/tools/skill-lint.py` — the `FORBIDDEN` row
    `literal-anchor`: a `.md` path followed by a colon and digits on a
    **visible** line of the swept markdown set, with a per-row visible-lines
    flag that applies the fence filter only (spans inside backticks are read,
@@ -261,7 +261,7 @@ the split point).
    under `plugins/sdd/tools/` are outside the row. Reversion witness: the
    self-test mutation of task 10. — traces to `skill-lint-v5.md` §`FORBIDDEN`
    Row — `literal-anchor`.
-9. [implement] `plugins/sdd/tools/skill-lint.py` — the fourteen `REQUIRED`
+9. [x] [implement] `plugins/sdd/tools/skill-lint.py` — the fourteen `REQUIRED`
    rows p1–p14 exactly as `skill-lint-v5.md` §`REQUIRED` Rows —
    Pipeline-Observability tabulates them (file, pattern, min 1, `reason`,
    `fix`); p13 is one row with two `files:` entries; p8 pins the co-occurrence
@@ -269,7 +269,7 @@ the split point).
    disjoint from p8's line. — traces to `skill-lint-v5.md` §`FORBIDDEN` Row —
    `literal-anchor` (the fourteen rows: §`REQUIRED` Rows —
    Pipeline-Observability).
-10. [implement] `plugins/sdd/tools/skill-lint.py --self-test` and
+10. [x] [implement] `plugins/sdd/tools/skill-lint.py --self-test` and
     `docs/spec/two-root-linter.md` §6 — extend the mutation loop over the
     fifteen new rows (each marker removed from a temp copy → exit non-zero
     with that row's `fix`; p13 once per producer; the `literal-anchor` row's
@@ -283,7 +283,7 @@ the split point).
     equality. Further table lines (`TEMPLATE_PAIRS`) neither satisfy nor
     break it. — traces to `two-root-linter.md` §6. Counts: asserted, or only
     printed; `skill-lint-v5.md` §Self-Test Extension.
-11. [verify] Reversion witnesses run, not asserted: `python3
+11. [x] [verify] Reversion witnesses run, not asserted: `python3
     plugins/sdd/tools/skill-lint.py` and `--self-test` exit 0 on the tree;
     in temp copies — delete the §1b void sentence leaving the bound (p6's
     `fix` printed), delete the §8 sentence (p7), delete item 6d (`GROWTH:`
@@ -304,7 +304,7 @@ the split point).
     `skill-lint-v5.md` §`FORBIDDEN` Row — `literal-anchor`;
     `harness-agents.md` §The frontmatter contract; `review.md` §Report
     Format; `two-root-linter.md` §6. Counts: asserted, or only printed.
-12. [verify] The landed V3 routing is confirmed, not re-implemented: the
+12. [x] [verify] The landed V3 routing is confirmed, not re-implemented: the
     `REQUIRED` row on `proceeds **without re-review**` and the `GROWTH: ` row
     are present and each fails in a temp copy with its sentence deleted; the
     `FORBIDDEN` phrase `then re-run the review for this stage` fires when the

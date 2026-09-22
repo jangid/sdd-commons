@@ -89,15 +89,38 @@ after the last chunk: dispatch the implement-stage review ONCE on the merged sta
   auto-PASS.
 - A verifier that writes anyway gets every path tagged `OUT`, `SCOPE:
   VIOLATION`, and its writes reverted before any redo.
+- A `GIT_STATE` or `OUT` finding on a **read-only leaf** — verifier, reviewer,
+  red team — **voids its verdict**, whichever option resolves the finding
+  (`restore` or `accept (note)`: restoring the tree does not restore the
+  verdict). The token is consumed as `CHUNK_VERDICT: FAIL (voided: GIT_STATE)`
+  / `(voided: OUT)`, `VERDICT: REJECT (voided: …)` or `RED_VERDICT: BROKEN
+  (voided: …)` — the missing-token rule of `dispatch-templates.md` applied one
+  step further: unverified is not verified. Once the finding is resolved the
+  gate offers `redo │ stop`, `redo` being a fresh re-dispatch of the same leaf
+  (not a redo of the chunk — `chunk_redo_count` is untouched); `proceed` is
+  never offered on the voided verdict (`write-scope.md` §8;
+  `harness-write-scope.md` §Git-State Observation).
+- A voided verdict counts toward no fix or redo counter. The bound, one line:
+  each `voided re-dispatch` is counted per gate in `voided_redispatch_count[<gate>]` and capped at the `REDO_MAX` value — the per-chunk cap's integer reused, counted per gate and never shown in `Redo: N of REDO_MAX`.
+  At the cap the gate renders the existing exhausted form `stop │ manual
+  intervention` (§2a), after which a manual intervention is followed by the
+  `post-manual` review (§2b). Session-scoped, no artifact, no fourth cap name.
 
 ## 2. Fix-loop cap (REQ-HARN-001) — from §The gate
 
 `FIX_LOOP_MAX` is an orchestrator constant, default **3**, keyed by **stage**
 and **session-only** — a new session restarts it at 0 (the restart is itself a
-human intervention; nothing is persisted, REQ-ORCH-014). It increments once per
-fix re-dispatch of that stage's pipeline subagent — never on `proceed`, `stop`
-or a replan route. Every fix re-dispatch prompt carries the literal line
-`iteration N of 3` (`iteration N of MAX` in general) inside the repair packet
+human intervention; nothing is persisted, REQ-ORCH-014). The counted quantity
+is **`reject_run`** — the run of **consecutive consumed** `REJECT` verdicts on
+this stage; a consumed `APPROVE` or `APPROVE_WITH_FIXES` resets it to 0, and
+`FIX_LOOP_MAX` compares against `reject_run` alone. It never moves on
+`proceed`, `stop` or a replan route, and three re-dispatches count nothing: a
+verdict voided under §1b, the `post-manual` review of §2b and a third opinion
+(§2a). Exhaustion is a `REJECT` consumed with `reject_run = MAX`; an
+`APPROVE_WITH_FIXES` at or after the cap is not an exhaustion — its fix is
+applied and the stage proceeds (§2a, §5a). Every fix re-dispatch prompt carries
+the literal line `iteration N of 3` (`iteration N of MAX` in general; `N` is
+`reject_run`) inside the repair packet
 (`references/return-contract.md` §3); `N of N` is the last attempt before
 circuit-break. The operator may **raise the cap by one** for the current stage
 at the gate by an explicit decision (not itself a fix iteration); each
@@ -124,9 +147,23 @@ regen[N]      = { written: { (file, section) }, hunks: { (file, section): "L1-24
                 # (a pipeline re-dispatch of the same stage — Q-IMPL-HARNESSP3-010), PLUS derived artifacts the
                 # orchestrator itself regenerated in that window, e.g. docs/requirements/traceability.md
                 # (by: orchestrator — Q-IMPL-HARNESSP3-017)
-W_N           = sections(fix[N].written) UNION sections(regen[N].written)
+new[N]        = { (file, §heading) : no visible heading line naming §heading exists in `git show <sha_N>:<file>` }
+                # fence-aware scan; the leading-ordinal strip applied to both sides — ground the fix itself created
+W_N           = sections(fix[N].written) UNION sections(regen[N].written) UNION new[N]
                 # the set §Contradiction classes tests against; (file, *) only where section resolution is unavailable
 ```
+
+`new[N]` is the **third term** (REQ-ARB-PIPELINEOBSERVABILITY-001): a
+round-N+1 Critical/Material key `(file, §heading)` whose heading did not exist
+in `file` at round N's sha is ground the loop created — it belongs to `W_N`,
+so the finding is ordinary, never a `REVIEW: CONTRADICTION (class b)` pause;
+equivalently, both the old and the new name of a moved or renamed heading are
+in `W_N`, because a diff's hunks are keyed on the heading they sat under
+*before* the fix. Decision procedure: read `git show <sha_N>:<file>` through
+the fence filter section resolution uses, strip leading ordinals on both sides
+and compare the normalised `§Name`s; a heading present at `sha_N` with
+identical bytes is unchanged ground and stays out. Contract:
+`arbitrated-handoff.md` §Contradiction Classes.
 
 `regen[N]` is a **sibling** set beside `fix[N]`, not a rename of it
 (Q-IMPL-HARNESSP3-009): `fix[N]` keeps meaning the fix dispatch's writes, and
@@ -163,7 +200,7 @@ per-round write set is the **union** of the fix dispatch's written pairs and the
 regeneration writes since round N:
 
 ```
-W_N := sections(fix[N].written) UNION sections(regen[N].written)
+W_N := sections(fix[N].written) UNION sections(regen[N].written) UNION new[N]
        # falling back to (file, *) only where section resolution is unavailable,
        # which is the existing rule and already labels the pause "(file-level)"
 ```
@@ -289,9 +326,10 @@ At most **one** third opinion per contradiction; `iteration N of MAX` is
 unchanged throughout. The third round's record is a `review` telemetry record
 with `dispatch.reason: THIRD_OPINION`.
 
-When the stage's review returns `VERDICT: REJECT` after iteration `MAX`, do
-**not** dispatch another fix. Render the gate with the **compiled findings
-log** and offer only `stop | manual intervention | authorize extra iteration`.
+When the stage's review returns `VERDICT: REJECT` with `reject_run = MAX`
+(§2), do **not** dispatch another fix. Render the gate with the **compiled
+findings log** and offer only `stop | manual intervention | authorize extra
+iteration` (`manual intervention` → §2b: a `post-manual` review follows it).
 An `APPROVE_WITH_FIXES` after iteration `MAX` is not an exhaustion: it offers
 `proceed` (its Critical/Material lines carried verbatim into the next
 dispatch's `{deliverable_contract}`, `return-contract.md` §3) `| manual
@@ -415,6 +453,30 @@ reproduce: \`<cmd>\`` under `verification.md` §Issues Found → Minor (marker
 an existing artifact, outside the observed window; no review store is created.
 On `proceed` the orchestrator flips `status: pending-red → pass` immediately
 before its commit (`../SKILL.md` §The gate).
+
+### 2b. Manual intervention is followed by a `post-manual` review
+
+The `manual intervention` option of the exhausted gate (§2a) — or any operator
+edit of the stage deliverable at a gate — is not a route to the next stage.
+The orchestrator: (1) observes its own edits as it observes a leaf's writes —
+the `COMMIT:` comparand of `write-scope.md` §7a runs over the manual edit's
+commit range; (2) dispatches an **ordinary review** of this stage (the REVIEW
+template, unchanged inputs) labelled `post-manual` — `dispatch.reason =
+POST_MANUAL`, `dispatch.iteration` = the stage's current `reject_run`;
+(3) **withholds `proceed` until that review's record exists** and its verdict
+is consumed, routed as any consumed verdict (§2, §5a): a `REJECT` starts a new
+`reject_run` at 1, an `APPROVE_WITH_FIXES` fixes and proceeds. The review
+counts nothing — `reject_run` and the gate's `fix_iteration` are unchanged by
+it (the third-opinion precedent, §2a).
+
+**Per-chunk form** (implement stage): a manual intervention or an operator edit
+of the chunk's deliverable — including after the void bound (§1b) or the
+per-chunk redo cap (§1a) renders `stop │ manual intervention` — dispatches the
+`post-manual` review with that chunk's implement-stage inputs (its plan tasks
+and the specs they trace to, `dispatch.chunk = N`) and withholds that chunk's
+`proceed` until the verdict is consumed; `Redo: N of REDO_MAX` is unchanged and
+the chunk verifier is **not** re-dispatched — it is a review, not a verifier.
+Contract: `harness-loop-control.md` §Fix-Loop Cap.
 
 ## 3. Replan re-entry cap derivation (REQ-HARN-002, REQ-HARN-003) — from §The gate
 
@@ -655,7 +717,7 @@ that has already rendered the options as text.
 
 **Approve-with-fixes routing.** For `APPROVE_WITH_FIXES` (`review`: "fix
 the named findings, then proceed without re-review") `loop-back-to-fix` means
-re-dispatch **then proceed without re-review** — the default and the only
+re-dispatch **then proceed without re-review** — by default the gate proceeds, the only
 automatic path; a re-review after the fix is an explicit operator opt-in at
 this gate, never the default. A *Reject* always re-reviews. Rationale, recorded
 2026-09-22 from 21 rounds over two cycles: eight `APPROVE_WITH_FIXES` rounds with

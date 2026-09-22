@@ -423,7 +423,8 @@ and quoted spans are **not** blanked, so an anchor written as
 `` `<file>.md:<line>` `` on a visible line is a finding, while an anchor inside a
 fenced block is an illustration and raises nothing. The `FORBIDDEN` scan is
 raw-line and fence-inclusive by default, so this row carries a per-row flag —
-name chosen at implementation (Q-SPEC-PO-E) — that restricts its scan to
+name chosen at implementation (Q-SPEC-PO-E; `visible_only`,
+Q-IMPL-PIPELINEOBSERVABILITY-002) — that restricts its scan to
 unfenced lines through the linter's existing fence filter; rows without the
 flag behave exactly as before. The tree carried 0 such anchors on 2026-09-22
 (measured over the 28 swept files; the three markdown files outside the swept
@@ -884,3 +885,11 @@ re-run the review for this stage`); they are recorded here as in force and are
 **Where the contract lives** (REQ-REQ-PIPELINEOBSERVABILITY-001 (b), 2026-09-22): this section is the record of *why* and states no contract of its own; the contract is in the sections of record named here, each edited in place under a `[Updated: 2026-09-22]` marker, and its acceptance criteria sit in this spec's own Acceptance Criteria section under the same date. §`FORBIDDEN` Row — `literal-anchor` carries the drift phrase and its source-line discipline (REQ-LINT-PIPELINEOBSERVABILITY-001); §`REQUIRED` Rows — Pipeline-Observability carries the fourteen rows this cycle adds; §Self-Test Extension's exact totals move with them. Left consistent and not reopened: §Finding Shape, §Severity Tier, §Size Check and baseline, §`references/` Path Resolution, §`[template-drift]`, the `COMMIT:`, `PLAN:`/`GIT_STATE` and `CONVERGENCE:` rows (the `GIT_STATE` pair is unchanged — one row is added beside it), §Two-Root Amendment and §Consumer-Geometry Amendment.
 
 **Why the linter and not gc for the shipped tree**: the snapshot-comparand class REQ-GC-PIPELINEOBSERVABILITY-001 warns on in the binding corpus is kept out of the shipped skill, reference and agent text through the mechanism that already sweeps that tree, not by widening gc's docs scope (RS-PIPELINEOBSERVABILITY-001 §Q5). **Why spans are read, not blanked** (requirements review round 5 M3): the same discipline as gc's rule, so an anchor in backticks is a finding on both sides. **Why p13 names both producers** (REQ-REV-PIPELINEOBSERVABILITY-001 (vi)): the grammar is bound on the skill template and the agent body alike, and one row with two files fails naming whichever lost the line.
+
+## Pipeline-Observability Implementation Questions
+
+### Q-IMPL-PIPELINEOBSERVABILITY-002: the per-row visible-lines flag is named `visible_only`
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §`FORBIDDEN` Row — `literal-anchor` — "a per-row flag — name chosen at implementation (Q-SPEC-PO-E) — that restricts its scan to unfenced lines"
+**Decision**: the row carries `"visible_only": True`. `forbidden_findings()` honours it with the same ```` ``` ```` toggle the ordinal check uses (a line whose stripped text opens with a fence flips the state and is itself skipped); nothing else about the line is altered, so a backticked span on a visible line is still read and an inline-code anchor is a finding. Rows without the key scan raw lines, fence-inclusive, as before. The self-test case `literal_anchor_visible_only` reads the shipped row from the table (the one row carrying the key) and runs the four cases the section names — visible, backticked, fenced, `.py` under `tools/`.
+**Rationale**: the name says what the flag does and nothing about why (the "why" is the row's `reason`); a boolean rather than a mode string keeps the default — absent key, old behaviour — a one-line `dict.get`.

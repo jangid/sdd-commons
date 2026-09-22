@@ -219,7 +219,15 @@ Empty columns BLOCK chunk close. Fill them before proceeding.
 
 #### Check 3: Test Coverage Per Spec (ADVISORY)
 
-For each spec referenced by the chunk's tasks, identify the expected implementation module and search for test files that import from it. Specs with zero test imports are flagged.
+For each spec referenced by the chunk's tasks, identify the expected implementation module. A **test convention declared in `CLAUDE.md` satisfies this check for the modules it names**, and a module is named only when it is the **script path in a command** the convention quotes — the command word of a fenced or inline-code command in `CLAUDE.md` (a `--self-test` invocation, for instance) or the `entry:` value of a hook in the `.pre-commit-config.yaml` that `CLAUDE.md` names as the commit gate — with any leading interpreter word (`python3`) dropped; a module named only in prose is not named. The derived set is decided by one command over the two declaring files (`chunk-close-review.md` §Checklist):
+
+```
+{ grep -ohE '(^|`|python3 )plugins/sdd/tools/[a-z-]+\.py' CLAUDE.md;
+  grep -ohE '^\s*entry: (python3 )?[^ ]+\.py' .pre-commit-config.yaml; } \
+  | grep -oE '[^ `]+\.py' | sort -u
+```
+
+A module in the derived set is covered — no finding. For every other module search the test directory for test files that import from it; none → advisory finding.
 
 Advisory — the operator may override with rationale (e.g., "tested via integration test in `test_e2e.py`" or "verification task in next chunk").
 

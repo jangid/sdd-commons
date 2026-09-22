@@ -98,7 +98,7 @@ Budget grammar — a comma-separated list of `<count> <unit>` or `≤ <count>
 <unit>` terms in **observable units** the subagent can count about itself:
 
 ```
-Budget: 1 chunk, ≤ 25 tool calls, ≤ 3 test runs          # implement, per chunk
+Budget: 1 chunk, ≤ 25 tool calls, ≤ 6 test runs          # implement, per chunk — test runs derived (2 mutations, 2 gates)
 Budget: ≤ 15 tool calls, read-only                          # review
 Budget: 1 chunk, ≤ 15 tool calls, ≤ 2 test runs, read-only  # chunk verifier
 Budget: ~70 tool calls, no prototypes                       # pipeline (specs stage)
@@ -116,9 +116,9 @@ default from the kickoff's budget; it never leaves the slot empty):
 | Dispatch type | Template | Default `Budget:` |
 |---|---|---|
 | pipeline stage (non-implement) | `dispatch-templates.md` §PIPELINE | `~70 tool calls, no prototypes` |
-| implement, per chunk (sequential) | `dispatch-templates.md` §PIPELINE | `1 chunk, ≤ 25 tool calls, ≤ 3 test runs` |
+| implement, per chunk (sequential) | `dispatch-templates.md` §PIPELINE | `1 chunk, ≤ 25 tool calls, ≤ N test runs`, `N = 2 × mutations + gates` derived per chunk (`dispatch-templates.md` §Slot contract (pipeline)) |
 | fix re-dispatch (any stage) | §PIPELINE with `{on_fix_only}` | the remaining allowance or a fresh per-chunk allowance, sized from the previous `budget_consumed` |
-| fan-out leaf | `fan-out.md` §2 | `1 chunk, ≤ 25 tool calls, ≤ 3 test runs` |
+| fan-out leaf | `fan-out.md` §2 | `1 chunk, ≤ 25 tool calls, ≤ N test runs`, the same derived `N` |
 | review | `dispatch-templates.md` §REVIEW | `≤ 15 tool calls, read-only` |
 | chunk verifier | `dispatch-templates.md` §CHUNK VERIFIER | `1 chunk, ≤ 15 tool calls, ≤ 2 test runs, read-only` |
 | red team (verify stage, opt-in) | `dispatch-templates.md` §RED TEAM | `≤ 25 tool calls, ≤ 3 test runs, read-only` |
@@ -269,7 +269,7 @@ Repair packet (fixed shape — act on it; do not re-derive the history):
   stage: implement
   reason: REVIEW                                     # REVIEW | VERIFIER_FAIL | PARTIAL_CONTINUE | MERGE_CONFLICT | RED_BREAK
   iteration: 2 of 3                                  # harness-loop-control.md §Fix-Loop Cap (REVIEW, RED_BREAK) / per-chunk redo counter (others)
-  budget: "1 chunk, ≤ 25 tool calls, ≤ 3 test runs"
+  budget: "1 chunk, ≤ 25 tool calls, ≤ 6 test runs"      # 2 × 2 mutations + 2 gates
   write_scope: [src/recon/**, tests/test_recon.py, docs/spec/recon.md]   # harness-write-scope.md
   target: {artifact_paths: [docs/plan.md], chunk: "Chunk 2: Reconciliation"}   # chunk: all — whole-plan fix (§5)
   failures:                                          # verbatim RETURN.failures / verifier failures
@@ -430,6 +430,68 @@ the token is missing it surfaces the review as malformed rather than guessing.
 | `REJECT` with actionable findings | loop-back-to-fix (subject to the fix-loop cap) │ stop | findings carried into the packet |
 | `REJECT` with no actionable findings | pause: re-dispatch │ override │ stop (REQ-ORCH-018) | none |
 | missing / unrecognized / disagrees with prose | `REVIEW: MALFORMED` pause: re-dispatch review │ accept prose manually │ stop | none |
+
+### 6b. Tier-heading parsing — the `disagrees with prose` row, decided by a count
+
+The table's last row is executed by **one structural rule over the report
+grammar** of `review.md` §Report Format, and by nothing else: the label form,
+the bracketed gloss, a section's extent and the token line's free position are
+the grammar's and are not restated here. Two counts are read from the report:
+
+- `blocking_items` — the list items (a line beginning `- ` directly in the
+  section; indented continuation lines are not items) under the
+  `**Critical findings:**` label line;
+- `material_items` — the same under the `**Material findings:**` label line.
+
+**Placeholder normalisation.** An item whose visible text — after stripping
+the list marker, surrounding emphasis or backticks, trailing punctuation and
+whitespace, then case-folding — is `none`, `n/a` or `—` is a placeholder and
+**counts as zero**: a lone `- None` counts 0, and a `- None` beside real items
+adds nothing. The consumer tolerates the placeholder the producer grammar
+forbids and never over-reports by it.
+
+**The six pauses**, checked in this order; each renders the existing
+`REVIEW: MALFORMED` pause with the existing option set `re-dispatch review │
+accept prose manually │ stop` — no new token, no silent conversion:
+
+| Condition | Pause rendered |
+|---|---|
+| the `**Critical findings:**` label is absent | `REVIEW: MALFORMED (missing section: Critical findings)` — never a silent zero |
+| the `**Material findings:**` label is absent | `REVIEW: MALFORMED (missing section: Material findings)` |
+| `blocking_items > 0` and the token is not `REJECT` | `REVIEW: MALFORMED (tier/verdict conflict: N blocking under <token>)` |
+| `blocking_items = 0`, `material_items > 0` and the token is `APPROVE` | `REVIEW: MALFORMED (tier/verdict conflict: N material under APPROVE)` |
+| `blocking_items = 0`, `material_items = 0` and the token is `APPROVE_WITH_FIXES` | `REVIEW: MALFORMED (tier/verdict conflict: 0 material under APPROVE_WITH_FIXES)` — otherwise an empty report routed fix-then-proceed with an empty packet |
+| `blocking_items = 0` and the token is `REJECT` | `REVIEW: MALFORMED (tier/verdict conflict: 0 blocking under REJECT)` — a `REJECT` with no Critical item is the same "token disagrees with prose" shape |
+
+The four conflict conditions are mutually exclusive over `(blocking_items,
+material_items, token)`, so their order after the two missing-section pauses
+is immaterial. Case table — rows the count pairs, columns the token, each cell
+the pause's parenthesised text or `legal`; the three `legal` cells are exactly
+the three verdict predicates of `review.md` §Report Format, so the six
+conditions are exhaustive by inspection:
+
+| counts | `APPROVE` | `APPROVE_WITH_FIXES` | `REJECT` |
+|---|---|---|---|
+| C = 0, M = 0 | legal | `0 material under APPROVE_WITH_FIXES` | `0 blocking under REJECT` |
+| C = 0, M ≥ 1 | `N material under APPROVE` | legal | `0 blocking under REJECT` |
+| C ≥ 1, M = 0 | `N blocking under APPROVE` | `N blocking under APPROVE_WITH_FIXES` | legal |
+| C ≥ 1, M ≥ 1 | `N blocking under APPROVE` | `N blocking under APPROVE_WITH_FIXES` | legal |
+
+**`accept prose manually`** consumes the verdict the case-table row implies:
+`REJECT` for a blocking conflict (counting toward `reject_run`,
+`loop-control.md` §2); `APPROVE_WITH_FIXES` for a material conflict (routed
+fix-then-proceed per the table above, resetting `reject_run` as any consumed
+`APPROVE_WITH_FIXES` does); for the two zero-count conflicts, `APPROVE` when
+`material_items = 0` and `APPROVE_WITH_FIXES` when `material_items > 0`. On
+`re-dispatch review` the re-dispatched round is consumed instead and nothing
+counts. There is no out-of-order condition — section position is not parsed —
+and no prose is read: the rule reads label lines and list markers only, so the
+never-parse-prose rule of this section holds; because `agents/reviewer.md`
+carries the same label list, the check is live for the harness's own
+dispatched reviews and not only for the skill's template. The table's
+`APPROVE_WITH_FIXES` row stays fix-then-proceed. Contract:
+`harness-return-contract.md` §VERDICT Token; telemetry: `gate.decision =
+malformed`.
 
 ### 6a. `RED_VERDICT:` token (verify stage, red team only)
 

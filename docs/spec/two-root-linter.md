@@ -204,14 +204,17 @@ rule-table rows are static in-code data.
 `[Updated: 2026-09-22]` (workstream `pipeline-observability`,
 REQ-LINT-PACKAGING-007 as amended, Q-REQ-PO-AL; the record of why is
 §Pipeline-Observability Amendment): **the numbers are dated, and the comparand
-is derived.** Current at 2026-09-22: `REQUIRED=42 VERSION_GATED=9 V4_CONTRACT=7
-FORBIDDEN=14` (measured with `python3 plugins/sdd/tools/skill-lint.py
---print-population`); after this cycle's rows land — fourteen `REQUIRED` rows
-p1–p14 and one `FORBIDDEN` row (`skill-lint-v5.md` §`REQUIRED` Rows —
-Pipeline-Observability, §`FORBIDDEN` Row — `literal-anchor`,
-REQ-LINT-PIPELINEOBSERVABILITY-001): `REQUIRED=56 FORBIDDEN=15`, the other two
-unchanged. These numbers are **moved by any cycle that adds rows**, in the same
-change as the table row. The criterion itself is a **three-way equality**, not
+is derived.** Current at 2026-09-22: `REQUIRED=56 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=15`
+(measured with `python3 plugins/sdd/tools/skill-lint.py --print-population`
+after this cycle's rows landed — fourteen `REQUIRED` rows p1–p14 and one
+`FORBIDDEN` row (`skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability,
+§`FORBIDDEN` Row — `literal-anchor`, REQ-LINT-PIPELINEOBSERVABILITY-001);
+before them, on the same day, the tree measured 42 and 14). The `Current at
+<date>:` sentence is the one machine-read sentence of this section: the
+self-test parses its backticked span for `LABEL=<int>` pairs
+(Q-IMPL-PIPELINEOBSERVABILITY-001 records the absent-spec geometry). These
+numbers are **moved by any cycle that adds rows**, in the same change as the
+table row. The criterion itself is a **three-way equality**, not
 a frozen literal: `--print-population`'s printed counts == `len()` of the four
 code tables == the numbers this paragraph states under its dated marker. The
 self-test asserts that equality — it reads this section's numbers rather than
@@ -1848,3 +1851,11 @@ the derived comparand now catches. Naming the surfaces that must agree, and
 dating the numbers, keeps the population check — the one place a row count is
 compared against a number — without making it fail on the contribution it
 exists to police.
+
+## Pipeline-Observability Implementation Questions
+
+### Q-IMPL-PIPELINEOBSERVABILITY-001: the §6 read is skipped, not failed, when the spec is not on disk
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §6 Counts: asserted, or only printed — "the self-test asserts that equality — it reads this section's numbers"
+**Decision**: `spec_population()` in `plugins/sdd/tools/skill-lint.py` resolves `docs/spec/two-root-linter.md` relative to the script (three parents up from `tools/`). When the file is absent — a consumer install's plugin cache ships no `docs/spec/` — the two §6 comparisons print a one-line note and check nothing, exactly as the contract-row mutation loop already skips when the real `skills/` tree is absent. When the file is present but §6 has lost its `Current at <date>:` sentence, the read returns an empty mapping and both comparisons fail loudly. The four labels the sentence must state are exactly `REQUIRED`, `VERSION_GATED`, `V4_CONTRACT`, `FORBIDDEN`; a further printed table line (`TEMPLATE_PAIRS`) is neither read nor required.
+**Rationale**: the three-way equality is a repository gate — this repo's pre-commit runs the self-test — and the geometry cases already state that suite-bound checks skip where their subject is absent; failing a consumer's self-test on a spec it never receives would make the self-test un-runnable outside this repository, which is the opposite of what REQ-LINT-PACKAGING-007 polices.
