@@ -156,7 +156,7 @@ orch > [verify pipeline (Red team: enabled) → scope check → RED TEAM leaf �
 you  > proceed                       # orchestrator flips verification.md pending-red → pass, then commits
 orch > DONE — verify passed review. Recommend committing the cycle.
        GC: clean                                  # drift sweep at DONE — findings would be routed here
-       Post-cycle: python3 tools/telemetry.py summarize
+       Post-cycle: python3 plugins/sdd/tools/telemetry.py summarize
 ```
 
 ### Coming back later (resume)
@@ -436,7 +436,7 @@ and is reverted before the gate. Lines you may see, at most once each, after the
 | `TELEMETRY: OFF` | first gate of a cycle you opted out of |
 | `TELEMETRY: .gitignore updated` | the orchestrator added the `.sdd/` ignore line (gitignored, orchestrator-only, never read by phase detection; a bookkeeping commit outside any observed window) |
 
-**After the cycle** run `python3 tools/telemetry.py summarize [--workstream
+**After the cycle** run `python3 plugins/sdd/tools/telemetry.py summarize [--workstream
 <id>]` yourself — one table per workstream, one row per stage, then a per-chunk
 block (RS-008 probe 1 as a query). It is an out-of-loop reader: no skill runs
 it. Schema and writer rules: `references/telemetry.md`.
@@ -569,7 +569,7 @@ defined once in the reference named beside it.
 - **`TELEMETRY: rec <n>`.** The positive member of the `TELEMETRY:` family:
   `<n>` is the count of successful appends this session, so a gate that says
   telemetry is on now also shows that the append happened. After the cycle,
-  `python3 tools/telemetry.py summarize` reports any records-vs-expected
+  `python3 plugins/sdd/tools/telemetry.py summarize` reports any records-vs-expected
   gap — `references/telemetry.md` §3.
 - **A previous cycle's report no longer counts as this one's.** Before a
   `status: pass` verification or a fully-checked plan is read as "this stage is

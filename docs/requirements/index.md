@@ -1,5 +1,5 @@
 ---
-version: "22.0"
+version: "23.0"
 status: Approved
 last_updated: 2026-09-21
 traceability: traceability.md
@@ -10,7 +10,7 @@ traceability: traceability.md
 ## Summary
 
 Requirements for SDD (Spec-Driven Development) skill improvements in the
-tools-skills-agents repository. Covers thirteen scopes:
+tools-skills-agents repository. Covers fourteen scopes:
 
 1. **v2 artifact structure** (RS-001): Research structure, requirements
    splitting, plan management, staleness detection, migration, and per-skill
@@ -135,6 +135,26 @@ tools-skills-agents repository. Covers thirteen scopes:
    deliberately given up (LINT); three fixture geometries — nested, disjoint and
    equal roots, the last the only one that pins single-sweep (PKG); and the six
    repairs carried unchanged from the marketplace cycle (LINT, PC, DOCS, PKG).
+14. **Consumer geometry** (RS-CONSUMERGEOMETRY-001, workstream
+   `consumer-geometry`): the suite silently reduces its own checks when the
+   suite root is **disjoint** from the corpus root — the only geometry a
+   consumer of the installed plugin has. All eight of the linter's checks are
+   affected in three classes (one reduces loudly and returns, four pass
+   vacuously over an empty input set, three measure the installed plugin cache
+   instead of the working tree), and `gc.py` is the unconditional producer of
+   that geometry. The delta permits tool-source edits for consumer-geometry
+   correctness over an **enumerated** comparand set, each row's reversion
+   demonstrated red by a run mutation; adopts a **per-geometry split** — an
+   explicit suite root for the operator's own repository, today's union
+   unchanged for a foreign consumer, Option B rejected and C-1 withdrawn;
+   adopts the `--suite-root` surface RS-PACKAGING-003 D1 deferred, now
+   load-bearing; adds a `GEOMETRY:` own-line token and a `— NOTHING SWEPT`
+   suffix so a zero-sweep run announces itself; **binds a real invocation to
+   actually pass the suite root**, so a tool running from *outside* the corpus
+   — the installed cache, or any out-of-tree copy — reaches the working tree
+   instead of reporting `[structure] skills/ directory not found`; and removes
+   the unreachable bundled `skills/orchestrate/tools/` copy together with every
+   record its removal falsifies, each under a stated correction rule (PKG).
 
 ## Stakeholders
 
@@ -171,7 +191,7 @@ tools-skills-agents repository. Covers thirteen scopes:
 | integration | [skill-updates.md](integration/skill-updates.md) | SKILL | REQ-SKILL-001..024, REQ-SKILL-HARNESSP2-001..008, REQ-SKILL-HARNESSP3-001 | Approved | 2026-09-18 |
 | integration | [skill-lint.md](integration/skill-lint.md) | LINT | REQ-LINT-001..007, REQ-LINT-HARNESSP2-001..002, REQ-LINT-HARNESSP4-001..002, REQ-LINT-HARNESSP5-001..003, REQ-LINT-HARNESSP6-001..003, REQ-LINT-PACKAGING-001..008 | Approved | 2026-09-21 |
 | integration | [naming.md](integration/naming.md) | NAME | REQ-NAME-MARKETPLACE-001..010 | Approved | 2026-09-21 |
-| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..010 | Approved | 2026-09-21 |
+| integration | [packaging.md](integration/packaging.md) | PKG | REQ-PKG-MARKETPLACE-001..010, REQ-PKG-PACKAGING-001..010, REQ-PKG-CONSUMERGEOMETRY-001..006 | Approved | 2026-09-21 |
 | integration | [pre-commit.md](integration/pre-commit.md) | PC | REQ-PC-MARKETPLACE-001..006, REQ-PC-PACKAGING-001 | Approved | 2026-09-21 |
 | integration | [project-docs.md](integration/project-docs.md) | DOCS | REQ-DOCS-MARKETPLACE-001..005, REQ-DOCS-PACKAGING-001..003 | Approved | 2026-09-21 |
 | configuration | [version-marker.md](configuration/version-marker.md) | CFG | REQ-CFG-001 | Approved | 2026-05-25 |
@@ -603,6 +623,144 @@ The three **Q8-OUT** rows (one-shot upstream review, the four
 | Carried repair — `CLAUDE.md:251` vs `:215` marker reconciliation | REQ-DOCS-PACKAGING-002 |
 | Carried repair — **both** `.pre-commit-config.yaml` hook entries | REQ-PC-PACKAGING-001 |
 | Specs-stage review (not a findings item) — the drift sweep's sibling-first linter resolution | REQ-PKG-PACKAGING-010 |
+
+> **consumer-geometry delta note (marker 4, workstream `consumer-geometry`):**
+> REQ-PKG-CONSUMERGEOMETRY-001..006 are the RS-CONSUMERGEOMETRY-001 delta added
+> at the requirements phase on 2026-09-21, under the existing `PKG` domain — no
+> new domain prefix, no new category file, six requirements in one file.
+> **REQ-PKG-CONSUMERGEOMETRY-006 was added at requirements-review iteration 1**,
+> when the review found that nothing in -002/-003/-004 obliged any *real*
+> invocation to pass the suite root, so a conforming implementation could leave
+> the cycle's founding observation unrepaired. **It was rebuilt at iteration 2**
+> on a comparand that is disjoint *by construction* — the research's own
+> `cp -R plugins/sdd "$TMPDIR/cg/far"` recipe — after the review established
+> that its first comparand could not fail: the **in-repo** copy's
+> `default_suite_root()` is `<repo>/plugins/sdd`, so
+> `gc.py --report --root .` is already **nested**, and every committed
+> `.pre-commit-config.yaml` entry runs an in-repo copy. The disjoint geometry
+> belongs to a copy of the tool living outside the corpus. The rebuilt
+> criteria are red today, measured, and the requirement records the correction
+> in its own body rather than quietly restating it. Their
+> ids carry the `CONSUMERGEOMETRY` workstream token per `docs/spec/ws-ids.md`;
+> the `PKG` counter is per domain **and** workstream, so this delta starts at
+> `001` beside `MARKETPLACE`'s and `PACKAGING`'s own `001`. They are **not yet
+> specced or implemented**.
+> **The domain is deliberately `PKG` and not a new `CG`:** the delta amends
+> REQ-PKG-MARKETPLACE-006 and -007 in place and supersedes half of
+> REQ-PKG-PACKAGING-003, so it belongs with its siblings rather than beside
+> them (Q-REQ-CG-A).
+> **Two shared requirements are amended in place**, each by a dated `[Updated:]`
+> note naming its authorising requirement: REQ-PKG-MARKETPLACE-007's third
+> acceptance clause is **restated** (not recorded as violated) because its
+> comparand names paths the packaging move deleted, and REQ-PKG-MARKETPLACE-006's
+> **duplication clause** is superseded so the bundled copy can be removed.
+> **A third carries its own two-clause `[Updated:]` note**:
+> REQ-PKG-PACKAGING-003's `--suite-root` deferral is overturned by
+> REQ-PKG-CONSUMERGEOMETRY-003, while its rejection of `--no-suite-rules`
+> stands. The note names both clauses and the window in which the superseded
+> one held — added at requirements-review iteration 1, after the first pass left
+> the supersession stated only in the successor's body. Leaving it there would
+> have reproduced, one requirement away, the implicit-window defect the delta
+> corrects in REQ-PKG-MARKETPLACE-007; and RS-PACKAGING-003 **D3** is partially superseded by
+> REQ-PKG-CONSUMERGEOMETRY-004 on exactly one point — live zero-sweep detection
+> is available after all, by an enum and a presence-iff suffix rather than by a
+> count, so `FILES_SWEPT=<n>` stays informational and
+> REQ-LINT-PACKAGING-004 is unchanged. **REQ-PKG-PACKAGING-004 stands
+> unamended** — C-1 is withdrawn, the 56 suite-gated rows keep their binding,
+> and the C12.1 fixture that pins 16 of them is a tripwire this delta does not
+> trip.
+> **Not a regression against the `marketplace` cycle.** The un-re-runnable
+> REQ-PKG-MARKETPLACE-007 comparand is a criterion evaluated outside its own
+> window, which is not falsification. It is recorded as a restatement with both
+> endpoints pinned to shas, and its `Verified` cell stays `pass`.
+> **Evidence classes.** Q1's three failure classes, Q4's gap list and Q5's
+> reachability are **measured** (each with the observation that exposes it, at
+> `e95671f`, with no tool-source edit and no cache write). Q2's scoping rests on
+> three Approved texts and is **spec-read**. Q3's split is a **design choice
+> over measured mechanism** — the `walk()` per-root join is measured, the
+> preference between A, B, C-1 and C-2 is argued. C-2's two tokens are **pure
+> design, nothing yet built**; their value is that every one of them is
+> falsifiable by a stated mutation.
+> **Plan ordering constraints (two):** the Q4-gap fixtures of
+> REQ-PKG-CONSUMERGEOMETRY-001 land **before** the behaviour changes of
+> REQ-PKG-CONSUMERGEOMETRY-002..004, so each change's reversion is observable at
+> the moment it is made; and within REQ-PKG-CONSUMERGEOMETRY-005 the
+> REQ-PKG-MARKETPLACE-006 amendment lands **before** the directory removal,
+> never after. **A third, added at iteration 2:**
+> REQ-PKG-CONSUMERGEOMETRY-001 acceptance 3's desk-check half — comparing the
+> `cg-row-<n>:` tokens parsed from the requirement's table against the tokens
+> `--self-test` prints — is **verify-stage work and must carry a plan task of
+> its own**, so it is collectable. A criterion assigned to a stage with no task
+> behind it is the uncollectable-debt weakness the traceability note above was
+> written to avoid, and it is not reintroduced here. Row 1 of the -001 enumeration (`check_retired_prefix()` under a
+> disjoint suite root) is the highest-value single item: it is a live crash that
+> survives all four gates today.
+> **Falsified Approved spec clauses are named inside the requirements that
+> falsify them**, never left to a later reader: REQ-PKG-CONSUMERGEOMETRY-003
+> names `docs/spec/two-root-linter.md:516-517` (the "no `--suite-root`"
+> assertion) and carries its correction as a fourth acceptance assertion;
+> REQ-PKG-CONSUMERGEOMETRY-001 names `docs/spec/marketplace-packaging.md:366`,
+> whose REQ-PKG-MARKETPLACE-007 freeze criterion is asserted against the
+> **working tree** with an unpinned right endpoint, so the very tool edits that
+> requirement permits turn it red at the next gate — the same implicit-window
+> defect the delta corrects on the requirement side, one artifact away;
+> REQ-PKG-CONSUMERGEOMETRY-005 names every falsified record plus
+> `docs/spec/marketplace-packaging.md:364`, whose bundled-pair checklist derives
+> its population from a glob the removal empties and would otherwise pass
+> **vacuously** — Class B vacuity newly introduced into a gate by this cycle's
+> own removal, which is precisely the defect class the cycle exists to close.
+> **How the falsified records are corrected is decided, not left to the plan —
+> three disposition classes, one per kind of artifact.** (A) live, shipped and
+> regenerated artifacts are corrected **in place**; (B) closed-cycle **prose**
+> records under `docs/ws/` take an **appended dated note** and keep their
+> original sentences, because `.pre-commit-config.yaml` excludes them for the
+> stated reason that "a rewrite makes the record disagree with the commits it
+> describes"; (C) **traceability rows** — including the one under `docs/ws/` —
+> are corrected in place **as data**, because a row cannot carry an appended
+> prose note and survive regeneration, and the aggregate is regenerated *from*
+> the per-workstream file, so correcting the aggregate alone is undone at the
+> next regeneration. The class (B) and class (A)/(C) halves get **separately
+> shaped assertions**: an earlier draft used one whole-repository grep for both,
+> which the policy made unsatisfiable — the preserved originals hold 21
+> occurrences, none of them fenced.
+> **The falsified-record set is measured, not recalled.**
+> REQ-PKG-CONSUMERGEOMETRY-005's enumeration is a table built from
+> `grep -rn "skills/orchestrate/tools"` over the repository, after two earlier
+> drafts stated it as "six records / five surfaces / eight distinct files" — both
+> counts wrong, and `docs/ws/packaging/plan.md` named in neither, so the plan
+> stage would have sized no work for a file it must edit. The table is the
+> comparand and no count is written down. It also carries the three surviving
+> copies of the dead `git diff 3ddfdb3 HEAD` comparand, including the
+> per-workstream traceability row the aggregate is regenerated from.
+> **File size:** `integration/packaging.md` is now over 1,300 lines, well over the
+> 300-line split threshold. The split stays deferred, as it was for the
+> `packaging` delta, and for the same reason — ids are permanent across a split,
+> so waiting costs no renumbering (§Open Questions).
+
+### consumer-geometry item coverage (kickoff §Scope 1-5, §Out of scope and RS-CONSUMERGEOMETRY-001 Q1-Q5, none dropped)
+
+| Kickoff / findings item | Requirement(s) |
+|---|---|
+| Scope (1) / Q1 — the set of checks that reduce under a disjoint suite root (Classes A, B, C) | REQ-PKG-CONSUMERGEOMETRY-002 (the split that answers it), -004 (Class B's non-vacuity repair); Class C **not closed** for a foreign consumer, by decision |
+| Scope (2) / Q1 — deferred item 1, `check_retired_prefix()`'s `rel=Path(rel)` | REQ-PKG-CONSUMERGEOMETRY-001 row 6 |
+| Q1 — the other two `rel=` guard families (`check_required()`, `check_template_drift()`) | REQ-PKG-CONSUMERGEOMETRY-001 rows 7, 8 |
+| Q2 — does REQ-PKG-MARKETPLACE-007 bind this cycle | REQ-PKG-MARKETPLACE-007 `[Updated: 2026-09-21]` note (restated comparand, step scoping, linter never covered) |
+| Q2 — the successor requirement permitting tool-source edits | REQ-PKG-CONSUMERGEOMETRY-001 (enumerated set, eight rows) |
+| Q3 — where the fix belongs; Option A, Option B rejected, C-1 withdrawn, C-2 adopted | REQ-PKG-CONSUMERGEOMETRY-002 |
+| Q3 — the `--suite-root` surface Option A depends on (RS-PACKAGING-003 D1's deferred half) | REQ-PKG-CONSUMERGEOMETRY-003 (supersedes REQ-PKG-PACKAGING-003's deferral leg only) |
+| Q3 §C-2 / S4 — the `GEOMETRY:` token and the `— NOTHING SWEPT` suffix, verbatim | REQ-PKG-CONSUMERGEOMETRY-004 |
+| Q4 gaps (a)-(e) — the fixtures the gate does not yet have | REQ-PKG-CONSUMERGEOMETRY-001 rows 1-5 |
+| Scope (3) / Q5 — does `skills/orchestrate/tools/` still ship | REQ-PKG-CONSUMERGEOMETRY-005; REQ-PKG-MARKETPLACE-006 `[Updated: 2026-09-21b]` note |
+| Scope (3) / Q1 — `AGG_FIX` and the six bare `python3 tools/telemetry.py` sites | REQ-PKG-CONSUMERGEOMETRY-005, closing paragraph |
+| Scope (4) / Q1, Q4 (e) — the `print_population` wiring and the `seen` set | REQ-PKG-CONSUMERGEOMETRY-001 row 5 |
+| Scope (4) / Q1, Q4 (d) — `gc.py`'s `lint_command()` root and `lint_path()` candidate tuple | REQ-PKG-CONSUMERGEOMETRY-001 row 4, REQ-PKG-CONSUMERGEOMETRY-003 assertion 3 |
+| Scope (5) / Q5 — the downstream text and traceability corrections, including the falsified `marketplace` record | REQ-PKG-CONSUMERGEOMETRY-005 acceptance 2 |
+| Out of scope (kickoff deferred item 4) — the `warn` / exit-contract change | **no requirement, by decision** — the spine closes through `fail`-severity bindings alone; recorded in §Out of Scope |
+| Q3 Option A cost (ii) — "an operator who types the short form still gets the degraded run" | REQ-PKG-CONSUMERGEOMETRY-006 (added at requirements-review iteration 1; the cost reached the first pass's prose and none of its criteria) |
+| §The observation — the degraded out-of-corpus sweep is actually repaired | REQ-PKG-CONSUMERGEOMETRY-006 acceptances 1-2, whose comparand is the research's scratch-copy reproduction (red today: `[structure] skills/ directory not found`, `FAIL: 1 finding(s)`) |
+| Q1 — `sweep_lint()` discards every non-finding line, so a consumer never sees the token | REQ-PKG-CONSUMERGEOMETRY-004 forwarding clause (added at iteration 2) |
+| Q1 — `lint_command()`'s second (shim) return path | REQ-PKG-CONSUMERGEOMETRY-003 acceptance 3 (ii) (added at iteration 2) |
+| Constraint 2 — every binding's reversion fails a gate, demonstrated | REQ-PKG-CONSUMERGEOMETRY-001 acceptance 2, and a stated mutation on every other acceptance in the delta |
 
 ## Domain Prefixes
 
@@ -1149,6 +1307,54 @@ ran **non-interactively**. Reasoning lives in the requirement bodies named.
   REQ-PKG-MARKETPLACE-005 is touched by the
   `tools/**` rule without a formal supersession.
 
+Resolved during requirements gathering for RS-CONSUMERGEOMETRY-001 (the disjoint
+suite root, workstream `consumer-geometry`). That stage also ran
+**non-interactively**, so every ambiguity it met was resolved by choice rather
+than by asking; each choice is recorded here with its reason, per the convention
+the P4-P6 and `marketplace` cycles set.
+
+- **Q-REQ-CG-A** (domain for the delta — `PKG`, or a new `CG` prefix):
+  **`PKG`, no new prefix.** The delta amends REQ-PKG-MARKETPLACE-006 and -007
+  in place and supersedes one leg of REQ-PKG-PACKAGING-003; a new prefix would
+  separate a requirement from the two it directly modifies, and the `PKG`
+  counter is already per domain **and** workstream, so there is no collision to
+  avoid. The instruction from the research stage was explicit on continuity.
+- **Q-REQ-CG-B** (how "every edit permitted for consumer-geometry correctness"
+  is made decidable): **an enumeration of eight rows inside the requirement, with
+  count equality as an assertion.** "Every such edit" is undecidable as a
+  comparand, and an undecidable acceptance criterion is precisely the defect
+  this cycle exists to fix — it cannot fail, so it cannot hold. The table is the
+  comparand; a later cycle extends it by amending the table, never by argument.
+  The count-equality assertion (rows parsed from the table == cases counted from
+  the self-test banner) is what stops the table and the fixtures drifting apart,
+  which is the failure mode an enumeration otherwise invites.
+- **Q-REQ-CG-C** (what to do about the un-re-runnable REQ-PKG-MARKETPLACE-007
+  comparand): **restate it, and do not record a regression.** The research is
+  explicit that a criterion evaluated outside its own window is not falsified by
+  what it reports there; the packaging cycle's 3982 deletions are its own move.
+  The restatement replaces `HEAD` with the packaging cycle's end sha `0bdb076`
+  and compares **blob shas** rather than running `git diff` over paths, so the
+  rename is irrelevant and the verdict is fixed forever. Both equalities were
+  checked at this stage and hold.
+- **Q-REQ-CG-D** (amend REQ-PKG-MARKETPLACE-006, or supersede it): **amend in
+  place**, matching the form the `packaging` delta used on the same requirement.
+  Only the duplication clause dies; the no-tool-lost clause and the
+  duplicate-not-symlink rule survive as the rule governing any future bundling.
+  The amendment also records what the research found and the requirement never
+  said — that its acceptance asserted the bundled file's *existence* and never
+  that invoking it works, which it does not. Recording that in the requirement
+  rather than in a verification note is deliberate: it was the requirement text
+  that permitted the gap.
+- **Q-REQ-CG-E** (whether Class C is closed for a foreign consumer):
+  **left open, deliberately, and stated in §Out of Scope.** Option A re-roots
+  the operator's own geometry and discharges Class C there as a side effect;
+  nothing reaches a foreign consumer's working tree, and C-1 — the only
+  mechanism that would — reverses a gate-pinned invariant (C12.1) and is
+  withdrawn at the research stage. What the foreign consumer gets is
+  REQ-PKG-CONSUMERGEOMETRY-004's signalling. Closing the residue is specs-stage
+  work at the earliest, and the narrower 40-row proposal is handed forward
+  unadopted.
+
 ## Out of Scope
 
 - Code changes to skills (implementation phase)
@@ -1435,7 +1641,62 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003)_
   performs it.
 
 
+### consumer-geometry (2026-09-21)
+
+- **The `warn` severity class and the exit contract** (kickoff deferred item 4,
+  carried again as a stated boundary). RS-CONSUMERGEOMETRY-001 Q3 confirms the
+  spine closes without it: every binding the delta touches is `fail`-severity,
+  so no `--strict` flag and no warn-count comparand is needed. Recorded here
+  explicitly rather than left silent, per the kickoff's instruction not to
+  widen without saying so.
+- **Closing Class C for a foreign consumer.** Their 56 suite-gated rows will
+  always resolve against the installed plugin cache. Option A cannot reach them
+  and C-1 is withdrawn (Q-REQ-CG-E). They get signalling
+  (REQ-PKG-CONSUMERGEOMETRY-004), not coverage, and the requirement says so.
+- **Rebinding the 40 `REQUIRED` table rows alone to the swept-root union.**
+  Distinct from the withdrawn C-1, since C12.1 pins only the 16 gated rows.
+  Handed to the specs stage as a separate, argued proposal; it still owes an
+  argument against `docs/spec/two-root-linter.md` §4's binding table. **Not**
+  adopted here.
+- **Any new SDD phase, skill or agent**, and any change to the nine phase
+  skills' own workflow semantics (kickoff §Out of scope, unchanged).
+- **Re-deriving the disjoint-geometry observation.** It is carried as evidence
+  from the kickoff and measured again by the research; no later stage re-measures
+  it.
+
 ## Open Questions
+
+- **[consumer-geometry, OWED TO SPECS — recorded at the requirements cap gate,
+  2026-09-21]** Three items survived the requirements stage's third and final
+  fix iteration. They are recorded here, rather than repaired, because each is a
+  design decision the specs stage owns; the five mechanical items raised
+  alongside them were applied at the gate. **Each is owed work with a named
+  owner, not a note.**
+  1. **Where the suite-root derivation lives (REQ-PKG-CONSUMERGEOMETRY-006).**
+     The requirement's body scopes it to `gc.py` ("Where `gc.py` obtains a suite
+     root, given it has none today"), but acceptance 1 asserts on a **directly
+     invoked** `skill-lint.py` in the disjoint scratch construction, which never
+     passes through `gc.py`. A conforming `gc.py`-only implementation leaves
+     acceptance 1 permanently red. Specs must decide: the derivation lives in
+     `skill-lint.py` (and `gc.py` inherits it for free), or acceptance 1 is
+     restated against `gc.py`. Do not resolve it by weakening the criterion.
+  2. **The positive direction of the derivation is asserted nowhere (OWED
+     CRITERION).** REQ-PKG-CONSUMERGEOMETRY-002's consumer bullet cites -006
+     acceptances 3 and 5 as asserting "both directions" of the fork/look-alike
+     exception. They do not: 3 is "no `plugins/sdd/` → does not fire" and 5 is
+     "`plugins/sdd/` present but no `skills/` → does not fire" — **both
+     negative**. The positive case, a foreign tree that *does* hold
+     `plugins/sdd/skills/` being re-rooted onto it, has no fixture. That is the
+     one behaviour -002 admits departs from "today's union, unchanged", so it is
+     exactly the case needing one. Specs owes the criterion and the fixture
+     shape; -002's citation must be corrected at the same time.
+  3. **Landing order -004 before -006 (a fourth plan-ordering constraint).**
+     -006 acceptance 2 justifies asserting on the finding set rather than the
+     `GEOMETRY:` token because "the token's forwarding is a separate requirement
+     whose landing order is not fixed here" — while acceptance 1 asserts
+     `GEOMETRY: nested` directly, which is undecidable until -004 lands. Either
+     record the ordering constraint alongside the three already listed, or split
+     acceptance 1's two clauses the way acceptance 2 is split.
 
 - **Subagent nesting (fan-out):** RESOLVED by RS-006 Q1 — a dispatched subagent
   has no subagent-dispatch tool, so nesting is impossible. Fan-out is therefore
@@ -1685,6 +1946,67 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003 §Open Questions
   waiting. A split keeps the domain prefix and lists every carrying file in the
   Domain Prefixes table.
 
+### consumer-geometry (2026-09-21)
+
+- **The shape of the explicit suite-root surface** (REQ-PKG-CONSUMERGEOMETRY-003,
+  RS-CONSUMERGEOMETRY-001 Q3). Whether it arrives as a CLI flag on both tools, a
+  `gc.py` pass-through, or a documented second positional — and what an
+  invocation that **omits** it must print — is specs-stage work. The requirement
+  fixes that Option A must be *expressible*, not how.
+- **Where the delta's traceability rows are written.** Under marker 4 the
+  per-workstream file `docs/ws/consumer-geometry/traceability.md` owns them and
+  the shared `docs/requirements/traceability.md` is regenerated wholesale from
+  the per-workstream files, never hand-edited. The requirements stage that wrote
+  this delta had a write scope of `docs/requirements/**` only, so **neither file
+  was touched**: adding rows to the aggregate alone would have been wiped by the
+  next regeneration, which is worse than their absence. The six rows for
+  REQ-PKG-CONSUMERGEOMETRY-001..006 are therefore **owed**, and the owner is
+  named rather than left to whoever gets there first: **the specs stage** writes
+  `docs/ws/consumer-geometry/traceability.md` with one row per delta
+  requirement, and the aggregate is regenerated from it thereafter. Naming an
+  owner with a guaranteed occurrence is the point — "whichever stage writes
+  outside `docs/requirements/` first" is not a collectable debt.
+- **Two legibility debts, deferred deliberately at requirements-review
+  iteration 3 — recorded rather than left implicit.** Neither is fixed in this
+  cycle, because splitting a shared-corpus file mid-cycle would churn every ID
+  reference the plan stage is about to depend on.
+  1. **`integration/packaging.md` is now over 1,300 lines against the stated
+     300-line split threshold, deferred for the fourth consecutive cycle.** The
+     standing reasoning — "ids are permanent across a split, so waiting costs no
+     renumbering" — is true and **insufficient**: it prices the *renumbering*
+     cost at zero and says nothing about the *reading* cost, which is what a
+     300-line threshold exists to bound. That cost compounds every cycle, and
+     four consecutive deferrals on a reason that never applied to it is how a
+     threshold stops meaning anything. The next cycle to touch this domain
+     should split it rather than defer a fifth time.
+  2. **This index's `consumer-geometry` delta note is roughly 110 lines of
+     unbroken block quote covering seven topics** — it is doing the job of a
+     section while wearing the punctuation of an aside. The natural extractions
+     when it is next touched are the **plan-ordering constraints** and the
+     **correction-method paragraph**, each of which is self-contained and is
+     what a reader actually comes back for.
+- **Whether `AGG_FIX` and the six bare `tools/` strings land as one chunk or
+  several.** They are documentation-only edits to tool source and skill bodies,
+  in scope under REQ-PKG-CONSUMERGEOMETRY-001's permission and gathered into
+  REQ-PKG-CONSUMERGEOMETRY-005's closing paragraph; how the plan stage chunks
+  them against the directory removal is not fixed here.
+- _(RESOLVED at requirements-review iteration 1)_ **Whether
+  REQ-PKG-PACKAGING-003 needs its own amendment note.** It does, and it has one:
+  a two-clause `[Updated: 2026-09-21]` note naming the standing
+  `--no-suite-rules` leg and the superseded `--suite-root` leg, with the window
+  in which the latter held. The first pass declined it on the ground that a
+  partial note risks reading as a full one; that is answered by writing both
+  clauses out rather than by omitting the note.
+- **How `--self-test`'s per-case reporting surface is built.**
+  REQ-PKG-CONSUMERGEOMETRY-001 now states the surface it needs — a
+  `cg-row-<n>:` token at the head of each bound case's failure string, plus one
+  named constant in the tool reconciled against the registered cases — because
+  today's self-test has one process exit code and a prose `SELF-TEST OK:`
+  banner, so a per-case verdict is not observable. Whether the token convention
+  is retrofitted to the existing fixtures or applied only to the eight new ones
+  is a specs-stage decision; the requirement fixes only that the new ones carry
+  it.
+
 ## Research References
 
 - [RS-001: SDD Artifact Structure](../research/RS-001-sdd-artifact-structure/findings.md)
@@ -1704,6 +2026,7 @@ _(workstream `packaging`, added 2026-09-21 — RS-PACKAGING-003 §Open Questions
 - [RS-PACKAGING-001: Packaging follow-up (no exclusion filter; the `plugins/sdd/` move costed at 45/154/199; the two-root need)](../research/RS-PACKAGING-001-packaging-followup/findings.md) — **rejected at its stage gate 2026-09-21** and superseded by RS-PACKAGING-002; cited here because it is where the amended-F11 baseline of REQ-PKG-PACKAGING-005 sits, and its carried findings are inputs to 002
 - [RS-PACKAGING-002: The root-interface question (the `plugins/sdd/` move, option (B), the suite-gated population and its costing)](../research/RS-PACKAGING-002-root-interface/findings.md) — an **input** to RS-PACKAGING-003, cited rather than superseded
 - [RS-PACKAGING-003: The four open decisions, capped (suite-row retargeting, per-entry root bindings, the `FILES_SWEPT` replacement, the two-root fixture geometries)](../research/RS-PACKAGING-003-decisions/findings.md)
+- [RS-CONSUMERGEOMETRY-001: The disjoint suite root (the eight reducing checks in three classes, the REQ-PKG-MARKETPLACE-007 scoping, the per-geometry split, the gate that can observe it, and the unreachable bundled tools directory)](../research/RS-CONSUMERGEOMETRY-001-disjoint-suite-root/findings.md) — **supersedes RS-PACKAGING-003 D3 only**; D1, D2 and D4 are inputs
 
 ## See Also
 

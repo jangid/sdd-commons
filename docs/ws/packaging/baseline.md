@@ -85,6 +85,8 @@ tools/skill-lint.py
 tools/telemetry.py
 ```
 
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076] Lines 63–64 of the inventory above — the two bundled tool paths — no longer exist. The inventory is a fenced listing, so the note sits at the nearest position outside the fence.
+
 ## Pre-change single-root linter finding set
 
 Command, run from the repository root at `93b1133` with no argument (so the

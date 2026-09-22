@@ -259,10 +259,14 @@ sibling-first, so it fell through to `<root>/tools/skill-lint.py`, the path
 this cycle's move deleted. The command the skill documents therefore did not
 run anywhere. Reproduction:
 
+  [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076]
+
 ```
 $ python3 plugins/sdd/skills/orchestrate/tools/gc.py --report --root .
 error: linter missing — expected <repo>/tools/skill-lint.py      # exit 2
 ```
+
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076]
 
 A regression this cycle introduced: it worked at `merge-base(packaging, main)`
 = `0f5ec26`.
@@ -291,6 +295,8 @@ FAIL: 1 finding(s), 1 warning(s), 0 info                          # exit 1
 $ python3 <install>/skills/orchestrate/tools/gc.py --report --root .   # the OLD one
 error: linter missing — expected <consumer>/tools/skill-lint.py   # exit 2
 ```
+
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076]
 
 Every path in the new spelling's output is the consumer's; nothing under the
 install is swept.
@@ -392,6 +398,7 @@ bare `tools/gc.py` drift-sweep invocation over `plugins/sdd/skills/` is empty"
 is literally false: `orchestrate/SKILL.md:44`, `USAGE.md:513` and
 `references/drift-sweep.md:23` each contain `run tools/gc.py --report`, as does
 `skills/orchestrate/tools/gc.py:175`'s `AGG_FIX` string.
+[Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076]
 
 *Judgement: correct the criterion.* The first three are one thing — the `GC: F
 fail, W warn — run tools/gc.py --report` gate line, text the driver **prints**
@@ -409,6 +416,7 @@ and `plugins/sdd/skills/orchestrate/tools/*` are frozen to this cycle's write
 scope by REQ-PKG-MARKETPLACE-007. Recorded against REQ-PKG-PACKAGING-009 in
 `two-root-linter.md` §Verification, and in §Next Steps below, for a later
 cycle.
+  [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076]
 
 
 ## Recommendation
@@ -435,6 +443,7 @@ cycle.
   by no invocation (R2). Its fate — and the added REQ-PKG-MARKETPLACE-006
   criterion at `docs/ws/marketplace/verification.md:557` that R2 falsifies —
   is a later cycle's decision.
+  [Superseded 2026-09-21 — REQ-PKG-CONSUMERGEOMETRY-005: the bundled copy was removed; this observation was true at 0bdb076]
 
 - `docs/requirements/integration/project-docs.md:79` says "the three heavier
   checks" while `CONTRIBUTING.md:74`'s heading is now §The heavier checks, run
