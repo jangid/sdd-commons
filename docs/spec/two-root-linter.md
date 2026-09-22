@@ -685,7 +685,10 @@ recorded here as a known limitation, in scope for a later cycle, and it is a
 ### Q-IMPL-PACKAGING-001: `--print-population` prints a fifth table line
 **Tier**: 2 (spec ambiguity)
 **Spec reference**: §6 Counts: asserted, or only printed — "`REQUIRED=42
-VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14`"
+VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14`" (a historical value: §6's
+wording as it read on 2026-09-22 before this cycle's rows landed; the live
+numbers are the ones under §6's dated `Current at <date>:` marker, which is
+the comparand — dated here 2026-09-22, pipeline-observability Chunk 4)
 **Decision**: the flag prints **one line per rule table**, derived from the
 live tables at run time, which is **five** lines today — the four §6 names it
 enumerates plus `TEMPLATE_PAIRS=4`. §6's enumeration is read as the **required

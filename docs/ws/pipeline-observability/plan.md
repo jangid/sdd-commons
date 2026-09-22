@@ -584,7 +584,7 @@ the implement row unchanged (Q-PLAN-PO-E).
    git-state sentence and the void rule stay the contract; a positive answer
    is a next-cycle requirement, never a task added to this plan. — traces to
    `harness-agents.md` §The frontmatter contract.
-2. [implement] `plugins/sdd/tools/scope-check-selftest.py` — scenario A4 in
+2. [x] [implement] `plugins/sdd/tools/scope-check-selftest.py` — scenario A4 in
    the offline arbitration fixture: a round-N+1 finding under a heading
    absent at `sha_N` classifies as an ordinary finding in `W_N`; a control
    finding under a heading present at `sha_N` and unwritten by the loop
@@ -597,11 +597,11 @@ the implement row unchanged (Q-PLAN-PO-E).
    `loop-control.md` §2a carries it from Chunk 1 task 2. — traces to
    `arbitrated-handoff.md` §Contradiction Classes; `arbitrated-handoff.md`
    §`W_N` Includes Regeneration Writes.
-3. [implement] `.pre-commit-config.yaml` — add the `\.claude/` alternative
+3. [x] [implement] `.pre-commit-config.yaml` — add the `\.claude/` alternative
    to the top-level `exclude` with a `#` comment stating the reason (the
    hygiene hooks cannot open `.claude/settings.json`). — traces to
    `pre-commit.md` §Design.
-4. [implement] `CLAUDE.md` — §Driver (`sdd:orchestrate`) Gate vocabulary:
+4. [x] [implement] `CLAUDE.md` — §Driver (`sdd:orchestrate`) Gate vocabulary:
    the V3 routing (`APPROVE_WITH_FIXES` → fix, then proceed `without
    re-review`), the counted quantity (`FIX_LOOP_MAX` against `consecutive
    consumed` `REJECT`s; the phrase `iteration N of FIX_LOOP_MAX` retired),
@@ -610,14 +610,14 @@ the implement row unchanged (Q-PLAN-PO-E).
    `plugins/sdd/.claude-plugin/plugin.json` (no bare `.claude-plugin/plugin.json`
    reference). No other section changes. — traces to `project-docs.md`
    §`CLAUDE.md`.
-5. [implement] `plugins/sdd/.claude-plugin/plugin.json` — bump `version` by
+5. [x] [implement] `plugins/sdd/.claude-plugin/plugin.json` — bump `version` by
    semver against the branch point (`git show $(git merge-base HEAD main):…`
    reads the old value; the new value is strictly greater under integer
    `major.minor.patch` comparison — `0.2.0`, a minor bump for the added
    `append` subcommand and gc rules, Q-PLAN-PO-A); `.claude-plugin/marketplace.json`
    gains no `version` field. — traces to `marketplace-packaging.md` §The
    manifest pair.
-6. [implement] Carried notes from the closing reviews (each a one-line
+6. [x] [implement] Carried notes from the closing reviews (each a one-line
    spec correction, §Carried notes; the requirements-file note was landed by
    requirements 27.5 and is not plan work, Q-PLAN-PO-E): (i)
    `docs/spec/two-root-linter.md` Q-IMPL-PACKAGING-001's undated copy of the
@@ -635,7 +635,7 @@ the implement row unchanged (Q-PLAN-PO-E).
    bumped, no new dated marker). — traces to `two-root-linter.md` §6.
    Counts: asserted, or only printed; `drift-sweep.md` §Shared-Spec
    Staleness.
-7. [verify] Reversion witnesses run: `scope-check-selftest.py` exits 0 with
+7. [x] [verify] Reversion witnesses run: `scope-check-selftest.py` exits 0 with
    A4 and flips A4 to class (b), exiting non-zero, in a temp copy with the
    heading-existence clause removed; `grep -c 'new\[N\]'` over
    `loop-control.md` and the `sed`-range grep over

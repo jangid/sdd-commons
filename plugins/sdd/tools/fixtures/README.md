@@ -166,3 +166,32 @@ modified afterwards. Chunk 2's `flat-cg` migration self-test reads it. Counts ar
 derived at run time by the case, never pinned here.
 
 sha256: `de57b9608ba3a78fbcdbc2525b8e91870481fe2bc3ecfbfa10eef4a4f7afd358`
+
+## `arbitration-moved-heading-2026-09-22/`
+
+**Provenance — authored, not captured.** A four-file fixture for scenario `A4`
+of `plugins/sdd/tools/scope-check-selftest.py` — fix-induced ground,
+`docs/spec/arbitrated-handoff.md` §Contradiction Classes (workstream
+`pipeline-observability`, Chunk 4 task 2, REQ-ARB-PIPELINEOBSERVABILITY-001).
+It is authored because the live incidents (both class-(b) pauses of the
+consumer-geometry research stage fired on a heading the fix had just moved)
+left no captured before/after pair small enough to read; the shape is theirs.
+
+| File | What | sha256 |
+|---|---|---|
+| `before.md` | a kickoff at `sha_N`: `## Context`, `## Scope`, `## Open Questions`, `## Cross-References` | `026fb3cc2b5e4c5d4d99a7960802552693b5c9e0d1bc90f97e12754065b69594` |
+| `after.md` | the fix: `## Scope` **renamed** to `## Scope and Constraints` (a one-line hunk, so both sides resolve — old name from the before image, new name from the after image); `## Decisions` **created** inside a hunk that begins under `## Open Questions`, so the diff-resolved set never names it; `## Cross-References` byte-identical | `151fe1bf6c54cb5413a445c6de3a41576f444cf9ff4280edd9fdf25f7c876c3e` |
+| `round-1.txt` | `VERDICT: APPROVE_WITH_FIXES`; two Material lines keyed on `§Context` and `§Open Questions` — the sections the fix then changed | `39d5e5c5ab3dfa3c14c0bbba4afeac116ce8d6bf843e321a00d0a0d7518bb8fc` |
+| `round-2.txt` | three Material lines: `§Decisions` and `§Scope and Constraints` (headings absent at `sha_N` — `new[N]`, ordinary findings) and the control `§Cross-References` (present at `sha_N`, unwritten — still `class b`) | `8d0cfb5ad6c35894c9a7115176d17f9646d93de80c0fb471d6d89911113d0b4b` |
+
+**Why it is here.** `A4` must be discriminating: with the heading-existence
+clause of `new_ground()` deleted in a temp copy, `§Decisions` is annotated
+beside the control and the scenario fails (exit 1) — the reversion witness of
+the plan's Chunk 4 task 7. A fixture whose created heading sat at a hunk start
+would pass without the clause, because after-image resolution would already
+name it.
+
+```bash
+python3 plugins/sdd/tools/scope-check-selftest.py -v | grep ' A4 '
+shasum -a 256 plugins/sdd/tools/fixtures/arbitration-moved-heading-2026-09-22/*
+```

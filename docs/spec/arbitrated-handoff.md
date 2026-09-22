@@ -657,6 +657,13 @@ removes. An operator's manual edit of the aggregate remains outside `W_N`.
 **Date**: 2026-09-18 (implement stage, Chunk 3)
 
 
+### Q-IMPL-PIPELINEOBSERVABILITY-010: the self-test's `W_N` resolves a fix's hunks against both images
+**Tier**: 2 (spec ambiguity)
+**Spec reference**: §Contradiction Classes — "section resolution adds **both sides** of a moved or renamed heading to `W_N`"; §Retained Per-Round State's `W_N` line
+**Date**: 2026-09-22 (pipeline-observability, Chunk 4 task 2)
+**Decision**: scenario A4's `fix_ground()` builds `W_N` as `resolve_sections()`'s after-image pairs, **plus** the same hunks resolved against `git show <sha_N>:<file>` (`moved_sides()` — the old name of a renamed heading), **plus** `new_ground()` — the `new[N]` term as this section defines it (round-N+1 keys whose heading has no visible heading line at `sha_N`, fence-aware, ordinals stripped on both sides). `resolve_sections()` itself is unchanged, so self-test F8 and scenarios A1–A3 read exactly as before.
+**Rationale**: `new[N]` by its definition admits only headings *absent* at `sha_N`, so the old name of a renamed heading — present at `sha_N` — can enter `W_N` only through section resolution; "both sides" is therefore read as the before-image resolution of the fix's own hunks, not as a widening of `new[N]`. The acceptance bullet requiring both the old and the new `(file, §heading)` in `W_N` is met by the two resolutions together, and the reversion witness (the heading-existence clause deleted in a temp copy → A4 flips to `class b`, exit 1) shows the term is load-bearing for a heading created *inside* a hunk keyed under an older heading, which neither resolution names. The fixture is authored (`plugins/sdd/tools/fixtures/README.md`), not a git capture: no captured pair of the consumer-geometry incident is small enough to read as evidence.
+
 ## Pipeline-Observability Amendment (2026-09-22, REQ-ARB-PIPELINEOBSERVABILITY-001; REQ-ARB-HARNESSP2-002, REQ-ARB-HARNESSP3-001 amended)
 
 [Added 2026-09-22, workstream `pipeline-observability` —

@@ -1,0 +1,3 @@
+VERDICT: APPROVE_WITH_FIXES
+- M1: the second context line is stale — [docs/ws/fixture/kickoff.md:§Context] — affects —
+- M2: the open question is answerable now — [docs/ws/fixture/kickoff.md:§Open Questions] — affects —

@@ -15,6 +15,7 @@ exclude: |
     | docs/superpowers/    # vendored third-party corpus, not this repository's text to normalise
     | docs/ws/             # execution records of closed cycles — a rewrite makes the record disagree with the commits it describes; the active workstream is excluded with them so the gate does not rewrite a plan mid-cycle
     | docs/research/       # historical execution records of closed cycles — a rewrite makes the record disagree with the commits it describes
+    | \.claude/            # editor settings, sandbox-denied for writing: the hygiene hooks fail on opening .claude/settings.json for writing, not on its content (docs/spec/pre-commit.md §Design, REQ-PC-PIPELINEOBSERVABILITY-001)
   )
 
 repos:

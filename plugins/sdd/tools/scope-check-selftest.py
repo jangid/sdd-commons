@@ -1864,6 +1864,177 @@ def scenario_a1_mii(repo: str) -> tuple[bool, str, list[str]]:
     ]
 
 
+# ---------------------------------------------------------------------------
+# arbitrated-handoff.md §Contradiction Classes — fix-induced ground, scenario A4
+# ---------------------------------------------------------------------------
+
+#: An authored fixture (see ``fixtures/README.md``): a kickoff whose fix renames
+#: ``## Scope`` to ``## Scope and Constraints`` and creates ``## Decisions`` inside
+#: a hunk that begins under ``## Open Questions``; ``## Cross-References`` is
+#: byte-identical across the pair and is the class-(b) control.
+A4_FIXTURE_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "fixtures",
+    "arbitration-moved-heading-2026-09-22",
+)
+#: The path the fixture kickoff is replayed at in the throwaway repo.
+A4_PATH = "docs/ws/fixture/kickoff.md"
+
+
+def a4_fixture(name: str) -> str:
+    """Read one file of the A4 fixture (read-only; never written back)."""
+    with open(os.path.join(A4_FIXTURE_DIR, name), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def headings_at(repo: str, path: str, sha: str) -> set[str]:
+    """The normalised ``§Name`` of every visible heading of ``git show <sha>:<path>``.
+
+    Read through the same fence filter section resolution uses (``_headings``),
+    so a ``# comment`` inside a fenced block is not a heading; an unreadable
+    path (untracked at ``sha``) has no headings.
+    """
+    shown = git(repo, "show", f"{sha}:{path}", check=False)
+    if shown.returncode != 0:
+        return set()
+    return {sec for _, sec in _headings(shown.stdout.splitlines())}
+
+
+def _before_hunk_ranges(diff_text: str) -> list[tuple[int, int]]:
+    """Before-image ``(start, end)`` pairs for every ``@@ -a,b +c,d @@`` header.
+
+    The other side of :func:`_hunk_ranges`; a missing count means 1 and a pure
+    insertion (``b == 0``) keeps ``a`` as both ends.
+    """
+    ranges: list[tuple[int, int]] = []
+    for line in diff_text.splitlines():
+        m = HUNK_HEADER.match(line)
+        if not m:
+            continue
+        a = int(m.group(1))
+        b = int(m.group(2)) if m.group(2) is not None else 1
+        ranges.append((a, a + b - 1 if b > 0 else a))
+    return ranges
+
+
+def moved_sides(repo: str, path: str, sha_n: str) -> set[tuple[str, str]]:
+    """The *before*-image side of every uncommitted hunk of ``path`` since ``sha_n``.
+
+    ``resolve_sections`` keys a hunk on the after-image heading it sits under, so
+    a renamed heading contributes its **new** name only; resolving the same hunks
+    against ``git show <sha_n>:<path>`` contributes the **old** name — the other
+    side of a moved or renamed heading (arbitrated-handoff.md §Contradiction
+    Classes, "section resolution adds both sides").
+    """
+    diff = git(repo, "diff", "-U0", sha_n, "--", path).stdout
+    shown = git(repo, "show", f"{sha_n}:{path}", check=False)
+    if not diff or shown.returncode != 0:
+        return set()
+    heads = _headings(shown.stdout.splitlines())
+    sides: set[tuple[str, str]] = set()
+    for start, _end in _before_hunk_ranges(diff):
+        name = "§(preamble)"
+        for line_no, sec in heads:
+            if line_no <= start:
+                name = sec
+            else:
+                break
+        sides.add((path, name))
+    return sides
+
+
+def new_ground(
+    repo: str, path: str, sha_n: str, keys: Iterable[tuple[str, str]]
+) -> set[tuple[str, str]]:
+    """``new[N]`` — the round-N+1 keys on ``path`` whose heading did not exist at ``sha_n``.
+
+    arbitrated-handoff.md §Contradiction Classes: a heading absent from
+    ``git show <sha_N>:<file>`` is ground the loop created, so the key belongs to
+    ``W_N`` and the finding is ordinary. The leading-ordinal strip is applied to
+    both sides (``section_name`` normalises the fixture headings and the round
+    keys alike); ``*`` and ``?`` keys stay file-level and are never new ground.
+    """
+    present = headings_at(repo, path, sha_n)
+    ground: set[tuple[str, str]] = set()
+    # new[N] — the heading-existence clause (REQ-ARB-PIPELINEOBSERVABILITY-001): begin
+    for key in keys:
+        if key[0] == path and key[1] not in ("*", "?") and key[1] not in present:
+            ground.add(key)
+    # new[N] — the heading-existence clause: end
+    return ground
+
+
+def fix_ground(repo: str, path: str, sha_n: str, round_n1: Round) -> set[tuple[str, str]]:
+    """``W_N`` for a fix of ``path`` since ``sha_n`` — the union of §Retained Per-Round State.
+
+    ``sections(fix[N].written)`` from the after-image resolution, its before-image
+    side (both sides of a moved heading), and ``new[N]`` for the round-N+1 keys.
+    """
+    written, _ = resolve_sections(repo, path, sha_n, sha_n)
+    return written | moved_sides(repo, path, sha_n) | new_ground(repo, path, sha_n, round_n1.keys)
+
+
+def _replay_fix(repo: str) -> str:
+    """Commit ``before.md`` at the fixture path, write ``after.md``, return ``sha_N``."""
+    write(repo, A4_PATH, a4_fixture("before.md"))
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "kickoff before the fix")
+    sha_n = head_sha(repo)
+    write(repo, A4_PATH, a4_fixture("after.md"))
+    return sha_n
+
+
+def scenario_a4(repo: str) -> tuple[bool, str, list[str]]:
+    """A4 — fix-induced ground: a heading absent at ``sha_N`` is written ground, not class b.
+
+    Round 2 keys on ``§Decisions`` (created inside a hunk keyed under
+    ``§Open Questions``, so absent from the diff-resolved set), on the renamed
+    ``§Scope and Constraints`` and, as the control, on ``§Cross-References`` —
+    present at ``sha_N``, byte-identical, unwritten by the fix. The two new
+    headings are in ``W_N`` via ``new[N]``; both sides of the rename
+    (``§Scope`` and ``§Scope and Constraints``) are shown in ``W_N``; only the
+    control is annotated, so the round classifies ``class b`` on that one key
+    (REQ-ARB-PIPELINEOBSERVABILITY-001; REQ-ARB-HARNESSP2-002 as amended). With
+    the heading-existence clause of ``new_ground`` removed, ``§Decisions`` is
+    annotated too and this scenario fails — the reversion witness.
+    """
+    sha_n = _replay_fix(repo)
+    r1 = parse_round(a4_fixture("round-1.txt"))
+    r2 = parse_round(a4_fixture("round-2.txt"))
+    written, _ = resolve_sections(repo, A4_PATH, sha_n, sha_n)
+    w_n = fix_ground(repo, A4_PATH, sha_n, r2)
+    cls, annotated = arbitrate(r1, r2, w_n)
+    at_n = headings_at(repo, A4_PATH, sha_n)
+    created = (A4_PATH, "§Decisions")
+    new_name = (A4_PATH, "§Scope and Constraints")
+    old_name = (A4_PATH, "§Scope")
+    control = (A4_PATH, "§Cross-References")
+    # The fixture is discriminating: the created heading is outside the
+    # diff-resolved set, so only new[N] can admit it; the control existed at sha_N.
+    shape = (
+        "§Decisions" not in at_n
+        and "§Scope and Constraints" not in at_n
+        and "§Scope" in at_n
+        and "§Cross-References" in at_n
+        and created not in written
+    )
+    ok = (
+        shape
+        and created in w_n
+        and new_name in w_n
+        and old_name in w_n
+        and control not in w_n
+        and (cls, annotated) == ("b", [control])
+    )
+    token = f"class {cls} ({len(annotated)} key) — new ground ordinary, control still class b"
+    return ok, token, [
+        f"sha_N headings: {', '.join(sorted(at_n))}",
+        "W_N: " + ", ".join(sorted(s for _, s in w_n)),
+        "annotated: " + ", ".join(f"{p}:{s}" for p, s in annotated),
+        f"both sides of the rename in W_N: {old_name in w_n and new_name in w_n}",
+    ]
+
+
 def _dirty_two(repo: str) -> list[str]:
     """Two tracked paths made dirty *before* the dispatch — the harness-p5 shape."""
     write(repo, "docs/plan.md", "# Plan\nuncommitted work in the tree\n")
@@ -2463,6 +2634,7 @@ SCENARIOS = [
     ("A3", "ARB: one round-2 key on an untouched second file -> class b under both readings", scenario_a3),
     ("A1m-i", "ARB mutation: a deleted round-2 line makes A1 fail", scenario_a1_mi),
     ("A1m-ii", "ARB mutation: §Conventions flipped to a changed section makes A1 fail", scenario_a1_mii),
+    ("A4", "ARB: fix-induced ground — a heading absent at sha_N is W_N, not class b; the control key still is", scenario_a4),
     ("L1", "L2 key rule 1: different layers, same REQ-* id, different sections -> cluster", scenario_l1),
     ("L2", "L2 key rule 2: different layers, one sectionless (.jsonl) file -> cluster on the file", scenario_l2),
     ("L3", "L2 noise guard: sectioned file, different sections (and file-level only) -> nothing", scenario_l3),

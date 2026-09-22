@@ -552,7 +552,31 @@ section under the date 2026-09-22; this file adds none. The corpus-level checks 
   `[Updated: 2026-09-22]` in their sections of record holds a 7-to-40-hex-digit
   token matching `\b[0-9a-f]{7,40}\b`, except inside a `git show
   <sha_N>:<file>` / `<sha>` placeholder form — a per-section scan, so this
-  file's own criterion line is outside its scope.
+  file's own criterion line is outside its scope. The scan, written out
+  (Chunk 4 task 6 (ii); both loops read 0 on 2026-09-22, a measurement, not
+  a pin) — the amendment sections, heading to end of file:
+
+  ```bash
+  for f in $(grep -l '^## Pipeline-Observability Amendment' docs/spec/*.md); do
+    sed -n '/^## Pipeline-Observability Amendment/,$p' "$f" \
+      | awk '/^```/{f=!f;next} !f' \
+      | sed -E 's/git show <sha_N>:<file>//g; s/<sha>//g' \
+      | grep -nE '\b[0-9a-f]{7,40}\b' | sed "s|^|$f amendment line |"
+  done | wc -l    # reads 0
+  ```
+
+  and the marked text of the sections of record — every blank-line-delimited
+  paragraph carrying the marker, so the older prose of the same section stays
+  outside the scan:
+
+  ```bash
+  for f in $(grep -lF '[Updated: 2026-09-22]' docs/spec/*.md); do
+    awk 'BEGIN{RS=""; ORS="\n\n"} /^```/{next} index($0, "[Updated: 2026-09-22]")' "$f" \
+      | awk '/^```/{f=!f;next} !f' \
+      | sed -E 's/git show <sha_N>:<file>//g; s/<sha>//g' \
+      | grep -nE '\b[0-9a-f]{7,40}\b' | sed "s|^|$f marked paragraph line |"
+  done | wc -l    # reads 0
+  ```
 
 ## Open Questions
 
