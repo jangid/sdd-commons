@@ -309,7 +309,7 @@ with the reason) or retired (covered by a zero-count witness).
 - **Rule-table population** (re-run with the population terms, specs closing
   review C2, Q-REQ-PO-AL, 2026-09-22) —
   `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py -type f ! -path docs/requirements/functional/review.md -exec grep -nHE 'REQUIRED=|FORBIDDEN=|print-population|population' {} +`:
-  the `REQUIRED` rows this requirement binds on the linter (rows p1–p14 of
+  the `REQUIRED` rows this requirement binds on the linter (rows p1–p15 of
   `docs/spec/skill-lint-v5.md` §`REQUIRED` Rows — Pipeline-Observability)
   move the population REQ-LINT-PACKAGING-007 compares — `REQUIRED` 42 today
   (measured with `python3 plugins/sdd/tools/skill-lint.py
@@ -320,9 +320,9 @@ with the reason) or retired (covered by a zero-count witness).
   `docs/spec/two-root-linter.md` §6's dated numbers, no longer a literal).
   `docs/spec/two-root-linter.md` §6 and its §Acceptance Criteria bullet
   (`42 / 9 / 7 / 14`) — reconciled, the second live surface, moved to
-  `56 / 15` under a dated marker by the specs stage;
+  `57 / 15` under a dated marker by the specs stage;
   `plugins/sdd/tools/skill-lint.py` self-test `pinned` dict (`42 / 14`) —
-  reconciled, post-delta `56 / 15` under -007's equality;
+  reconciled, post-delta `57 / 15` under -007's equality;
   `docs/requirements/integration/skill-lint.md` REQ-LINT-PACKAGING-007 — the
   mover, amended; `docs/spec/skill-lint-v5.md` §Self-Test Extension ("grows by
   exactly six") — reconciled, the harness-p5 delta's history, the new total is

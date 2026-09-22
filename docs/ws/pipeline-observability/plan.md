@@ -162,7 +162,8 @@ references, the review producers and the agent bodies, and each is pinned by a
 skill-lint row that turns red when the sentence is deleted — the linter and its
 self-test exit 0 on the tree, and the population moves to `REQUIRED=56
 FORBIDDEN=15` with `two-root-linter.md` §6 stating the same numbers under its
-dated marker. From this chunk's commit every later gate renders under these
+dated marker (`REQUIRED=57` once the implement-stage fix `e891ea2` added row p15;
+verify-stage red R1). From this chunk's commit every later gate renders under these
 rules.
 **Depends on**: none.
 **Estimated**: ~14 hours (upper bound of the range; see Replan Triggers for
@@ -927,7 +928,7 @@ Chunk 4 gate without a replan.
 ### 3. Chunk 1 as one unit (Q-PLAN-PO-B)
 The fifteen skill-lint rows land in the same chunk as the sentences they pin
 so that reversion of every binding fails a gate from its first commit
-(kickoff constraint 2) and §6's numbers move once, to `56 / 15`, never through
+(kickoff constraint 2) and §6's numbers move with the rows — to `56 / 15` at Chunk 1, `57 / 15` at the implement-stage fix — never through
 an intermediate value. The cost is a ~14-hour chunk at the top of the range;
 the split trigger names the fallback.
 

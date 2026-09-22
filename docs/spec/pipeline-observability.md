@@ -108,8 +108,8 @@ so the unanchored form reads 1).
 | REQ-GC-PIPELINEOBSERVABILITY-001, -002, -004; REQ-GC-HARNESSP2-002 (amended) | `drift-sweep.md` §Sweep Table | §Pipeline-Observability Amendment — rows 16–18, source-line discipline, command-line and token grammars (Q-REQ-PO-AB, -W) |
 | REQ-GC-PIPELINEOBSERVABILITY-003; REQ-GC-HARNESSP2-003 (amended) | `drift-sweep.md` §Q-IMPL Counting Rule | same — `qimpl-malformed` |
 | REQ-GC-HARNESSP6-003 (amended) | `drift-sweep.md` §Shared-Spec Staleness | same — traced stale-chain `warn` |
-| REQ-LINT-PIPELINEOBSERVABILITY-001 | `skill-lint-v5.md` §`FORBIDDEN` Row — `literal-anchor` (the fourteen rows: §`REQUIRED` Rows — Pipeline-Observability; the totals they land: §Self-Test Extension) | §Pipeline-Observability Amendment |
-| REQ-LINT-PACKAGING-007 (amended) | `two-root-linter.md` §6. Counts: asserted, or only printed | §Pipeline-Observability Amendment — the dated numbers (`42 / 9 / 7 / 14` current, `56` / `15` after the rows) and the three-way equality that replaces the frozen pin (Q-REQ-PO-AL, Q-SPEC-PO-U) |
+| REQ-LINT-PIPELINEOBSERVABILITY-001 | `skill-lint-v5.md` §`FORBIDDEN` Row — `literal-anchor` (the fifteen rows: §`REQUIRED` Rows — Pipeline-Observability; the totals they land: §Self-Test Extension) | §Pipeline-Observability Amendment |
+| REQ-LINT-PACKAGING-007 (amended) | `two-root-linter.md` §6. Counts: asserted, or only printed | §Pipeline-Observability Amendment — the dated numbers (`42 / 9 / 7 / 14` current, `57` / `15` after the rows) and the three-way equality that replaces the frozen pin (Q-REQ-PO-AL, Q-SPEC-PO-U) |
 | REQ-CHKC-004 (amended) | `chunk-close-review.md` §Checklist (Check 3) | §Pipeline-Observability Amendment — the derived module set |
 | REQ-PC-PIPELINEOBSERVABILITY-001 | `pre-commit.md` §Design (the excluded-paths table of record) | §Pipeline-Observability Amendment — `.claude/` excluded |
 | REQ-PKG-PIPELINEOBSERVABILITY-001 | `marketplace-packaging.md` §The manifest pair | §Pipeline-Observability Amendment — the version bump (minimal; the split is out of scope) |
@@ -357,14 +357,15 @@ in for it and found no field-name mismatch.
   review's C2 found §6's frozen pin (`42 / 9 / 7 / 14`) failing on the very
   rows this delta lands; its origin was fixed at requirements 27.4
   (Q-REQ-PO-AL) and the spec mirrors it — §6 states its numbers under a dated
-  marker as current-at-date (`56` / `15` after the rows), moved by any
+  marker as current-at-date (`57` / `15` after the rows), moved by any
   row-adding cycle, and the acceptance is the three-way equality
   (`--print-population` == code tables == §6), failing in a temp copy when any
   one side moves alone. `skill-lint-v5.md` §Self-Test Extension states the
   delta's totals as arithmetic and defers to §6 for the comparand, so the
   harness-p6 "six" stays as history and every hit of `grep -n 'grows by
-  exactly' docs/spec/skill-lint-v5.md` reads fourteen (2 hit(s) on
-  2026-09-22, every one `fourteen`) — one consistent statement. The default taken
+  exactly' docs/spec/skill-lint-v5.md` reads fifteen (2 hit(s) on
+  2026-09-22, every one `fifteen`; one read `fourteen` until the verify-stage
+  red round R1 traced the p15 drift to its origin) — one consistent statement. The default taken
   without an operator: the self-test's `pinned = {…}` dict becomes a read of
   §6's numbers rather than a second literal — the alternative, keeping the
   dict and adding §6 as a fourth surface, is exactly the chase the amendment

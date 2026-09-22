@@ -1,5 +1,5 @@
 ---
-version: "27.7"
+version: "27.8"
 status: Approved
 last_updated: 2026-09-22
 traceability: traceability.md
@@ -1281,7 +1281,7 @@ was created (Q-REQ-PO-N).
   `FORBIDDEN` row) moved §6 and the dict to `42 / 14` but not the requirement,
   which read `40 / 13` against `python3 plugins/sdd/tools/skill-lint.py
   --print-population` printing `REQUIRED=42 … FORBIDDEN=14` on 2026-09-22; and
-  this cycle's fourteen `REQUIRED` rows (p1–p14) plus one `FORBIDDEN` row
+  this cycle's fifteen `REQUIRED` rows (p1–p15) plus one `FORBIDDEN` row
   (`literal-anchor`) would have failed the pin the moment they landed. The
   requirement now names two live surfaces that must agree — the code tables
   (read by the flag) and §6's numbers, stated under a dated marker as "current
@@ -1289,13 +1289,13 @@ was created (Q-REQ-PO-N).
   three-way equality; the acceptance is that the equality holds today
   (`42 / 9 / 7 / 14`, measured with the exact command) and that a temp copy
   changing any one of the three fails. The post-delta populations this cycle
-  lands (`56 / 15`) are stated in REQ-LINT-PIPELINEOBSERVABILITY-001's and
+  lands (`57 / 15`) are stated in REQ-LINT-PIPELINEOBSERVABILITY-001's and
   REQ-REV-PIPELINEOBSERVABILITY-001's sweep blocks, re-run with the pattern
   widened to `REQUIRED=|FORBIDDEN=|print-population|population`; the hits in
   REQ-PKG-PACKAGING-004 and the packaging ledger (`40 / 13`) are reconciled by
   naming the mover and left as the packaging cycle's numbers as of its date
   (another workstream's shared body; rewriting it stays a human PR change).
-  Alternatives rejected: (a) bump the literal to `56 / 15` in all three places
+  Alternatives rejected: (a) bump the literal to `57 / 15` in all three places
   — the same chase next cycle, which is the finding; (b) drop the pin and make
   `--print-population` informational only — loses the regression check on a
   row dropped or duplicated that REQ-PKG-PACKAGING-004 reserves for this one
@@ -1384,6 +1384,18 @@ was created (Q-REQ-PO-N).
   equality still holds (37 = 37 on 2026-09-22), the gc `[self-matching-grep]`
   count under `docs/requirements/**` reads 0, and the collision witness reads
   26 of 26 matching same-named specs listed.
+  27.7 → 27.8 (verify-stage red round R1/R2 and review M1, origin fix): the
+  post-delta populations REQ-LINT-PACKAGING-007 (amended) states moved from
+  `56 / 15` to `57 / 15` and the delta from fourteen `REQUIRED` rows to
+  fifteen — row p15 (`skills/orchestrate/USAGE.md`) landed at the
+  implement-stage fix (Q-IMPL-PIPELINEOBSERVABILITY-011) and the requirement,
+  its two sibling requirements, `skill-lint-v5.md` §Self-Test Extension and
+  the delta map still stated the Chunk 1 arithmetic; the live three-way
+  equality held at 57 throughout, so no gate failed — the red round found it
+  by re-running the requirement's own `grep -c 'grows by exactly …'` command.
+  Twelve statements in this file's siblings rewritten, no id added or removed;
+  REQ-LINT-PACKAGING-007's body gains the `**Amended 2026-09-22**` marker
+  (clause (a), verify Minor 1).
 
 Resolved during requirements gathering for RS-MARKETPLACE-001 (marketplace
 release, workstream `marketplace`). That stage also ran **non-interactively**, so

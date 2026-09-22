@@ -440,7 +440,7 @@ before the specs stage with the V3 routing (`proceeds **without re-review**`
 on `skills/orchestrate/SKILL.md`, `GROWTH: ` on
 `skills/orchestrate/references/loop-control.md`) and one `FORBIDDEN` phrase
 (`then re-run the review for this stage`); they are in force and are **not**
-counted among the fourteen below.
+counted among the fifteen below.
 
 | # | File | Pattern | min | Contract |
 |---|---|---|---|---|
@@ -494,11 +494,12 @@ loop's shape, and the total it asserted is superseded below.
 
 `[Updated: 2026-09-22]` (workstream `pipeline-observability`,
 REQ-LINT-PACKAGING-007 as amended, Q-REQ-PO-AL; REQ-LINT-PIPELINEOBSERVABILITY-001):
-**this cycle's totals.** The mutation loop extends over the fourteen
-`REQUIRED` rows p1–p14 of §`REQUIRED` Rows — Pipeline-Observability and the one
+**this cycle's totals.** The mutation loop extends over the fifteen
+`REQUIRED` rows p1–p15 of §`REQUIRED` Rows — Pipeline-Observability and the one
 `FORBIDDEN` row of §`FORBIDDEN` Row — `literal-anchor`:
-`len(REQUIRED)` grows by exactly fourteen and `len(FORBIDDEN)` by exactly one,
-so the populations land at `REQUIRED=56 FORBIDDEN=15` (`VERSION_GATED=9
+`len(REQUIRED)` grows by exactly fifteen (fourteen at Chunk 1, one at the
+implement-stage fix, Q-IMPL-PIPELINEOBSERVABILITY-011) and `len(FORBIDDEN)` by exactly one,
+so the populations land at `REQUIRED=57 FORBIDDEN=15` (`VERSION_GATED=9
 V4_CONTRACT=7` untouched). The
 suite asserts those **exact** totals — never a `>=` bound — but not as a
 literal frozen in the test: the assertion is the three-way equality
@@ -567,8 +568,8 @@ the delta's arithmetic, not a fourth surface: the contract lives in
   from this row (REQ-LINT-PIPELINEOBSERVABILITY-001).
 - [ ] `python3 plugins/sdd/tools/skill-lint.py --self-test` exits 0; its
   pinned `FORBIDDEN` count equals the row count after the addition and its
-  pinned `REQUIRED` count equals the row count after the fourteen are added;
-  in a temp copy with any one of the fourteen markers removed from its file
+  pinned `REQUIRED` count equals the row count after the fifteen are added;
+  in a temp copy with any one of the fifteen markers removed from its file
   the linter exits non-zero with that row's `fix` string; for row p13 the
   check is run once per producer (REQ-LINT-PIPELINEOBSERVABILITY-001; the
   fourteen owning requirements).

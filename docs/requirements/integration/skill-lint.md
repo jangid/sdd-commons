@@ -554,9 +554,9 @@ requirement carries the numbers as its own comparand; this one names the two
 surfaces that must agree. On 2026-09-22 the surfaces agree at `REQUIRED=42
 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14` (measured with `python3
 plugins/sdd/tools/skill-lint.py --print-population`); the
-pipeline-observability delta — fourteen `REQUIRED` rows under
+pipeline-observability delta — fifteen `REQUIRED` rows (p1–p14 at the requirements stage; p15 added by the implement-stage fix, Q-IMPL-PIPELINEOBSERVABILITY-011) under
 REQ-REV-PIPELINEOBSERVABILITY-001 and one `FORBIDDEN` row under
-REQ-LINT-PIPELINEOBSERVABILITY-001 — lands `REQUIRED=56 FORBIDDEN=15`, and §6
+REQ-LINT-PIPELINEOBSERVABILITY-001 — lands `REQUIRED=57 FORBIDDEN=15`, and §6
 moves with it. This is the only place in the corpus where a row population is
 compared against a number; REQ-PKG-PACKAGING-004's "carried, not re-measured"
 governs the populations **as evidence** and explicitly reserves this one
@@ -582,71 +582,73 @@ table at run time rather than written into the flag; the three-way equality
 holds today — the printed counts equal the code tables' row counts and equal
 the numbers `docs/spec/two-root-linter.md` §6 states under its dated marker
 (`REQUIRED=42 VERSION_GATED=9 V4_CONTRACT=7 FORBIDDEN=14` on 2026-09-22,
-measured with the command above; `56` / `15` once the pipeline-observability
+measured with the command above; `57` / `15` once the pipeline-observability
 rows land); the self-test asserts the same equality, and in a temp copy it
 fails when any one of the three is changed alone — a row added to a table
 without moving §6, a number edited in §6 without a row, or a count written
 into the flag as a literal; the plan orders the task producing the flag before
 the task evaluating this criterion.
 [Priority: must]
-`[Updated: 2026-09-22]` — pipeline-observability, specs closing review C2
-(Q-REQ-PO-AL): the comparand became derived. Cause: the criterion was written
-as a frozen literal (`40 / 9 / 7 / 13`, carried from RS-PACKAGING-002) that
-every row-adding cycle had to chase in three places — this requirement, §6 and
-the self-test's pinned dict — and the pin failed the moment a delta landed.
-This requirement lagged the spec by one manual landing: the orchestrator's
-manual pin landing at the pipeline-observability research gate (two routing
-`REQUIRED` rows and one `FORBIDDEN` row, `40 / 13 → 42 / 14`) updated
-`docs/spec/two-root-linter.md` §6 and the self-test's pinned dict but not this
-requirement, which still read `40 / 13` against a tree measuring `42 / 14`
-with the command above. The pin is now a consistency check between §6's dated
-numbers and the live tables, so the fourteen `REQUIRED` rows and one
-`FORBIDDEN` row this cycle adds move §6 to `56 / 15` instead of breaking a
-frozen number; the same hits are also reconciled in
-REQ-LINT-PIPELINEOBSERVABILITY-001's and REQ-REV-PIPELINEOBSERVABILITY-001's
-second sweep blocks, which state the post-delta populations.
-**Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, Q-REQ-PO-AL,
-2026-09-22)** over the binding statement of this amendment — the population
-comparand is the three-way equality, and the numbers live in
-`docs/spec/two-root-linter.md` §6 under a dated marker. A listing grep over
-`docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents
-plugins/sdd/tools/skill-lint.py`; hits in this requirement's own text and in
-the index rows citing it are the statement itself and are excluded.
-Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py -type f ! -path docs/requirements/integration/skill-lint.md -exec grep -nHE 'REQUIRED=|FORBIDDEN=|print-population|population' {} +`.
-`docs/spec/two-root-linter.md` §6 (the criterion sentence at `42 / 9 / 7 /
-14`), its §Acceptance Criteria bullet naming "the four §6 populations by name
-and value" and Q-IMPL-PACKAGING-001 (quoting §6) — reconciled, §6 is the
-second live surface of the equality; the specs stage places its numbers under
-the dated marker and moves them to `56 / 15` with the rows;
-`plugins/sdd/tools/skill-lint.py` self-test `pinned` dict (`42 / 14`, with the
-research-gate comment) — reconciled, the dict's assertion becomes the
-three-way equality and reads `56 / 15` after the delta;
-`docs/spec/skill-lint-v5.md` §Self-Test Extension (formerly "grows by
-exactly six" (harness-p6), now "grows by exactly fourteen" under the
-2026-09-22 marker; `grep -c 'grows by exactly fourteen'
-docs/spec/skill-lint-v5.md` = 2, "asserts the new total") — reconciled, the
-delta's history under its dated marker; the new total is §6's dated number; `docs/requirements/integration/packaging.md`
-REQ-PKG-PACKAGING-004 ("compared once … `REQUIRED=40 … FORBIDDEN=13`", "the
-56 suite-gated rows" = 40 + 9 + 7) — reconciled by naming this requirement as
-the mover; the sentence records the packaging cycle's numbers as of its date
-and is another workstream's shared body, not rewritten here;
-`docs/requirements/index.md` packaging item coverage and Q-REQ-PKG-B
-(`40 / 13`) — reconciled, the packaging ledger's history;
-`docs/spec/skill-lint-v5.md` (the `--print-population` summary sentence),
-`docs/spec/marketplace-packaging.md`, `docs/spec/pre-commit.md`,
-`docs/spec/skill-namespace-rename.md`, `docs/spec/adversarial-verify.md`,
-`docs/requirements/integration/naming.md` and the linter's `policed_*` tuples
-— reconciled, a different subject (bundled-tool and policed-area populations,
-no rule-table count); `plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no
-hit.
-Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
-files the `-l` listing names: `docs/requirements/functional/review.md`
-(REQ-REV-PIPELINEOBSERVABILITY-001's rule-table population re-run) —
-reconciled, the same re-run; `docs/spec/requirements-artifacts.md` (the
-amended-row population of REQ-REQ-PIPELINEOBSERVABILITY-001 (d)) — a
-different subject, reconciled; `docs/spec/pipeline-observability.md` —
-reconciled, the cycle's index spec, it lists Q-SPEC-PO-U, the
-`--print-population` equality by citation of -007.
+> **Amended 2026-09-22** (workstream `pipeline-observability`,
+> specs closing review C2, Q-REQ-PO-AL; the stated totals moved `56 → 57` at the
+> verify-stage red round R1, index 27.8) `[Updated: 2026-09-22]`: the comparand
+> became derived. Cause: the criterion was written
+> as a frozen literal (`40 / 9 / 7 / 13`, carried from RS-PACKAGING-002) that
+> every row-adding cycle had to chase in three places — this requirement, §6 and
+> the self-test's pinned dict — and the pin failed the moment a delta landed.
+> This requirement lagged the spec by one manual landing: the orchestrator's
+> manual pin landing at the pipeline-observability research gate (two routing
+> `REQUIRED` rows and one `FORBIDDEN` row, `40 / 13 → 42 / 14`) updated
+> `docs/spec/two-root-linter.md` §6 and the self-test's pinned dict but not this
+> requirement, which still read `40 / 13` against a tree measuring `42 / 14`
+> with the command above. The pin is now a consistency check between §6's dated
+> numbers and the live tables, so the fifteen `REQUIRED` rows and one
+> `FORBIDDEN` row this cycle adds move §6 to `57 / 15` instead of breaking a
+> frozen number; the same hits are also reconciled in
+> REQ-LINT-PIPELINEOBSERVABILITY-001's and REQ-REV-PIPELINEOBSERVABILITY-001's
+> second sweep blocks, which state the post-delta populations.
+> **Corpus sweep (REQ-REQ-PIPELINEOBSERVABILITY-001 (e), Q-REQ-PO-AG, Q-REQ-PO-AL,
+> 2026-09-22)** over the binding statement of this amendment — the population
+> comparand is the three-way equality, and the numbers live in
+> `docs/spec/two-root-linter.md` §6 under a dated marker. A listing grep over
+> `docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents
+> plugins/sdd/tools/skill-lint.py`; hits in this requirement's own text and in
+> the index rows citing it are the statement itself and are excluded.
+> Command: `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py -type f ! -path docs/requirements/integration/skill-lint.md -exec grep -nHE 'REQUIRED=|FORBIDDEN=|print-population|population' {} +`.
+> `docs/spec/two-root-linter.md` §6 (the criterion sentence at `42 / 9 / 7 /
+> 14`), its §Acceptance Criteria bullet naming "the four §6 populations by name
+> and value" and Q-IMPL-PACKAGING-001 (quoting §6) — reconciled, §6 is the
+> second live surface of the equality; the specs stage places its numbers under
+> the dated marker and moves them to `57 / 15` with the rows;
+> `plugins/sdd/tools/skill-lint.py` self-test `pinned` dict (`42 / 14`, with the
+> research-gate comment) — reconciled, the dict's assertion becomes the
+> three-way equality and reads `57 / 15` after the delta;
+> `docs/spec/skill-lint-v5.md` §Self-Test Extension (formerly "grows by
+> exactly six" (harness-p6), now "grows by exactly fifteen" under the
+> 2026-09-22 marker; `grep -c 'grows by exactly fifteen'
+> docs/spec/skill-lint-v5.md` = 2, "asserts the new total") — reconciled, the
+> delta's history under its dated marker; the new total is §6's dated number; `docs/requirements/integration/packaging.md`
+> REQ-PKG-PACKAGING-004 ("compared once … `REQUIRED=40 … FORBIDDEN=13`", "the
+> 56 suite-gated rows" = 40 + 9 + 7) — reconciled by naming this requirement as
+> the mover; the sentence records the packaging cycle's numbers as of its date
+> and is another workstream's shared body, not rewritten here;
+> `docs/requirements/index.md` packaging item coverage and Q-REQ-PKG-B
+> (`40 / 13`) — reconciled, the packaging ledger's history;
+> `docs/spec/skill-lint-v5.md` (the `--print-population` summary sentence),
+> `docs/spec/marketplace-packaging.md`, `docs/spec/pre-commit.md`,
+> `docs/spec/skill-namespace-rename.md`, `docs/spec/adversarial-verify.md`,
+> `docs/requirements/integration/naming.md` and the linter's `policed_*` tuples
+> — reconciled, a different subject (bundled-tool and policed-area populations,
+> no rule-table count); `plugins/sdd/skills/**`, `plugins/sdd/agents/**` — no
+> hit.
+> Re-run under the path-precise form (Q-REQ-PO-AN, 2026-09-22), the further
+> files the `-l` listing names: `docs/requirements/functional/review.md`
+> (REQ-REV-PIPELINEOBSERVABILITY-001's rule-table population re-run) —
+> reconciled, the same re-run; `docs/spec/requirements-artifacts.md` (the
+> amended-row population of REQ-REQ-PIPELINEOBSERVABILITY-001 (d)) — a
+> different subject, reconciled; `docs/spec/pipeline-observability.md` —
+> reconciled, the cycle's index spec, it lists Q-SPEC-PO-U, the
+> `--print-population` equality by citation of -007.
 
 ### REQ-LINT-PACKAGING-008: The retired front door's filename is dropped from both tuples together
 The retired front door's filename —
@@ -739,24 +741,24 @@ the swept trees; its row is the acceptance above);
 Re-run with the population terms (specs closing review C2, Q-REQ-PO-AL,
 2026-09-22) —
 `find docs/requirements docs/spec plugins/sdd/skills plugins/sdd/agents plugins/sdd/tools/skill-lint.py -type f ! -path docs/requirements/integration/skill-lint.md -exec grep -nHE 'REQUIRED=|FORBIDDEN=|print-population|population' {} +`:
-the post-delta populations this cycle lands are `REQUIRED=56` (42 today,
+the post-delta populations this cycle lands are `REQUIRED=57` (42 today,
 measured with `python3 plugins/sdd/tools/skill-lint.py --print-population`,
-plus the fourteen rows p1–p14 of `docs/spec/skill-lint-v5.md` §`REQUIRED`
+plus the fifteen rows p1–p15 of `docs/spec/skill-lint-v5.md` §`REQUIRED`
 Rows — Pipeline-Observability) and `FORBIDDEN=15` (14 today, plus this
 requirement's `literal-anchor` row), and the requirement that moves them is
 REQ-LINT-PACKAGING-007 as amended. `docs/spec/two-root-linter.md` §6 (the
 criterion sentence at `42 / 9 / 7 / 14`), its §Acceptance Criteria bullet
 ("the four §6 populations by name and value") and Q-IMPL-PACKAGING-001
 (quoting §6) — reconciled, §6 is the second live surface of -007's three-way
-equality: after the delta it reads `REQUIRED=56 VERSION_GATED=9 V4_CONTRACT=7
+equality: after the delta it reads `REQUIRED=57 VERSION_GATED=9 V4_CONTRACT=7
 FORBIDDEN=15` under a dated marker, moved by the specs stage;
 `plugins/sdd/tools/skill-lint.py` self-test `pinned` dict (`42 / 14`, with the
-research-gate comment) — reconciled, post-delta `56 / 15`, and its assertion
+research-gate comment) — reconciled, post-delta `57 / 15`, and its assertion
 becomes -007's three-way equality; REQ-LINT-PACKAGING-007 — the mover,
 amended; `docs/spec/skill-lint-v5.md` §Self-Test Extension ("grows by exactly
 six", "asserts the new total") — reconciled, the harness-p5 six-row delta's
-history; the new total is §6's dated number, and the fourteen rows move it
-`42 → 56`; `docs/requirements/integration/packaging.md`
+history; the new total is §6's dated number, and the fifteen rows move it
+`42 → 57`; `docs/requirements/integration/packaging.md`
 REQ-PKG-PACKAGING-004 ("compared once … `REQUIRED=40 … FORBIDDEN=13`", "the
 56 suite-gated rows" = 40 + 9 + 7) — reconciled by naming the mover: the
 sentence records the packaging cycle's numbers as of its date and delegates the
